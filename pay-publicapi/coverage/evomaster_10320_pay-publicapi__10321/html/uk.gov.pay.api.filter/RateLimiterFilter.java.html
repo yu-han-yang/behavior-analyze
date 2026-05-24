@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimiterFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.filter</a> &gt; <span class="el_source">RateLimiterFilter.java</span></div><h1>RateLimiterFilter.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.filter;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.filter.ratelimit.RateLimitException;
+import uk.gov.pay.api.filter.ratelimit.RateLimiter;
+import uk.gov.pay.api.resources.error.ApiErrorResponse.Code;
+
+import javax.annotation.Priority;
+import javax.inject.Inject;
+import javax.ws.rs.Priorities;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Variant;
+import javax.ws.rs.ext.Provider;
+import java.io.IOException;
+import java.util.Optional;
+
+import static uk.gov.pay.api.resources.error.ApiErrorResponse.anApiErrorResponse;
+
+/**
+ * Allow only a certain number of requests from the same source (given by the Authorization Header)
+ * within the given time configured in the RateLimiter. See {@link RateLimiter}
+ * &lt;p&gt;
+ * 429 Too Many Requests will be returned when rate limit is reached.
+ */
+@Provider
+@Priority(Priorities.USER + 1000)
+public class RateLimiterFilter implements ContainerRequestFilter {
+
+<span class="fc" id="L37">    private static final Logger LOGGER = LoggerFactory.getLogger(RateLimiterFilter.class);</span>
+    private static final int TOO_MANY_REQUESTS_STATUS_CODE = 429;
+    private static final String UTF8_CHARACTER_ENCODING = &quot;utf-8&quot;;
+
+    private final RateLimiter rateLimiter;
+    private ObjectMapper objectMapper;
+
+    /**
+     * @param rateLimiter Limiter in number of requests per given time coming from the same source (Authorization)
+     */
+    @Inject
+<span class="fc" id="L48">    public RateLimiterFilter(RateLimiter rateLimiter, ObjectMapper objectMapper) {</span>
+<span class="fc" id="L49">        this.rateLimiter = rateLimiter;</span>
+<span class="fc" id="L50">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L51">    }</span>
+
+    private void setTooManyRequestsError() throws IOException {
+<span class="nc" id="L54">        String errorResponse = objectMapper.writeValueAsString(anApiErrorResponse(Code.TOO_MANY_REQUESTS_ERROR));</span>
+<span class="nc" id="L55">        Response.ResponseBuilder builder = Response.status(TOO_MANY_REQUESTS_STATUS_CODE)</span>
+<span class="nc" id="L56">                .entity(errorResponse)</span>
+<span class="nc" id="L57">                .encoding(UTF8_CHARACTER_ENCODING)</span>
+<span class="nc" id="L58">                .variant(new Variant(MediaType.APPLICATION_JSON_TYPE, &quot;&quot;, UTF8_CHARACTER_ENCODING));</span>
+
+<span class="nc" id="L60">        throw new WebApplicationException(builder.build());</span>
+    }
+
+    @Override
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (&quot;healthcheck&quot;.equals(requestContext.getUriInfo().getPath())) {</span>
+<span class="nc" id="L66">            return;</span>
+        }
+
+<span class="nc" id="L69">        String accountId = getAccountId(requestContext);</span>
+<span class="nc" id="L70">        RateLimiterKey key = RateLimiterKey.from(requestContext, accountId);</span>
+        try {
+<span class="nc" id="L72">            rateLimiter.checkRateOf(accountId, key);</span>
+<span class="nc" id="L73">        } catch (RateLimitException e) {</span>
+<span class="nc" id="L74">            LOGGER.info(&quot;Rate limit reached for current service [account - {}, method - {}]. Sending response '429 Too Many Requests'&quot;,</span>
+<span class="nc" id="L75">                    accountId, key.getMethod());</span>
+<span class="nc" id="L76">            setTooManyRequestsError();</span>
+<span class="nc" id="L77">        }</span>
+<span class="nc" id="L78">    }</span>
+
+    private String getAccountId(ContainerRequestContext requestContext) {
+<span class="nc" id="L81">        Account account = (Account) requestContext.getSecurityContext().getUserPrincipal();</span>
+<span class="nc" id="L82">        return Optional.ofNullable(account)</span>
+<span class="nc" id="L83">                .map(Account::getAccountId)</span>
+<span class="nc" id="L84">                .orElse(StringUtils.EMPTY);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NavIdentConverter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">NavIdentConverter.java</span></div><h1>NavIdentConverter.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
+
+@Converter
+<span class="fc" id="L7">public class NavIdentConverter implements AttributeConverter&lt;NavIdent, String&gt; {</span>
+
+    @Override
+    public String convertToDatabaseColumn(NavIdent attribute) {
+<span class="nc bnc" id="L11" title="All 2 branches missed.">        if (attribute == null) return null;</span>
+<span class="nc" id="L12">        return attribute.asString();</span>
+    }
+
+    @Override
+    public NavIdent convertToEntityAttribute(String dbData) {
+<span class="nc bnc" id="L17" title="All 2 branches missed.">        if (dbData == null) return null;</span>
+<span class="nc" id="L18">        return new NavIdent(dbData);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

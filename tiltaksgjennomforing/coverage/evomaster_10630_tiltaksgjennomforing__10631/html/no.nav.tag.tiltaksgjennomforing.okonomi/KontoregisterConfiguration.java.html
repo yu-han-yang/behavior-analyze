@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KontoregisterConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.okonomi</a> &gt; <span class="el_source">KontoregisterConfiguration.java</span></div><h1>KontoregisterConfiguration.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.okonomi;
+
+import no.nav.security.token.support.client.core.ClientProperties;
+import no.nav.security.token.support.client.core.oauth2.OAuth2AccessTokenResponse;
+import no.nav.security.token.support.client.core.oauth2.OAuth2AccessTokenService;
+import no.nav.security.token.support.client.spring.ClientConfigurationProperties;
+import no.nav.security.token.support.client.spring.oauth2.EnableOAuth2Client;
+import no.nav.tag.tiltaksgjennomforing.utils.ConditionalOnPropertyNotEmpty;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Optional;
+
+@EnableOAuth2Client(cacheEnabled = true)
+@Configuration
+@ConditionalOnPropertyNotEmpty(&quot;tiltaksgjennomforing.kontoregister.azureConfig&quot;)
+<span class="nc" id="L20">class KontoregisterConfiguration {</span>
+
+    /*
+     * Create one RestTemplate per OAuth2 client entry to separate between different scopes per API
+     */
+    @Bean(&quot;azure&quot;)
+    RestTemplate downstreamResourceRestTemplate(RestTemplateBuilder restTemplateBuilder,
+                                         ClientConfigurationProperties clientConfigurationProperties,
+                                         OAuth2AccessTokenService oAuth2AccessTokenService) {
+
+<span class="nc" id="L30">        ClientProperties clientProperties =</span>
+<span class="nc" id="L31">                Optional.ofNullable(clientConfigurationProperties.getRegistration().get(&quot;kontoregister&quot;))</span>
+<span class="nc" id="L32">                        .orElseThrow(() -&gt; new RuntimeException(&quot;could not find oauth2 client config for kontoregister&quot;));</span>
+<span class="nc" id="L33">        return restTemplateBuilder</span>
+<span class="nc" id="L34">                .additionalInterceptors(bearerTokenInterceptor(clientProperties, oAuth2AccessTokenService))</span>
+<span class="nc" id="L35">                .build();</span>
+    }
+
+
+    private ClientHttpRequestInterceptor bearerTokenInterceptor(ClientProperties clientProperties,
+                                                                OAuth2AccessTokenService oAuth2AccessTokenService) {
+<span class="nc" id="L41">        return (request, body, execution) -&gt; {</span>
+<span class="nc" id="L42">            OAuth2AccessTokenResponse response =</span>
+<span class="nc" id="L43">                    oAuth2AccessTokenService.getAccessToken(clientProperties);</span>
+<span class="nc" id="L44">            request.getHeaders().setBearerAuth(response.getAccessToken());</span>
+<span class="nc" id="L45">            return execution.execute(request, body);</span>
+        };
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

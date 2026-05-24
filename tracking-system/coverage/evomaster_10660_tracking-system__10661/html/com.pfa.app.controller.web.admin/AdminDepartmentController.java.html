@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminDepartmentController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.controller.web.admin</a> &gt; <span class="el_source">AdminDepartmentController.java</span></div><h1>AdminDepartmentController.java</h1><pre class="source lang-java linenums">package com.pfa.app.controller.web.admin;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.pfa.app.model.entity.Department;
+import com.pfa.app.service.DepartmentService;
+import com.pfa.app.service.LocationService;
+
+@Controller
+@RequestMapping(value = {&quot;/admins/departments&quot;})
+public class AdminDepartmentController {
+	
+	private final DepartmentService departmentService;
+	private final LocationService locationService;
+<span class="fc" id="L25">	private static final Logger logger = LoggerFactory.getLogger(AdminDepartmentController.class);</span>
+	
+	static {
+<span class="fc" id="L28">		logger.info(&quot;************ entering &quot; + AdminDepartmentController.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L29">	}</span>
+	
+	@Autowired
+<span class="fc" id="L32">	public AdminDepartmentController(final DepartmentService departmentService, final LocationService locationService) {</span>
+<span class="fc" id="L33">		this.departmentService = departmentService;</span>
+<span class="fc" id="L34">		this.locationService = locationService;</span>
+<span class="fc" id="L35">	}</span>
+
+	@GetMapping(value = {&quot;/&quot;, &quot;/admin-departments-list&quot;})
+	public String displayAdminDepartmentsList(final Model model) {
+		
+<span class="nc" id="L40">		model.addAttribute(&quot;departments&quot;, this.departmentService.findAll().getCollection());</span>
+<span class="nc" id="L41">		return &quot;admins/departments/admin-departments-list&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-departments-add&quot;, &quot;/add&quot;})
+	public String displayAdminDepartmentsAdd(final Model model) {
+		
+<span class="nc" id="L47">		model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L48">		model.addAttribute(&quot;department&quot;, new Department());</span>
+<span class="nc" id="L49">		return &quot;admins/departments/admin-departments-add&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-departments-add&quot;, &quot;/add&quot;})
+	public String handleAdminDepartmentsAdd(@ModelAttribute(&quot;department&quot;) final Department department, @RequestParam(&quot;locationId&quot;) final String locationId, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L55" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L56">			model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L57">			model.addAttribute(&quot;department&quot;, new Department());</span>
+<span class="nc" id="L58">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again !&quot;);</span>
+<span class="nc" id="L59">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L60">			return &quot;admins/departments/admin-departments-add&quot;;</span>
+		}
+		
+<span class="nc" id="L63">		department.setLocation(this.locationService.findById(Integer.parseInt(locationId)));</span>
+		
+<span class="nc" id="L65">		this.departmentService.save(department);</span>
+<span class="nc" id="L66">		logger.info(&quot;department with departmentId : {} has been saved successfully&quot;, department.getDepartmentId());</span>
+		
+<span class="nc" id="L68">		model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L69">		model.addAttribute(&quot;msg&quot;, &quot;This department has been created successfully&quot;);</span>
+<span class="nc" id="L70">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L72">		return &quot;admins/departments/admin-departments-add&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-departments-edit&quot;, &quot;/edit&quot;})
+	public String displayAdminDepartmentsEdit(@RequestParam(&quot;departmentId&quot;) final String departmentId, final Model model) {
+		
+<span class="nc" id="L78">		model.addAttribute(&quot;department&quot;, this.departmentService.findById(Integer.parseInt(departmentId)));</span>
+<span class="nc" id="L79">		model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L80">		return &quot;admins/departments/admin-departments-edit&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-departments-edit&quot;, &quot;/edit&quot;})
+	public String handleAdminDepartmentsEdit(@ModelAttribute(&quot;department&quot;) final Department department, @RequestParam(&quot;locationId&quot;) final String locationId, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L86" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L87">			model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L88">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again !&quot;);</span>
+<span class="nc" id="L89">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L90">			return &quot;admins/departments/admin-departments-edit&quot;;</span>
+		}
+		
+<span class="nc" id="L93">		department.setLocation(this.locationService.findById(Integer.parseInt(locationId)));</span>
+		
+<span class="nc" id="L95">		this.departmentService.update(department);</span>
+<span class="nc" id="L96">		logger.info(&quot;department with departmentId : {} has been modified successfully&quot;, department.getDepartmentId());</span>
+		
+<span class="nc" id="L98">		model.addAttribute(&quot;listLocation&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L99">		model.addAttribute(&quot;msg&quot;, &quot;This department has been modified successfully&quot;);</span>
+<span class="nc" id="L100">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L102">		return &quot;admins/departments/admin-departments-edit&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-departments-delete&quot;, &quot;/delete&quot;})
+	public String handleAdminDepartmentsDelete(@RequestParam(&quot;departmentId&quot;) final String departmentId) {
+		
+<span class="nc" id="L108">		this.departmentService.deleteById(Integer.parseInt(departmentId));</span>
+<span class="nc" id="L109">		logger.info(&quot;Department with departmentId : {} has been removed successfully&quot;, departmentId);</span>
+		
+<span class="nc" id="L111">		return &quot;redirect:/admins/departments/admin-departments-list&quot;;</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

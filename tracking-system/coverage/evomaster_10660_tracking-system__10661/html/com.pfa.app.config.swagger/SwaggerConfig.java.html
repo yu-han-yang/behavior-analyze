@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SwaggerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.config.swagger</a> &gt; <span class="el_source">SwaggerConfig.java</span></div><h1>SwaggerConfig.java</h1><pre class="source lang-java linenums">package com.pfa.app.config.swagger;
+
+import static springfox.documentation.builders.PathSelectors.regex;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.Contact;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+@EnableSwagger2
+@Configuration
+@Profile(value = {&quot;dev&quot;, &quot;qa&quot;})
+<span class="fc" id="L22">public class SwaggerConfig {</span>
+	
+	private static final String BASE_PACKAGE = &quot;com.pfa.app.controller.api&quot;;
+<span class="fc" id="L25">	private static final Logger logger = LoggerFactory.getLogger(SwaggerConfig.class);</span>
+	
+	static {
+<span class="fc" id="L28">		logger.info(&quot;************ entering &quot; + SwaggerConfig.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L29">	}</span>
+	
+	@Bean
+	public Docket productApi() {
+<span class="fc" id="L33">		return new Docket(DocumentationType.SWAGGER_2)</span>
+<span class="fc" id="L34">				.select()</span>
+<span class="fc" id="L35">				.apis(RequestHandlerSelectors.basePackage(BASE_PACKAGE))</span>
+<span class="fc" id="L36">				.paths(regex(&quot;/.*&quot;))</span>
+<span class="fc" id="L37">				.build()</span>
+<span class="fc" id="L38">				.apiInfo(this.metaData());</span>
+	}
+
+	private ApiInfo metaData() {
+		
+<span class="fc" id="L43">		final String title = &quot;Project Tracking System&quot;;</span>
+<span class="fc" id="L44">		final String description = &quot;Manage and track commits transactions by Employees and their Managers on a specific project.\n&quot;</span>
+				+ &quot;- Employees can be assigned to projects created and managed by their managers, can add a new commits to a specific project so manager can track its progression\n&quot;
+				+ &quot;- Managers can create, edit &amp; delete projects, also assign them to their employees and track them efficiently &amp; easily\n&quot;
+				+ &quot;- Admin manages all Employees as well as their credentials &amp; departments\n&quot;
+				+ &quot;For more, you can check more on our GitHub repositories : \n&quot;
+				+ &quot;- Selim Horri: https://github.com/SelimHorri \n&quot;
+				+ &quot;- Imen Toukebri: https://github.com/imen1012 \n&quot;
+				+ &quot;- Bader Idoudi: https://github.com/Bader1996 \n&quot;;
+<span class="fc" id="L52">		final String version = &quot;9.0&quot;;</span>
+<span class="fc" id="L53">		final String termsOfServiceUrl = &quot;Terms of service&quot;;</span>
+<span class="fc" id="L54">		final String name = &quot;Selim Horri, Imen Touk, Badr Idoudi&quot;;</span>
+<span class="fc" id="L55">		final String url = &quot;https://github.com/SelimHorri/project-tracking-system-backend-app&quot;;</span>
+<span class="fc" id="L56">		final String email = &quot;springabcxyz@gmail.com&quot;;</span>
+<span class="fc" id="L57">		final Contact contact = new Contact(name, url, email);</span>
+<span class="fc" id="L58">		final String license = &quot;Apache Licence version 2.0&quot;;</span>
+<span class="fc" id="L59">		final String licenseUrl = &quot;https://apache.org/license.html&quot;;</span>
+		
+<span class="fc" id="L61">		return new ApiInfoBuilder()</span>
+<span class="fc" id="L62">				.title(title)</span>
+<span class="fc" id="L63">				.description(description)</span>
+<span class="fc" id="L64">				.version(version)</span>
+<span class="fc" id="L65">				.termsOfServiceUrl(termsOfServiceUrl)</span>
+<span class="fc" id="L66">				.contact(contact)</span>
+<span class="fc" id="L67">				.license(license)</span>
+<span class="fc" id="L68">				.licenseUrl(licenseUrl)</span>
+<span class="fc" id="L69">				.build();</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

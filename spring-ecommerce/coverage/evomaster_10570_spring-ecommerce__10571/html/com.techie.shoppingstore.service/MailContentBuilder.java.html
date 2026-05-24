@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MailContentBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.techie.shoppingstore.service</a> &gt; <span class="el_source">MailContentBuilder.java</span></div><h1>MailContentBuilder.java</h1><pre class="source lang-java linenums">package com.techie.shoppingstore.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+
+@Service
+public class MailContentBuilder {
+    private TemplateEngine templateEngine;
+
+    @Autowired
+<span class="fc" id="L13">    public MailContentBuilder(TemplateEngine templateEngine) {</span>
+<span class="fc" id="L14">        this.templateEngine = templateEngine;</span>
+<span class="fc" id="L15">    }</span>
+
+    String build(String message) {
+<span class="nc" id="L18">        Context context = new Context();</span>
+<span class="nc" id="L19">        context.setVariable(&quot;message&quot;, message);</span>
+<span class="nc" id="L20">        return templateEngine.process(&quot;mailTemplate&quot;, context);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

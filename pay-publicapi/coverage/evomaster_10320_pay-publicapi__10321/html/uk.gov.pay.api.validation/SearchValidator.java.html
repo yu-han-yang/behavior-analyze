@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.validation</a> &gt; <span class="el_source">SearchValidator.java</span></div><h1>SearchValidator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.validation;
+
+import uk.gov.service.payments.commons.validation.DateTimeUtils;
+import uk.gov.service.payments.commons.validation.DateValidator;
+
+import java.util.List;
+
+import static org.eclipse.jetty.util.StringUtil.isNotBlank;
+
+<span class="nc" id="L10">class SearchValidator {</span>
+
+    static void validatePageIfNotNull(String pageNumber, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L13" title="All 6 branches missed.">        if (isNotBlank(pageNumber) &amp;&amp; (!NumericValidator.isValid(pageNumber) || Integer.parseInt(pageNumber) &lt; 1)) {</span>
+<span class="nc" id="L14">            validationErrors.add(&quot;page&quot;);</span>
+        }
+<span class="nc" id="L16">    }</span>
+
+    static void validateDisplaySizeIfNotNull(String displaySize, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L19" title="All 8 branches missed.">        if (isNotBlank(displaySize) &amp;&amp; (!NumericValidator.isValid(displaySize) || Integer.parseInt(displaySize) &lt; 1 || Integer.parseInt(displaySize) &gt; 500)) {</span>
+<span class="nc" id="L20">            validationErrors.add(&quot;display_size&quot;);</span>
+        }
+<span class="nc" id="L22">    }</span>
+
+    static void validateToDate(String toDate, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L25" title="All 2 branches missed.">        if (!DateValidator.isValid(toDate)) {</span>
+<span class="nc" id="L26">            validationErrors.add(&quot;to_date&quot;);</span>
+        }
+<span class="nc" id="L28">    }</span>
+
+    static void validateFromDate(String fromDate, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        if (!DateValidator.isValid(fromDate)) {</span>
+<span class="nc" id="L32">            validationErrors.add(&quot;from_date&quot;);</span>
+        }
+<span class="nc" id="L34">    }</span>
+
+    static void validateFromSettledDate(String fromSettledDate, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L37" title="All 4 branches missed.">        if (isNotBlank(fromSettledDate) &amp;&amp; !DateTimeUtils.fromLocalDateOnlyString(fromSettledDate).isPresent()) {</span>
+<span class="nc" id="L38">            validationErrors.add(&quot;from_settled_date&quot;);</span>
+        }
+<span class="nc" id="L40">    }</span>
+
+    static void validateToSettledDate(String toSettledDate, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L43" title="All 4 branches missed.">        if (isNotBlank(toSettledDate) &amp;&amp; !DateTimeUtils.fromLocalDateOnlyString(toSettledDate).isPresent()) {</span>
+<span class="nc" id="L44">            validationErrors.add(&quot;to_settled_date&quot;);</span>
+        }
+<span class="nc" id="L46">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

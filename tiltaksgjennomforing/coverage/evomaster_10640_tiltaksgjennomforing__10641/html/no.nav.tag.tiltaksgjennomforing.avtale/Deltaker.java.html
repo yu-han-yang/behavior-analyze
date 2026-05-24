@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Deltaker.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Deltaker.java</span></div><h1>Deltaker.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetBruker;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetDeltaker;
+import no.nav.tag.tiltaksgjennomforing.exceptions.TilgangskontrollException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.UUID;
+
+public class Deltaker extends Avtalepart&lt;Fnr&gt; {
+
+    public Deltaker(Fnr identifikator) {
+<span class="nc" id="L15">        super(identifikator);</span>
+<span class="nc" id="L16">    }</span>
+
+    @Override
+    public Avtale hentAvtale(AvtaleRepository avtaleRepository, UUID avtaleId) {
+<span class="nc" id="L20">        Avtale avtale = super.hentAvtale(avtaleRepository,avtaleId);</span>
+<span class="nc" id="L21">        return skjulMentorFødselsnummer(avtale);</span>
+    }
+    @Override
+    public boolean harTilgangTilAvtale(Avtale avtale) {
+<span class="nc" id="L25">        return avtale.getDeltakerFnr().equals(getIdentifikator());</span>
+    }
+
+    @Override
+    Page&lt;Avtale&gt; hentAlleAvtalerMedMuligTilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, Pageable pageable) {
+
+<span class="nc" id="L31">        Page&lt;Avtale&gt; avtaler = avtaleRepository.findAllByDeltakerFnr(getIdentifikator(), pageable);</span>
+<span class="nc" id="L32">        Page&lt;Avtale&gt; filtrereAvtalerKanske = avtaler.map(this::skjulMentorFødselsnummer);</span>
+<span class="nc" id="L33">        return filtrereAvtalerKanske;</span>
+    }
+
+    private Avtale skjulMentorFødselsnummer(Avtale avtale){
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if(avtale.getTiltakstype() == Tiltakstype.MENTOR) {</span>
+<span class="nc" id="L38">            avtale.setMentorFnr(null);</span>
+<span class="nc" id="L39">            avtale.getGjeldendeInnhold().setMentorTimelonn(null);</span>
+        }
+<span class="nc" id="L41">        return avtale;</span>
+    }
+
+    @Override
+    public void godkjennForAvtalepart(Avtale avtale) {
+<span class="nc" id="L46">        avtale.godkjennForDeltaker(getIdentifikator());</span>
+<span class="nc" id="L47">    }</span>
+
+    @Override
+    public boolean kanEndreAvtale() {
+<span class="nc" id="L51">        return false;</span>
+    }
+
+    @Override
+    public boolean erGodkjentAvInnloggetBruker(Avtale avtale) {
+<span class="nc" id="L56">        return avtale.erGodkjentAvDeltaker();</span>
+    }
+
+
+    @Override
+    boolean kanOppheveGodkjenninger(Avtale avtale) {
+<span class="nc" id="L62">        return false;</span>
+    }
+
+    @Override
+    void opphevGodkjenningerSomAvtalepart(Avtale avtale) {
+<span class="nc" id="L67">        throw new TilgangskontrollException(&quot;Deltaker kan ikke oppheve godkjenninger&quot;);</span>
+    }
+
+    @Override
+    protected Avtalerolle rolle() {
+<span class="nc" id="L72">        return Avtalerolle.DELTAKER;</span>
+    }
+
+    @Override
+    public InnloggetBruker innloggetBruker() {
+<span class="nc" id="L77">        return new InnloggetDeltaker(getIdentifikator());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

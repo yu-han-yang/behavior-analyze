@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MailBox.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.utils</a> &gt; <span class="el_source">MailBox.java</span></div><h1>MailBox.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.utils;
+
+/**
+ * Created by daniel on 17-04-2016.
+ */
+
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.RegisterRequest;
+
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import java.util.Date;
+import java.util.Properties;
+
+/**
+ * Created by daniel on 2016.04.17
+ */
+public class MailBox {
+<span class="nc" id="L21">    private static String PROXYPRINT_EMAIL = &quot;proxyprint.pt@gmail.com&quot;;</span>
+<span class="nc" id="L22">    private static String PROXYPRINT_PASSWORD = &quot;cenasmaradas&quot;;</span>
+<span class="nc" id="L23">    final String SSL_FACTORY = &quot;javax.net.ssl.SSLSocketFactory&quot;;</span>
+
+    private Properties props;
+
+<span class="nc" id="L27">    public MailBox() {</span>
+        // Set properties
+<span class="nc" id="L29">        props = System.getProperties();</span>
+<span class="nc" id="L30">        props.setProperty(&quot;mail.smtp.host&quot;, &quot;smtp.gmail.com&quot;);</span>
+<span class="nc" id="L31">        props.setProperty(&quot;mail.smtp.socketFactory.class&quot;, SSL_FACTORY);</span>
+<span class="nc" id="L32">        props.setProperty(&quot;mail.smtp.socketFactory.fallback&quot;, &quot;false&quot;);</span>
+<span class="nc" id="L33">        props.setProperty(&quot;mail.smtp.port&quot;, &quot;465&quot;);</span>
+<span class="nc" id="L34">        props.setProperty(&quot;mail.smtp.socketFactory.port&quot;, &quot;465&quot;);</span>
+<span class="nc" id="L35">        props.put(&quot;mail.smtp.auth&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L36">        props.put(&quot;mail.debug&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L37">        props.put(&quot;mail.store.protocol&quot;, &quot;pop3&quot;);</span>
+<span class="nc" id="L38">        props.put(&quot;mail.transport.protocol&quot;, &quot;smtp&quot;);</span>
+<span class="nc" id="L39">    }</span>
+
+    public boolean sedMailAcceptedRequest(RegisterRequest rr) {
+
+<span class="nc" id="L43">        final String username = PROXYPRINT_EMAIL;</span>
+<span class="nc" id="L44">        final String password = PROXYPRINT_PASSWORD;</span>
+        try {
+<span class="nc" id="L46">            Session session = Session.getDefaultInstance(props,</span>
+<span class="nc" id="L47">                    new Authenticator() {</span>
+                        protected PasswordAuthentication getPasswordAuthentication() {
+<span class="nc" id="L49">                            return new PasswordAuthentication(username, password);</span>
+                        }
+                    });
+
+<span class="nc" id="L53">            Message msg = new MimeMessage(session);</span>
+
+<span class="nc" id="L55">            msg.setFrom(new InternetAddress(PROXYPRINT_EMAIL));</span>
+<span class="nc" id="L56">            msg.setRecipients(Message.RecipientType.TO,</span>
+<span class="nc" id="L57">                    InternetAddress.parse(rr.getManagerEmail(), false));</span>
+<span class="nc" id="L58">            msg.setSubject(&quot;ProxyPrint&quot;);</span>
+
+<span class="nc" id="L60">            msg.setText(&quot;Caro(a), &quot; + rr.getManagerName() + &quot;, a sua reprografia (&quot;+rr.getpShopName()+&quot;) foi aceite na ProxyPrint. Já pode fazer log in na plataforma com as suas credenciais&quot; +</span>
+                    &quot;\nde acesso e entrar na área de administração da sua reprografia.\n\nCom os melhores cumprimentos,\n\nA equipa ProxyPrint&quot;);
+
+<span class="nc" id="L63">            msg.setSentDate(new Date());</span>
+<span class="nc" id="L64">            Transport.send(msg);</span>
+<span class="nc" id="L65">            return true;</span>
+<span class="nc" id="L66">        } catch (MessagingException e) {</span>
+<span class="nc" id="L67">            System.out.println(&quot;Erro no envio de email: &quot; + e);</span>
+<span class="nc" id="L68">            return false;</span>
+        }
+    }
+
+    public boolean sedMailRejectedRegisterRequest(RegisterRequest rr, String motive) {
+
+<span class="nc" id="L74">        final String username = PROXYPRINT_EMAIL;</span>
+<span class="nc" id="L75">        final String password = PROXYPRINT_PASSWORD;</span>
+        try {
+<span class="nc" id="L77">            Session session = Session.getDefaultInstance(props,</span>
+<span class="nc" id="L78">                    new Authenticator() {</span>
+                        protected PasswordAuthentication getPasswordAuthentication() {
+<span class="nc" id="L80">                            return new PasswordAuthentication(username, password);</span>
+                        }
+                    });
+
+<span class="nc" id="L84">            Message msg = new MimeMessage(session);</span>
+
+<span class="nc" id="L86">            msg.setFrom(new InternetAddress(PROXYPRINT_EMAIL));</span>
+<span class="nc" id="L87">            msg.setRecipients(Message.RecipientType.TO,</span>
+<span class="nc" id="L88">                    InternetAddress.parse(rr.getManagerEmail(), false));</span>
+<span class="nc" id="L89">            msg.setSubject(&quot;ProxyPrint&quot;);</span>
+<span class="nc" id="L90">            msg.setText(&quot;Caro(a), &quot; + rr.getManagerName() + &quot;, infelizmente o pedido de inscrição da sua reprografia (&quot;+rr.getpShopName()+&quot;), foi rejeitado.\n&quot; +</span>
+                    &quot;Motivo: &quot; + motive + &quot;\n\n&quot; +
+                    &quot;Com os melhores cumprimentos,\n&quot; +
+                    &quot;\n&quot; +
+                    &quot;A equipa ProxyPrint&quot;);
+<span class="nc" id="L95">            msg.setSentDate(new Date());</span>
+<span class="nc" id="L96">            Transport.send(msg);</span>
+<span class="nc" id="L97">            return true;</span>
+<span class="nc" id="L98">        } catch (MessagingException e) {</span>
+<span class="nc" id="L99">            System.out.println(&quot;Erro no envio de email: &quot; + e);</span>
+<span class="nc" id="L100">            return false;</span>
+        }
+    }
+
+    public void sendEmailFinishedPrintRequest(Consumer consumer, long printRequestID, String pshopName) {
+<span class="nc" id="L105">        final String username = PROXYPRINT_EMAIL;</span>
+<span class="nc" id="L106">        final String password = PROXYPRINT_PASSWORD;</span>
+        try {
+<span class="nc" id="L108">            Session session = Session.getDefaultInstance(props,</span>
+<span class="nc" id="L109">                    new Authenticator() {</span>
+                        protected PasswordAuthentication getPasswordAuthentication() {
+<span class="nc" id="L111">                            return new PasswordAuthentication(username, password);</span>
+                        }
+                    });
+
+<span class="nc" id="L115">            Message msg = new MimeMessage(session);</span>
+
+<span class="nc" id="L117">            msg.setFrom(new InternetAddress(PROXYPRINT_EMAIL));</span>
+<span class="nc" id="L118">            msg.setRecipients(Message.RecipientType.TO,</span>
+<span class="nc" id="L119">                    InternetAddress.parse(consumer.getEmail(), false));</span>
+<span class="nc" id="L120">            msg.setSubject(&quot;ProxyPrint&quot;);</span>
+<span class="nc" id="L121">            msg.setText(&quot;Olá &quot; + consumer.getName() + &quot;, o seu pedido nº #&quot;+(printRequestID)+&quot;, está pronto!\n\n&quot; +</span>
+                    &quot;Assim que quiser pode deslocar-se à reprografia &quot;+pshopName+&quot; para levantar o pedido.\n\n&quot; +
+                    &quot;Com os melhores cumprimentos,\n&quot; +
+                    &quot;\n&quot; +
+                    &quot;A equipa ProxyPrint&quot;);
+<span class="nc" id="L126">            msg.setSentDate(new Date());</span>
+<span class="nc" id="L127">            Transport.send(msg);</span>
+<span class="nc" id="L128">        } catch (MessagingException e) {</span>
+<span class="nc" id="L129">            System.out.println(&quot;Erro no envio de email: &quot; + e);</span>
+<span class="nc" id="L130">        }</span>
+<span class="nc" id="L131">    }</span>
+
+    public boolean sendEmailCancelledPrintRequest(PrintRequest preq, Consumer c, String motive) {
+
+<span class="nc" id="L135">        final String username = PROXYPRINT_EMAIL;</span>
+<span class="nc" id="L136">        final String password = PROXYPRINT_PASSWORD;</span>
+        try {
+<span class="nc" id="L138">            Session session = Session.getDefaultInstance(props,</span>
+<span class="nc" id="L139">                    new Authenticator() {</span>
+                        protected PasswordAuthentication getPasswordAuthentication() {
+<span class="nc" id="L141">                            return new PasswordAuthentication(username, password);</span>
+                        }
+                    });
+
+<span class="nc" id="L145">            Message msg = new MimeMessage(session);</span>
+
+<span class="nc" id="L147">            msg.setFrom(new InternetAddress(PROXYPRINT_EMAIL));</span>
+<span class="nc" id="L148">            msg.setRecipients(Message.RecipientType.TO,</span>
+<span class="nc" id="L149">                    InternetAddress.parse(c.getEmail(), false));</span>
+<span class="nc" id="L150">            msg.setSubject(&quot;ProxyPrint&quot;);</span>
+<span class="nc" id="L151">            msg.setText(&quot;Caro(a), &quot; + c.getName() + &quot;, infelizmente o seu pedido de impressão #&quot;+ preq.getId() +&quot;, foi cancelado pela reprografia &quot;+preq.getPrintshop().getName()+&quot;.\n&quot; +</span>
+                    &quot;Motivo: &quot; + motive + &quot;\n\n&quot; +
+                    &quot;Com os melhores cumprimentos,\n&quot; +
+                    &quot;\n&quot; +
+                    &quot;A equipa ProxyPrint&quot;);
+<span class="nc" id="L156">            msg.setSentDate(new Date());</span>
+<span class="nc" id="L157">            Transport.send(msg);</span>
+<span class="nc" id="L158">            return true;</span>
+<span class="nc" id="L159">        } catch (MessagingException e) {</span>
+<span class="nc" id="L160">            System.out.println(&quot;Erro no envio de email: &quot; + e);</span>
+<span class="nc" id="L161">            return false;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

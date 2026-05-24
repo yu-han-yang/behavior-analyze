@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Formidlingsgruppe.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.enhet</a> &gt; <span class="el_source">Formidlingsgruppe.java</span></div><h1>Formidlingsgruppe.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.enhet;
+
+import com.fasterxml.jackson.annotation.JsonValue;
+
+<span class="fc" id="L5">public enum Formidlingsgruppe {</span>
+<span class="fc" id="L6">    ARBEIDSSOKER(&quot;ARBS&quot;),            // Person er tilgjengelig for alt søk etter   arbeidskraft, ordinær og vikar</span>
+<span class="fc" id="L7">    IKKE_ARBEIDSSOKER(&quot;IARBS&quot;),      // Person er ikke tilgjengelig for søk etter arbeidskraft</span>
+<span class="fc" id="L8">    INAKTIVERT_JOBBSKIFTER(&quot;IJOBS&quot;), // Jobbskifter som er inaktivert fra nav.no</span>
+<span class="fc" id="L9">    IKKE_SERVICEBEHOV(&quot;ISERV&quot;),      // Inaktivering, person mottar ikke bistand fra NAV</span>
+<span class="fc" id="L10">    FRA_NAV_NO(&quot;JOBBS&quot;),             // Personen er ikke tilgjengelig for søk</span>
+<span class="fc" id="L11">    PRE_ARBEIDSSOKER(&quot;PARBS&quot;),       // Personen fra nav.no som ønsker å bli arbeidssøker, men som enda ikke er   verifisert</span>
+<span class="fc" id="L12">    PRE_REAKTIVERT_ARBEIDSSOKER(&quot;RARBS&quot;); //Person som er reaktivert fra nav.no</span>
+    private final String formidlingskode;
+
+<span class="fc" id="L15">    Formidlingsgruppe(String formidlingskode) { this.formidlingskode = formidlingskode; }</span>
+
+    @JsonValue
+    public String getKode() {
+<span class="fc" id="L19">        return formidlingskode;</span>
+    }
+
+    public static boolean ugyldigFormidlingsgruppe(Formidlingsgruppe formidlingsgruppe) {
+<span class="nc bnc" id="L23" title="All 2 branches missed.">        return switch (formidlingsgruppe) {</span>
+<span class="nc" id="L24">            case IKKE_ARBEIDSSOKER, INAKTIVERT_JOBBSKIFTER, IKKE_SERVICEBEHOV -&gt; true;</span>
+<span class="nc" id="L25">            case ARBEIDSSOKER, FRA_NAV_NO, PRE_ARBEIDSSOKER, PRE_REAKTIVERT_ARBEIDSSOKER -&gt; false;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenProvider.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">sk.cyrilgavala.reservationsApi.security</a> &gt; <span class="el_source">TokenProvider.java</span></div><h1>TokenProvider.java</h1><pre class="source lang-java linenums">package sk.cyrilgavala.reservationsApi.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+<span class="fc" id="L26">@Slf4j</span>
+@Component
+<span class="fc" id="L28">public class TokenProvider {</span>
+
+	private static final String TOKEN_TYPE = &quot;JWT&quot;;
+	private static final String TOKEN_ISSUER = &quot;reservations-api&quot;;
+	private static final String TOKEN_AUDIENCE = &quot;reservations-ui&quot;;
+	@Value(&quot;${app.jwt.secret}&quot;)
+	private String jwtSecret;
+	@Value(&quot;${app.jwt.expiration.minutes}&quot;)
+	private Long jwtExpirationMinutes;
+
+	public String generate(Authentication authentication) {
+<span class="fc" id="L39">		UserDetails user = (User) authentication.getPrincipal();</span>
+
+<span class="fc" id="L41">		String roles = user.getAuthorities()</span>
+<span class="fc" id="L42">			.stream()</span>
+<span class="fc" id="L43">			.map(GrantedAuthority::getAuthority)</span>
+<span class="fc" id="L44">			.collect(Collectors.joining(&quot;,&quot;));</span>
+
+<span class="fc" id="L46">		byte[] signingKey = jwtSecret.getBytes();</span>
+
+<span class="fc" id="L48">		return Jwts.builder()</span>
+<span class="fc" id="L49">			.setHeaderParam(&quot;typ&quot;, TOKEN_TYPE)</span>
+<span class="fc" id="L50">			.signWith(Keys.hmacShaKeyFor(signingKey), SignatureAlgorithm.HS512)</span>
+<span class="fc" id="L51">			.setExpiration(Date.from(ZonedDateTime.now().plusMinutes(jwtExpirationMinutes).toInstant()))</span>
+<span class="fc" id="L52">			.setIssuedAt(Date.from(ZonedDateTime.now().toInstant()))</span>
+<span class="fc" id="L53">			.setId(UUID.randomUUID().toString())</span>
+<span class="fc" id="L54">			.setIssuer(TOKEN_ISSUER)</span>
+<span class="fc" id="L55">			.setAudience(TOKEN_AUDIENCE)</span>
+<span class="fc" id="L56">			.setSubject(user.getUsername())</span>
+<span class="fc" id="L57">			.claim(&quot;rol&quot;, roles)</span>
+<span class="fc" id="L58">			.compact();</span>
+	}
+
+	public Optional&lt;Jws&lt;Claims&gt;&gt; validateTokenAndGetJws(String token) {
+		try {
+<span class="fc" id="L63">			byte[] signingKey = jwtSecret.getBytes();</span>
+
+<span class="fc" id="L65">			Jws&lt;Claims&gt; jws = Jwts.parserBuilder()</span>
+<span class="fc" id="L66">				.setSigningKey(signingKey)</span>
+<span class="fc" id="L67">				.build()</span>
+<span class="fc" id="L68">				.parseClaimsJws(token);</span>
+
+<span class="fc" id="L70">			return Optional.of(jws);</span>
+<span class="nc" id="L71">		} catch (ExpiredJwtException exception) {</span>
+<span class="nc" id="L72">			log.error(&quot;Request to parse expired JWT : {} failed : {}&quot;, token, exception.getMessage());</span>
+<span class="nc" id="L73">		} catch (UnsupportedJwtException exception) {</span>
+<span class="nc" id="L74">			log.error(&quot;Request to parse unsupported JWT : {} failed : {}&quot;, token, exception.getMessage());</span>
+<span class="nc" id="L75">		} catch (MalformedJwtException exception) {</span>
+<span class="nc" id="L76">			log.error(&quot;Request to parse invalid JWT : {} failed : {}&quot;, token, exception.getMessage());</span>
+<span class="nc" id="L77">		} catch (SignatureException exception) {</span>
+<span class="nc" id="L78">			log.error(&quot;Request to parse JWT with invalid signature : {} failed : {}&quot;, token, exception.getMessage());</span>
+<span class="nc" id="L79">		} catch (IllegalArgumentException exception) {</span>
+<span class="nc" id="L80">			log.error(&quot;Request to parse empty or null JWT : {} failed : {}&quot;, token, exception.getMessage());</span>
+<span class="nc" id="L81">		}</span>
+<span class="nc" id="L82">		return Optional.empty();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

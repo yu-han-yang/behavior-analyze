@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentEventResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">PaymentEventResponse.java</span></div><h1>PaymentEventResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.links.PaymentEventLink;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+
+@Schema(name = &quot;PaymentEvent&quot;, description = &quot;A List of Payment Events information&quot;)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class PaymentEventResponse {
+    @JsonProperty(&quot;payment_id&quot;)
+    private String paymentId;
+
+    @JsonProperty(&quot;state&quot;)
+    private PaymentState state;
+
+    @JsonProperty(&quot;updated&quot;)
+    private String updated;
+
+    @JsonProperty(&quot;_links&quot;)
+    private PaymentEventLink paymentLink;
+
+    public static PaymentEventResponse from(PaymentEvent paymentEvent, String paymentId, String paymentLink) {
+<span class="nc" id="L26">        return new PaymentEventResponse(paymentId, paymentEvent.getState(), paymentEvent.getUpdated(), paymentLink);</span>
+    }
+
+    public static PaymentEventResponse from(TransactionEvent event, String paymentId, String paymentLink) {
+<span class="nc" id="L30">        return new PaymentEventResponse(paymentId, event.getState(), event.getTimestamp(), paymentLink);</span>
+    }
+
+<span class="nc" id="L33">    private PaymentEventResponse(String paymentId, PaymentState state, String updated, String paymentLink) {</span>
+<span class="nc" id="L34">        this.paymentId = paymentId;</span>
+<span class="nc" id="L35">        this.state = state;</span>
+<span class="nc" id="L36">        this.updated = updated;</span>
+<span class="nc" id="L37">        this.paymentLink = new PaymentEventLink(paymentLink);</span>
+<span class="nc" id="L38">    }</span>
+
+    @Schema(example = &quot;hu20sqlact5260q2nanm0q8u93&quot;, 
+            description = &quot;The unique ID GOV.UK Pay automatically associated with this payment when you created it.&quot;, 
+            accessMode = READ_ONLY)
+    public String getPaymentId() {
+<span class="nc" id="L44">        return paymentId;</span>
+    }
+
+    @Schema(description = &quot;state&quot;)
+    public PaymentState getState() {
+<span class="nc" id="L49">        return state;</span>
+    }
+
+    @Schema(description = &quot;When this payment’s state changed. &quot; +
+            &quot;This value uses Coordinated Universal Time (UTC) and ISO-8601 format - `YYYY-MM-DDThh:mm:ss.SSSZ`.&quot;, 
+            example = &quot;2017-01-10T16:44:48.646Z&quot;, accessMode = READ_ONLY)
+    public String getUpdated() {
+<span class="nc" id="L56">        return updated;</span>
+    }
+
+    public PaymentEventLink getPaymentLink() {
+<span class="nc" id="L60">        return paymentLink;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L65">        return &quot;PaymentEvent{&quot; +</span>
+                &quot;paymentId='&quot; + paymentId + '\'' +
+                &quot;, state='&quot; + state + '\'' +
+                &quot;, updated=&quot; + updated +
+                &quot;, paymentLink=&quot; + paymentLink +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

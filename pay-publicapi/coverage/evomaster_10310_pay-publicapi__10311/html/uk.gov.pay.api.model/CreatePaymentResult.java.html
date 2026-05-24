@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreatePaymentResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CreatePaymentResult.java</span></div><h1>CreatePaymentResult.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.links.PaymentLinks;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+import static uk.gov.pay.api.model.CardPayment.LINKS_JSON_ATTRIBUTE;
+
+/**
+ * Defines swagger specs for create payment
+ */
+<span class="nc" id="L15">public class CreatePaymentResult {</span>
+
+    @JsonProperty
+    @Schema(name = &quot;amount&quot;, description = &quot;The amount, in pence, the user has paid or will pay. &quot; +
+            &quot;`amount` will match the value you sent in the request body.&quot;, example = &quot;1200&quot;)
+    private long amount;
+
+    @JsonProperty
+    private PaymentState state;
+
+    @JsonProperty
+    @Schema(description = &quot;The description you sent in the request body when creating this payment.&quot;, example = &quot;New passport application&quot;)
+    private String description;
+
+    @JsonProperty
+    @Schema(description = &quot;The reference number you associated with this payment.&quot;, example = &quot;12345&quot;)
+    private String reference;
+
+    @JsonProperty
+    @Schema(name = &quot;language&quot;, description = &quot;The language of the user’s payment page.&quot;, example = &quot;en&quot;)
+    private SupportedLanguage language;
+
+    @JsonProperty
+    @Schema(name = &quot;payment_id&quot;, description = &quot;The unique ID GOV.UK Pay automatically associated &quot; +
+            &quot;with this payment when you created it.&quot;, example = &quot;hu20sqlact5260q2nanm0q8u93&quot;)
+    private String paymentId;
+
+    @JsonProperty
+    @Schema(name = &quot;payment_provider&quot;, example = &quot;worldpay&quot;)
+    private String paymentProvider;
+
+    @JsonProperty
+    @Schema(name = &quot;return_url&quot;, description = &quot;The URL you direct the paying user to &quot; +
+            &quot;after their payment journey on GOV.UK Pay ends.&quot;,
+            example = &quot;https://service-name.gov.uk/transactions/12345&quot;)
+    private String returnUrl;
+
+    @JsonProperty
+    @Schema(name = &quot;created_date&quot;, description = &quot;The date you created the payment.&quot;, example = &quot;2016-01-21T17:15:00.000Z&quot;)
+    private String createdDate;
+
+    @JsonProperty
+    @Schema(name = &quot;delayed_capture&quot;, description = &quot;`delayed_capture` is `true` if you’re controlling &quot; +
+            &quot;[when GOV.UK Pay takes (‘captures’) the payment from the paying user’s bank account]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/delayed_capture).&quot;, example = &quot;false&quot;, accessMode = READ_ONLY)
+    private boolean delayedCapture;
+
+    @JsonProperty
+    @Schema(description = &quot;Indicates if this payment is a &quot; +
+            &quot;[Mail Order / Telephone Order (MOTO) payment]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/moto_payments).&quot;, example = &quot;false&quot;)
+    private boolean moto;
+
+    @JsonProperty(&quot;refund_summary&quot;)
+    private RefundSummary refundSummary;
+
+    @JsonProperty(&quot;settlement_summary&quot;)
+    private PaymentSettlementSummary settlementSummary;
+
+    @JsonProperty
+    @Schema(name = LINKS_JSON_ATTRIBUTE, description = &quot;API endpoints related to the payment.&quot;)
+    private PaymentLinks links;
+
+    @JsonProperty
+    @Schema(name = &quot;provider_id&quot;, description = &quot;The reference number your &quot; +
+            &quot;payment service provider associated with the payment.&quot;, example = &quot;null&quot;)
+    private String providerId;
+
+    @JsonProperty
+    @Schema(name = &quot;metadata&quot;, description = &quot;[Custom metadata](https://docs.payments.service.gov.uk/optional_features/custom_metadata/) you added to the payment.&quot;)
+    private ExternalMetadata metadata;
+
+    @JsonProperty
+    @Schema(name = &quot;email&quot;, description = &quot;The paying user’s email address. &quot; +
+            &quot;The paying user’s email field will be prefilled with this value when they make their payment. &quot; +
+            &quot;`email` does not appear if you did not include it in the request body.&quot;, 
+            example = &quot;citizen@example.org&quot;)
+    private String email;
+
+    @JsonProperty(value = &quot;card_details&quot;)
+    @Schema(name = &quot;card_details&quot;)
+    private CardDetailsFromResponse cardDetails;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

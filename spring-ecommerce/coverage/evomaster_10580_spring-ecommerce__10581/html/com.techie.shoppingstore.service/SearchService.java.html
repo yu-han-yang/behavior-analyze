@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.techie.shoppingstore.service</a> &gt; <span class="el_source">SearchService.java</span></div><h1>SearchService.java</h1><pre class="source lang-java linenums">package com.techie.shoppingstore.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.techie.shoppingstore.dto.*;
+import com.techie.shoppingstore.dto.SearchQueryDto.Filter;
+import com.techie.shoppingstore.exceptions.SpringStoreException;
+import com.techie.shoppingstore.model.Category;
+import com.techie.shoppingstore.model.ElasticSearchProduct;
+import com.techie.shoppingstore.repository.CategoryRepository;
+import io.micrometer.core.instrument.util.StringUtils;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NByteArrayEntity;
+import org.apache.lucene.search.join.ScoreMode;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermsQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.filter.ParsedFilter;
+import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.nested.ParsedNested;
+import org.elasticsearch.search.aggregations.bucket.terms.ParsedStringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms.Bucket;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.max.ParsedMax;
+import org.elasticsearch.search.aggregations.metrics.min.MinAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.min.ParsedMin;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.util.*;
+
+import static java.lang.Math.toIntExact;
+import static java.math.BigDecimal.valueOf;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static org.elasticsearch.client.RequestOptions.DEFAULT;
+import static org.elasticsearch.index.query.QueryBuilders.*;
+
+@Service
+<span class="fc" id="L62">@AllArgsConstructor</span>
+<span class="fc" id="L63">@Slf4j</span>
+public class SearchService {
+
+    private static final String INDEX = &quot;product&quot;;
+    private static final String AGG_ALL_FACETS_RESULT_FILTERED = &quot;agg_all_facets_result_filtered&quot;;
+    private static final String BY_CATEGORY = &quot;by_category&quot;;
+    private static final String CATEGORY_NAME_KEYWORD = &quot;category.name.keyword&quot;;
+    private static final String MIN_PRICE = &quot;min_price&quot;;
+    private static final String MAX_PRICE = &quot;max_price&quot;;
+    private static final String AGG_ALL_FACETS_FILTERED = &quot;agg_all_facets_filtered&quot;;
+    private static final String FILTERED_AGGREGATION = &quot;filtered_aggregation&quot;;
+    private static final String BY_ATTRIBUTE_NAME = &quot;by_attribute_name&quot;;
+    private static final String BY_ATTRIBUTE_VALUE = &quot;by_attribute_value&quot;;
+    private static final String PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_VALUE_KEYWORD = &quot;productAttributeList.attributeValue.keyword&quot;;
+    private static final String PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_NAME_KEYWORD = &quot;productAttributeList.attributeName.keyword&quot;;
+    private static final String PRICE = &quot;price&quot;;
+    private static final String PRODUCT_ATTRIBUTE_LIST = &quot;productAttributeList&quot;;
+    private static final String CATEGORY_NAME = &quot;category.name&quot;;
+    private static final String NAME = &quot;name&quot;;
+    private static final String DESCRIPTION = &quot;description&quot;;
+    private static final String MINIMUM_SHOULD_MATCH = &quot;66%&quot;;
+
+    private final RestHighLevelClient client;
+    private final CategoryRepository categoryRepository;
+    private final ObjectMapper objectMapper;
+    private final ProductMapper productMapper;
+
+    public ProductSearchResponseDto searchWithFilters(SearchQueryDto searchQueryDto, String categoryName) throws IOException {
+<span class="fc" id="L91">        Category category = categoryRepository.findByName(categoryName)</span>
+<span class="pc" id="L92">                .orElseThrow(() -&gt; new SpringStoreException(&quot;Category - &quot; + categoryName + &quot; Not Found&quot;));</span>
+
+<span class="nc" id="L94">        BoolQueryBuilder fullTextQueryBuilder = performFullTextSearch(searchQueryDto, categoryName);</span>
+<span class="nc" id="L95">        FilterAggregationBuilder agg_all_facets_result_filtered = createAggregations(searchQueryDto, category.getPossibleFacets());</span>
+<span class="nc" id="L96">        BoolQueryBuilder postFilterQuery = createPostFilterQuery(searchQueryDto);</span>
+
+<span class="nc" id="L98">        SearchResponse searchResponse = performSearch(fullTextQueryBuilder, postFilterQuery, agg_all_facets_result_filtered);</span>
+<span class="nc" id="L99">        return mapResponse(searchResponse, false);</span>
+    }
+
+    public ProductSearchResponseDto search(SearchQueryDto searchQueryDto) throws IOException {
+<span class="fc" id="L103">        BoolQueryBuilder fullTextQueryBuilder = performFullTextSearch(searchQueryDto, null);</span>
+<span class="fc" id="L104">        FilterAggregationBuilder agg_all_facets_result_filtered = createAggregations(searchQueryDto, singletonList(&quot;Brand&quot;));</span>
+<span class="fc" id="L105">        TermsAggregationBuilder by_category_value = AggregationBuilders.terms(BY_CATEGORY).field(CATEGORY_NAME_KEYWORD);</span>
+<span class="fc" id="L106">        SearchResponse searchResponse = performSearch(fullTextQueryBuilder, null, agg_all_facets_result_filtered, by_category_value);</span>
+<span class="nc" id="L107">        return mapResponse(searchResponse, true);</span>
+    }
+
+    private ProductSearchResponseDto mapResponse(SearchResponse searchResponse, boolean includeCategory) {
+<span class="fc" id="L111">        List&lt;ProductDto&gt; productDtos = extractProductHits(searchResponse);</span>
+
+<span class="fc" id="L113">        Aggregation aggregations = searchResponse.getAggregations().get(AGG_ALL_FACETS_RESULT_FILTERED);</span>
+<span class="fc" id="L114">        Map&lt;String, Aggregation&gt; stringAggregationMap = ((ParsedFilter) aggregations).getAggregations().asMap();</span>
+
+<span class="nc" id="L116">        BigDecimal minPrice = valueOf(((ParsedMin) stringAggregationMap.get(MIN_PRICE)).getValue());</span>
+<span class="nc" id="L117">        BigDecimal maxPrice = valueOf(((ParsedMax) stringAggregationMap.get(MAX_PRICE)).getValue());</span>
+
+<span class="nc" id="L119">        List&lt;FacetDto&gt; facetDtos = extractResponseForFilteredAggregations(stringAggregationMap);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (includeCategory)</span>
+<span class="nc" id="L121">            extractResponseForCategoryAggregation(searchResponse, facetDtos);</span>
+
+<span class="nc" id="L123">        return new ProductSearchResponseDto(productDtos, minPrice, maxPrice, facetDtos);</span>
+    }
+
+    private List&lt;FacetDto&gt; extractResponseForFilteredAggregations(Map&lt;String, Aggregation&gt; stringAggregationMap) {
+<span class="nc" id="L127">        Aggregation agg_all_facets_filtered = stringAggregationMap.get(AGG_ALL_FACETS_FILTERED);</span>
+<span class="nc" id="L128">        Aggregation filtered_aggregation = ((ParsedNested) agg_all_facets_filtered).getAggregations().get(FILTERED_AGGREGATION);</span>
+<span class="nc" id="L129">        Aggregations aggregations1 = ((ParsedFilter) filtered_aggregation).getAggregations();</span>
+<span class="nc" id="L130">        ParsedStringTerms by_attribute_name = (ParsedStringTerms) aggregations1.getAsMap().get(BY_ATTRIBUTE_NAME);</span>
+<span class="nc" id="L131">        List&lt;? extends Bucket&gt; buckets = by_attribute_name.getBuckets();</span>
+<span class="nc" id="L132">        List&lt;FacetDto&gt; facetDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        for (Bucket bucket : buckets) {</span>
+<span class="nc" id="L134">            FacetDto facetDto = new FacetDto();</span>
+<span class="nc" id="L135">            facetDto.setFacetName(bucket.getKeyAsString());</span>
+<span class="nc" id="L136">            List&lt;FacetValueDto&gt; facetValueDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L137">            ParsedStringTerms by_attribute_value = bucket.getAggregations().get(BY_ATTRIBUTE_VALUE);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">            for (Bucket attrValueBucket : by_attribute_value.getBuckets()) {</span>
+<span class="nc" id="L139">                FacetValueDto facetValueDto = new FacetValueDto();</span>
+<span class="nc" id="L140">                facetValueDto.setFacetValueName(attrValueBucket.getKeyAsString());</span>
+<span class="nc" id="L141">                facetValueDto.setCount(toIntExact(attrValueBucket.getDocCount()));</span>
+<span class="nc" id="L142">                facetValueDtos.add(facetValueDto);</span>
+<span class="nc" id="L143">            }</span>
+<span class="nc" id="L144">            facetDto.setFacetValueDto(facetValueDtos);</span>
+<span class="nc" id="L145">            facetDtos.add(facetDto);</span>
+<span class="nc" id="L146">        }</span>
+<span class="nc" id="L147">        return facetDtos;</span>
+    }
+
+    private void extractResponseForCategoryAggregation(SearchResponse searchResponse, List&lt;FacetDto&gt; facetDtos) {
+<span class="nc" id="L151">        ParsedStringTerms categoryAggregations = searchResponse.getAggregations().get(BY_CATEGORY);</span>
+<span class="nc" id="L152">        List&lt;? extends Bucket&gt; by_category = categoryAggregations.getBuckets();</span>
+<span class="nc" id="L153">        List&lt;FacetValueDto&gt; facetValueDtos = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L154">        FacetDto facetDto = new FacetDto();</span>
+<span class="nc" id="L155">        facetDto.setFacetName(&quot;Category&quot;);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        for (Bucket bucket : by_category) {</span>
+<span class="nc" id="L157">            FacetValueDto facetValueDto = new FacetValueDto();</span>
+<span class="nc" id="L158">            facetValueDto.setFacetValueName(bucket.getKeyAsString());</span>
+<span class="nc" id="L159">            facetValueDto.setCount(toIntExact(bucket.getDocCount()));</span>
+<span class="nc" id="L160">            facetValueDtos.add(facetValueDto);</span>
+<span class="nc" id="L161">        }</span>
+<span class="nc" id="L162">        facetDto.setFacetValueDto(facetValueDtos);</span>
+<span class="nc" id="L163">        facetDtos.add(facetDto);</span>
+<span class="nc" id="L164">    }</span>
+
+    private List&lt;ProductDto&gt; extractProductHits(SearchResponse searchResponse) {
+<span class="fc" id="L167">        SearchHit[] hits = searchResponse.getHits().getHits();</span>
+<span class="fc" id="L168">        List&lt;ElasticSearchProduct&gt; products = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L169">        Arrays.stream(hits)</span>
+<span class="pc" id="L170">                .forEach(hit -&gt; products.add(objectMapper.convertValue(hit.getSourceAsMap(),</span>
+                        ElasticSearchProduct.class)));
+<span class="fc" id="L172">        return products.stream().map(productMapper::mapESProductToDTO).collect(toList());</span>
+    }
+
+    private FilterAggregationBuilder createAggregations(SearchQueryDto searchQueryDto, List&lt;String&gt; possibleFacets) {
+<span class="fc" id="L176">        TermsAggregationBuilder by_attribute_value = AggregationBuilders.terms(BY_ATTRIBUTE_VALUE)</span>
+<span class="fc" id="L177">                .field(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_VALUE_KEYWORD);</span>
+<span class="fc" id="L178">        TermsAggregationBuilder by_attribute_name = AggregationBuilders.terms(BY_ATTRIBUTE_NAME)</span>
+<span class="fc" id="L179">                .field(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_NAME_KEYWORD)</span>
+<span class="fc" id="L180">                .subAggregation(by_attribute_value);</span>
+
+<span class="fc" id="L182">        MinAggregationBuilder minPriceAgg = AggregationBuilders.min(MIN_PRICE).field(PRICE);</span>
+<span class="fc" id="L183">        MaxAggregationBuilder maxPriceAgg = AggregationBuilders.max(MAX_PRICE).field(PRICE);</span>
+
+
+<span class="fc" id="L186">        TermsQueryBuilder filterForAggregations = termsQuery(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_NAME_KEYWORD, possibleFacets);</span>
+<span class="fc" id="L187">        FilterAggregationBuilder filtered_aggregation = AggregationBuilders.filter(FILTERED_AGGREGATION, filterForAggregations).subAggregation(by_attribute_name);</span>
+
+<span class="fc" id="L189">        NestedAggregationBuilder agg_all_facets_filtered = AggregationBuilders.nested(AGG_ALL_FACETS_FILTERED, PRODUCT_ATTRIBUTE_LIST).subAggregation(filtered_aggregation);</span>
+
+<span class="fc" id="L191">        BoolQueryBuilder productAttributeList = boolQuery();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        for (Filter filter : searchQueryDto.getFilters()) {</span>
+<span class="fc" id="L193">            productAttributeList.must(nestedQuery(PRODUCT_ATTRIBUTE_LIST,</span>
+<span class="fc" id="L194">                    boolQuery()</span>
+<span class="fc" id="L195">                            .must(termQuery(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_NAME_KEYWORD, filter.getKey()))</span>
+<span class="fc" id="L196">                            .must(termQuery(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_VALUE_KEYWORD, filter.getValue())),</span>
+                    ScoreMode.None));
+<span class="fc" id="L198">        }</span>
+
+<span class="fc" id="L200">        return AggregationBuilders.filter(AGG_ALL_FACETS_RESULT_FILTERED, productAttributeList)</span>
+<span class="fc" id="L201">                .subAggregation(agg_all_facets_filtered).subAggregation(minPriceAgg).subAggregation(maxPriceAgg);</span>
+    }
+
+    private BoolQueryBuilder createPostFilterQuery(SearchQueryDto searchQueryDto) {
+<span class="nc" id="L205">        BoolQueryBuilder postFilterQuery = QueryBuilders.boolQuery();</span>
+<span class="nc" id="L206">        BoolQueryBuilder queryBuilderForFilter = boolQuery();</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        for (Filter filter : searchQueryDto.getFilters()) {</span>
+<span class="nc" id="L208">            queryBuilderForFilter.must(QueryBuilders.nestedQuery(PRODUCT_ATTRIBUTE_LIST,</span>
+<span class="nc" id="L209">                    boolQuery()</span>
+<span class="nc" id="L210">                            .must(termQuery(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_NAME_KEYWORD, filter.getKey()))</span>
+<span class="nc" id="L211">                            .must(termQuery(PRODUCT_ATTRIBUTE_LIST_ATTRIBUTE_VALUE_KEYWORD, filter.getValue())),</span>
+                    ScoreMode.None));
+<span class="nc" id="L213">        }</span>
+<span class="nc" id="L214">        postFilterQuery.filter(queryBuilderForFilter);</span>
+<span class="nc" id="L215">        return postFilterQuery;</span>
+    }
+
+    private BoolQueryBuilder performFullTextSearch(SearchQueryDto searchQueryDto, String categoryName) {
+<span class="fc" id="L219">        BoolQueryBuilder queryBuilder = boolQuery();</span>
+<span class="fc" id="L220">        queryBuilder.must(Objects.requireNonNull(createFullTextSearchQuery(searchQueryDto.getTextQuery(), categoryName)));</span>
+<span class="fc" id="L221">        return queryBuilder;</span>
+    }
+
+    private QueryBuilder createFullTextSearchQuery(String textQuery, String categoryName) {
+<span class="fc" id="L225">        BoolQueryBuilder queryBuilder = boolQuery();</span>
+<span class="pc bpc" id="L226" title="1 of 4 branches missed.">        if (StringUtils.isBlank(textQuery) &amp;&amp; categoryName != null) {</span>
+<span class="nc" id="L227">            queryBuilder.must(QueryBuilders.multiMatchQuery(categoryName, CATEGORY_NAME)</span>
+<span class="nc" id="L228">                    .minimumShouldMatch(MINIMUM_SHOULD_MATCH)</span>
+<span class="nc" id="L229">                    .fuzziness(Fuzziness.AUTO));</span>
+        } else {
+<span class="fc" id="L231">            queryBuilder.must(QueryBuilders.multiMatchQuery(textQuery, NAME, DESCRIPTION)</span>
+<span class="fc" id="L232">                    .minimumShouldMatch(MINIMUM_SHOULD_MATCH)</span>
+<span class="fc" id="L233">                    .fuzziness(Fuzziness.AUTO));</span>
+        }
+<span class="fc" id="L235">        return queryBuilder;</span>
+    }
+
+    private SearchResponse performSearch(QueryBuilder queryBuilder, QueryBuilder postFilterQuery, AggregationBuilder... aggs) throws IOException {
+<span class="fc" id="L239">        SearchRequest request = search(queryBuilder, postFilterQuery, aggs);</span>
+<span class="fc" id="L240">        Request lowLevelRequest = new Request(HttpPost.METHOD_NAME, INDEX + &quot;/_search&quot;);</span>
+<span class="fc" id="L241">        BytesRef source = XContentHelper.toXContent(request.source(), XContentType.JSON, ToXContent.EMPTY_PARAMS, true).toBytesRef();</span>
+<span class="fc" id="L242">        log.info(&quot;QUERY {}&quot;, source.utf8ToString());</span>
+<span class="fc" id="L243">        lowLevelRequest.setEntity(new NByteArrayEntity(source.bytes, source.offset, source.length, createContentType()));</span>
+
+<span class="fc" id="L245">        return client.search(request, DEFAULT);</span>
+    }
+
+    private static ContentType createContentType() {
+<span class="fc" id="L249">        return ContentType.create(XContentType.JSON.mediaTypeWithoutParameters(), (Charset) null);</span>
+    }
+
+    private SearchRequest search(QueryBuilder queryBuilder, QueryBuilder postFilterQuery, AggregationBuilder... aggs) {
+<span class="fc" id="L253">        SearchRequest request = new SearchRequest(INDEX);</span>
+<span class="fc" id="L254">        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();</span>
+<span class="fc" id="L255">        searchSourceBuilder.size(16);</span>
+<span class="fc" id="L256">        searchSourceBuilder.query(queryBuilder);</span>
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        for (AggregationBuilder agg : aggs) {</span>
+<span class="fc" id="L258">            searchSourceBuilder.aggregation(agg);</span>
+        }
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">        if (postFilterQuery != null) {</span>
+<span class="nc" id="L261">            searchSourceBuilder.postFilter(postFilterQuery);</span>
+        }
+<span class="fc" id="L263">        request.source(searchSourceBuilder);</span>
+<span class="fc" id="L264">        return request;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BudgetCalculator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.models.printshops.pricetable</a> &gt; <span class="el_source">BudgetCalculator.java</span></div><h1>BudgetCalculator.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.models.printshops.pricetable;
+
+import io.github.proxyprint.kitchen.models.consumer.PrintingSchema;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+
+import java.util.Map;
+
+/**
+ * Created by daniel on 14-05-2016.
+ */
+public class BudgetCalculator {
+
+    private PrintShop pshop;
+    private ItemFactory itemFactory;
+
+<span class="nc" id="L16">    public BudgetCalculator(PrintShop printShop) {</span>
+<span class="nc" id="L17">        this.pshop = printShop;</span>
+<span class="nc" id="L18">        this.itemFactory = new ItemFactory();</span>
+<span class="nc" id="L19">    }</span>
+
+    /**
+     * Calculate the price for a single specification
+     *
+     * @param firstPage
+     * @param lastPage
+     * @param pschema
+     * @return -1 if the request cannot be satisfied, a value bigger than or equal to 0 representing the cost of the specification.
+     */
+    public float calculatePrice(int firstPage, int lastPage, PrintingSchema pschema) {
+<span class="nc" id="L30">        float cost = 0;</span>
+<span class="nc" id="L31">        boolean flagDuplexOdd = false;</span>
+<span class="nc" id="L32">        int numberOfPages = (lastPage - firstPage) + 1;</span>
+
+        // Paper
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (pschema.getPaperItem() != null) {</span>
+<span class="nc" id="L36">            PaperItem pi = pschema.getPaperItem();</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (pi != null) {</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">                if(numberOfPages==1) {</span>
+<span class="nc" id="L39">                    pi.setSides(Item.Sides.SIMPLEX);</span>
+                }
+<span class="nc bnc" id="L41" title="All 2 branches missed.">                else if (pi.getSides().equals(Item.Sides.DUPLEX)) {</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">                    if ((numberOfPages % 2) != 0) {</span>
+<span class="nc" id="L43">                        numberOfPages--;</span>
+<span class="nc" id="L44">                        flagDuplexOdd = true;</span>
+                    }
+<span class="nc" id="L46">                    numberOfPages = numberOfPages / 2;</span>
+                }
+<span class="nc" id="L48">                RangePaperItem rpi = findIdealRangePaperItem(numberOfPages, pi);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">                if (rpi != null) {</span>
+<span class="nc" id="L50">                    float res = pshop.getPriceByKey(rpi.genKey());</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">                    if (res != -1) {</span>
+                        // If number of pages is odd and schema sides property is DUPLEX then the single page pays as SIMPLEX
+<span class="nc bnc" id="L53" title="All 4 branches missed.">                        if (flagDuplexOdd &amp;&amp; this.pshop.getPriceTable().containsKey(rpi.genKey())) {</span>
+<span class="nc" id="L54">                            String rpiSimplexKey = rpi.genKey().replace(Item.Sides.DUPLEX.toString(), Item.Sides.SIMPLEX.toString());</span>
+<span class="nc" id="L55">                            float simplexCost = this.pshop.getPriceTable().get(rpiSimplexKey);</span>
+<span class="nc" id="L56">                            cost += simplexCost;</span>
+                        }
+<span class="nc" id="L58">                        cost += numberOfPages * res; // Paper Items are expressed in €/page</span>
+<span class="nc" id="L59">                    } else return -1;</span>
+<span class="nc" id="L60">                } else return -1;</span>
+            }
+        }
+
+        // Binding
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (pschema.getBindingItem() != null) {</span>
+<span class="nc" id="L66">            BindingItem bi = pschema.getBindingItem();</span>
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if (bi.getRingsType().equals(Item.RingType.STAPLING)) {</span>
+<span class="nc" id="L69">                bi.setRingThicknessInfLim(0);</span>
+<span class="nc" id="L70">                bi.setRingThicknessSupLim(0);</span>
+            } else {
+<span class="nc" id="L72">                Range r = new Range(1, 2);</span>
+<span class="nc bnc" id="L73" title="All 4 branches missed.">                if (numberOfPages &gt; BindingItem.B_6_10_THICKNESS_FLOOR &amp;&amp; numberOfPages &lt; BindingItem.B_6_10_THICKNESS_CEIL) {</span>
+<span class="nc" id="L74">                    r = new Range(6, 10);</span>
+<span class="nc bnc" id="L75" title="All 4 branches missed.">                } else if (numberOfPages &gt; BindingItem.B_12_20_THICKNESS_FLOOR &amp;&amp; numberOfPages &lt; BindingItem.B_12_20_THICKNESS_CEIL) {</span>
+<span class="nc" id="L76">                    r = new Range(12, 20);</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                } else if (numberOfPages &gt; BindingItem.B_22_28_THICKNESS_FLOOR &amp;&amp; numberOfPages &lt; BindingItem.B_22_28_THICKNESS_CEIL) {</span>
+<span class="nc" id="L78">                    r = new Range(22, 28);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">                } else if (numberOfPages &gt; BindingItem.B_32_38_THICKNESS_FLOOR) {</span>
+<span class="nc" id="L80">                    r = new Range(32, 38);</span>
+                }
+<span class="nc" id="L82">                bi = findIdealBindingItem(numberOfPages, bi.getRingsType(), r);</span>
+            }
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">            if (bi != null) {</span>
+<span class="nc" id="L86">                float res = pshop.getPriceByKey(bi.genKey());</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">                if (res != -1) {</span>
+<span class="nc" id="L88">                    cost += res;</span>
+<span class="nc" id="L89">                } else return -1;</span>
+            }
+        }
+
+        // Cover
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (pschema.getCoverItem() != null) {</span>
+<span class="nc" id="L95">            CoverItem ci = pschema.getCoverItem();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            if (ci != null) {</span>
+<span class="nc" id="L97">                float res = pshop.getPriceByKey(ci.genKey());</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                if (res != -1) {</span>
+<span class="nc" id="L99">                    cost += res;</span>
+<span class="nc" id="L100">                } else return -1;</span>
+            }
+        }
+<span class="nc" id="L103">        return cost;</span>
+    }
+
+    /**
+     * Find a range paper item given the number of pages and
+     * a PaperItem
+     *
+     * @param nPages number of pages
+     * @param pi     a paper item to match in the pricetable
+     * @return The suitable RangePagerItem for the given parameters
+     */
+    private RangePaperItem findIdealRangePaperItem(int nPages, PaperItem pi) {
+<span class="nc" id="L115">        RangePaperItem idealRpi = null;</span>
+<span class="nc" id="L116">        int maxSupLim = 0;</span>
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (Map.Entry&lt;String, Float&gt; entry : pshop.getPriceTable().entrySet()) {</span>
+<span class="nc" id="L119">            String key = entry.getKey();</span>
+<span class="nc" id="L120">            Float price = entry.getValue();</span>
+
+<span class="nc" id="L122">            String[] parts = key.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            if (parts[0].equals(PaperItem.KEY_BASE)) {</span>
+                // Its a paper item and I want it!
+<span class="nc" id="L125">                RangePaperItem rpi = (RangePaperItem) itemFactory.createItem(key);</span>
+<span class="nc" id="L126">                PaperItem tpi = new PaperItem(rpi.getFormat(), rpi.getSides(), rpi.getColors());</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                if (tpi.genKey().equals(pi.genKey())) {</span>
+                    // Check for range compatibility
+<span class="nc bnc" id="L130" title="All 4 branches missed.">                    if (nPages &gt;= rpi.getInfLim() &amp;&amp; nPages &lt;= rpi.getSupLim()) {</span>
+                        // Perfect match
+<span class="nc" id="L132">                        idealRpi = rpi;</span>
+<span class="nc" id="L133">                        return idealRpi;</span>
+                    }
+<span class="nc bnc" id="L135" title="All 2 branches missed.">                    if (nPages &gt; rpi.getSupLim()) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                        if (rpi.getSupLim() &gt; maxSupLim) {</span>
+                            // Assure that we hold the max sup limit of the interval
+                            // in case of a non perfect match
+<span class="nc" id="L139">                            idealRpi = rpi;</span>
+<span class="nc" id="L140">                            maxSupLim = rpi.getSupLim();</span>
+                        }
+                    }
+                }
+            }
+<span class="nc" id="L145">        }</span>
+<span class="nc" id="L146">        return idealRpi;</span>
+    }
+
+    /**
+     * Find a range paper item given the number of pages and
+     * a PaperItem.
+     *
+     * @param nPages        number of pages.
+     * @param ringType      type of ring to find.
+     * @param needThisRange the more suitable rings range for the giver number of pages.
+     * @return The suitable RangePagerItem for the given parameters.
+     */
+    private BindingItem findIdealBindingItem(int nPages, Item.RingType ringType, Range needThisRange) {
+<span class="nc" id="L159">        BindingItem idealBi = null;</span>
+<span class="nc" id="L160">        int minDiffTop = 1000;</span>
+<span class="nc" id="L161">        int minDiffBottom = 1000;</span>
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        for (Map.Entry&lt;String, Float&gt; entry : pshop.getPriceTable().entrySet()) {</span>
+<span class="nc" id="L164">            String key = entry.getKey();</span>
+<span class="nc" id="L165">            Float price = entry.getValue();</span>
+
+<span class="nc" id="L167">            String[] parts = key.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">            if (parts[0].equals(BindingItem.KEY_BASE)) {</span>
+                // Its a binding item and I want it!
+<span class="nc" id="L170">                BindingItem tmpbi = (BindingItem) itemFactory.createItem(key);</span>
+
+<span class="nc bnc" id="L172" title="All 2 branches missed.">                if (tmpbi.getRingsType().equals(ringType)) {</span>
+<span class="nc" id="L173">                    Range r = new Range(tmpbi.getRingThicknessInfLim(), tmpbi.getRingThicknessSupLim());</span>
+<span class="nc bnc" id="L174" title="All 4 branches missed.">                    if (r.inf == needThisRange.inf &amp;&amp; r.sup == needThisRange.sup) {</span>
+                        // Perfect Match
+<span class="nc" id="L176">                        idealBi = tmpbi;</span>
+<span class="nc" id="L177">                        return idealBi;</span>
+<span class="nc bnc" id="L178" title="All 6 branches missed.">                    } else if (r.inf &gt; needThisRange.inf &amp;&amp; (r.inf - needThisRange.inf) &lt; minDiffBottom &amp;&amp; Math.abs(r.sup - needThisRange.sup) &lt; minDiffTop) {</span>
+                        // Best optimal approach match
+<span class="nc" id="L180">                        idealBi = tmpbi;</span>
+<span class="nc" id="L181">                        minDiffBottom = (r.inf - needThisRange.inf);</span>
+<span class="nc" id="L182">                        minDiffTop = Math.abs(r.sup - needThisRange.sup);</span>
+                    }
+                }
+            }
+<span class="nc" id="L186">        }</span>
+<span class="nc" id="L187">        return idealBi;</span>
+    }
+
+    public class Range {
+        public int inf, sup;
+
+<span class="nc" id="L193">        public Range(int inf, int sup) {</span>
+<span class="nc" id="L194">            this.inf = inf;</span>
+<span class="nc" id="L195">            this.sup = sup;</span>
+<span class="nc" id="L196">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

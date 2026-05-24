@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Veileder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Veileder.java</span></div><h1>Veileder.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetBruker;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetVeileder;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.SlettemerkeProperties;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.abac.TilgangskontrollService;
+import no.nav.tag.tiltaksgjennomforing.enhet.*;
+import no.nav.tag.tiltaksgjennomforing.exceptions.*;
+import no.nav.tag.tiltaksgjennomforing.featuretoggles.enhet.NavEnhet;
+import no.nav.tag.tiltaksgjennomforing.persondata.PdlRespons;
+import no.nav.tag.tiltaksgjennomforing.persondata.PersondataService;
+import org.springframework.data.domain.*;
+
+import java.sql.Date;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.*;
+
+import static no.nav.tag.tiltaksgjennomforing.persondata.PersondataService.hentNavnFraPdlRespons;
+
+<span class="nc" id="L22">@Slf4j</span>
+public class Veileder extends Avtalepart&lt;NavIdent&gt; implements InternBruker {
+    private final TilgangskontrollService tilgangskontrollService;
+
+    private final PersondataService persondataService;
+    private final SlettemerkeProperties slettemerkeProperties;
+    private final boolean harAdGruppeForBeslutter;
+    private final Norg2Client norg2Client;
+    private final Set&lt;NavEnhet&gt; navEnheter;
+    private final VeilarbArenaClient veilarbArenaClient;
+    private final UUID azureOid;
+
+    public Veileder(
+            NavIdent identifikator,
+            UUID azureOid,
+            TilgangskontrollService tilgangskontrollService,
+            PersondataService persondataService,
+            Norg2Client norg2Client,
+            Set&lt;NavEnhet&gt; navEnheter,
+            SlettemerkeProperties slettemerkeProperties,
+            boolean harAdGruppeForBeslutter,
+            VeilarbArenaClient veilarbArenaClient
+    ) {
+
+<span class="nc" id="L46">        super(identifikator);</span>
+<span class="nc" id="L47">        this.azureOid = azureOid;</span>
+<span class="nc" id="L48">        this.tilgangskontrollService = tilgangskontrollService;</span>
+<span class="nc" id="L49">        this.persondataService = persondataService;</span>
+<span class="nc" id="L50">        this.norg2Client = norg2Client;</span>
+<span class="nc" id="L51">        this.navEnheter = navEnheter;</span>
+<span class="nc" id="L52">        this.slettemerkeProperties = slettemerkeProperties;</span>
+<span class="nc" id="L53">        this.harAdGruppeForBeslutter = harAdGruppeForBeslutter;</span>
+<span class="nc" id="L54">        this.veilarbArenaClient = veilarbArenaClient;</span>
+<span class="nc" id="L55">    }</span>
+
+    @Deprecated
+    public Veileder(
+            NavIdent identifikator,
+            TilgangskontrollService tilgangskontrollService,
+            PersondataService persondataService,
+            Norg2Client norg2Client,
+            Set&lt;NavEnhet&gt; navEnheter,
+            SlettemerkeProperties slettemerkeProperties,
+            boolean harAdGruppeForBeslutter,
+            VeilarbArenaClient veilarbArenaClient
+    ) {
+<span class="nc" id="L68">        this(identifikator, null, tilgangskontrollService, persondataService, norg2Client, navEnheter, slettemerkeProperties, harAdGruppeForBeslutter, veilarbArenaClient);</span>
+<span class="nc" id="L69">    }</span>
+
+    @Override
+    public boolean harTilgangTilAvtale(Avtale avtale) {
+<span class="nc" id="L73">        boolean harTilgang = tilgangskontrollService.harSkrivetilgangTilKandidat(this, avtale.getDeltakerFnr());</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if(!harTilgang) {</span>
+<span class="nc" id="L75">            log.info(&quot;Har ikke tilgang til avtale {}&quot;, avtale.getAvtaleNr());</span>
+        }
+<span class="nc" id="L77">        return harTilgang;</span>
+    }
+
+    @Override
+    Page&lt;Avtale&gt; hentAlleAvtalerMedMuligTilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, Pageable pageable) {
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        NavIdent veilederNavIdent = queryParametre.getVeilederNavIdent() != null ? queryParametre.getVeilederNavIdent() : getIdentifikator();</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if(queryParametre.getStatus() != null) {</span>
+            // Har filtrert på status. Da går siste filtrering på status i java-kode
+<span class="nc" id="L86">            Pageable allPages = PageRequest.of(0, Integer.MAX_VALUE, pageable.getSort());</span>
+<span class="nc" id="L87">            Page&lt;Avtale&gt; avtalerUtenStatusFiltrering = null;</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if(queryParametre.getTiltakstype() != null) {</span>
+                // Filtrer på tiltakstype
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                if (queryParametre.getVeilederNavIdent() != null) {</span>
+<span class="nc" id="L91">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdentAndTiltakstype(queryParametre.getVeilederNavIdent(), queryParametre.getTiltakstype(), allPages);</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                } else if (queryParametre.getDeltakerFnr() != null) {</span>
+<span class="nc" id="L93">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByDeltakerFnrAndTiltakstype(queryParametre.getDeltakerFnr(), queryParametre.getTiltakstype(), allPages);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                } else if (queryParametre.getBedriftNr() != null) {</span>
+<span class="nc" id="L95">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByBedriftNrAndTiltakstype(queryParametre.getBedriftNr(), queryParametre.getTiltakstype(), allPages);</span>
+<span class="nc bnc" id="L96" title="All 6 branches missed.">                } else if (queryParametre.getNavEnhet() != null &amp;&amp; queryParametre.getErUfordelt() != null &amp;&amp; queryParametre.getErUfordelt()) {</span>
+<span class="nc" id="L97">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdentIsNullAndEnhetGeografiskAndTiltakstypeOrVeilederNavIdentIsNullAndEnhetOppfolgingAndTiltakstype(queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), allPages);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">                } else if (queryParametre.getNavEnhet() != null) {</span>
+<span class="nc" id="L99">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByEnhetGeografiskAndTiltakstypeOrEnhetOppfolgingAndTiltakstype(queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), allPages);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">                } else if (queryParametre.getAvtaleNr() != null) {</span>
+<span class="nc" id="L101">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByAvtaleNrAndTiltakstype(queryParametre.getAvtaleNr(), queryParametre.getTiltakstype(), allPages);</span>
+                } else {
+<span class="nc" id="L103">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdentAndTiltakstype(veilederNavIdent, queryParametre.getTiltakstype(), allPages);</span>
+                }
+            } else {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">                if (queryParametre.getVeilederNavIdent() != null) {</span>
+<span class="nc" id="L107">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdent(queryParametre.getVeilederNavIdent(), allPages);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                } else if (queryParametre.getDeltakerFnr() != null) {</span>
+<span class="nc" id="L109">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByDeltakerFnr(queryParametre.getDeltakerFnr(), allPages);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">                } else if (queryParametre.getBedriftNr() != null) {</span>
+<span class="nc" id="L111">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByBedriftNr(queryParametre.getBedriftNr(), allPages);</span>
+<span class="nc bnc" id="L112" title="All 6 branches missed.">                } else if (queryParametre.getNavEnhet() != null &amp;&amp; queryParametre.getErUfordelt() != null &amp;&amp; queryParametre.getErUfordelt()) {</span>
+<span class="nc" id="L113">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdentIsNullAndEnhetGeografiskOrVeilederNavIdentIsNullAndEnhetOppfolging(queryParametre.getNavEnhet(), queryParametre.getNavEnhet(), allPages);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">                } else if (queryParametre.getNavEnhet() != null) {</span>
+<span class="nc" id="L115">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByEnhetGeografiskOrEnhetOppfolging(queryParametre.getNavEnhet(), queryParametre.getNavEnhet(), allPages);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                } else if (queryParametre.getAvtaleNr() != null) {</span>
+<span class="nc" id="L117">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByAvtaleNr(queryParametre.getAvtaleNr(), allPages);</span>
+                } else {
+<span class="nc" id="L119">                    avtalerUtenStatusFiltrering = avtaleRepository.findAllByVeilederNavIdent(veilederNavIdent, allPages);</span>
+                }
+            }
+<span class="nc bnc" id="L122" title="All 2 branches missed.">            int skip = pageable.getPageNumber() &gt; 0 ? (pageable.getPageNumber())*pageable.getPageSize() : 0;</span>
+<span class="nc" id="L123">            List&lt;Avtale&gt; totaltFørPaging = avtalerUtenStatusFiltrering.getContent().stream()</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                    .filter(avtale -&gt; avtale.statusSomEnum() == queryParametre.getStatus()).toList();</span>
+<span class="nc" id="L125">            List&lt;Avtale&gt; avtaler = avtalerUtenStatusFiltrering.getContent().stream()</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                    .filter(avtale -&gt; avtale.statusSomEnum() == queryParametre.getStatus())</span>
+<span class="nc" id="L127">                    .skip(skip)</span>
+<span class="nc" id="L128">                    .limit(pageable.getPageSize()).toList();</span>
+<span class="nc" id="L129">            return new PageImpl&lt;&gt;(avtaler, pageable, totaltFørPaging.size());</span>
+        }
+        else {
+            // Har ikke filtrert på status. Da går all filtrering i JPA/database
+            // Om det er filter med tiltaksType
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if(queryParametre.getTiltakstype() != null) {</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">                if (queryParametre.getVeilederNavIdent() != null) {</span>
+<span class="nc" id="L136">                    return avtaleRepository.findAllByVeilederNavIdentAndTiltakstype(queryParametre.getVeilederNavIdent(), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">                } else if (queryParametre.getDeltakerFnr() != null) {</span>
+<span class="nc" id="L138">                    return avtaleRepository.findAllByDeltakerFnrAndTiltakstype(queryParametre.getDeltakerFnr(), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                } else if (queryParametre.getBedriftNr() != null) {</span>
+<span class="nc" id="L140">                    return avtaleRepository.findAllByBedriftNrAndTiltakstype(queryParametre.getBedriftNr(), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L141" title="All 6 branches missed.">                } else if (queryParametre.getNavEnhet() != null &amp;&amp; queryParametre.getErUfordelt() != null &amp;&amp; queryParametre.getErUfordelt()) {</span>
+<span class="nc" id="L142">                    return avtaleRepository.findAllByVeilederNavIdentIsNullAndEnhetGeografiskAndTiltakstypeOrVeilederNavIdentIsNullAndEnhetOppfolgingAndTiltakstype(queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">                } else if (queryParametre.getNavEnhet() != null) {</span>
+<span class="nc" id="L144">                    return avtaleRepository.findAllByEnhetGeografiskAndTiltakstypeOrEnhetOppfolgingAndTiltakstype(queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), queryParametre.getNavEnhet(), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                } else if (queryParametre.getAvtaleNr() != null) {</span>
+<span class="nc" id="L146">                    return avtaleRepository.findAllByAvtaleNrAndTiltakstype(queryParametre.getAvtaleNr(), queryParametre.getTiltakstype(), pageable);</span>
+                } else {
+<span class="nc" id="L148">                    return avtaleRepository.findAllByVeilederNavIdentAndTiltakstype(veilederNavIdent, queryParametre.getTiltakstype(), pageable);</span>
+                }
+            } else {
+                // Ingen tiltakstyper i query
+<span class="nc bnc" id="L152" title="All 2 branches missed.">                if (queryParametre.getVeilederNavIdent() != null) {</span>
+<span class="nc" id="L153">                    return avtaleRepository.findAllByVeilederNavIdent(queryParametre.getVeilederNavIdent(), pageable);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">                } else if (queryParametre.getDeltakerFnr() != null) {</span>
+<span class="nc" id="L155">                    return avtaleRepository.findAllByDeltakerFnr(queryParametre.getDeltakerFnr(), pageable);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                } else if (queryParametre.getBedriftNr() != null) {</span>
+<span class="nc" id="L157">                    return avtaleRepository.findAllByBedriftNr(queryParametre.getBedriftNr(), pageable);</span>
+<span class="nc bnc" id="L158" title="All 6 branches missed.">                } else if (queryParametre.getNavEnhet() != null &amp;&amp; queryParametre.getErUfordelt() != null &amp;&amp; queryParametre.getErUfordelt()) {</span>
+<span class="nc" id="L159">                    return avtaleRepository.findAllByVeilederNavIdentIsNullAndEnhetGeografiskOrVeilederNavIdentIsNullAndEnhetOppfolging(queryParametre.getNavEnhet(), queryParametre.getNavEnhet(), pageable);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                } else if (queryParametre.getNavEnhet() != null) {</span>
+<span class="nc" id="L161">                    return avtaleRepository.findAllByEnhetGeografiskOrEnhetOppfolging(queryParametre.getNavEnhet(), queryParametre.getNavEnhet(), pageable);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                } else if (queryParametre.getAvtaleNr() != null) {</span>
+<span class="nc" id="L163">                    return avtaleRepository.findAllByAvtaleNr(queryParametre.getAvtaleNr(), pageable);</span>
+                } else {
+<span class="nc" id="L165">                    return avtaleRepository.findAllByVeilederNavIdent(veilederNavIdent, pageable);</span>
+                }
+            }
+        }
+    }
+
+    public void annullerAvtale(Instant sistEndret, String annullerGrunn, Avtale avtale) {
+<span class="nc" id="L172">        avtale.sjekkSistEndret(sistEndret);</span>
+<span class="nc" id="L173">        avtale.annuller(this, annullerGrunn);</span>
+<span class="nc" id="L174">    }</span>
+
+    @Override
+    public boolean kanEndreAvtale() {
+<span class="nc" id="L178">        return true;</span>
+    }
+
+    @Override
+    void godkjennForAvtalepart(Avtale avtale) {
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        if (persondataService.erKode6(avtale.getDeltakerFnr())) {</span>
+<span class="nc" id="L184">            throw new KanIkkeGodkjenneAvtalePåKode6Exception();</span>
+        }
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (avtale.getTiltakstype() != Tiltakstype.SOMMERJOBB) {</span>
+<span class="nc" id="L187">            veilarbArenaClient.sjekkOppfølingStatus(avtale);</span>
+        }
+<span class="nc" id="L189">        avtale.godkjennForVeileder(getIdentifikator());</span>
+<span class="nc" id="L190">    }</span>
+
+    @Override
+    public boolean erGodkjentAvInnloggetBruker(Avtale avtale) {
+<span class="nc" id="L194">        return avtale.erGodkjentAvVeileder();</span>
+    }
+
+    @Override
+    boolean kanOppheveGodkjenninger(Avtale avtale) {
+<span class="nc" id="L199">        return true;</span>
+    }
+
+    public void godkjennForVeilederOgDeltaker(GodkjentPaVegneGrunn paVegneAvGrunn, Avtale avtale) {
+<span class="nc" id="L203">        sjekkTilgang(avtale);</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        if (persondataService.erKode6(avtale.getDeltakerFnr())) {</span>
+<span class="nc" id="L205">            throw new KanIkkeGodkjenneAvtalePåKode6Exception();</span>
+        }
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (avtale.getTiltakstype() != Tiltakstype.SOMMERJOBB) {</span>
+<span class="nc" id="L208">            veilarbArenaClient.sjekkOppfølingStatus(avtale);</span>
+        }
+<span class="nc" id="L210">        avtale.godkjennForVeilederOgDeltaker(getIdentifikator(), paVegneAvGrunn);</span>
+<span class="nc" id="L211">    }</span>
+
+    private void blokkereKode6Prosessering(Fnr deltakerFnr) {
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        if (persondataService.erKode6(deltakerFnr)) {</span>
+<span class="nc" id="L215">            throw new KanIkkeGodkjenneAvtalePåKode6Exception();</span>
+        }
+<span class="nc" id="L217">    }</span>
+
+    private void sjekkOppfølgingStatusForTiltak(Avtale avtale) {
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if (avtale.getTiltakstype() != Tiltakstype.SOMMERJOBB) {</span>
+<span class="nc" id="L221">            veilarbArenaClient.sjekkOppfølingStatus(avtale);</span>
+        }
+<span class="nc" id="L223">    }</span>
+
+    public void godkjennForVeilederOgArbeidsgiver(
+            GodkjentPaVegneAvArbeidsgiverGrunn paVegneAvArbeidsgiverGrunn,
+            Avtale avtale
+    ) {
+<span class="nc" id="L229">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L230">        this.blokkereKode6Prosessering(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L231">        this.sjekkOppfølgingStatusForTiltak(avtale);</span>
+<span class="nc" id="L232">        avtale.godkjennForVeilederOgArbeidsgiver(getIdentifikator(), paVegneAvArbeidsgiverGrunn);</span>
+<span class="nc" id="L233">    }</span>
+
+    public void godkjennForVeilederOgDeltakerOgArbeidsgiver(
+            GodkjentPaVegneAvDeltakerOgArbeidsgiverGrunn paVegneAvDeltakerOgArbeidsgiverGrunn,
+            Avtale avtale
+    ) {
+<span class="nc" id="L239">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L240">        this.blokkereKode6Prosessering(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L241">        this.sjekkOppfølgingStatusForTiltak(avtale);</span>
+<span class="nc" id="L242">        avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver(getIdentifikator(), paVegneAvDeltakerOgArbeidsgiverGrunn);</span>
+<span class="nc" id="L243">    }</span>
+
+    @Override
+    void opphevGodkjenningerSomAvtalepart(Avtale avtale) {
+<span class="nc" id="L247">        avtale.opphevGodkjenningerSomVeileder();</span>
+<span class="nc" id="L248">    }</span>
+
+    @Override
+    protected Avtalerolle rolle() {
+<span class="nc" id="L252">        return Avtalerolle.VEILEDER;</span>
+    }
+
+    @Override
+    public InnloggetBruker innloggetBruker() {
+<span class="nc" id="L257">        return new InnloggetVeileder(getIdentifikator(), navEnheter, harAdGruppeForBeslutter);</span>
+    }
+
+    public void delAvtaleMedAvtalepart(Avtalerolle avtalerolle, Avtale avtale) {
+<span class="nc" id="L261">        avtale.delMedAvtalepart(avtalerolle);</span>
+<span class="nc" id="L262">    }</span>
+
+    public void overtaAvtale(Avtale avtale) {
+<span class="nc" id="L265">        super.sjekkTilgang(avtale);</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (this.getIdentifikator().equals(avtale.getVeilederNavIdent())) {</span>
+<span class="nc" id="L267">            throw new ErAlleredeVeilederException();</span>
+        }
+<span class="nc" id="L269">        avtale.overtaAvtale(this.getIdentifikator());</span>
+<span class="nc" id="L270">    }</span>
+
+    @Override
+    public void endreAvtale(
+            Instant sistEndret,
+            EndreAvtale endreAvtale,
+            Avtale avtale,
+            EnumSet&lt;Tiltakstype&gt; tiltakstyperMedTilskuddsperioder
+    ) {
+<span class="nc" id="L279">        super.sjekkTilgangOgEndreAvtale(</span>
+                sistEndret,
+                endreAvtale,
+                avtale,
+                tiltakstyperMedTilskuddsperioder
+        );
+<span class="nc" id="L285">        this.oppdatereEnheterVedEndreAvtale(avtale);</span>
+<span class="nc" id="L286">    }</span>
+
+    protected void oppdatereEnheterVedEndreAvtale(Avtale avtale) {
+<span class="nc" id="L289">        PdlRespons pdlRespons = this.oppdaterePersondataFraPdlVedEndreAvtale(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L290">        this.oppdatereOppfølgingStatusVedEndreAvtale(avtale);</span>
+<span class="nc" id="L291">        this.oppdatereGeoEnhetVedEndreAvtale(avtale, pdlRespons);</span>
+<span class="nc" id="L292">        this.oppdatereOppfølgingEnhetsnavnVedEndreAvtale(avtale);</span>
+
+<span class="nc" id="L294">    }</span>
+
+    public PdlRespons oppdaterePersondataFraPdlVedEndreAvtale(Fnr deltakerFnr) {
+<span class="nc" id="L297">        final PdlRespons persondata = persondataService.hentPersondataFraPdl(deltakerFnr);</span>
+<span class="nc" id="L298">        this.sjekkKode6(persondata);</span>
+<span class="nc" id="L299">        return persondata;</span>
+    }
+
+    private void oppdatereGeoEnhetVedEndreAvtale(Avtale avtale, PdlRespons pdlRespons) {
+<span class="nc" id="L303">        Norg2GeoResponse norg2GeoResponse = PersondataService.hentGeoLokasjonFraPdlRespons(pdlRespons)</span>
+<span class="nc" id="L304">                .map(norg2Client::hentGeoEnhetFraCacheEllerNorg2)</span>
+<span class="nc" id="L305">                .orElse(null);</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (norg2GeoResponse == null) return;</span>
+<span class="nc" id="L307">        avtale.setEnhetGeografisk(norg2GeoResponse.getEnhetNr());</span>
+<span class="nc" id="L308">        avtale.setEnhetsnavnGeografisk(norg2GeoResponse.getNavn());</span>
+<span class="nc" id="L309">    }</span>
+
+    private void oppdatereOppfølgingEnhetsnavnVedEndreAvtale(Avtale avtale) {
+<span class="nc" id="L312">        final Norg2OppfølgingResponse response = norg2Client.hentOppfølgingsEnhetsnavnFraCacheNorg2(</span>
+<span class="nc" id="L313">                avtale.getEnhetOppfolging()</span>
+        );
+<span class="nc bnc" id="L315" title="All 2 branches missed.">        if (response == null) return;</span>
+<span class="nc" id="L316">        avtale.setEnhetsnavnOppfolging(response.getNavn());</span>
+<span class="nc" id="L317">    }</span>
+
+    public void oppdatereOppfølgingStatusVedEndreAvtale(Avtale avtale) {
+<span class="nc" id="L320">        Oppfølgingsstatus oppfølgingsstatus = veilarbArenaClient.HentOppfølgingsenhetFraCacheEllerArena(</span>
+<span class="nc" id="L321">                avtale.getDeltakerFnr().asString()</span>
+        );
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        if (oppfølgingsstatus == null) return;</span>
+<span class="nc" id="L324">        this.settOppfølgingsStatus(avtale, oppfølgingsstatus);</span>
+<span class="nc" id="L325">    }</span>
+
+    private void sjekkKode6(PdlRespons persondata) {
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (persondataService.erKode6(persondata)) {</span>
+<span class="nc" id="L329">            throw new KanIkkeOppretteAvtalePåKode6Exception();</span>
+        }
+<span class="nc" id="L331">    }</span>
+
+    public Avtale opprettAvtale(OpprettAvtale opprettAvtale) {
+<span class="nc" id="L334">        this.sjekkTilgangskontroll(opprettAvtale.getDeltakerFnr());</span>
+<span class="nc" id="L335">        Avtale avtale = Avtale.veilederOppretterAvtale(opprettAvtale, getIdentifikator());</span>
+<span class="nc" id="L336">        leggTilEnheter(avtale);</span>
+<span class="nc" id="L337">        return avtale;</span>
+    }
+
+    public Avtale opprettMentorAvtale(OpprettMentorAvtale opprettMentorAvtale) {
+<span class="nc" id="L341">        this.sjekkTilgangskontroll(opprettMentorAvtale.getDeltakerFnr());</span>
+<span class="nc" id="L342">        Avtale avtale = Avtale.veilederOppretterAvtale(opprettMentorAvtale, getIdentifikator());</span>
+<span class="nc" id="L343">        leggTilEnheter(avtale);</span>
+<span class="nc" id="L344">        return avtale;</span>
+    }
+
+    private void sjekkTilgangskontroll(Fnr deltakerFnr) {
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        if(!tilgangskontrollService.harSkrivetilgangTilKandidat(this, deltakerFnr)) {</span>
+<span class="nc" id="L349">            throw new IkkeTilgangTilDeltakerException();</span>
+        }
+<span class="nc" id="L351">    }</span>
+
+    protected void leggTilEnheter(Avtale avtale){
+<span class="nc" id="L354">        final PdlRespons persondata = this.hentPersonDataForOpprettelseAvAvtale(avtale);</span>
+<span class="nc" id="L355">        this.hentOppfølgingFraArena(avtale, veilarbArenaClient);</span>
+<span class="nc" id="L356">        super.hentGeoEnhetFraNorg2(avtale, persondata, norg2Client);</span>
+<span class="nc" id="L357">        this.hentOppfolgingEnhetsnavnFraNorg2(avtale, norg2Client);</span>
+<span class="nc" id="L358">    }</span>
+
+    private PdlRespons hentPersonDataForOpprettelseAvAvtale(Avtale avtale) {
+<span class="nc" id="L361">        final PdlRespons persondata = hentPersondata(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L362">        avtale.leggTilDeltakerNavn(hentNavnFraPdlRespons(persondata));</span>
+<span class="nc" id="L363">        return persondata;</span>
+    }
+
+    public void hentOppfolgingEnhetsnavnFraNorg2(Avtale avtale, Norg2Client norg2Client) {
+<span class="nc" id="L367">        final Norg2OppfølgingResponse response = norg2Client.hentOppfølgingsEnhetsnavn(avtale.getEnhetOppfolging());</span>
+<span class="nc bnc" id="L368" title="All 2 branches missed.">        if (response == null) return;</span>
+<span class="nc" id="L369">        avtale.setEnhetsnavnOppfolging(response.getNavn());</span>
+<span class="nc" id="L370">    }</span>
+
+    public void hentOppfølgingFraArena(
+            Avtale avtale,
+            VeilarbArenaClient veilarbArenaClient
+    ) {
+<span class="nc bnc" id="L376" title="All 2 branches missed.">        if(avtale.harOppfølgingsStatus()) return;</span>
+<span class="nc" id="L377">        Oppfølgingsstatus oppfølgingsstatus = veilarbArenaClient.sjekkOgHentOppfølgingStatus(avtale);</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">        if (oppfølgingsstatus == null) return;</span>
+<span class="nc" id="L379">        this.settOppfølgingsStatus(avtale, oppfølgingsstatus);</span>
+<span class="nc" id="L380">        this.settLonntilskuddProsentsats(avtale);</span>
+<span class="nc" id="L381">    }</span>
+
+    private PdlRespons hentPersondata(Fnr deltakerFnr) {
+<span class="nc" id="L384">        final PdlRespons persondata = persondataService.hentPersondata(deltakerFnr);</span>
+<span class="nc" id="L385">        this.sjekkKode6(persondata);</span>
+<span class="nc" id="L386">        return persondata;</span>
+    }
+
+    public void sjekkOgHentOppfølgingStatus(Avtale avtale, VeilarbArenaClient veilarbArenaClient) {
+<span class="nc" id="L390">        Oppfølgingsstatus oppfølgingsstatus = veilarbArenaClient.sjekkOgHentOppfølgingStatus(avtale);</span>
+<span class="nc" id="L391">        this.settOppfølgingsStatus(avtale, oppfølgingsstatus);</span>
+<span class="nc" id="L392">    }</span>
+
+    protected void settOppfølgingsStatus(Avtale avtale, Oppfølgingsstatus oppfølgingsstatus) {
+<span class="nc" id="L395">        avtale.setEnhetOppfolging(oppfølgingsstatus.getOppfolgingsenhet());</span>
+<span class="nc" id="L396">        avtale.setKvalifiseringsgruppe(oppfølgingsstatus.getKvalifiseringsgruppe());</span>
+<span class="nc" id="L397">        avtale.setFormidlingsgruppe(oppfølgingsstatus.getFormidlingsgruppe());</span>
+<span class="nc" id="L398">    }</span>
+
+    public void slettemerk(Avtale avtale) {
+<span class="nc" id="L401">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L402">        List&lt;NavIdent&gt; identer = slettemerkeProperties.getIdent();</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">        if (!identer.contains(this.getIdentifikator())) {</span>
+<span class="nc" id="L404">            throw new IkkeAdminTilgangException();</span>
+        }
+<span class="nc" id="L406">        avtale.slettemerk(this.getIdentifikator());</span>
+<span class="nc" id="L407">    }</span>
+
+    public void endreMål(EndreMål endreMål, Avtale avtale) {
+<span class="nc" id="L410">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L411">        avtale.endreMål(endreMål, getIdentifikator());</span>
+<span class="nc" id="L412">    }</span>
+
+    public void endreInkluderingstilskudd(EndreInkluderingstilskudd endreInkluderingstilskudd, Avtale avtale) {
+<span class="nc" id="L415">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L416">        avtale.endreInkluderingstilskudd(endreInkluderingstilskudd, getIdentifikator());</span>
+<span class="nc" id="L417">    }</span>
+
+    public void forkortAvtale(Avtale avtale, LocalDate sluttDato, String grunn, String annetGrunn) {
+<span class="nc" id="L420">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L421">        avtale.forkortAvtale(sluttDato, grunn, annetGrunn, getIdentifikator());</span>
+<span class="nc" id="L422">    }</span>
+
+    public void forlengAvtale(LocalDate sluttDato, Avtale avtale) {
+<span class="nc" id="L425">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L426">        sjekkOgHentOppfølgingStatus(avtale, veilarbArenaClient);</span>
+<span class="nc" id="L427">        avtale.forlengAvtale(sluttDato, getIdentifikator());</span>
+<span class="nc" id="L428">    }</span>
+
+    protected void oppdatereEnheterEtterForespørsel(Avtale avtale) {
+<span class="nc" id="L431">        final PdlRespons persondata = this.hentPersonDataForOpprettelseAvAvtale(avtale);</span>
+<span class="nc" id="L432">        this.sjekkOgHentOppfølgingStatus(avtale, veilarbArenaClient);</span>
+<span class="nc" id="L433">        super.hentGeoEnhetFraNorg2(avtale, persondata, norg2Client);</span>
+<span class="nc" id="L434">        this.hentOppfolgingEnhetsnavnFraNorg2(avtale, norg2Client);</span>
+<span class="nc" id="L435">    }</span>
+
+    public void endreStillingbeskrivelse(EndreStillingsbeskrivelse endreStillingsbeskrivelse, Avtale avtale) {
+<span class="nc" id="L438">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L439">        avtale.endreStillingsbeskrivelse(endreStillingsbeskrivelse, getIdentifikator());</span>
+<span class="nc" id="L440">    }</span>
+
+    public void endreOppfølgingOgTilrettelegging(
+            EndreOppfølgingOgTilrettelegging endreOppfølgingOgTilrettelegging,
+            Avtale avtale
+    ) {
+<span class="nc" id="L446">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L447">        avtale.endreOppfølgingOgTilrettelegging(endreOppfølgingOgTilrettelegging, getIdentifikator());</span>
+<span class="nc" id="L448">    }</span>
+
+    public void endreOmMentor(EndreOmMentor endreOmMentor, Avtale avtale) {
+<span class="nc" id="L451">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L452">        avtale.endreOmMentor(endreOmMentor, getIdentifikator());</span>
+<span class="nc" id="L453">    }</span>
+
+    public void endreKontaktinfo(EndreKontaktInformasjon endreKontaktInformasjon, Avtale avtale) {
+<span class="nc" id="L456">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L457">        avtale.endreKontaktInformasjon(endreKontaktInformasjon, getIdentifikator());</span>
+<span class="nc" id="L458">    }</span>
+
+    public void endreTilskuddsberegning(EndreTilskuddsberegning endreTilskuddsberegning, Avtale avtale) {
+<span class="nc" id="L461">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L462">        avtale.endreTilskuddsberegning(endreTilskuddsberegning, getIdentifikator());</span>
+<span class="nc" id="L463">    }</span>
+
+    public void sendTilbakeTilBeslutter(Avtale avtale) {
+<span class="nc" id="L466">        super.sjekkTilgang(avtale);</span>
+<span class="nc" id="L467">        avtale.sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L468">    }</span>
+
+    protected void oppdatereKostnadssted(Avtale avtale, Norg2Client norg2Client, String enhet) {
+<span class="nc" id="L471">        final Norg2OppfølgingResponse response = norg2Client.hentOppfølgingsEnhetsnavn(enhet);</span>
+
+<span class="nc bnc" id="L473" title="All 2 branches missed.">        if (response == null) {</span>
+<span class="nc" id="L474">            throw new FeilkodeException(Feilkode.ENHET_FINNES_IKKE);</span>
+        }
+<span class="nc" id="L476">        NyttKostnadssted nyttKostnadssted = new NyttKostnadssted(enhet, response.getNavn());</span>
+<span class="nc" id="L477">        TreeSet&lt;TilskuddPeriode&gt; tilskuddPerioder = avtale.finnTilskuddsperioderIkkeLukketForEndring();</span>
+
+<span class="nc bnc" id="L479" title="All 2 branches missed.">        if (tilskuddPerioder == null) {</span>
+<span class="nc" id="L480">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ER_IKKE_SATT);</span>
+        }
+<span class="nc" id="L482">        avtale.oppdatereKostnadsstedForTilskuddsperioder(nyttKostnadssted);</span>
+<span class="nc" id="L483">    }</span>
+
+    private LocalDate settStartDato(LocalDate startdato) {
+<span class="nc bnc" id="L486" title="All 2 branches missed.">        return startdato != null ? startdato : LocalDate.now();</span>
+    }
+
+    protected List&lt;AlleredeRegistrertAvtale&gt; hentAvtaleDeltakerAlleredeErRegistrertPaa(
+            Fnr deltakerFnr,
+            Tiltakstype tiltakstype,
+            UUID avtaleId,
+            LocalDate startDato,
+            LocalDate sluttDato,
+            AvtaleRepository avtaleRepository
+    ) {
+<span class="nc bnc" id="L497" title="All 6 branches missed.">        if(avtaleId != null &amp;&amp; startDato != null &amp;&amp; sluttDato != null) {</span>
+<span class="nc" id="L498">            return AlleredeRegistrertAvtale.filtrerAvtaleDeltakerAlleredeErRegistrertPaa(</span>
+<span class="nc" id="L499">                    avtaleRepository.finnAvtalerSomOverlapperForDeltakerVedGodkjenningAvAvtale(</span>
+<span class="nc" id="L500">                            deltakerFnr.asString(),</span>
+<span class="nc" id="L501">                            avtaleId.toString(),</span>
+<span class="nc" id="L502">                            Date.valueOf(settStartDato(startDato)),</span>
+<span class="nc" id="L503">                            Date.valueOf(sluttDato)</span>
+                    ),
+                    tiltakstype
+            );
+        }
+<span class="nc" id="L508">        return AlleredeRegistrertAvtale.filtrerAvtaleDeltakerAlleredeErRegistrertPaa(</span>
+<span class="nc" id="L509">                avtaleRepository.finnAvtalerSomOverlapperForDeltakerVedOpprettelseAvAvtale(</span>
+<span class="nc" id="L510">                        deltakerFnr.asString(),</span>
+<span class="nc" id="L511">                        Date.valueOf(settStartDato(startDato))</span>
+
+                ),
+                tiltakstype
+        );
+    }
+
+    @Override public UUID getAzureOid() {
+<span class="nc" id="L519">        return azureOid;</span>
+    }
+
+    @Override public NavIdent getNavIdent() {
+<span class="nc" id="L523">        return getIdentifikator();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

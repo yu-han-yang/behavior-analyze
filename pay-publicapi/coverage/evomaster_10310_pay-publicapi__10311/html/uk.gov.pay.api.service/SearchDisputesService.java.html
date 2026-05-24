@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchDisputesService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">SearchDisputesService.java</span></div><h1>SearchDisputesService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.model.ledger.SearchDisputesResponseFromLedger;
+import uk.gov.pay.api.model.search.PaginationDecorator;
+import uk.gov.pay.api.model.search.dispute.DisputeForSearchResult;
+import uk.gov.pay.api.model.search.dispute.DisputesSearchResults;
+
+import javax.inject.Inject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class SearchDisputesService {
+    private static final String DISPUTES_PATH = &quot;/v1/disputes&quot;;
+    private final LedgerService ledgerService;
+    private final PublicApiUriGenerator publicApiUriGenerator;
+    private final PaginationDecorator paginationDecorator;
+
+    @Inject
+    public SearchDisputesService(LedgerService ledgerService,
+                                PublicApiUriGenerator publicApiUriGenerator,
+<span class="fc" id="L22">                                PaginationDecorator paginationDecorator) {</span>
+
+<span class="fc" id="L24">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L25">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L26">        this.paginationDecorator = paginationDecorator;</span>
+<span class="fc" id="L27">    }</span>
+
+    public DisputesSearchResults searchDisputes(Account account, DisputesSearchParams params) {
+<span class="nc" id="L30">        SearchDisputesResponseFromLedger disputesFromLedger = ledgerService.searchDisputes(account, params.getParamsAsMap());</span>
+<span class="nc" id="L31">        return processLedgerResponse(disputesFromLedger);</span>
+    }
+
+    private DisputesSearchResults processLedgerResponse(SearchDisputesResponseFromLedger searchResponse) {
+<span class="nc" id="L35">        List&lt;DisputeForSearchResult&gt; results = searchResponse.getDisputes()</span>
+<span class="nc" id="L36">                .stream()</span>
+<span class="nc" id="L37">                .map(dispute -&gt; DisputeForSearchResult.valueOf(dispute,</span>
+<span class="nc" id="L38">                        publicApiUriGenerator.getPaymentURI(dispute.getParentTransactionId())))</span>
+<span class="nc" id="L39">                        .collect(Collectors.toList());</span>
+
+<span class="nc" id="L41">        reWriteSearchLinks(searchResponse);</span>
+
+<span class="nc" id="L43">        return new DisputesSearchResults(searchResponse.getTotal(), searchResponse.getCount(), searchResponse.getPage(),</span>
+<span class="nc" id="L44">                results, paginationDecorator.transformLinksToPublicApiUri(searchResponse.getLinks(), DISPUTES_PATH));</span>
+    }
+
+    private void reWriteSearchLinks(SearchDisputesResponseFromLedger searchResponse) {
+<span class="nc" id="L48">        var links = searchResponse.getLinks();</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if (links.getSelf() != null) {</span>
+<span class="nc" id="L50">            links.withSelfLink(links.getSelf().getHref().replace(&quot;state&quot;, &quot;status&quot;));</span>
+        }
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (links.getFirstPage() != null) {</span>
+<span class="nc" id="L53">            links.withFirstLink(links.getFirstPage().getHref().replaceAll(&quot;state&quot;, &quot;status&quot;));</span>
+        }
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (links.getLastPage() != null) {</span>
+<span class="nc" id="L56">            links.withLastLink(links.getLastPage().getHref().replaceAll(&quot;state&quot;, &quot;status&quot;));</span>
+        }
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (links.getPrevPage() != null) {</span>
+<span class="nc" id="L59">            links.withPrevLink(links.getPrevPage().getHref().replaceAll(&quot;state&quot;, &quot;status&quot;));</span>
+        }
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (links.getLastPage() != null) {</span>
+<span class="nc" id="L62">            links.withLastLink(links.getLastPage().getHref().replaceAll(&quot;state&quot;, &quot;status&quot;));</span>
+        }
+<span class="nc" id="L64">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

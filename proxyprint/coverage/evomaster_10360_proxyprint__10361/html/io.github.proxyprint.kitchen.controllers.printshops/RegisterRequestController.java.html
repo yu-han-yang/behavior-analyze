@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisterRequestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops</a> &gt; <span class="el_source">RegisterRequestController.java</span></div><h1>RegisterRequestController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Pivotal Software, Inc..
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.controllers.printshops;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.printshops.Manager;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.RegisterRequest;
+import io.github.proxyprint.kitchen.models.repositories.ManagerDAO;
+import io.github.proxyprint.kitchen.models.repositories.PrintShopDAO;
+import io.github.proxyprint.kitchen.models.repositories.RegisterRequestDAO;
+import io.github.proxyprint.kitchen.utils.MailBox;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.security.Principal;
+import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * @author josesousa
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L44">public class RegisterRequestController {</span>
+
+    @Autowired
+    private RegisterRequestDAO registerRequests;
+    @Autowired
+    private PrintShopDAO printShops;
+    @Autowired
+    private ManagerDAO managers;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns success.&quot;, notes = &quot;This method allows to add a register request to a new printshop.&quot;)
+    @RequestMapping(value = &quot;/request/register&quot;, method = RequestMethod.POST)
+    public ResponseEntity&lt;RegisterRequest&gt; registerRequest(@RequestBody RegisterRequest registerRequest) {
+<span class="nc" id="L58">        registerRequest = registerRequests.save(registerRequest);</span>
+<span class="nc" id="L59">        return new ResponseEntity&lt;&gt;(registerRequest, HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows the admin to accept a register request from a printshop.&quot;)
+    @Secured({&quot;ROLE_ADMIN&quot;})
+    @RequestMapping(value = &quot;/request/accept/{id}&quot;, method = RequestMethod.POST)
+    public String acceptRequest(@PathVariable(value = &quot;id&quot;) long id) throws IOException {
+<span class="fc" id="L66">        RegisterRequest registerRequest = registerRequests.findOne(id);</span>
+<span class="fc" id="L67">        JsonObject response = new JsonObject();</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (registerRequest == null) {</span>
+<span class="fc" id="L69">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L70">            return GSON.toJson(response);</span>
+        } else {
+
+            // Create Manager instance
+<span class="nc" id="L74">            Manager newManager = new Manager(registerRequest.getManagerUsername(),</span>
+<span class="nc" id="L75">                    registerRequest.getManagerPassword(),</span>
+<span class="nc" id="L76">                    registerRequest.getManagerName(),</span>
+<span class="nc" id="L77">                    registerRequest.getManagerEmail()</span>
+            );
+
+<span class="nc" id="L80">            Manager savedManager = managers.save(newManager);</span>
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (savedManager != null) {</span>
+                // Create PrintShop instance
+<span class="nc" id="L84">                PrintShop newPShop = new PrintShop(registerRequest.getpShopName(),</span>
+<span class="nc" id="L85">                        registerRequest.getpShopAddress(),</span>
+<span class="nc" id="L86">                        registerRequest.getpShopLatitude(),</span>
+<span class="nc" id="L87">                        registerRequest.getpShopLongitude(),</span>
+<span class="nc" id="L88">                        registerRequest.getpShopNIF(),</span>
+                        &quot;path_to_logo&quot;,
+                        0
+                );
+<span class="nc" id="L92">                PrintShop savedPShop = printShops.save(newPShop);</span>
+
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                if (savedPShop != null) {</span>
+<span class="nc" id="L95">                    savedManager.setPrintShop(savedPShop);</span>
+<span class="nc" id="L96">                    managers.save(savedManager);</span>
+
+                    // Delete request, is no longer needed
+<span class="nc" id="L99">                    registerRequests.delete(registerRequest.getId());</span>
+
+                    // Send email
+<span class="nc" id="L102">                    MailBox m = new MailBox();</span>
+<span class="nc" id="L103">                    boolean res = m.sedMailAcceptedRequest(registerRequest);</span>
+
+<span class="nc" id="L105">                    response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L106">                    return GSON.toJson(response);</span>
+                }
+            }
+        }
+<span class="nc" id="L110">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L111">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows the admin to reject a register request from a printshop.&quot;)
+    @Secured({&quot;ROLE_ADMIN&quot;})
+    @RequestMapping(value = &quot;/request/reject/{printRequestID}&quot;, method = RequestMethod.POST)
+    public String rejectRequest(@PathVariable(value = &quot;printRequestID&quot;) long prid, Principal principal, @RequestBody String motive) throws IOException {
+<span class="fc" id="L118">        RegisterRequest registerRequest = registerRequests.findOne(prid);</span>
+<span class="fc" id="L119">        JsonObject response = new JsonObject();</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        if (registerRequest == null) {</span>
+<span class="fc" id="L121">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L122">            return GSON.toJson(response);</span>
+        } else {
+            // Delete request
+<span class="nc" id="L125">            registerRequests.delete(prid);</span>
+
+            // Send email
+<span class="nc" id="L128">            MailBox m = new MailBox();</span>
+<span class="nc" id="L129">            m.sedMailRejectedRegisterRequest(registerRequest, motive);</span>
+
+<span class="nc" id="L131">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L132">            return GSON.toJson(response);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Returns a list of pending register requests.&quot;, notes = &quot;This method allows the admin to get a list of pending register requests.&quot;)
+    @Secured({&quot;ROLE_ADMIN&quot;})
+    @RequestMapping(value = &quot;/requests/pending&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;List&lt;RegisterRequest&gt;&gt; acceptRequest() {
+<span class="fc" id="L140">        List&lt;RegisterRequest&gt; pendingRequests = this.registerRequests.findByAccepted(false);</span>
+<span class="fc" id="L141">        return new ResponseEntity&lt;&gt;(pendingRequests, HttpStatus.OK);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.util</a> &gt; <span class="el_source">RepositoryUtils.java</span></div><h1>RepositoryUtils.java</h1><pre class="source lang-java linenums">package youtube.api.util;
+
+import youtube.api.model.*;
+
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+public class RepositoryUtils {
+
+<span class="fc" id="L12">    public static final List&lt;String&gt; topicIds = Arrays.asList(&quot;/m/04rlf&quot;,&quot;/m/02mscn&quot;,&quot;/m/0ggq0m&quot;,&quot;/m/01lyv&quot;,&quot;/m/02lkt&quot;,&quot;/m/0glt670&quot;,&quot;/m/05rwpb&quot;,&quot;/m/03_d0&quot;,&quot;/m/028sqc&quot;,&quot;/m/0g293&quot;,&quot;/m/064t9&quot;,&quot;/m/06cqb&quot;,&quot;/m/06j6l&quot;,&quot;/m/06by7&quot;,&quot;/m/0gywn&quot;,&quot;/m/0bzvm2&quot;,&quot;/m/025zzc&quot;,&quot;/m/02ntfj&quot;,&quot;/m/0b1vjn&quot;,&quot;/m/02hygl&quot;,&quot;/m/04q1x3q&quot;,&quot;/m/01sjng&quot;,&quot;/m/0403l3g&quot;,&quot;/m/021bp2&quot;,&quot;/m/022dc6&quot;,&quot;/m/03hf_rm&quot;,&quot;/m/06ntj&quot;,&quot;/m/0jm_&quot;,&quot;/m/018jz&quot;,&quot;/m/018w8&quot;,&quot;/m/01cgz&quot;,&quot;/m/09xp_&quot;,&quot;/m/02vx4&quot;,&quot;/m/037hz&quot;,&quot;/m/03tmr&quot;,&quot;/m/01h7lh&quot;,&quot;/m/0410tth&quot;,&quot;/m/07bs0&quot;,&quot;/m/07_53&quot;,&quot;/m/02jjt&quot;,&quot;/m/09kqc&quot;,&quot;/m/02vxn&quot;,&quot;/m/05qjc&quot;,&quot;/m/066wd&quot;,&quot;/m/0f2f9&quot;,&quot;/m/019_rr&quot;,&quot;/m/032tl&quot;,&quot;/m/027x7n&quot;,&quot;/m/02wbm&quot;,&quot;/m/03glg&quot;,&quot;/m/068hy&quot;,&quot;/m/041xxh&quot;,&quot;/m/07c1v&quot;,&quot;/m/07bxq&quot;,&quot;/m/07yv9&quot;,&quot;/m/098wr&quot;,&quot;/m/09s1f&quot;,&quot;/m/0kt51&quot;,&quot;/m/01h6rj&quot;,&quot;/m/05qt0&quot;,&quot;/m/06bvp&quot;,&quot;/m/01k8wb&quot;);</span>
+
+    private static final String CHAR_LOWER = &quot;abcdefghijklmnopqrstuvwxyz&quot;;
+<span class="fc" id="L15">    private static final String CHAR_UPPER = CHAR_LOWER.toUpperCase();</span>
+    private static final String NUMBER = &quot;0123456789&quot;;
+
+<span class="fc" id="L18">    private static final String DATA_FOR_RANDOM_STRING = CHAR_LOWER + CHAR_UPPER + NUMBER;</span>
+<span class="fc" id="L19">    private static SecureRandom random = new SecureRandom();</span>
+
+<span class="nc" id="L21">    private RepositoryUtils() {</span>
+<span class="nc" id="L22">        throw new UnsupportedOperationException(&quot;Trying to instance utility class&quot;);</span>
+    }
+
+    public static SearchResult convertToSearchResult(Object resource, String part) {
+<span class="nc" id="L26">        SearchResult result = new SearchResult();</span>
+<span class="nc" id="L27">        result.setEtag(generateEtag());</span>
+<span class="nc" id="L28">        result.setKind(&quot;youtube#searchResult&quot;);</span>
+<span class="nc" id="L29">        ResourceId resourceId = new ResourceId();</span>
+
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        if (resource instanceof Video) {</span>
+<span class="nc" id="L32">            resourceId.setKind(&quot;youtube#video&quot;);</span>
+<span class="nc" id="L33">            resourceId.setVideoId(((Video) resource).getId());</span>
+<span class="nc bnc" id="L34" title="All 2 branches missed.">            if (!part.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L35">                result.setSnippet(((Video) resource).getSnippet());</span>
+            }
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        } else if(resource instanceof Channel) {</span>
+<span class="nc" id="L38">            resourceId.setKind(&quot;youtube#channel&quot;);</span>
+<span class="nc" id="L39">            resourceId.setChannelId(((Channel) resource).getId());</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">            if(!part.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L41">                result.setSnippet(((Channel) resource).getSnippet());</span>
+            }
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        } else if(resource instanceof Playlist) {</span>
+<span class="nc" id="L44">            resourceId.setKind(&quot;youtube#playlist&quot;);</span>
+<span class="nc" id="L45">            resourceId.setPlaylistId(((Playlist) resource).getId());</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            if(!part.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L47">                result.setSnippet(((Playlist) resource).getSnippet());</span>
+            }
+        }
+
+<span class="nc" id="L51">        result.setId(resourceId);</span>
+<span class="nc" id="L52">        return result;</span>
+    }
+
+
+    public static String generateEtag() {
+<span class="fc" id="L57">        StringBuilder result = new StringBuilder(25);</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        for(int i = 0; i &lt; 25; i++) {</span>
+<span class="fc" id="L60">            int randomIndex = random.nextInt(DATA_FOR_RANDOM_STRING.length());</span>
+<span class="fc" id="L61">            char randomChar = DATA_FOR_RANDOM_STRING.charAt(randomIndex);</span>
+<span class="fc" id="L62">            result.append(randomChar);</span>
+        }
+
+<span class="fc" id="L65">        return result.toString();</span>
+    }
+
+    public static boolean filterByChannelId(Object x, String channelId) {
+<span class="nc bnc" id="L69" title="All 4 branches missed.">        boolean result = channelId == null || channelId.isEmpty();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        if(x instanceof Video) {</span>
+<span class="nc" id="L71">            Video v = (Video) x;</span>
+<span class="nc" id="L72">            result |= v.getSnippet().getChannelId().equals(channelId);</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        } else if (x instanceof Channel) {</span>
+<span class="nc" id="L74">            Channel c = (Channel) x;</span>
+<span class="nc" id="L75">            result |= c.getSnippet().getChannelId().equals(channelId);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        } else if(x instanceof Playlist) {</span>
+<span class="nc" id="L77">            Playlist p = (Playlist) x;</span>
+<span class="nc" id="L78">            result |= p.getSnippet().getChannelId().equals(channelId);</span>
+        }
+<span class="nc" id="L80">        return result;</span>
+    }
+
+    public static boolean filterByDates(Object x, Date[] dates) {
+<span class="nc bnc" id="L84" title="All 4 branches missed.">        boolean result = dates[0] == null &amp;&amp; dates[1] == null;</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if(x instanceof Video) {</span>
+<span class="nc" id="L86">            Video v = (Video) x;</span>
+<span class="nc bnc" id="L87" title="All 8 branches missed.">            result |= ((dates[0] == null || v.getSnippet().getPublishedAt().before(dates[0])) &amp;&amp; (dates[1] == null || v.getSnippet().getPublishedAt().after(dates[1])));</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        } else if (x instanceof Channel) {</span>
+<span class="nc" id="L89">            Channel c = (Channel) x;</span>
+<span class="nc bnc" id="L90" title="All 8 branches missed.">            result |= ((dates[0] == null || c.getSnippet().getPublishedAt().before(dates[0])) &amp;&amp; (dates[1] == null || c.getSnippet().getPublishedAt().after(dates[1])));</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        } else if(x instanceof Playlist) {</span>
+<span class="nc" id="L92">            Playlist p = (Playlist) x;</span>
+<span class="nc bnc" id="L93" title="All 8 branches missed.">            result |= ((dates[0] == null || p.getSnippet().getPublishedAt().before(dates[0])) &amp;&amp; (dates[1] == null || p.getSnippet().getPublishedAt().after(dates[1])));</span>
+        }
+<span class="nc" id="L95">        return result;</span>
+    }
+
+    public static boolean filterByQuery(Object x, String q) {
+<span class="nc bnc" id="L99" title="All 4 branches missed.">        boolean result = q == null || q.isEmpty();</span>
+<span class="nc bnc" id="L100" title="All 8 branches missed.">        if(!result &amp;&amp; !q.contains(&quot;-&quot;) &amp;&amp; !q.contains(&quot;|&quot;) &amp;&amp; x instanceof Video) {</span>
+<span class="nc" id="L101">            Video v = (Video) x;</span>
+<span class="nc" id="L102">            result = v.getSnippet().getTitle().toLowerCase().contains(q.toLowerCase());</span>
+<span class="nc bnc" id="L103" title="All 6 branches missed.">        } else if (!result &amp;&amp; !q.contains(&quot;-&quot;) &amp;&amp; x instanceof Channel) {</span>
+<span class="nc" id="L104">            Channel c = (Channel) x;</span>
+<span class="nc" id="L105">            result = c.getSnippet().getTitle().toLowerCase().contains(q.toLowerCase());</span>
+<span class="nc bnc" id="L106" title="All 6 branches missed.">        } else if(!result &amp;&amp; !q.contains(&quot;-&quot;) &amp;&amp; x instanceof Playlist) {</span>
+<span class="nc" id="L107">            Playlist p = (Playlist) x;</span>
+<span class="nc" id="L108">            result = p.getSnippet().getTitle().toLowerCase().contains(q.toLowerCase());</span>
+<span class="nc bnc" id="L109" title="All 8 branches missed.">        } else if(!result &amp;&amp; q.contains(&quot;|&quot;) &amp;&amp; (!q.contains(&quot;-&quot;) || q.indexOf('|') &lt; q.indexOf('-'))) {</span>
+<span class="nc" id="L110">            String[] sp = q.split(&quot;\\|&quot;);</span>
+<span class="nc" id="L111">            boolean exp1 = filterByQuery(x, sp[0].trim());</span>
+<span class="nc" id="L112">            boolean exp2 = filterByQuery(x, sp[1].trim());</span>
+<span class="nc bnc" id="L113" title="All 4 branches missed.">            result = exp1 || exp2;</span>
+<span class="nc bnc" id="L114" title="All 8 branches missed.">        } else if(!result &amp;&amp; q.contains(&quot;-&quot;) &amp;&amp; (!q.contains(&quot;|&quot;) || q.indexOf('|') &gt; q.indexOf('-'))) {</span>
+<span class="nc" id="L115">            String[] sp = q.split(&quot;-&quot;);</span>
+<span class="nc bnc" id="L116" title="All 4 branches missed.">            boolean exp1 = sp[0].trim().isEmpty() || filterByQuery(x, sp[0].trim());</span>
+<span class="nc" id="L117">            boolean exp2 = filterByQuery(x, sp[1].trim());</span>
+<span class="nc bnc" id="L118" title="All 4 branches missed.">            result = exp1 &amp;&amp; !exp2;</span>
+        }
+<span class="nc" id="L120">        return result;</span>
+    }
+
+    public static boolean filterByRelevanceLanguage(Object x, String relevanceLanguage) {
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        boolean result = relevanceLanguage == null || relevanceLanguage.isEmpty();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if(x instanceof Video) {</span>
+<span class="nc" id="L126">            Video v = (Video) x;</span>
+<span class="nc" id="L127">            result |= v.getDefaultLanguage().equalsIgnoreCase(relevanceLanguage);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        } else if (x instanceof Channel) {</span>
+<span class="nc" id="L129">            Channel c = (Channel) x;</span>
+<span class="nc" id="L130">            result |= c.getDefaultLanguage().equalsIgnoreCase(relevanceLanguage);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        } else if(x instanceof Playlist) {</span>
+<span class="nc" id="L132">            Playlist p = (Playlist) x;</span>
+<span class="nc" id="L133">            result |= p.getDefaultLanguage().equalsIgnoreCase(relevanceLanguage);</span>
+        }
+<span class="nc" id="L135">        return result;</span>
+    }
+
+    public static boolean filterByTopicId(Object x, String topicId) {
+<span class="nc bnc" id="L139" title="All 6 branches missed.">        boolean result = topicId == null || topicId.isEmpty() || !topicIds.contains(topicId);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if(x instanceof Video) {</span>
+<span class="nc" id="L141">            Video v = (Video) x;</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">            result |= v.getRelevantTopicIds() != null &amp;&amp; v.getRelevantTopicIds().contains(topicId);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        } else if (x instanceof Channel) {</span>
+<span class="nc" id="L144">            Channel c = (Channel) x;</span>
+<span class="nc bnc" id="L145" title="All 4 branches missed.">            result |= c.getRelevantTopicIds() != null &amp;&amp; c.getRelevantTopicIds().contains(topicId);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        } else if(x instanceof Playlist) {</span>
+<span class="nc" id="L147">            Playlist p = (Playlist) x;</span>
+<span class="nc bnc" id="L148" title="All 4 branches missed.">            result |= p.getVideos().stream().anyMatch(v -&gt; v.getRelevantTopicIds() != null &amp;&amp; v.getRelevantTopicIds().contains(topicId));</span>
+        }
+<span class="nc" id="L150">        return result;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

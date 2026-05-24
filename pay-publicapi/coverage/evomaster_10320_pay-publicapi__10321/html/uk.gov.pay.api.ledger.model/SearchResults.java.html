@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchResults.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.ledger.model</a> &gt; <span class="el_source">SearchResults.java</span></div><h1>SearchResults.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.ledger.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import uk.gov.pay.api.model.links.SearchNavigationLinks;
+import uk.gov.pay.api.model.search.SearchPagination;
+
+import java.util.List;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class SearchResults&lt;E&gt; implements SearchPagination {
+
+    private int total;
+    private int count;
+    private int page;
+    private List&lt;E&gt; results;
+    SearchNavigationLinks links;
+
+<span class="nc" id="L20">    public SearchResults() {</span>
+<span class="nc" id="L21">    }</span>
+
+    public SearchResults(int total, int count, int page, List&lt;E&gt; results,
+<span class="nc" id="L24">                         SearchNavigationLinks links) {</span>
+<span class="nc" id="L25">        this.total = total;</span>
+<span class="nc" id="L26">        this.count = count;</span>
+<span class="nc" id="L27">        this.page = page;</span>
+<span class="nc" id="L28">        this.results = results;</span>
+<span class="nc" id="L29">        this.links = links;</span>
+<span class="nc" id="L30">    }</span>
+
+    @Override
+    public int getTotal() {
+<span class="nc" id="L34">        return total;</span>
+    }
+
+    @Override
+    public int getCount() {
+<span class="nc" id="L39">        return count;</span>
+    }
+
+    @Override
+
+    public int getPage() {
+<span class="nc" id="L45">        return page;</span>
+    }
+
+    @JsonProperty(&quot;results&quot;)
+    public List&lt;E&gt; getResults() {
+<span class="nc" id="L50">        return results;</span>
+    }
+
+    @Override
+    @JsonProperty(&quot;_links&quot;)
+    public SearchNavigationLinks getLinks() {
+<span class="nc" id="L56">        return links;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

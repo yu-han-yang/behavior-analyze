@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoleService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.giassi.microservice.demo2.rest.users.services</a> &gt; <span class="el_source">RoleService.java</span></div><h1>RoleService.java</h1><pre class="source lang-java linenums">package com.giassi.microservice.demo2.rest.users.services;
+
+import com.giassi.microservice.demo2.rest.users.entities.Permission;
+import com.giassi.microservice.demo2.rest.users.entities.Role;
+import com.giassi.microservice.demo2.rest.users.exceptions.*;
+import com.giassi.microservice.demo2.rest.users.repositories.PermissionRepository;
+import com.giassi.microservice.demo2.rest.users.repositories.RoleRepository;
+import com.google.common.base.Strings;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+
+@Service
+<span class="fc" id="L17">@Slf4j</span>
+<span class="fc" id="L18">public class RoleService {</span>
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private PermissionRepository permissionRepository;
+
+    public Iterable&lt;Role&gt; getRoleList() {
+<span class="fc" id="L27">        return roleRepository.findAll();</span>
+    }
+
+    public Role getRoleById(Long id) {
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        if (id == null) {</span>
+<span class="nc" id="L32">            throw new InvalidRoleIdentifierException(&quot;Id role cannot be null&quot;);</span>
+        }
+<span class="fc" id="L34">        Optional&lt;Role&gt; roleOpt = roleRepository.findById(id);</span>
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (roleOpt.isPresent()) {</span>
+<span class="fc" id="L36">            return roleOpt.get();</span>
+        }
+<span class="fc" id="L38">        throw new RoleNotFoundException(String.format(&quot;Role not found for Id = %s&quot;, id));</span>
+    }
+
+    public static void validateRoleName(String roleName) {
+<span class="pc bpc" id="L42" title="1 of 2 branches missed.">        if (Strings.isNullOrEmpty(roleName)) {</span>
+<span class="nc" id="L43">            throw new InvalidRoleDataException(String.format(&quot;Invalid role name: %s&quot;, roleName));</span>
+        }
+<span class="fc" id="L45">    }</span>
+
+    @Transactional
+    public Role createRole(String roleStr) {
+<span class="fc" id="L49">        validateRoleName(roleStr);</span>
+
+        // check roleStr not in use
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        if (roleRepository.findByRole(roleStr).isPresent()) {</span>
+<span class="fc" id="L53">            String errMsg = String.format(&quot;The role %s already exists&quot;, roleStr);</span>
+<span class="fc" id="L54">            log.error(errMsg);</span>
+<span class="fc" id="L55">            throw new RoleInUseException(errMsg);</span>
+        }
+
+<span class="fc" id="L58">        Role role = new Role();</span>
+<span class="fc" id="L59">        role.setRole(roleStr);</span>
+
+<span class="fc" id="L61">        role = roleRepository.save(role);</span>
+<span class="fc" id="L62">        log.info(String.format(&quot;Role %s %s has been created.&quot;, role.getId(), role.getRole()));</span>
+
+<span class="fc" id="L64">        return role;</span>
+    }
+
+    @Transactional
+    public void deleteRole(Long id) {
+<span class="fc" id="L69">        Optional&lt;Role&gt; roleOpt = roleRepository.findById(id);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!roleOpt.isPresent()) {</span>
+<span class="fc" id="L71">            String errMsg = String.format(&quot;Role not found for Id = %s cannot be deleted&quot;, id);</span>
+<span class="fc" id="L72">            log.error(errMsg);</span>
+<span class="fc" id="L73">            throw new RoleNotFoundException(errMsg);</span>
+        }
+
+<span class="fc" id="L76">        Role role = roleOpt.get();</span>
+
+        // check if the role is in use
+<span class="fc" id="L79">        Long countUsages = roleRepository.countRoleUsage(id);</span>
+<span class="pc bpc" id="L80" title="1 of 2 branches missed.">        if (countUsages &gt; 0) {</span>
+<span class="nc" id="L81">            String errMsg = String.format(&quot;The role %s %s is in use (%s users_roles configuration rows)&quot; +</span>
+<span class="nc" id="L82">                            &quot; and cannot be deleted&quot;, role.getId(), role.getRole(), countUsages);</span>
+<span class="nc" id="L83">            log.error(errMsg);</span>
+<span class="nc" id="L84">            throw new RoleInUseException(errMsg);</span>
+        }
+
+<span class="fc" id="L87">        roleRepository.deleteById(id);</span>
+<span class="fc" id="L88">        log.info(String.format(&quot;Role %s has been deleted.&quot;, id));</span>
+<span class="fc" id="L89">    }</span>
+
+    // add or remove a permission on a role
+
+    public static void validatePermissionKey(String permissionKey) {
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (Strings.isNullOrEmpty(permissionKey)) {</span>
+<span class="nc" id="L95">            throw new InvalidPermissionDataException(&quot;Permission key cannot be null or empty&quot;);</span>
+        }
+<span class="fc" id="L97">    }</span>
+
+    @Transactional
+    public Role addPermissionOnRole(Long roleId, String permissionKey) {
+<span class="fc" id="L101">        validatePermissionKey(permissionKey);</span>
+
+        // check role
+<span class="fc" id="L104">        Optional&lt;Role&gt; roleOpt = roleRepository.findById(roleId);</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">        if (!roleOpt.isPresent()) {</span>
+<span class="fc" id="L106">            throw new RoleNotFoundException(String.format(&quot;Role not found with Id = %s&quot;, roleId));</span>
+        }
+<span class="nc" id="L108">        Role role = roleOpt.get();</span>
+
+        // check if exists the permission key
+        Permission permission;
+
+<span class="nc" id="L113">        Optional&lt;Permission&gt; permissionOpt = permissionRepository.findByPermission(permissionKey);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (permissionOpt.isPresent()) {</span>
+            // the permission exists
+<span class="nc" id="L116">            permission = permissionOpt.get();</span>
+        } else {
+            // if the permission doesn't exists: create one
+<span class="nc" id="L119">            permission = new Permission();</span>
+<span class="nc" id="L120">            permission.setPermission(permissionKey);</span>
+
+<span class="nc" id="L122">            permission = permissionRepository.save(permission);</span>
+        }
+
+        // check if this role contains already the given permission
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (role.getPermissions().contains(permission)) {</span>
+<span class="nc" id="L127">            throw new InvalidPermissionDataException(String.format(&quot;The permission %s has been already&quot; +</span>
+<span class="nc" id="L128">                            &quot; associated on the role %s&quot;, permission.getPermission(), role.getRole() ));</span>
+        }
+
+<span class="nc" id="L131">        role.getPermissions().add(permission);</span>
+<span class="nc" id="L132">        roleRepository.save(role);</span>
+
+<span class="nc" id="L134">        log.info(String.format(&quot;Added permission %s on role id = %s&quot;, permissionKey, roleId));</span>
+<span class="nc" id="L135">        return roleRepository.findById(roleId).get();</span>
+    }
+
+    @Transactional
+    public Role removePermissionOnRole(Long roleId, String permissionKey) {
+<span class="fc" id="L140">        validatePermissionKey(permissionKey);</span>
+
+        // check role
+<span class="fc" id="L143">        Optional&lt;Role&gt; roleOpt = roleRepository.findById(roleId);</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">        if (!roleOpt.isPresent()) {</span>
+<span class="fc" id="L145">            throw new RoleNotFoundException(String.format(&quot;Role not found with Id = %s&quot;, roleId));</span>
+        }
+<span class="nc" id="L147">        Role role = roleOpt.get();</span>
+
+        // check permission
+<span class="nc" id="L150">        Optional&lt;Permission&gt; permissionOpt = permissionRepository.findByPermission(permissionKey);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (!permissionOpt.isPresent()) {</span>
+<span class="nc" id="L152">            throw new PermissionNotFoundException(String.format(&quot;Permission not found with Id = %s on role %s&quot;,</span>
+                    permissionKey, roleId));
+        }
+
+<span class="nc" id="L156">        Permission permission = permissionOpt.get();</span>
+
+<span class="nc" id="L158">        role.getPermissions().remove(permission);</span>
+<span class="nc" id="L159">        roleRepository.save(role);</span>
+
+<span class="nc" id="L161">        log.info(String.format(&quot;Removed permission %s from role id = %s&quot;, permissionKey, roleId));</span>
+<span class="nc" id="L162">        return roleRepository.findById(roleId).get();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

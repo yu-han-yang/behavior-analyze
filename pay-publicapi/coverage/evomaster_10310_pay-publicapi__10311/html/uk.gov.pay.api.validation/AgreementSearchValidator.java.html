@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AgreementSearchValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.validation</a> &gt; <span class="el_source">AgreementSearchValidator.java</span></div><h1>AgreementSearchValidator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.validation;
+
+import uk.gov.pay.api.exception.AgreementValidationException;
+import uk.gov.pay.api.exception.BadRequestException;
+import uk.gov.pay.api.ledger.model.AgreementSearchParams;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.service.payments.commons.model.agreement.AgreementStatus;
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import static java.util.Locale.ENGLISH;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.join;
+import static org.eclipse.jetty.util.StringUtil.isBlank;
+import static uk.gov.pay.api.common.SearchConstants.DISPLAY_SIZE;
+import static uk.gov.pay.api.common.SearchConstants.PAGE;
+import static uk.gov.pay.api.common.SearchConstants.REFERENCE_KEY;
+import static uk.gov.pay.api.common.SearchConstants.STATUS_KEY;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.REFERENCE_MAX_LENGTH;
+import static uk.gov.pay.api.model.RequestError.Code.SEARCH_AGREEMENTS_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+import static uk.gov.pay.api.validation.MaxLengthValidator.isInvalid;
+import static uk.gov.pay.api.validation.SearchValidator.validateDisplaySizeIfNotNull;
+import static uk.gov.pay.api.validation.SearchValidator.validatePageIfNotNull;
+
+<span class="nc" id="L29">public class AgreementSearchValidator {</span>
+
+<span class="nc" id="L31">    private static final Set&lt;String&gt; SUPPORTED_SEARCH_PARAMS = Set.of(REFERENCE_KEY, STATUS_KEY, PAGE, DISPLAY_SIZE);</span>
+
+    public static void validateSearchParameters(AgreementSearchParams searchParams) {
+<span class="nc" id="L34">        List&lt;String&gt; validationErrors = new LinkedList&lt;&gt;();</span>
+        try {
+<span class="nc" id="L36">            validateStatus(searchParams.getStatus(), validationErrors);</span>
+<span class="nc" id="L37">            validateReference(searchParams.getReference(), validationErrors);</span>
+<span class="nc" id="L38">            validatePageIfNotNull(searchParams.getPageNumber(), validationErrors);</span>
+<span class="nc" id="L39">            validateDisplaySizeIfNotNull(searchParams.getDisplaySize(), validationErrors);</span>
+<span class="nc" id="L40">        } catch (Exception e) {</span>
+<span class="nc" id="L41">            throw new AgreementValidationException(aRequestError(SEARCH_AGREEMENTS_VALIDATION_ERROR, join(validationErrors, &quot;, &quot;), e.getMessage()));</span>
+<span class="nc" id="L42">        }</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if (!validationErrors.isEmpty()) {</span>
+<span class="nc" id="L44">            throw new AgreementValidationException(aRequestError(SEARCH_AGREEMENTS_VALIDATION_ERROR, join(validationErrors, &quot;, &quot;)));</span>
+        }
+
+<span class="nc" id="L47">        searchParams.getQueryMap().entrySet().stream()</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">                .filter(queryParam -&gt; !SUPPORTED_SEARCH_PARAMS.contains(queryParam.getKey()) &amp;&amp; isNotBlank(queryParam.getValue()))</span>
+<span class="nc" id="L49">                .findFirst()</span>
+<span class="nc" id="L50">                .ifPresent(invalidParam -&gt; {</span>
+<span class="nc" id="L51">                    throw new BadRequestException(RequestError.aRequestError(SEARCH_AGREEMENTS_VALIDATION_ERROR, invalidParam.getKey()));</span>
+                });
+<span class="nc" id="L53">    }</span>
+
+    private static void validateReference(String reference, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (isInvalid(reference, REFERENCE_MAX_LENGTH)) {</span>
+<span class="nc" id="L57">            validationErrors.add(&quot;reference&quot;);</span>
+        }
+<span class="nc" id="L59">    }</span>
+
+    private static void validateStatus(String status, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L62" title="All 4 branches missed.">        if (!(isBlank(status) || Arrays.stream(AgreementStatus.values()).anyMatch(validStatus -&gt; validStatus.name().toLowerCase(ENGLISH).equals(status)))) {</span>
+<span class="nc" id="L63">            validationErrors.add(&quot;status&quot;);</span>
+        }
+<span class="nc" id="L65">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

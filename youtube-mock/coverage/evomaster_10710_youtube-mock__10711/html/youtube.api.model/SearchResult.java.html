@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">SearchResult.java</span></div><h1>SearchResult.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonPropertyOrder({&quot;kind&quot;, &quot;etag&quot;, &quot;id&quot;, &quot;snippet&quot;})
+@JsonInclude(JsonInclude.Include.NON_NULL)
+<span class="nc" id="L8">public class SearchResult {</span>
+
+    private String etag;
+
+    private ResourceId id;
+
+    private String kind;
+
+    private SearchResultSnippet snippet;
+
+    public String getEtag() {
+<span class="nc" id="L19">        return etag;</span>
+    }
+
+    public void setEtag(String etag) {
+<span class="nc" id="L23">        this.etag = etag;</span>
+<span class="nc" id="L24">    }</span>
+
+    public ResourceId getId() {
+<span class="nc" id="L27">        return id;</span>
+    }
+
+    public void setId(ResourceId id) {
+<span class="nc" id="L31">        this.id = id;</span>
+<span class="nc" id="L32">    }</span>
+
+    public String getKind() {
+<span class="nc" id="L35">        return kind;</span>
+    }
+
+    public void setKind(String kind) {
+<span class="nc" id="L39">        this.kind = kind;</span>
+<span class="nc" id="L40">    }</span>
+
+    public SearchResultSnippet getSnippet() {
+<span class="nc" id="L43">        return snippet;</span>
+    }
+
+    public void setSnippet(SearchResultSnippet snippet) {
+<span class="nc" id="L47">        this.snippet = snippet;</span>
+<span class="nc" id="L48">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

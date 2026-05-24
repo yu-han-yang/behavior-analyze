@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">org.cbioportal.session_service.service.internal</a> &gt; <span class="el_source">SessionServiceImpl.java</span></div><h1>SessionServiceImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Memorial Sloan-Kettering Cancer Center.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS
+ * FOR A PARTICULAR PURPOSE. The software and documentation provided hereunder
+ * is on an &quot;as is&quot; basis, and Memorial Sloan-Kettering Cancer Center has no
+ * obligations to provide maintenance, support, updates, enhancements or
+ * modifications. In no event shall Memorial Sloan-Kettering Cancer Center be
+ * liable to any party for direct, indirect, special, incidental or
+ * consequential damages, including lost profits, arising out of the use of this
+ * software and its documentation, even if Memorial Sloan-Kettering Cancer
+ * Center has been advised of the possibility of such damage.
+ */
+
+/*
+ * This file is part of cBioPortal Session Service.
+ *
+ * cBioPortal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+*/
+
+package org.cbioportal.session_service.service.internal;
+
+import java.util.List;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import org.bson.BSONException;
+import org.bson.json.JsonParseException;
+import org.cbioportal.session_service.domain.Session;
+import org.cbioportal.session_service.domain.SessionRepository;
+import org.cbioportal.session_service.domain.SessionType;
+import org.cbioportal.session_service.service.SessionService;
+import org.cbioportal.session_service.service.exception.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.UncategorizedMongoDbException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author Manda Wilson
+ */
+@Service
+<span class="fc" id="L55">public class SessionServiceImpl implements SessionService {</span>
+
+    @Autowired
+    private SessionRepository sessionRepository;
+
+    @Override
+    public Session addSession(String source, SessionType type, String data) throws SessionInvalidException {
+<span class="fc" id="L62">        Session session = null;</span>
+        try {
+<span class="fc" id="L64">            session = new Session();</span>
+<span class="fc" id="L65">            session.setSource(source);</span>
+<span class="fc" id="L66">            session.setType(type);</span>
+<span class="fc" id="L67">            session.setData(data);</span>
+
+<span class="fc" id="L69">            sessionRepository.saveSession(session);</span>
+<span class="nc" id="L70">        } catch (DuplicateKeyException e) {</span>
+<span class="nc" id="L71">            session = sessionRepository.findOneBySourceAndTypeAndChecksum(source,</span>
+                type,
+<span class="nc" id="L73">                session.getChecksum());</span>
+<span class="fc" id="L74">        } catch (ConstraintViolationException e) {</span>
+<span class="fc" id="L75">            throw new SessionInvalidException(buildConstraintViolationExceptionMessage(e));</span>
+<span class="fc" id="L76">        } catch (JsonParseException e) {</span>
+<span class="fc" id="L77">            throw new SessionInvalidException(e.getMessage());</span>
+<span class="nc" id="L78">        } catch (HttpMessageNotReadableException e) {</span>
+<span class="nc" id="L79">            throw new SessionInvalidException(e.getMessage());</span>
+<span class="pc" id="L80">        }</span>
+<span class="fc" id="L81">        return session;</span>
+    }
+
+    @Override
+    public List&lt;Session&gt; getSessions(String source, SessionType type) {
+<span class="fc" id="L86">        return sessionRepository.findBySourceAndType(source, type);</span>
+    }
+
+    @Override
+    public List&lt;Session&gt; getSessionsByQuery(String source, SessionType type, String query)
+        throws SessionQueryInvalidException {
+        try {
+<span class="fc" id="L93">            return sessionRepository.findBySourceAndTypeAndQuery(source, type, query);</span>
+<span class="fc" id="L94">        } catch (IllegalArgumentException | JsonParseException | BSONException e) {</span>
+<span class="fc" id="L95">            throw new SessionQueryInvalidException(e.getMessage());</span>
+<span class="fc" id="L96">        } catch (UncategorizedMongoDbException e) {</span>
+<span class="fc" id="L97">            throw new SessionQueryInvalidException(e.getMessage());</span>
+        }
+    }
+
+    @Override
+    public Session getSession(String source, SessionType type, String id) throws SessionNotFoundException {
+<span class="fc" id="L103">        Session session = sessionRepository.findOneBySourceAndTypeAndId(source, type, id);</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L105">            return session;</span>
+        }
+<span class="fc" id="L107">        throw new SessionNotFoundException(id);</span>
+    }
+
+    @Override
+    public void updateSession(String source, SessionType type, String id, String data) throws SessionInvalidException,
+        SessionNotFoundException {
+<span class="fc" id="L113">        Session savedSession = sessionRepository.findOneBySourceAndTypeAndId(source, type, id);</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        if (savedSession != null) {</span>
+            try {
+<span class="nc" id="L116">                savedSession.setData(data);</span>
+<span class="nc" id="L117">                sessionRepository.saveSession(savedSession);</span>
+<span class="nc" id="L118">            } catch (ConstraintViolationException e) {</span>
+<span class="nc" id="L119">                throw new SessionInvalidException(buildConstraintViolationExceptionMessage(e));</span>
+<span class="nc" id="L120">            } catch (JsonParseException e) {</span>
+<span class="nc" id="L121">                throw new SessionInvalidException(e.getMessage());</span>
+<span class="nc" id="L122">            }</span>
+<span class="nc" id="L123">            return;</span>
+        }
+<span class="fc" id="L125">        throw new SessionNotFoundException(id);</span>
+    }
+
+    @Override
+    public void deleteSession(String source, SessionType type, String id) throws SessionNotFoundException {
+<span class="fc" id="L130">        long numberDeleted = sessionRepository.deleteBySourceAndTypeAndId(source, type, id);</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if (numberDeleted != 1) { // using unique id so never more than 1</span>
+<span class="fc" id="L132">            throw new SessionNotFoundException(id);</span>
+        }
+<span class="nc" id="L134">    }</span>
+
+    private String buildConstraintViolationExceptionMessage(ConstraintViolationException e) {
+<span class="fc" id="L137">        StringBuffer errors = new StringBuffer();</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        for (ConstraintViolation violation : e.getConstraintViolations()) {</span>
+<span class="fc" id="L139">            errors.append(violation.getMessage());</span>
+<span class="fc" id="L140">            errors.append(&quot;;&quot;);</span>
+<span class="fc" id="L141">        }</span>
+<span class="fc" id="L142">        return errors.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

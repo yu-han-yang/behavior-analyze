@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Build.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.papermc.bibliothek.database.model</a> &gt; <span class="el_source">Build.java</span></div><h1>Build.java</h1><pre class="source lang-java linenums">/*
+ * This file is part of bibliothek, licensed under the MIT License.
+ *
+ * Copyright (c) 2019-2023 PaperMC
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the &quot;Software&quot;), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.papermc.bibliothek.database.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.bson.types.ObjectId;
+import org.intellij.lang.annotations.Language;
+import org.jetbrains.annotations.Nullable;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@CompoundIndex(def = &quot;{'project': 1, 'version': 1}&quot;)
+@CompoundIndex(def = &quot;{'project': 1, 'version': 1, 'number': 1}&quot;)
+@Document(collection = &quot;builds&quot;)
+<span class="nc" id="L43">public record Build(</span>
+  @Id ObjectId _id,
+  ObjectId project,
+  ObjectId version,
+  int number,
+  Instant time,
+  List&lt;Change&gt; changes,
+  Map&lt;String, Download&gt; downloads,
+  @JsonProperty
+  @Nullable Channel channel,
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  @Nullable Boolean promoted
+) {
+  public Channel channelOrDefault() {
+<span class="nc" id="L57">    return Objects.requireNonNullElse(this.channel(), Build.Channel.DEFAULT);</span>
+  }
+
+  public boolean promotedOrDefault() {
+<span class="nc" id="L61">    return Objects.requireNonNullElse(this.promoted(), false);</span>
+  }
+
+<span class="nc" id="L64">  public enum Channel {</span>
+<span class="nc" id="L65">    @JsonProperty(&quot;default&quot;)</span>
+    DEFAULT,
+<span class="nc" id="L67">    @JsonProperty(&quot;experimental&quot;)</span>
+    EXPERIMENTAL;
+  }
+
+  @Schema
+<span class="nc" id="L72">  public record Change(</span>
+    @Schema(name = &quot;commit&quot;)
+    String commit,
+    @Schema(name = &quot;summary&quot;)
+    String summary,
+    @Schema(name = &quot;message&quot;)
+    String message
+  ) {
+  }
+
+  @Schema
+<span class="nc" id="L83">  public record Download(</span>
+    @Schema(name = &quot;name&quot;, pattern = &quot;[a-z0-9._-]+&quot;, example = &quot;paper-1.18-10.jar&quot;)
+    String name,
+    @Schema(name = &quot;sha256&quot;, pattern = &quot;[a-f0-9]{64}&quot;, example = &quot;f065e2d345d9d772d5cf2a1ce5c495c4cc56eb2fcd6820e82856485fa19414c8&quot;)
+    String sha256
+  ) {
+    // NOTE: this pattern cannot contain any capturing groups
+    @Language(&quot;RegExp&quot;)
+    public static final String PATTERN = &quot;[a-zA-Z0-9._-]+&quot;;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

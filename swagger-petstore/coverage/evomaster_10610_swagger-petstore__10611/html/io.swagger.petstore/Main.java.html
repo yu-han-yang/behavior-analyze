@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Main.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore</a> &gt; <span class="el_source">Main.java</span></div><h1>Main.java</h1><pre class="source lang-java linenums">//MODIFIED: This code is a simple Java application that starts an embedded Tomcat server to serve the Swagger Petstore application.
+
+package io.swagger.petstore;
+
+import org.apache.catalina.Context;
+import org.apache.catalina.Wrapper;
+import org.apache.catalina.startup.Tomcat;
+import org.apache.catalina.webresources.DirResourceSet;
+import org.apache.catalina.webresources.JarResourceSet;
+import org.apache.catalina.webresources.StandardRoot;
+
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.nio.file.Files;
+import java.security.CodeSource;
+
+<span class="fc" id="L24">public class Main {</span>
+    Tomcat tomcat;
+
+    public void startServer(int port) throws Exception {
+<span class="fc" id="L28">        tomcat = new Tomcat();</span>
+
+<span class="fc" id="L30">        String tmpDir = System.getProperty(&quot;java.io.tmpdir&quot;);</span>
+<span class="fc" id="L31">        tomcat.setBaseDir(tmpDir);</span>
+
+<span class="fc" id="L33">        tomcat.setPort(port);</span>
+<span class="fc" id="L34">        tomcat.getConnector();</span>
+
+<span class="fc" id="L36">        Context ctx = tomcat.addContext(&quot;&quot;, null);</span>
+
+<span class="fc" id="L38">        StandardRoot resources = new StandardRoot(ctx);</span>
+<span class="fc" id="L39">        CodeSource src = Main.class.getProtectionDomain().getCodeSource();</span>
+<span class="pc bpc" id="L40" title="1 of 2 branches missed.">        if (src != null) {</span>
+<span class="fc" id="L41">            URL jar = src.getLocation();</span>
+<span class="fc" id="L42">            String jarPath = new File(jar.toURI()).getAbsolutePath();</span>
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">            if (jarPath.endsWith(&quot;.jar&quot;)) {</span>
+<span class="fc" id="L44">                resources.addJarResources(new JarResourceSet(resources, &quot;/&quot;, jarPath, &quot;/webapp&quot;));</span>
+            }else {
+<span class="nc" id="L46">                URL webappUrl = Main.class.getClassLoader().getResource(&quot;webapp&quot;);</span>
+<span class="nc" id="L47">               String webappDirLocation = new File(webappUrl.toURI()).getAbsolutePath();</span>
+<span class="nc" id="L48">                resources.addPreResources(new DirResourceSet(resources, &quot;/&quot;, webappDirLocation, &quot;/&quot;));</span>
+            }
+        }
+<span class="fc" id="L51">        ctx.setResources(resources);</span>
+<span class="fc" id="L52">        ctx.addWelcomeFile(&quot;index.html&quot;);</span>
+
+        // Swagger-Inflector / Jersey servlet
+<span class="fc" id="L55">        Wrapper jerseyServlet = Tomcat.addServlet(ctx, &quot;jersey-container-servlet&quot;,</span>
+                &quot;org.glassfish.jersey.servlet.ServletContainer&quot;);
+
+<span class="fc" id="L58">        jerseyServlet.addInitParameter(&quot;javax.ws.rs.Application&quot;, &quot;io.swagger.oas.inflector.OpenAPIInflector&quot;);</span>
+<span class="fc" id="L59">        jerseyServlet.setLoadOnStartup(1);</span>
+
+<span class="fc" id="L61">        ctx.addServletMappingDecoded(&quot;/api/*&quot;, &quot;jersey-container-servlet&quot;);</span>
+
+<span class="fc" id="L63">        Wrapper defaultServlet = Tomcat.addServlet(ctx, &quot;default&quot;, &quot;org.apache.catalina.servlets.DefaultServlet&quot;);</span>
+<span class="fc" id="L64">        defaultServlet.setLoadOnStartup(1);</span>
+<span class="fc" id="L65">        ctx.addServletMappingDecoded(&quot;/&quot;, &quot;default&quot;);</span>
+
+<span class="fc" id="L67">        System.out.println(&quot;Swagger Petstore running at http://localhost:&quot; + port);</span>
+<span class="fc" id="L68">        tomcat.start();</span>
+<span class="fc" id="L69">    }</span>
+
+    public Tomcat getTomcat() {
+<span class="nc" id="L72">        return tomcat;</span>
+    }
+
+
+    public static void main(String[] args) throws Exception {
+<span class="fc" id="L77">        int port = 8080;</span>
+
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        if (args.length &gt; 0) {</span>
+            try {
+<span class="fc" id="L81">                port = Integer.parseInt(args[0]);</span>
+<span class="nc" id="L82">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L83">                System.err.println(&quot;Invalid port number: &quot; + args[0] + &quot;. Using default port 8080.&quot;);</span>
+<span class="fc" id="L84">            }</span>
+        }
+
+<span class="fc" id="L87">        Main app = new Main();</span>
+<span class="fc" id="L88">        app.startServer(port);</span>
+
+<span class="fc" id="L90">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

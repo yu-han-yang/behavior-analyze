@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DisputesSearchParams.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">DisputesSearchParams.java</span></div><h1>DisputesSearchParams.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+
+public class DisputesSearchParams {
+
+    private static final String PAGE = &quot;page&quot;;
+    private static final String DISPLAY_SIZE = &quot;display_size&quot;;
+    private static final String DEFAULT_PAGE = &quot;1&quot;;
+    private static final String DEFAULT_DISPLAY_SIZE = &quot;500&quot;;
+    private static final String FROM_DATE = &quot;from_date&quot;;
+    private static final String TO_DATE = &quot;to_date&quot;;
+    private static final String FROM_SETTLED_DATE = &quot;from_settled_date&quot;;
+    private static final String TO_SETTLED_DATE = &quot;to_settled_date&quot;;
+    private static final String STATUS = &quot;status&quot;;
+
+    private String fromDate;
+    private String toDate;
+    private String page;
+    private String displaySize;
+    private String fromSettledDate;
+    private String toSettledDate;
+    private String state;
+
+<span class="nc" id="L27">    private DisputesSearchParams(Builder builder) {</span>
+<span class="nc" id="L28">        this.fromDate = builder.fromDate;</span>
+<span class="nc" id="L29">        this.toDate = builder.toDate;</span>
+<span class="nc" id="L30">        this.page = builder.page;</span>
+<span class="nc" id="L31">        this.displaySize = builder.displaySize;</span>
+<span class="nc" id="L32">        this.fromSettledDate = builder.fromSettledDate;</span>
+<span class="nc" id="L33">        this.toSettledDate = builder.toSettledDate;</span>
+<span class="nc" id="L34">        this.state = builder.status;</span>
+<span class="nc" id="L35">    }</span>
+
+    public Map&lt;String, String&gt; getParamsAsMap() {
+<span class="nc" id="L38">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L39">        params.put(FROM_DATE, fromDate);</span>
+<span class="nc" id="L40">        params.put(TO_DATE, toDate);</span>
+<span class="nc" id="L41">        params.put(PAGE, Optional.ofNullable(page).orElse(DEFAULT_PAGE));</span>
+<span class="nc" id="L42">        params.put(DISPLAY_SIZE, Optional.ofNullable(displaySize).orElse(DEFAULT_DISPLAY_SIZE));</span>
+<span class="nc" id="L43">        params.put(FROM_SETTLED_DATE, fromSettledDate);</span>
+<span class="nc" id="L44">        params.put(TO_SETTLED_DATE, toSettledDate);</span>
+<span class="nc" id="L45">        params.put(STATUS, state);</span>
+        
+<span class="nc" id="L47">        return params;</span>
+    }
+
+    public String getPage() {
+<span class="nc" id="L51">        return page;</span>
+    }
+
+    public String getDisplaySize() {
+<span class="nc" id="L55">        return displaySize;</span>
+    }
+
+    public String getFromDate() {
+<span class="nc" id="L59">        return fromDate;</span>
+    }
+
+    public String getToDate() {
+<span class="nc" id="L63">        return toDate;</span>
+    }
+
+    public String getFromSettledDate() {
+<span class="nc" id="L67">        return fromSettledDate;</span>
+    }
+
+    public String getToSettledDate() {
+<span class="nc" id="L71">        return toSettledDate;</span>
+    }
+
+    public String getState() {
+<span class="nc" id="L75">        return state;</span>
+    }
+
+    public static class Builder {
+        private String fromDate;
+        private String toDate;
+        private String page;
+        private String displaySize;
+        private String fromSettledDate;
+        private String toSettledDate;
+        private String status;
+
+<span class="nc" id="L87">        public Builder() {</span>
+<span class="nc" id="L88">        }</span>
+
+        public DisputesSearchParams build() {
+<span class="nc" id="L91">            return new DisputesSearchParams(this);</span>
+        }
+
+        public Builder withFromDate(String fromDate) {
+<span class="nc" id="L95">            this.fromDate = fromDate;</span>
+<span class="nc" id="L96">            return this;</span>
+        }
+
+        public Builder withToDate(String toDate) {
+<span class="nc" id="L100">            this.toDate = toDate;</span>
+<span class="nc" id="L101">            return this;</span>
+        }
+
+        public Builder withPage(String page) {
+<span class="nc" id="L105">            this.page = page;</span>
+<span class="nc" id="L106">            return this;</span>
+        }
+
+        public Builder withDisplaySize(String displaySize) {
+<span class="nc" id="L110">            this.displaySize = displaySize;</span>
+<span class="nc" id="L111">            return this;</span>
+        }
+
+        public Builder withFromSettledDate(String fromSettledDate) {
+<span class="nc" id="L115">            this.fromSettledDate = fromSettledDate;</span>
+<span class="nc" id="L116">            return this;</span>
+        }
+
+        public Builder withToSettledDate(String toSettledDate) {
+<span class="nc" id="L120">            this.toSettledDate = toSettledDate;</span>
+<span class="nc" id="L121">            return this;</span>
+        }
+
+        public Builder withStatus(String status) {
+<span class="nc" id="L125">            this.status = status;</span>
+<span class="nc" id="L126">            return this;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

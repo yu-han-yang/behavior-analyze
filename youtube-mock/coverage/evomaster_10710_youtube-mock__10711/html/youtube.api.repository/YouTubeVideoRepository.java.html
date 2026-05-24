@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>YouTubeVideoRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.repository</a> &gt; <span class="el_source">YouTubeVideoRepository.java</span></div><h1>YouTubeVideoRepository.java</h1><pre class="source lang-java linenums">package youtube.api.repository;
+
+import youtube.api.model.*;
+import youtube.api.util.Location;
+
+import java.text.ParseException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static youtube.data.VideoData.getVideoData;
+import static youtube.api.util.RepositoryUtils.*;
+
+public class YouTubeVideoRepository {
+
+<span class="fc" id="L15">    private static YouTubeVideoRepository instance = null;</span>
+    private YoutubeChannelRepository channelRepository;
+    private List&lt;Video&gt; videos;
+
+<span class="fc" id="L19">    private YouTubeVideoRepository() throws ParseException {</span>
+<span class="fc" id="L20">        videos = instantiate();</span>
+<span class="fc" id="L21">        channelRepository = YoutubeChannelRepository.getInstance();</span>
+<span class="fc" id="L22">    }</span>
+
+    public static YouTubeVideoRepository getInstance() throws ParseException {
+<span class="pc bpc" id="L25" title="1 of 2 branches missed.">        if(instance == null) {</span>
+<span class="fc" id="L26">            instance = new YouTubeVideoRepository();</span>
+        }
+
+<span class="fc" id="L29">        return instance;</span>
+    }
+
+    private static List&lt;Video&gt; instantiate() throws ParseException {
+<span class="fc" id="L33">        return getVideoData();</span>
+    }
+
+    public List&lt;SearchResult&gt; processForContentOwnerRequest(SearchRequest searchRequest, String partType, Location location, Date[] dates, Locale locale) {
+<span class="nc" id="L37">        return videos.stream()</span>
+<span class="nc" id="L38">                .filter(x -&gt; filterByOnBehalfOfContentOwner(x, searchRequest.getForContentOwner(), searchRequest.getOnBehalfOfContentOwner()))</span>
+<span class="nc" id="L39">                .filter(x -&gt; filterByChannelId(x, searchRequest.getChannelId()))</span>
+<span class="nc" id="L40">                .filter(x -&gt; filterByEventType(x, searchRequest.getEventType()))</span>
+<span class="nc" id="L41">                .filter(x -&gt; filterByLocation(x, location))</span>
+<span class="nc" id="L42">                .filter(x -&gt; filterByDates(x, dates))</span>
+<span class="nc" id="L43">                .filter(x -&gt; filterByQuery(x, searchRequest.getQ()))</span>
+<span class="nc" id="L44">                .filter(x -&gt; filterByRelevanceLanguage(x, searchRequest.getRelevanceLanguage()))</span>
+<span class="nc" id="L45">                .filter(x -&gt; filterByRegionCode(x, searchRequest.getRegionCode()))</span>
+<span class="nc" id="L46">                .filter(x -&gt; filterBySafeSearch(x, searchRequest.getSafeSearch(), locale))</span>
+<span class="nc" id="L47">                .filter(x -&gt; filterByTopicId(x, searchRequest.getTopicId()))</span>
+<span class="nc" id="L48">                .filter(x -&gt; filterByVideoCaption(x, searchRequest.getVideoCaption()))</span>
+<span class="nc" id="L49">                .filter(x -&gt; filterByVideoCategoryId(x, searchRequest.getVideoCategoryId()))</span>
+<span class="nc" id="L50">                .map(x -&gt; convertToSearchResult(x, partType))</span>
+<span class="nc" id="L51">                .collect(Collectors.toList());</span>
+    }
+
+    public List&lt;SearchResult&gt; processForMineRequest(SearchRequest searchRequest, String partType, Location location, Date[] dates, Locale locale) {
+<span class="nc" id="L55">        return videos.stream()</span>
+<span class="nc" id="L56">                .filter(x -&gt; filterForMine(x, searchRequest.getForMine()))</span>
+<span class="nc" id="L57">                .filter(x -&gt; filterByChannelId(x, searchRequest.getChannelId()))</span>
+<span class="nc" id="L58">                .filter(x -&gt; filterByEventType(x, searchRequest.getEventType()))</span>
+<span class="nc" id="L59">                .filter(x -&gt; filterByLocation(x, location))</span>
+<span class="nc" id="L60">                .filter(x -&gt; filterByDates(x, dates))</span>
+<span class="nc" id="L61">                .filter(x -&gt; filterByQuery(x, searchRequest.getQ()))</span>
+<span class="nc" id="L62">                .filter(x -&gt; filterByRelevanceLanguage(x, searchRequest.getRelevanceLanguage()))</span>
+<span class="nc" id="L63">                .filter(x -&gt; filterByRegionCode(x, searchRequest.getRegionCode()))</span>
+<span class="nc" id="L64">                .filter(x -&gt; filterBySafeSearch(x, searchRequest.getSafeSearch(), locale))</span>
+<span class="nc" id="L65">                .filter(x -&gt; filterByTopicId(x, searchRequest.getTopicId()))</span>
+<span class="nc" id="L66">                .filter(x -&gt; filterByVideoCaption(x, searchRequest.getVideoCaption()))</span>
+<span class="nc" id="L67">                .filter(x -&gt; filterByVideoCategoryId(x, searchRequest.getVideoCategoryId()))</span>
+<span class="nc" id="L68">                .map(x -&gt; convertToSearchResult(x, partType))</span>
+<span class="nc" id="L69">                .collect(Collectors.toList());</span>
+    }
+
+    public List&lt;SearchResult&gt; processRelatedToVideoRequest(SearchRequest searchRequest, Video video, String partType, Locale locale) {
+<span class="nc" id="L73">        return videos.stream()</span>
+<span class="nc" id="L74">                .filter(x -&gt; filterByRelatedToVideo(x, video))</span>
+<span class="nc" id="L75">                .filter(x -&gt; filterByRegionCode(x, searchRequest.getRegionCode()))</span>
+<span class="nc" id="L76">                .filter(x -&gt; filterByRelevanceLanguage(x, searchRequest.getRelevanceLanguage()))</span>
+<span class="nc" id="L77">                .filter(x -&gt; filterBySafeSearch(x, searchRequest.getSafeSearch(), locale))</span>
+<span class="nc" id="L78">                .map(x -&gt; convertToSearchResult(x, partType))</span>
+<span class="nc" id="L79">                .collect(Collectors.toList());</span>
+    }
+
+    public List&lt;SearchResult&gt; processDefaultRequest(SearchRequest searchRequest, String partType, Location location, Date[] dates, Locale locale) {
+<span class="nc" id="L83">        return videos.stream()</span>
+<span class="nc" id="L84">                .filter(x -&gt; filterForDeveloper(x, searchRequest.getForDeveloper()))</span>
+<span class="nc" id="L85">                .filter(x -&gt; filterByChannelId(x, searchRequest.getChannelId()))</span>
+<span class="nc" id="L86">                .filter(x -&gt; filterByEventType(x, searchRequest.getEventType()))</span>
+<span class="nc" id="L87">                .filter(x -&gt; filterByLocation(x, location))</span>
+<span class="nc" id="L88">                .filter(x -&gt; filterByDates(x, dates))</span>
+<span class="nc" id="L89">                .filter(x -&gt; filterByQuery(x, searchRequest.getQ()))</span>
+<span class="nc" id="L90">                .filter(x -&gt; filterByRelevanceLanguage(x, searchRequest.getRelevanceLanguage()))</span>
+<span class="nc" id="L91">                .filter(x -&gt; filterByRegionCode(x, searchRequest.getRegionCode()))</span>
+<span class="nc" id="L92">                .filter(x -&gt; filterBySafeSearch(x, searchRequest.getSafeSearch(), locale))</span>
+<span class="nc" id="L93">                .filter(x -&gt; filterByTopicId(x, searchRequest.getTopicId()))</span>
+<span class="nc" id="L94">                .filter(x -&gt; filterByVideoCaption(x, searchRequest.getVideoCaption()))</span>
+<span class="nc" id="L95">                .filter(x -&gt; filterByVideoCategoryId(x, searchRequest.getVideoCategoryId()))</span>
+<span class="nc" id="L96">                .filter(x -&gt; filterByVideoDefinition(x, searchRequest.getVideoDefinition()))</span>
+<span class="nc" id="L97">                .filter(x -&gt; filterByVideoDimension(x, searchRequest.getVideoDimension()))</span>
+<span class="nc" id="L98">                .filter(x -&gt; filterByVideoDuration(x, searchRequest.getVideoDuration()))</span>
+<span class="nc" id="L99">                .filter(x -&gt; filterByVideoEmbeddable(x, searchRequest.getVideoEmbeddable()))</span>
+<span class="nc" id="L100">                .filter(x -&gt; filterByVideoLicense(x, searchRequest.getVideoLicense()))</span>
+<span class="nc" id="L101">                .filter(x -&gt; filterByVideoType(x, searchRequest.getVideoType()))</span>
+<span class="nc" id="L102">                .map(x -&gt; convertToSearchResult(x, partType))</span>
+<span class="nc" id="L103">                .collect(Collectors.toList());</span>
+    }
+
+    public Video getVideoById(String videoId) {
+<span class="nc" id="L107">        return videos.stream()</span>
+<span class="nc" id="L108">                .filter(x -&gt; x.getId().equals(videoId))</span>
+<span class="nc" id="L109">                .findFirst()</span>
+<span class="nc" id="L110">                .orElse(null);</span>
+    }
+
+    private boolean filterByOnBehalfOfContentOwner(Video x, Boolean forContentOwner, String onBehalfOfContentOwner) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        boolean result = !forContentOwner;</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if(!result) {</span>
+<span class="nc" id="L116">            List&lt;String&gt; channelIds = this.channelRepository.getChannels().stream()</span>
+<span class="nc" id="L117">                    .filter(c -&gt; c.getContentOwnerId().equals(onBehalfOfContentOwner))</span>
+<span class="nc" id="L118">                    .map(Channel::getId)</span>
+<span class="nc" id="L119">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L120">            result = channelIds.contains(x.getSnippet().getChannelId());</span>
+        }
+<span class="nc" id="L122">        return result;</span>
+    }
+
+    private boolean filterForMine(Video x, Boolean forMine) {
+<span class="nc bnc" id="L126" title="All 4 branches missed.">        return !forMine || x.getSnippet().getChannelId().equals(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+    }
+
+    private boolean filterByRelatedToVideo(Video x, Video videoRelated) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        return videoRelated == null ||</span>
+<span class="nc bnc" id="L131" title="All 8 branches missed.">                (x.getRelevantTopicIds() != null &amp;&amp; x.getRelevantTopicIds().stream().anyMatch(y -&gt; videoRelated.getRelevantTopicIds() != null &amp;&amp; videoRelated.getRelevantTopicIds().contains(y)))</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">                || x.getCategory().getId().equals(videoRelated.getCategory().getId());</span>
+    }
+
+    private boolean filterForDeveloper(Video x, Boolean forDeveloper) {
+<span class="nc bnc" id="L136" title="All 6 branches missed.">        return forDeveloper == null || !forDeveloper || x.getForDeveloperVideo();</span>
+    }
+
+    private boolean filterByEventType(Video x, String eventType) {
+<span class="nc bnc" id="L140" title="All 4 branches missed.">        boolean result = (eventType == null || eventType.isEmpty());</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        if(!result) {</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">            switch (eventType) {</span>
+                case &quot;completed&quot;:
+<span class="nc bnc" id="L144" title="All 4 branches missed.">                    result = x.getHasLiveStreamingDetails() &amp;&amp; x.getSnippet().getLiveBroadcastContent().equals(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="nc" id="L145">                    break;</span>
+                case &quot;live&quot;:
+<span class="nc bnc" id="L147" title="All 4 branches missed.">                    result = x.getHasLiveStreamingDetails() &amp;&amp; x.getSnippet().getLiveBroadcastContent().equals(SearchResultSnippet.LiveBroadcastContent.LIVE);</span>
+<span class="nc" id="L148">                    break;</span>
+                case &quot;upcoming&quot;:
+<span class="nc bnc" id="L150" title="All 4 branches missed.">                    result = x.getHasLiveStreamingDetails() &amp;&amp; x.getSnippet().getLiveBroadcastContent().equals(SearchResultSnippet.LiveBroadcastContent.UPCOMING);</span>
+<span class="nc" id="L151">                    break;</span>
+                default:
+<span class="nc" id="L153">                    result = false;</span>
+            }
+        }
+<span class="nc" id="L156">        return result;</span>
+    }
+
+    /**
+     * This method implements the haversine formula to calculate the distance between two different coordinates. Then, the method checks if
+     * the distance is minor than the radius specified.
+     * @param x The video with the data of the location
+     * @param location The location and the radius specified by the user
+     * @return a boolean that indicates if the location of the video is in the requested radius
+     */
+    private boolean filterByLocation(Video x, Location location) {
+<span class="nc bnc" id="L167" title="All 4 branches missed.">        boolean result = location.getLongitude() == null &amp;&amp; location.getLatitude() == null;</span>
+<span class="nc bnc" id="L168" title="All 6 branches missed.">        if(!result &amp;&amp; x.getLongitude() != null &amp;&amp; x.getLatitude() != null) {</span>
+
+<span class="nc" id="L170">            double earthRadius = 6371e3;</span>
+<span class="nc" id="L171">            double lat1 = Math.toRadians(x.getLatitude());</span>
+<span class="nc" id="L172">            double lat2 = Math.toRadians(location.getLatitude());</span>
+<span class="nc" id="L173">            double dlat = lat2-lat1;</span>
+<span class="nc" id="L174">            double dlon = Math.toRadians(location.getLongitude()-x.getLongitude());</span>
+
+<span class="nc" id="L176">            double haversine = Math.pow(Math.sin(dlat/2), 2) + Math.cos(lat1) * Math.cos(lat2) * Math.pow(Math.sin(dlon/2), 2);</span>
+<span class="nc" id="L177">            double c = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1-haversine));</span>
+
+<span class="nc" id="L179">            double distance = earthRadius * c;</span>
+
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            result = distance &lt; location.getRadius();</span>
+        }
+
+<span class="nc" id="L184">        return result;</span>
+    }
+
+    private boolean filterByRegionCode(Video x, String regionCode) {
+<span class="nc bnc" id="L188" title="All 8 branches missed.">        return (regionCode == null || regionCode.isEmpty()) || ((x.getContentDetailsRegionRestrictionAllowed() == null || x.getContentDetailsRegionRestrictionAllowed().contains(regionCode.toLowerCase())) &amp;&amp;</span>
+<span class="nc bnc" id="L189" title="All 4 branches missed.">                (x.getContentDetailsRegionRestrictionBlocked() == null || !x.getContentDetailsRegionRestrictionBlocked().contains(regionCode)));</span>
+    }
+
+    private boolean filterBySafeSearch(Video x, String safeSearch, Locale locale) {
+        boolean result;
+<span class="nc bnc" id="L194" title="All 4 branches missed.">        if(safeSearch == null || safeSearch.isEmpty()) {</span>
+<span class="nc" id="L195">            safeSearch = &quot;moderate&quot;;</span>
+        }
+<span class="nc bnc" id="L197" title="All 4 branches missed.">        switch (safeSearch) {</span>
+            case &quot;none&quot;:
+<span class="nc" id="L199">                result = true;</span>
+<span class="nc" id="L200">                break;</span>
+            case &quot;moderate&quot;:
+<span class="nc" id="L202">                result = filterByRegionCode(x, locale.getCountry());</span>
+<span class="nc" id="L203">                break;</span>
+            case &quot;strict&quot;:
+<span class="nc bnc" id="L205" title="All 4 branches missed.">                result = filterByRegionCode(x, locale.getCountry()) &amp;&amp; !&quot;ytAgeRestricted&quot;.equals(x.getYtRating());</span>
+<span class="nc" id="L206">                break;</span>
+            default:
+<span class="nc" id="L208">                result = false;</span>
+        }
+<span class="nc" id="L210">        return result;</span>
+    }
+
+    private boolean filterByVideoCaption(Video x, String videoCaption) {
+<span class="nc bnc" id="L214" title="All 6 branches missed.">        boolean result = videoCaption == null || videoCaption.isEmpty() || videoCaption.equals(&quot;any&quot;);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        if(!result) {</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">            if(videoCaption.equals(&quot;closedCaption&quot;)) {</span>
+<span class="nc" id="L217">                result = x.getContentDetailsCaption();</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">            } else if(videoCaption.equals(&quot;none&quot;)) {</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">                result = !x.getContentDetailsCaption();</span>
+            }
+        }
+<span class="nc" id="L222">        return result;</span>
+    }
+
+    private boolean filterByVideoCategoryId(Video x, String videoCategoryId) {
+<span class="nc bnc" id="L226" title="All 8 branches missed.">        return (videoCategoryId == null || videoCategoryId.isEmpty()) || (x.getCategory() != null &amp;&amp; x.getCategory().getId().equals(videoCategoryId));</span>
+    }
+
+    private boolean filterByVideoDefinition(Video x, String videoDefinition) {
+<span class="nc bnc" id="L230" title="All 8 branches missed.">        return (videoDefinition == null || videoDefinition.isEmpty()) || videoDefinition.equals(&quot;any&quot;) || x.getContentDetailsDefinition().getDefinition().equals(videoDefinition);</span>
+    }
+
+    private boolean filterByVideoDimension(Video x, String videoDimension) {
+<span class="nc bnc" id="L234" title="All 8 branches missed.">        return (videoDimension == null || videoDimension.isEmpty()) || videoDimension.equals(&quot;any&quot;) || x.getContentDetailsDimension().getDimension().equals(videoDimension);</span>
+    }
+
+    private boolean filterByVideoDuration(Video x, String videoDuration) {
+<span class="nc bnc" id="L238" title="All 6 branches missed.">        boolean result = videoDuration == null || videoDuration.isEmpty() || videoDuration.equals(&quot;any&quot;);</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if(!result) {</span>
+<span class="nc bnc" id="L240" title="All 4 branches missed.">            switch (videoDuration) {</span>
+                case &quot;long&quot;:
+<span class="nc bnc" id="L242" title="All 2 branches missed.">                    result = x.getContentDetailsDuration().getSeconds() &gt; 1200;</span>
+<span class="nc" id="L243">                    break;</span>
+                case &quot;medium&quot;:
+<span class="nc bnc" id="L245" title="All 4 branches missed.">                    result = x.getContentDetailsDuration().getSeconds() &gt;= 240 &amp;&amp; x.getContentDetailsDuration().getSeconds() &lt;= 1200;</span>
+<span class="nc" id="L246">                    break;</span>
+                case &quot;short&quot;:
+<span class="nc bnc" id="L248" title="All 2 branches missed.">                    result = x.getContentDetailsDuration().getSeconds() &lt; 240;</span>
+<span class="nc" id="L249">                    break;</span>
+                default:
+<span class="nc" id="L251">                    result = false;</span>
+            }
+        }
+<span class="nc" id="L254">        return result;</span>
+    }
+
+    private boolean filterByVideoEmbeddable(Video x, String videoEmbeddable) {
+<span class="nc bnc" id="L258" title="All 4 branches missed.">        return !Boolean.parseBoolean(videoEmbeddable) || x.getEmbeddable();</span>
+    }
+
+    private boolean filterByVideoLicense(Video x, String videoLicense) {
+<span class="nc bnc" id="L262" title="All 8 branches missed.">        return (videoLicense == null || videoLicense.isEmpty()) || videoLicense.equals(&quot;any&quot;) || x.getLicense().getLicense().equals(videoLicense);</span>
+    }
+
+    private boolean filterByVideoType(Video x, String videoType) {
+<span class="nc bnc" id="L266" title="All 8 branches missed.">        return (videoType == null || videoType.isEmpty()) || videoType.equals(&quot;any&quot;) || x.getType().equals(videoType);</span>
+    }
+
+    protected List&lt;Video&gt; getVideos() {
+<span class="fc" id="L270">        return this.videos;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

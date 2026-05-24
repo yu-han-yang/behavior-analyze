@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BeslutterOversikt.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">BeslutterOversikt.java</span></div><h1>BeslutterOversikt.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import org.springframework.data.domain.Page;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="nc bnc" id="L12" title="All 102 branches missed.">@Data</span>
+<span class="nc" id="L13">@AllArgsConstructor</span>
+public class BeslutterOversikt {
+
+<span class="nc" id="L16">    private String id;</span>
+<span class="nc" id="L17">    private String veilederNavIdent;</span>
+<span class="nc" id="L18">    private String deltakerFornavn;</span>
+<span class="nc" id="L19">    private String deltakerEtternavn;</span>
+<span class="nc" id="L20">    private String deltakerFnr;</span>
+<span class="nc" id="L21">    private String bedriftNavn;</span>
+<span class="nc" id="L22">    private String bedriftNr;</span>
+<span class="nc" id="L23">    private LocalDate StartDato;</span>
+<span class="nc" id="L24">    private LocalDate sluttDato;</span>
+<span class="nc" id="L25">    private String Status;</span>
+<span class="nc" id="L26">    private String antallUbehandlet;</span>
+<span class="nc" id="L27">    private LocalDateTime OpprettetTidspunkt;</span>
+
+
+    protected static List&lt;BeslutterOversikt&gt; getBeslutterOversikt(Page&lt;BeslutterOversiktDTO&gt; beslutterOversikt) {
+<span class="nc" id="L31">        return beslutterOversikt.getContent().stream().map(listElement -&gt; new BeslutterOversikt(</span>
+<span class="nc" id="L32">                listElement.getId(),</span>
+<span class="nc" id="L33">                listElement.getVeilederNavIdent().asString(),</span>
+<span class="nc" id="L34">                listElement.getDeltakerFornavn(),</span>
+<span class="nc" id="L35">                listElement.getDeltakerEtternavn(),</span>
+<span class="nc" id="L36">                listElement.getDeltakerFnr().asString(),</span>
+<span class="nc" id="L37">                listElement.getBedriftNavn(),</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">                listElement.getBedriftNr() != null ? listElement.getBedriftNr().asString() : null,</span>
+<span class="nc" id="L39">                listElement.getStartDato(),</span>
+<span class="nc" id="L40">                listElement.getSluttDato(),</span>
+<span class="nc" id="L41">                listElement.getStatus(),</span>
+<span class="nc" id="L42">                listElement.getAntallUbehandlet(),</span>
+<span class="nc" id="L43">                listElement.getOpprettetTidspunkt()</span>
+<span class="nc" id="L44">        )).collect(Collectors.toList());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.app</a> &gt; <span class="el_source">RestClientFactory.java</span></div><h1>RestClientFactory.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.app;
+
+import uk.gov.pay.api.app.config.RestClientConfig;
+import uk.gov.service.payments.logging.RestClientLoggingFilter;
+
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+
+import static java.lang.String.format;
+
+public class RestClientFactory {
+    private static final String TLSV1_2 = &quot;TLSv1.2&quot;;
+
+    public static Client buildClient(RestClientConfig clientConfig) {
+<span class="fc" id="L18">        ClientBuilder clientBuilder = ClientBuilder.newBuilder();</span>
+
+<span class="pc bpc" id="L20" title="1 of 2 branches missed.">        if (!clientConfig.isDisabledSecureConnection()) {</span>
+            try {
+<span class="fc" id="L22">                SSLContext sslContext = SSLContext.getInstance(TLSV1_2);</span>
+<span class="fc" id="L23">                sslContext.init(null, null, null);</span>
+<span class="fc" id="L24">                clientBuilder = clientBuilder.sslContext(sslContext);</span>
+<span class="nc" id="L25">            } catch (NoSuchAlgorithmException | KeyManagementException e) {</span>
+<span class="nc" id="L26">                throw new RuntimeException(format(&quot;Unable to find an SSL context for %s&quot;, TLSV1_2), e);</span>
+<span class="fc" id="L27">            }</span>
+        }
+
+<span class="fc" id="L30">        Client client = clientBuilder.build();</span>
+<span class="fc" id="L31">        client.register(RestClientLoggingFilter.class);</span>
+
+<span class="fc" id="L33">        return client;</span>
+    }
+
+    private RestClientFactory() {
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Now.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.utils</a> &gt; <span class="el_source">Now.java</span></div><h1>Now.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.utils;
+
+import java.time.*;
+
+// Inspirasjon fra https://medium.com/agorapulse-stories/how-to-solve-now-problem-in-your-java-tests-7c7f4a6d703c
+<span class="nc" id="L6">public class Now {</span>
+<span class="fc" id="L7">    private static ThreadLocal&lt;Clock&gt; clock = ThreadLocal.withInitial(Clock::systemDefaultZone);</span>
+
+    public static void fixedDate(LocalDate localDate) {
+<span class="nc" id="L10">        Instant instant = ZonedDateTime.of(localDate.atStartOfDay(), ZoneId.systemDefault()).toInstant();</span>
+<span class="nc" id="L11">        clock.set(Clock.fixed(instant, ZoneId.systemDefault()));</span>
+<span class="nc" id="L12">    }</span>
+
+    public static void resetClock() {
+<span class="nc" id="L15">        Now.clock.set(Clock.systemDefaultZone());</span>
+<span class="nc" id="L16">    }</span>
+
+    public static Instant instant() {
+<span class="fc" id="L19">        return Instant.now(clock.get());</span>
+    }
+
+    public static LocalDate localDate() {
+<span class="nc" id="L23">        return LocalDate.now(clock.get());</span>
+    }
+
+    public static LocalDateTime localDateTime() {
+<span class="nc" id="L27">        return LocalDateTime.now(clock.get());</span>
+    }
+
+    public static YearMonth yearMonth() {
+<span class="nc" id="L31">        return YearMonth.now(clock.get());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

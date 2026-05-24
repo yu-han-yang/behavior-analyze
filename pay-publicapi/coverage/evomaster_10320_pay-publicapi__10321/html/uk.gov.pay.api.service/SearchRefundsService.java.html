@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchRefundsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">SearchRefundsService.java</span></div><h1>SearchRefundsService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.model.ledger.SearchRefundsResponseFromLedger;
+import uk.gov.pay.api.model.search.PaginationDecorator;
+import uk.gov.pay.api.model.search.card.RefundForSearchRefundsResult;
+import uk.gov.pay.api.model.search.card.SearchRefundsResults;
+
+import javax.inject.Inject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static uk.gov.pay.api.validation.RefundSearchValidator.validateSearchParameters;
+
+public class SearchRefundsService {
+
+    private static final String REFUNDS_PATH = &quot;/v1/refunds&quot;;
+    private final PaginationDecorator paginationDecorator;
+    private LedgerService ledgerService;
+    private PublicApiUriGenerator publicApiUriGenerator;
+
+    @Inject
+    public SearchRefundsService(LedgerService ledgerService,
+                                PublicApiUriGenerator publicApiUriGenerator,
+<span class="fc" id="L25">                                PaginationDecorator paginationDecorator) {</span>
+
+<span class="fc" id="L27">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L28">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L29">        this.paginationDecorator = paginationDecorator;</span>
+<span class="fc" id="L30">    }</span>
+
+    public SearchRefundsResults searchLedgerRefunds(Account account, RefundsParams params) {
+<span class="nc" id="L33">        validateSearchParameters(params);</span>
+<span class="nc" id="L34">        SearchRefundsResponseFromLedger refunds</span>
+<span class="nc" id="L35">                = ledgerService.searchRefunds(account, params.getParamsAsMap());</span>
+<span class="nc" id="L36">        return processLedgerResponse(refunds);</span>
+    }
+
+    private SearchRefundsResults processLedgerResponse(SearchRefundsResponseFromLedger searchResponse) {
+<span class="nc" id="L40">        List&lt;RefundForSearchRefundsResult&gt; results = searchResponse.getRefunds()</span>
+<span class="nc" id="L41">                .stream()</span>
+<span class="nc" id="L42">                .map(refund -&gt; RefundForSearchRefundsResult.valueOf(</span>
+                        refund,
+<span class="nc" id="L44">                        publicApiUriGenerator.getPaymentURI(refund.getParentTransactionId()),</span>
+<span class="nc" id="L45">                        publicApiUriGenerator.getRefundsURI(refund.getParentTransactionId(),</span>
+<span class="nc" id="L46">                                refund.getTransactionId()))</span>
+                )
+<span class="nc" id="L48">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L50">        return new SearchRefundsResults(</span>
+<span class="nc" id="L51">                searchResponse.getTotal(),</span>
+<span class="nc" id="L52">                searchResponse.getCount(),</span>
+<span class="nc" id="L53">                searchResponse.getPage(),</span>
+                results,
+<span class="nc" id="L55">                paginationDecorator.transformLinksToPublicApiUri(searchResponse.getLinks(), REFUNDS_PATH)</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

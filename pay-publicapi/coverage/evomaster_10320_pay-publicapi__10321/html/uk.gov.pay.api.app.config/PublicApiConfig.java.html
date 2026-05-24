@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublicApiConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.app.config</a> &gt; <span class="el_source">PublicApiConfig.java</span></div><h1>PublicApiConfig.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.app.config;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.benmanes.caffeine.cache.CaffeineSpec;
+import io.dropwizard.Configuration;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import java.net.URI;
+import java.util.Optional;
+
+<span class="fc" id="L12">public class PublicApiConfig extends Configuration {</span>
+
+    @NotNull
+    private String baseUrl;
+
+    @NotNull
+    private String connectorUrl;
+
+    @NotNull
+    private String ledgerUrl;
+
+    @NotNull
+    private String publicAuthUrl;
+
+    @NotNull
+    private Boolean allowHttpForReturnUrl;
+
+    private String apiKeyHmacSecret;
+
+    @NotNull
+    private CaffeineSpec authenticationCachePolicy;
+
+    @Valid
+    @NotNull
+    @JsonProperty(&quot;jerseyClientConfig&quot;)
+    private RestClientConfig restClientConfig;
+
+    @NotNull
+    @JsonProperty
+    private RedisConfiguration redis;
+
+    @Valid
+    @NotNull
+    @JsonProperty(&quot;rateLimiter&quot;)
+    private RateLimiterConfig rateLimiterConfig;
+
+    @JsonProperty(&quot;ecsContainerMetadataUriV4&quot;)
+    private URI ecsContainerMetadataUriV4;
+
+    public String getBaseUrl() {
+<span class="fc" id="L52">        return baseUrl;</span>
+    }
+
+    public String getConnectorUrl() {
+<span class="fc" id="L56">        return connectorUrl;</span>
+    }
+
+    public String getLedgerUrl() {
+<span class="nc" id="L60">        return ledgerUrl;</span>
+    }
+
+    public String getPublicAuthUrl() {
+<span class="fc" id="L64">        return publicAuthUrl;</span>
+    }
+
+    public Boolean getAllowHttpForReturnUrl() {
+<span class="fc" id="L68">        return allowHttpForReturnUrl;</span>
+    }
+
+    public String getApiKeyHmacSecret() {
+<span class="fc" id="L72">        return apiKeyHmacSecret;</span>
+    }
+
+    public RestClientConfig getRestClientConfig() {
+<span class="fc" id="L76">        return restClientConfig;</span>
+    }
+
+    public RateLimiterConfig getRateLimiterConfig() {
+<span class="fc" id="L80">        return rateLimiterConfig;</span>
+    }
+
+    public CaffeineSpec getAuthenticationCachePolicy() {
+<span class="fc" id="L84">        return authenticationCachePolicy;</span>
+    }
+
+    public RedisConfiguration getRedisConfiguration() {
+<span class="fc" id="L88">        return redis;</span>
+    }
+
+    public Optional&lt;URI&gt; getEcsContainerMetadataUriV4() {
+<span class="nc" id="L92">        return Optional.ofNullable(ecsContainerMetadataUriV4);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

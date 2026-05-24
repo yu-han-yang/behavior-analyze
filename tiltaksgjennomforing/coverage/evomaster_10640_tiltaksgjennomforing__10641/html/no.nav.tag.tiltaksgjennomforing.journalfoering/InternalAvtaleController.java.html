@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InternalAvtaleController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.journalfoering</a> &gt; <span class="el_source">InternalAvtaleController.java</span></div><h1>InternalAvtaleController.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.journalfoering;
+
+import io.micrometer.core.annotation.Timed;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.security.token.support.core.api.ProtectedWithClaims;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggingService;
+import no.nav.tag.tiltaksgjennomforing.avtale.AvtaleInnhold;
+import no.nav.tag.tiltaksgjennomforing.avtale.AvtaleInnholdRepository;
+import no.nav.tag.tiltaksgjennomforing.avtale.TilskuddPeriode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping(&quot;/internal/avtaler&quot;)
+@Timed
+<span class="fc" id="L24">@RequiredArgsConstructor</span>
+@ProtectedWithClaims(issuer = &quot;system&quot;)
+<span class="fc" id="L26">@Slf4j</span>
+public class InternalAvtaleController {
+
+    private final AvtaleInnholdRepository avtaleInnholdRepository;
+    private final InnloggingService innloggingService;
+
+    @GetMapping
+    public List&lt;AvtaleTilJournalfoering&gt; hentIkkeJournalfoerteAvtaler() {
+        try {
+<span class="nc" id="L35">            innloggingService.validerSystembruker();</span>
+<span class="nc" id="L36">            List&lt;AvtaleInnhold&gt; avtaleVersjoner = avtaleInnholdRepository.finnAvtaleVersjonerTilJournalfoering();</span>
+<span class="nc" id="L37">            List&lt;AvtaleTilJournalfoering&gt; avtalerTilJournalfoering = avtaleVersjoner.stream().map(avtaleInnhold -&gt; {</span>
+<span class="nc" id="L38">                SortedSet&lt;TilskuddPeriode&gt; tilskuddPeriode = avtaleInnhold.getAvtale().getTilskuddPeriode();</span>
+<span class="nc" id="L39">                AvtaleTilJournalfoering avtaleTilJournalfoering = AvtaleTilJournalfoeringMapper.tilJournalfoering(avtaleInnhold, null);</span>
+<span class="nc" id="L40">                avtaleTilJournalfoering.setTilskuddsPerioder(tilskuddPeriode.stream().toList());</span>
+<span class="nc" id="L41">                return avtaleTilJournalfoering;</span>
+<span class="nc" id="L42">            }).collect(Collectors.toList());</span>
+<span class="nc" id="L43">            return avtalerTilJournalfoering;</span>
+<span class="fc" id="L44">        } catch (Exception e) {</span>
+<span class="fc" id="L45">            log.error(&quot;Feil ved henting av ikke-journalførte avtaler&quot;, e);</span>
+<span class="fc" id="L46">            throw e;</span>
+        }
+    }
+
+    @PutMapping
+    @Transactional
+    public ResponseEntity&lt;?&gt; journalfoerAvtaler(@RequestBody Map&lt;UUID, String&gt; avtaleVersjonerTilJournalfoert) {
+<span class="nc" id="L53">        innloggingService.validerSystembruker();</span>
+<span class="nc" id="L54">        Iterable&lt;AvtaleInnhold&gt; avtaleVersjoner = avtaleInnholdRepository.findAllById(avtaleVersjonerTilJournalfoert.keySet());</span>
+<span class="nc" id="L55">        avtaleVersjoner.forEach(avtaleVersjon -&gt; avtaleVersjon.setJournalpostId(avtaleVersjonerTilJournalfoert.get(avtaleVersjon.getId())));</span>
+<span class="nc" id="L56">        avtaleInnholdRepository.saveAll(avtaleVersjoner);</span>
+<span class="nc" id="L57">        return ResponseEntity.ok().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

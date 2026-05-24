@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContractService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.blk.erc20</a> &gt; <span class="el_source">ContractService.java</span></div><h1>ContractService.java</h1><pre class="source lang-java linenums">package io.blk.erc20;
+
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+
+import io.blk.erc20.generated.HumanStandardToken;
+import io.reactivex.annotations.Nullable;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import org.springframework.stereotype.Service;
+
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.quorum.Quorum;
+import org.web3j.quorum.tx.ClientTransactionManager;
+import org.web3j.tx.TransactionManager;
+
+import static org.web3j.tx.Contract.GAS_LIMIT;
+import static org.web3j.tx.ManagedTransaction.GAS_PRICE;
+
+/**
+ * Our smart contract service.
+ */
+@Service
+public class ContractService {
+
+    private final Quorum quorum;
+
+    private final NodeConfiguration nodeConfiguration;
+
+    @Autowired
+<span class="fc" id="L36">    public ContractService(Quorum quorum, NodeConfiguration nodeConfiguration) {</span>
+<span class="fc" id="L37">        this.quorum = quorum;</span>
+<span class="fc" id="L38">        this.nodeConfiguration = nodeConfiguration;</span>
+<span class="fc" id="L39">    }</span>
+
+    public NodeConfiguration getConfig() {
+<span class="fc" id="L42">        return nodeConfiguration;</span>
+    }
+
+    public String deploy(
+            List&lt;String&gt; privateFor, BigInteger initialAmount, String tokenName, BigInteger decimalUnits,
+            String tokenSymbol) throws Exception {
+        try {
+<span class="fc" id="L49">            TransactionManager transactionManager = new ClientTransactionManager(</span>
+<span class="fc" id="L50">                    quorum, nodeConfiguration.getFromAddress(), privateFor);</span>
+<span class="fc" id="L51">            HumanStandardToken humanStandardToken = HumanStandardToken.deploy(</span>
+                    quorum, transactionManager, GAS_PRICE, GAS_LIMIT,
+                    initialAmount, tokenName, decimalUnits,
+<span class="nc" id="L54">                    tokenSymbol).send();</span>
+<span class="nc" id="L55">            return humanStandardToken.getContractAddress();</span>
+<span class="nc" id="L56">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L57">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String name(String contractAddress) throws Exception {
+<span class="nc" id="L62">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L64">            return humanStandardToken.name().send();</span>
+<span class="nc" id="L65">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L66">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public TransactionResponse&lt;ApprovalEventResponse&gt; approve(
+            List&lt;String&gt; privateFor, String contractAddress, String spender, BigInteger value) throws Exception {
+<span class="nc" id="L72">        HumanStandardToken humanStandardToken = load(contractAddress, privateFor);</span>
+        try {
+<span class="nc" id="L74">            TransactionReceipt transactionReceipt = humanStandardToken</span>
+<span class="nc" id="L75">                    .approve(spender, value).send();</span>
+<span class="nc" id="L76">            return processApprovalEventResponse(humanStandardToken, transactionReceipt);</span>
+<span class="nc" id="L77">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L78">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String totalSupply(String contractAddress) throws Exception {
+<span class="nc" id="L83">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L85">            return humanStandardToken.totalSupply().send().toString();</span>
+<span class="nc" id="L86">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L87">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public TransactionResponse&lt;TransferEventResponse&gt; transferFrom(
+            List&lt;String&gt; privateFor, String contractAddress, String from, String to, BigInteger value) throws Exception {
+<span class="nc" id="L93">        HumanStandardToken humanStandardToken = load(contractAddress, privateFor);</span>
+        try {
+<span class="nc" id="L95">            TransactionReceipt transactionReceipt = humanStandardToken</span>
+<span class="nc" id="L96">                    .transferFrom(from, to, value).send();</span>
+<span class="nc" id="L97">            return processTransferEventsResponse(humanStandardToken, transactionReceipt);</span>
+<span class="nc" id="L98">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L99">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String decimals(String contractAddress) throws Exception {
+<span class="nc" id="L104">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L106">            return humanStandardToken.decimals().send().toString();</span>
+<span class="nc" id="L107">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L108">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String version(String contractAddress) throws Exception {
+<span class="nc" id="L113">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L115">            return humanStandardToken.version().send();</span>
+<span class="nc" id="L116">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L117">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String balanceOf(String contractAddress, String ownerAddress) throws Exception {
+<span class="nc" id="L122">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L124">            return humanStandardToken.balanceOf(ownerAddress).send().toString();</span>
+<span class="nc" id="L125">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L126">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String symbol(String contractAddress) throws Exception {
+<span class="nc" id="L131">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L133">            return humanStandardToken.symbol().send();</span>
+<span class="nc" id="L134">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L135">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public TransactionResponse&lt;TransferEventResponse&gt; transfer(
+            List&lt;String&gt; privateFor, String contractAddress, String to, BigInteger value) throws Exception {
+<span class="nc" id="L141">        HumanStandardToken humanStandardToken = load(contractAddress, privateFor);</span>
+        try {
+<span class="nc" id="L143">            TransactionReceipt transactionReceipt = humanStandardToken</span>
+<span class="nc" id="L144">                    .transfer(to, value).send();</span>
+<span class="nc" id="L145">            return processTransferEventsResponse(humanStandardToken, transactionReceipt);</span>
+<span class="nc" id="L146">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L147">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public TransactionResponse&lt;ApprovalEventResponse&gt; approveAndCall(
+            @Nullable List&lt;String&gt; privateFor, String contractAddress, String spender, BigInteger value,
+            String extraData) throws Exception {
+<span class="nc" id="L154">        HumanStandardToken humanStandardToken = load(contractAddress, privateFor);</span>
+        try {
+<span class="nc" id="L156">            TransactionReceipt transactionReceipt = humanStandardToken</span>
+<span class="nc" id="L157">                    .approveAndCall(</span>
+                            spender, value,
+<span class="nc" id="L159">                            extraData.getBytes())</span>
+<span class="nc" id="L160">                    .send();</span>
+<span class="nc" id="L161">            return processApprovalEventResponse(humanStandardToken, transactionReceipt);</span>
+<span class="nc" id="L162">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L163">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    public String allowance(String contractAddress, String ownerAddress, String spenderAddress) throws Exception {
+<span class="nc" id="L168">        HumanStandardToken humanStandardToken = load(contractAddress);</span>
+        try {
+<span class="nc" id="L170">            return humanStandardToken.allowance(</span>
+                    ownerAddress, spenderAddress)
+<span class="nc" id="L172">                    .send().toString();</span>
+<span class="nc" id="L173">        } catch (InterruptedException | ExecutionException e) {</span>
+<span class="nc" id="L174">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    private HumanStandardToken load(String contractAddress, List&lt;String&gt; privateFor) {
+<span class="fc" id="L179">        TransactionManager transactionManager = new ClientTransactionManager(</span>
+<span class="fc" id="L180">                quorum, nodeConfiguration.getFromAddress(), privateFor);</span>
+<span class="nc" id="L181">        return HumanStandardToken.load(</span>
+                contractAddress, quorum, transactionManager, GAS_PRICE, GAS_LIMIT);
+    }
+
+    private HumanStandardToken load(String contractAddress) {
+<span class="fc" id="L186">        TransactionManager transactionManager = new ClientTransactionManager(</span>
+<span class="fc" id="L187">                quorum, nodeConfiguration.getFromAddress(), Collections.emptyList());</span>
+<span class="nc" id="L188">        return HumanStandardToken.load(</span>
+                contractAddress, quorum, transactionManager, GAS_PRICE, GAS_LIMIT);
+    }
+
+    private TransactionResponse&lt;ApprovalEventResponse&gt;
+            processApprovalEventResponse(
+            HumanStandardToken humanStandardToken,
+            TransactionReceipt transactionReceipt) {
+
+<span class="nc" id="L197">        return processEventResponse(</span>
+<span class="nc" id="L198">                humanStandardToken.getApprovalEvents(transactionReceipt),</span>
+                transactionReceipt,
+                ApprovalEventResponse::new);
+    }
+
+    private TransactionResponse&lt;TransferEventResponse&gt;
+            processTransferEventsResponse(
+            HumanStandardToken humanStandardToken,
+            TransactionReceipt transactionReceipt) {
+
+<span class="nc" id="L208">        return processEventResponse(</span>
+<span class="nc" id="L209">                humanStandardToken.getTransferEvents(transactionReceipt),</span>
+                transactionReceipt,
+                TransferEventResponse::new);
+    }
+
+    private &lt;T, R&gt; TransactionResponse&lt;R&gt; processEventResponse(
+            List&lt;T&gt; eventResponses, TransactionReceipt transactionReceipt, Function&lt;T, R&gt; map) {
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (!eventResponses.isEmpty()) {</span>
+<span class="nc" id="L217">            return new TransactionResponse&lt;&gt;(</span>
+<span class="nc" id="L218">                    transactionReceipt.getTransactionHash(),</span>
+<span class="nc" id="L219">                    map.apply(eventResponses.get(0)));</span>
+        } else {
+<span class="nc" id="L221">            return new TransactionResponse&lt;&gt;(</span>
+<span class="nc" id="L222">                    transactionReceipt.getTransactionHash());</span>
+        }
+    }
+
+    @Getter
+    @Setter
+    public static class TransferEventResponse {
+        private String from;
+        private String to;
+        private long value;
+
+<span class="nc" id="L233">        public TransferEventResponse() { }</span>
+
+        public TransferEventResponse(
+<span class="nc" id="L236">                HumanStandardToken.TransferEventResponse transferEventResponse) {</span>
+<span class="nc" id="L237">            this.from = transferEventResponse._from;</span>
+<span class="nc" id="L238">            this.to = transferEventResponse._to;</span>
+<span class="nc" id="L239">            this.value = transferEventResponse._value.longValueExact();</span>
+<span class="nc" id="L240">        }</span>
+
+        public String getFrom() {
+<span class="nc" id="L243">            return from;</span>
+        }
+
+        public void setFrom(String from) {
+<span class="nc" id="L247">            this.from = from;</span>
+<span class="nc" id="L248">        }</span>
+
+        public String getTo() {
+<span class="nc" id="L251">            return to;</span>
+        }
+
+        public void setTo(String to) {
+<span class="nc" id="L255">            this.to = to;</span>
+<span class="nc" id="L256">        }</span>
+
+        public long getValue() {
+<span class="nc" id="L259">            return value;</span>
+        }
+
+        public void setValue(long value) {
+<span class="nc" id="L263">            this.value = value;</span>
+<span class="nc" id="L264">        }</span>
+    }
+
+    @Getter
+    @Setter
+    public static class ApprovalEventResponse {
+        private String owner;
+        private String spender;
+        private long value;
+
+<span class="nc" id="L274">        public ApprovalEventResponse() { }</span>
+
+        public ApprovalEventResponse(
+<span class="nc" id="L277">                HumanStandardToken.ApprovalEventResponse approvalEventResponse) {</span>
+<span class="nc" id="L278">            this.owner = approvalEventResponse._owner;</span>
+<span class="nc" id="L279">            this.spender = approvalEventResponse._spender;</span>
+<span class="nc" id="L280">            this.value = approvalEventResponse._value.longValueExact();</span>
+<span class="nc" id="L281">        }</span>
+
+        public String getOwner() {
+<span class="nc" id="L284">            return owner;</span>
+        }
+
+        public void setOwner(String owner) {
+<span class="nc" id="L288">            this.owner = owner;</span>
+<span class="nc" id="L289">        }</span>
+
+        public String getSpender() {
+<span class="nc" id="L292">            return spender;</span>
+        }
+
+        public void setSpender(String spender) {
+<span class="nc" id="L296">            this.spender = spender;</span>
+<span class="nc" id="L297">        }</span>
+
+        public long getValue() {
+<span class="nc" id="L300">            return value;</span>
+        }
+
+        public void setValue(long value) {
+<span class="nc" id="L304">            this.value = value;</span>
+<span class="nc" id="L305">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

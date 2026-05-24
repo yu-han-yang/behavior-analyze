@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreatePaymentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">CreatePaymentService.java</span></div><h1>CreatePaymentService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import org.apache.http.HttpStatus;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.CreateChargeException;
+import uk.gov.pay.api.model.Charge;
+import uk.gov.pay.api.model.ChargeFromResponse;
+import uk.gov.pay.api.model.CreateCardPaymentRequest;
+import uk.gov.pay.api.model.CreatedPaymentWithAllLinks;
+import uk.gov.pay.api.model.links.PaymentWithAllLinks;
+
+import javax.inject.Inject;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+
+import java.util.Optional;
+
+import static javax.ws.rs.client.Entity.json;
+import static uk.gov.pay.api.model.CreatedPaymentWithAllLinks.WhenCreated.BRAND_NEW;
+import static uk.gov.pay.api.model.CreatedPaymentWithAllLinks.WhenCreated.EXISTING;
+
+public class CreatePaymentService {
+
+    private final Client client;
+    private final PublicApiUriGenerator publicApiUriGenerator;
+    private final ConnectorUriGenerator connectorUriGenerator;
+
+    @Inject
+<span class="fc" id="L33">    public CreatePaymentService(Client client, PublicApiUriGenerator publicApiUriGenerator, ConnectorUriGenerator connectorUriGenerator) {</span>
+<span class="fc" id="L34">        this.client = client;</span>
+<span class="fc" id="L35">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L36">        this.connectorUriGenerator = connectorUriGenerator;</span>
+<span class="fc" id="L37">    }</span>
+
+    public CreatedPaymentWithAllLinks create(Account account, CreateCardPaymentRequest createCardPaymentRequest, String idempotencyKey) {
+<span class="nc" id="L40">        Response connectorResponse = createCharge(account, createCardPaymentRequest, idempotencyKey);</span>
+
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        if (connectorCreatedNewPayment(connectorResponse)) {</span>
+<span class="nc" id="L43">            ChargeFromResponse chargeFromResponse = connectorResponse.readEntity(ChargeFromResponse.class);</span>
+<span class="nc" id="L44">            return CreatedPaymentWithAllLinks.of(buildResponseModel(Charge.from(chargeFromResponse)), BRAND_NEW);</span>
+        }
+
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (connectorReturnedExistingPayment(connectorResponse)) {</span>
+<span class="nc" id="L48">            ChargeFromResponse chargeFromResponse = connectorResponse.readEntity(ChargeFromResponse.class);</span>
+<span class="nc" id="L49">            return CreatedPaymentWithAllLinks.of(buildResponseModel(Charge.from(chargeFromResponse)), EXISTING);</span>
+        }
+
+<span class="nc" id="L52">        throw new CreateChargeException(connectorResponse);</span>
+    }
+   private PaymentWithAllLinks buildResponseModel(Charge chargeFromResponse) {
+<span class="nc" id="L55">        return PaymentWithAllLinks.getPaymentWithLinks(</span>
+                chargeFromResponse,
+<span class="nc" id="L57">                publicApiUriGenerator.getPaymentURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L58">                publicApiUriGenerator.getPaymentEventsURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L59">                publicApiUriGenerator.getPaymentCancelURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L60">                publicApiUriGenerator.getPaymentRefundsURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L61">                publicApiUriGenerator.getPaymentCaptureURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L62">                publicApiUriGenerator.getPaymentAuthorisationURI());</span>
+    }
+
+    private boolean connectorCreatedNewPayment(Response connectorResponse) {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        return connectorResponse.getStatus() == HttpStatus.SC_CREATED;</span>
+    }
+
+    private boolean connectorReturnedExistingPayment(Response connectorResponse) {
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        return connectorResponse.getStatus() == HttpStatus.SC_OK;</span>
+    }
+
+
+    private Response createCharge(Account account, CreateCardPaymentRequest createCardPaymentRequest, String idempotencyKey) {
+<span class="nc" id="L75">        MultivaluedMap&lt;String, Object&gt; headers = new MultivaluedHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L77">        Optional.ofNullable(idempotencyKey)</span>
+<span class="nc" id="L78">                .ifPresent(key -&gt; headers.add(&quot;Idempotency-Key&quot;, idempotencyKey));</span>
+
+<span class="nc" id="L80">        return client</span>
+<span class="nc" id="L81">                .target(connectorUriGenerator.chargesURI(account))</span>
+<span class="nc" id="L82">                .request()</span>
+<span class="nc" id="L83">                .headers(headers)</span>
+<span class="nc" id="L84">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L85">                .post(buildChargeRequestPayload(createCardPaymentRequest));</span>
+    }
+
+    private Entity buildChargeRequestPayload(CreateCardPaymentRequest requestPayload) {
+<span class="nc" id="L89">        return json(requestPayload.toConnectorPayload());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

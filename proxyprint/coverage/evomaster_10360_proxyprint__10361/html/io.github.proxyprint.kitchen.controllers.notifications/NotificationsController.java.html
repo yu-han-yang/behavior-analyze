@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotificationsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.notifications</a> &gt; <span class="el_source">NotificationsController.java</span></div><h1>NotificationsController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Pivotal Software, Inc..
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.controllers.notifications;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.notifications.Notification;
+import io.github.proxyprint.kitchen.models.repositories.ConsumerDAO;
+import io.github.proxyprint.kitchen.utils.NotificationManager;
+import java.security.Principal;
+import java.util.List;
+
+import io.swagger.annotations.ApiOperation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+/**
+ *
+ * @author jose
+ */
+@RestController 
+<span class="fc" id="L45">public class NotificationsController {</span>
+
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private NotificationManager notificationManager;
+    @Autowired
+    private Gson GSON;
+
+    @Transactional
+    @ApiOperation(value = &quot;Returns nothing&quot;, notes = &quot;This method sends a notification to a consumer.&quot;)
+    @RequestMapping(value = &quot;/consumer/{id}/notify&quot;, method = RequestMethod.POST)
+    public void greeting(@PathVariable(value = &quot;id&quot;) long id, WebRequest request, Principal principal) throws Exception {
+<span class="fc" id="L58">        String message = request.getParameter(&quot;message&quot;);</span>
+<span class="fc" id="L59">        String name = consumers.findOne(id).getUsername();</span>
+<span class="fc" id="L60">        notificationManager.sendNotification(name, new Notification(message));</span>
+<span class="fc" id="L61">    }</span>
+
+    @Transactional
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a consumer to subscribe the SSE.&quot;)
+    @RequestMapping(value = &quot;/consumer/subscribe&quot;, produces = &quot;text/event-stream&quot;)
+    public ResponseEntity&lt;SseEmitter&gt; subscribe(WebRequest request){
+<span class="fc" id="L67">        String username = request.getParameter(&quot;username&quot;);</span>
+<span class="fc" id="L68">        String password = request.getParameter(&quot;password&quot;);</span>
+
+<span class="fc" id="L70">        Consumer consumer = this.consumers.findByUsername(username);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (consumer == null) {</span>
+<span class="fc" id="L72">            return new ResponseEntity&lt;&gt;(HttpStatus.NOT_FOUND);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        } else if (consumer.getPassword().equals(password)) {</span>
+<span class="fc" id="L74">            return new ResponseEntity&lt;&gt;(this.notificationManager.subscribe(username), HttpStatus.OK);</span>
+        } else {
+<span class="fc" id="L76">            return new ResponseEntity&lt;&gt;(HttpStatus.UNAUTHORIZED);</span>
+        }
+    }
+
+    @Transactional
+    @ApiOperation(value = &quot;Returns list of notifications.&quot;, notes = &quot;This method retrieves to consumer his list of notifications.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/notifications&quot;, method = RequestMethod.GET)
+    public List&lt;Notification&gt; getConsumerNotifications(Principal principal) {
+<span class="fc" id="L85">        Consumer consumer = this.consumers.findByUsername(principal.getName());</span>
+<span class="fc" id="L86">        return consumer.getNotifications();</span>
+    }
+
+    @Transactional
+    @ApiOperation(value = &quot;Returns success.&quot;, notes = &quot;This method allows consumers to delete a notification.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value=&quot;/notifications/{notificationId}&quot;, method = RequestMethod.DELETE)
+    public ResponseEntity&lt;String&gt; deleteNotification(@PathVariable(value = &quot;notificationId&quot;) long notId, WebRequest request){
+<span class="fc" id="L94">        JsonObject response = new JsonObject();</span>
+<span class="nc" id="L95">        notificationManager.removeNotification(notId);</span>
+<span class="nc" id="L96">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L97">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+
+    @Transactional
+    @ApiOperation(value = &quot;Returns success.&quot;, notes = &quot;This method allows consumers to mark a notification as read.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value=&quot;/notifications/{notificationId}&quot;, method = RequestMethod.PUT)
+    public ResponseEntity&lt;String&gt; readNotification (@PathVariable (value=&quot;notificationId&quot;) long notId){
+<span class="fc" id="L105">        JsonObject response = new JsonObject();</span>
+<span class="nc" id="L106">        notificationManager.readNotification(notId);</span>
+<span class="nc" id="L107">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L108">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

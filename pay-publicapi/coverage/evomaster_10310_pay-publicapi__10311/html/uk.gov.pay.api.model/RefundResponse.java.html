@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RefundResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">RefundResponse.java</span></div><h1>RefundResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.links.RefundLinksForSearch;
+import uk.gov.pay.api.model.ledger.RefundTransactionFromLedger;
+
+import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@Schema(name = &quot;Refund&quot;)
+public class RefundResponse {
+
+    @Schema(example = &quot;act4c33g40j3edfmi8jknab84x&quot;, 
+            description = &quot;The unique ID GOV.UK Pay automatically associated with this refund when you created it.&quot;,
+            accessMode = READ_ONLY)
+    private String refundId;
+    @Schema(example = &quot;2017-01-10T16:52:07.855Z&quot;, 
+            description = &quot;The date and time you created this refund. &quot; + 
+                    &quot;This value uses Coordinated Universal Time (UTC) and ISO 8601 format - `YYYY-MM-DDThh:mm:ss.SSSZ`&quot;, 
+            accessMode = READ_ONLY)
+    private String createdDate;
+    @Schema(example = &quot;120&quot;, description = &quot;The amount refunded to the user in pence.&quot;, accessMode = READ_ONLY)
+    private Long amount;
+    @JsonProperty(&quot;_links&quot;)
+    private RefundLinksForSearch links;
+    @Schema(example = &quot;success&quot;, 
+            description = &quot;The [status of the refund](https://docs.payments.service.gov.uk/refunding_payments/#checking-the-status-of-a-refund-status).&quot;,
+            allowableValues = {&quot;submitted&quot;, &quot;success&quot;, &quot;error&quot;}, accessMode = READ_ONLY)
+    private String status;
+    @Schema(accessMode = READ_ONLY)
+    private RefundSettlementSummary settlementSummary;
+
+<span class="nc" id="L39">    private RefundResponse(RefundFromConnector refund, URI selfLink, URI paymentLink) {</span>
+<span class="nc" id="L40">        this.refundId = refund.getRefundId();</span>
+<span class="nc" id="L41">        this.amount = refund.getAmount();</span>
+<span class="nc" id="L42">        this.status = refund.getStatus();</span>
+<span class="nc" id="L43">        this.createdDate = refund.getCreatedDate();</span>
+<span class="nc" id="L44">        this.links = new RefundLinksForSearch();</span>
+<span class="nc" id="L45">        this.settlementSummary = new RefundSettlementSummary();</span>
+
+<span class="nc" id="L47">        links.addSelf(selfLink.toString());</span>
+<span class="nc" id="L48">        links.addPayment(paymentLink.toString());</span>
+<span class="nc" id="L49">    }</span>
+
+<span class="nc" id="L51">    private RefundResponse(RefundTransactionFromLedger refund, URI selfLink, URI paymentLink) {</span>
+<span class="nc" id="L52">        this.refundId = refund.getTransactionId();</span>
+<span class="nc" id="L53">        this.amount = refund.getAmount();</span>
+<span class="nc" id="L54">        this.status = refund.getState().getStatus();</span>
+<span class="nc" id="L55">        this.createdDate = refund.getCreatedDate();</span>
+<span class="nc" id="L56">        this.settlementSummary = refund.getSettlementSummary();</span>
+<span class="nc" id="L57">        this.links = new RefundLinksForSearch();</span>
+
+<span class="nc" id="L59">        links.addSelf(selfLink.toString());</span>
+<span class="nc" id="L60">        links.addPayment(paymentLink.toString());</span>
+<span class="nc" id="L61">    }</span>
+
+    private RefundResponse(String refundId, Long amount, String status,
+<span class="nc" id="L64">                           String createdDate, URI selfLink, URI paymentLink) {</span>
+<span class="nc" id="L65">        this.refundId = refundId;</span>
+<span class="nc" id="L66">        this.amount = amount;</span>
+<span class="nc" id="L67">        this.status = status;</span>
+<span class="nc" id="L68">        this.createdDate = createdDate;</span>
+<span class="nc" id="L69">        this.links = new RefundLinksForSearch();</span>
+
+<span class="nc" id="L71">        links.addSelf(selfLink.toString());</span>
+<span class="nc" id="L72">        links.addPayment(paymentLink.toString());</span>
+<span class="nc" id="L73">    }</span>
+
+    public static RefundResponse from(RefundFromConnector refund, URI selfLink, URI paymentLink) {
+<span class="nc" id="L76">        return new RefundResponse(refund, selfLink, paymentLink);</span>
+    }
+
+    public static RefundResponse from(RefundTransactionFromLedger refund, URI selfLink, URI paymentLink) {
+<span class="nc" id="L80">        return new RefundResponse(refund, selfLink, paymentLink);</span>
+    }
+
+    //todo: remove after full refactoring of PaymentRefundsResource (to use service layer) 
+    public static RefundResponse valueOf(RefundFromConnector refundEntity, String paymentId, String baseUrl) {
+<span class="nc" id="L85">        URI selfLink = UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L86">                .path(&quot;/v1/payments/{paymentId}/refunds/{refundId}&quot;)</span>
+<span class="nc" id="L87">                .build(paymentId, refundEntity.getRefundId());</span>
+
+<span class="nc" id="L89">        URI paymentLink = UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L90">                .path(&quot;/v1/payments/{paymentId}&quot;)</span>
+<span class="nc" id="L91">                .build(paymentId);</span>
+
+<span class="nc" id="L93">        return new RefundResponse(</span>
+<span class="nc" id="L94">                refundEntity.getRefundId(),</span>
+<span class="nc" id="L95">                refundEntity.getAmount(),</span>
+<span class="nc" id="L96">                refundEntity.getStatus(),</span>
+<span class="nc" id="L97">                refundEntity.getCreatedDate(),</span>
+                selfLink,
+                paymentLink);
+    }
+
+    public String getRefundId() {
+<span class="nc" id="L103">        return refundId;</span>
+    }
+
+    public Long getAmount() {
+<span class="nc" id="L107">        return amount;</span>
+    }
+
+    public String getStatus() {
+<span class="nc" id="L111">        return status;</span>
+    }
+
+    public String getCreatedDate() {
+<span class="nc" id="L115">        return createdDate;</span>
+    }
+
+    public RefundLinksForSearch getLinks() {
+<span class="nc" id="L119">        return links;</span>
+    }
+
+    public RefundSettlementSummary getSettlementSummary() {
+<span class="nc" id="L123">        return settlementSummary;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchResultSnippet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">SearchResultSnippet.java</span></div><h1>SearchResultSnippet.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.fasterxml.jackson.annotation.JsonValue;
+
+import java.util.Date;
+
+@JsonPropertyOrder({&quot;publishedAt&quot;, &quot;channelId&quot;, &quot;title&quot;, &quot;description&quot;, &quot;thumbnails&quot;, &quot;channelTitle&quot;, &quot;liveBroadcastContent&quot;})
+<span class="fc" id="L9">public class SearchResultSnippet {</span>
+
+    private String channelId;
+
+    private String channelTitle;
+
+    private String description;
+
+    private LiveBroadcastContent liveBroadcastContent;
+
+    private Date publishedAt;
+
+    private ThumbnailDetails thumbnails;
+
+    private String title;
+
+
+
+    public String getChannelId() {
+<span class="nc" id="L28">        return channelId;</span>
+    }
+
+    public void setChannelId(String channelId) {
+<span class="fc" id="L32">        this.channelId = channelId;</span>
+<span class="fc" id="L33">    }</span>
+
+    public String getChannelTitle() {
+<span class="nc" id="L36">        return channelTitle;</span>
+    }
+
+    public void setChannelTitle(String channelTitle) {
+<span class="fc" id="L40">        this.channelTitle = channelTitle;</span>
+<span class="fc" id="L41">    }</span>
+
+    public String getDescription() {
+<span class="nc" id="L44">        return description;</span>
+    }
+
+    public void setDescription(String description) {
+<span class="fc" id="L48">        this.description = description;</span>
+<span class="fc" id="L49">    }</span>
+
+    public LiveBroadcastContent getLiveBroadcastContent() {
+<span class="nc" id="L52">        return liveBroadcastContent;</span>
+    }
+
+    public void setLiveBroadcastContent(LiveBroadcastContent liveBroadcastContent) {
+<span class="fc" id="L56">        this.liveBroadcastContent = liveBroadcastContent;</span>
+<span class="fc" id="L57">    }</span>
+
+    public Date getPublishedAt() {
+<span class="nc" id="L60">        return publishedAt;</span>
+    }
+
+    public void setPublishedAt(Date publishedAt) {
+<span class="fc" id="L64">        this.publishedAt = publishedAt;</span>
+<span class="fc" id="L65">    }</span>
+
+    public ThumbnailDetails getThumbnails() {
+<span class="fc" id="L68">        return thumbnails;</span>
+    }
+
+    public void setThumbnails(ThumbnailDetails thumbnails) {
+<span class="fc" id="L72">        this.thumbnails = thumbnails;</span>
+<span class="fc" id="L73">    }</span>
+
+    public String getTitle() {
+<span class="nc" id="L76">        return title;</span>
+    }
+
+    public void setTitle(String title) {
+<span class="fc" id="L80">        this.title = title;</span>
+<span class="fc" id="L81">    }</span>
+
+<span class="fc" id="L83">    public enum LiveBroadcastContent {</span>
+<span class="fc" id="L84">        LIVE(&quot;live&quot;), NONE(&quot;none&quot;), UPCOMING(&quot;upcoming&quot;);</span>
+
+        private final String type;
+
+<span class="fc" id="L88">        LiveBroadcastContent(String type) {</span>
+<span class="fc" id="L89">            this.type = type;</span>
+<span class="fc" id="L90">        }</span>
+
+        @JsonValue
+        public String getType() {
+<span class="nc" id="L94">            return type;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L99">            return this.type;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

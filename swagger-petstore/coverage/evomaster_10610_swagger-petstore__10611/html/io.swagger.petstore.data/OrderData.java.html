@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore.data</a> &gt; <span class="el_source">OrderData.java</span></div><h1>OrderData.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2018 SmartBear Software
+ * &lt;p&gt;
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * &lt;p&gt;
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * &lt;p&gt;
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.swagger.petstore.data;
+
+import io.swagger.petstore.model.Order;
+
+import java.util.*;
+
+<span class="fc" id="L23">public class OrderData {</span>
+<span class="fc" id="L24">    private static List&lt;Order&gt; orders = new ArrayList&lt;&gt;();</span>
+
+    static {
+<span class="fc" id="L27">        orders.add(createOrder(1, 1, 100, new Date(), &quot;placed&quot;, true));</span>
+<span class="fc" id="L28">        orders.add(createOrder(2, 1, 50, new Date(), &quot;approved&quot;, true));</span>
+<span class="fc" id="L29">        orders.add(createOrder(3, 1, 50, new Date(), &quot;delivered&quot;, true));</span>
+<span class="fc" id="L30">    }</span>
+
+    public Order getOrderById(final long orderId) {
+<span class="fc bfc" id="L33" title="All 2 branches covered.">        for (final Order order : orders) {</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">            if (order.getId() == orderId) {</span>
+<span class="fc" id="L35">                return order;</span>
+            }
+<span class="fc" id="L37">        }</span>
+<span class="fc" id="L38">        return null;</span>
+    }
+
+    public Map&lt;String, Integer&gt; getCountByStatus() {
+
+<span class="fc" id="L43">        final Map&lt;String, Integer&gt; countByStatus = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        for (final Order order : orders) {</span>
+<span class="fc" id="L46">            final String status = order.getStatus();</span>
+<span class="fc bfc" id="L47" title="All 2 branches covered.">            if (countByStatus.containsKey(status)) {</span>
+<span class="fc" id="L48">                countByStatus.put(status, countByStatus.get(status) + order.getQuantity());</span>
+            } else {
+<span class="fc" id="L50">                countByStatus.put(status, order.getQuantity());</span>
+            }
+<span class="fc" id="L52">        }</span>
+
+<span class="fc" id="L54">        return countByStatus;</span>
+    }
+
+    public void addOrder(final Order order) {
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (orders.size() &gt; 0) {</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            orders.removeIf(orderN -&gt; orderN.getId() == order.getId());</span>
+        }
+<span class="fc" id="L61">        orders.add(order);</span>
+<span class="fc" id="L62">    }</span>
+
+    public void deleteOrderById(final Long orderId) {
+<span class="fc bfc" id="L65" title="All 2 branches covered.">        orders.removeIf(order -&gt; order.getId() == orderId);</span>
+<span class="fc" id="L66">    }</span>
+
+    public static Order createOrder(final long id, final long petId, final int quantity, final Date shipDate,
+                                     final String status, final boolean complete) {
+<span class="fc" id="L70">        final Order order = new Order();</span>
+<span class="fc" id="L71">        order.setId(id);</span>
+<span class="fc" id="L72">        order.setPetId(petId);</span>
+<span class="fc" id="L73">        order.setComplete(complete);</span>
+<span class="fc" id="L74">        order.setQuantity(quantity);</span>
+<span class="fc" id="L75">        order.setShipDate(shipDate);</span>
+<span class="fc" id="L76">        order.setStatus(status);</span>
+<span class="fc" id="L77">        return order;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

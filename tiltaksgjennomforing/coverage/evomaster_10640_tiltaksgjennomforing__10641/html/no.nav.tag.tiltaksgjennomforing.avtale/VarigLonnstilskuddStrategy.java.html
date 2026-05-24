@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VarigLonnstilskuddStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">VarigLonnstilskuddStrategy.java</span></div><h1>VarigLonnstilskuddStrategy.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import java.time.LocalDate;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilLonnstilskuddsprosentException;
+
+import java.util.Map;
+
+/**
+ * TODO: Kalkulering av redusert prosent og redusert dato bør kun skje her og ikke i @see avtale.java og heller ikke i frontend
+ *
+ */
+public class VarigLonnstilskuddStrategy extends LonnstilskuddStrategy {
+
+    public static final int GRENSE_68_PROSENT_ETTER_12_MND = 68;
+    public static final int MAX_67_PROSENT_ETTER_12_MND = 67;
+
+    @Override
+    public Map&lt;String, Object&gt; alleFelterSomMåFyllesUt() {
+<span class="nc" id="L19">        Map&lt;String, Object&gt; felterSomMåFyllesUt = super.alleFelterSomMåFyllesUt();</span>
+<span class="nc" id="L20">        felterSomMåFyllesUt.put(AvtaleInnhold.Fields.lonnstilskuddProsent, avtaleInnhold.getLonnstilskuddProsent());</span>
+<span class="nc" id="L21">        return felterSomMåFyllesUt;</span>
+    }
+
+    public VarigLonnstilskuddStrategy(AvtaleInnhold avtaleInnhold) {
+<span class="nc" id="L25">        super(avtaleInnhold);</span>
+<span class="nc" id="L26">    }</span>
+
+    @Override
+    public void endre(EndreAvtale endreAvtale) {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (endreAvtale.getLonnstilskuddProsent() != null &amp;&amp; (</span>
+<span class="nc bnc" id="L31" title="All 4 branches missed.">            endreAvtale.getLonnstilskuddProsent() &lt; 0 || endreAvtale.getLonnstilskuddProsent() &gt; 75)) {</span>
+<span class="nc" id="L32">            throw new FeilLonnstilskuddsprosentException();</span>
+        }
+<span class="nc" id="L34">        avtaleInnhold.setLonnstilskuddProsent(endreAvtale.getLonnstilskuddProsent());</span>
+<span class="nc" id="L35">        super.endre(endreAvtale);</span>
+<span class="nc" id="L36">    }</span>
+
+    @Override
+    public void regnUtTotalLonnstilskudd() {
+<span class="nc" id="L40">        super.regnUtTotalLonnstilskudd();</span>
+<span class="nc" id="L41">        regnUtDatoOgSumRedusert();</span>
+<span class="nc" id="L42">    }</span>
+
+    @Override
+    public void reUtregnRedusertProsentOgSum() {
+<span class="nc" id="L46">        regnUtDatoOgSumRedusert();</span>
+<span class="nc" id="L47">    }</span>
+
+    private LocalDate getDatoForRedusertProsent(LocalDate startDato, LocalDate sluttDato, Integer lonnstilskuddprosent) {
+<span class="nc bnc" id="L50" title="All 6 branches missed.">        if (startDato == null || sluttDato == null || lonnstilskuddprosent == null) {</span>
+<span class="nc" id="L51">            return null;</span>
+        }
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (startDato.plusYears(1).minusDays(1).isBefore(sluttDato)) {</span>
+<span class="nc" id="L54">            return startDato.plusYears(1);</span>
+        }
+<span class="nc" id="L56">        return null;</span>
+    }
+    private void regnUtDatoOgSumRedusert() {
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        if(avtaleInnhold.getLonnstilskuddProsent() == null || avtaleInnhold.getLonnstilskuddProsent() &lt; GRENSE_68_PROSENT_ETTER_12_MND) {</span>
+<span class="nc" id="L60">            avtaleInnhold.setDatoForRedusertProsent(null);</span>
+<span class="nc" id="L61">            avtaleInnhold.setSumLønnstilskuddRedusert(null);</span>
+<span class="nc" id="L62">            return;</span>
+        }
+<span class="nc" id="L64">        LocalDate datoForRedusertProsent = getDatoForRedusertProsent(avtaleInnhold.getStartDato(), avtaleInnhold.getSluttDato(), avtaleInnhold.getLonnstilskuddProsent());</span>
+<span class="nc" id="L65">        avtaleInnhold.setDatoForRedusertProsent(datoForRedusertProsent);</span>
+<span class="nc" id="L66">        Integer sumLønnstilskuddRedusert = regnUtRedusertLønnstilskudd();</span>
+<span class="nc" id="L67">        avtaleInnhold.setSumLønnstilskuddRedusert(sumLønnstilskuddRedusert);</span>
+
+<span class="nc" id="L69">    }</span>
+
+    private Integer regnUtRedusertLønnstilskudd() {
+<span class="nc bnc" id="L72" title="All 4 branches missed.">        if (avtaleInnhold.getDatoForRedusertProsent() != null &amp;&amp; avtaleInnhold.getLonnstilskuddProsent() != null) {</span>
+<span class="nc" id="L73">            int lonnstilskuddProsent = avtaleInnhold.getLonnstilskuddProsent();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            if(lonnstilskuddProsent &gt;= GRENSE_68_PROSENT_ETTER_12_MND) lonnstilskuddProsent = MAX_67_PROSENT_ETTER_12_MND;</span>
+<span class="nc" id="L75">            return getSumLonnsTilskudd(avtaleInnhold.getSumLonnsutgifter(), lonnstilskuddProsent);</span>
+        } else {
+<span class="nc" id="L77">            return null;</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersonEntity.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.mongodb.starter.models</a> &gt; <span class="el_source">PersonEntity.java</span></div><h1>PersonEntity.java</h1><pre class="source lang-java linenums">package com.mongodb.starter.models;
+
+import org.bson.types.ObjectId;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
+public class PersonEntity {
+
+    private ObjectId id;
+    private String firstName;
+    private String lastName;
+    private int age;
+    private AddressEntity addressEntity;
+<span class="nc" id="L16">    private Date createdAt = new Date();</span>
+    private Boolean insurance;
+    private List&lt;CarEntity&gt; carEntities;
+
+<span class="nc" id="L20">    public PersonEntity() {</span>
+<span class="nc" id="L21">    }</span>
+
+    public PersonEntity(ObjectId id,
+                        String firstName,
+                        String lastName,
+                        int age,
+                        AddressEntity addressEntity,
+                        Date createdAt,
+                        Boolean insurance,
+<span class="nc" id="L30">                        List&lt;CarEntity&gt; carEntities) {</span>
+<span class="nc" id="L31">        this.id = id;</span>
+<span class="nc" id="L32">        this.firstName = firstName;</span>
+<span class="nc" id="L33">        this.lastName = lastName;</span>
+<span class="nc" id="L34">        this.age = age;</span>
+<span class="nc" id="L35">        this.addressEntity = addressEntity;</span>
+<span class="nc" id="L36">        this.createdAt = createdAt;</span>
+<span class="nc" id="L37">        this.insurance = insurance;</span>
+<span class="nc" id="L38">        this.carEntities = carEntities;</span>
+<span class="nc" id="L39">    }</span>
+
+    public ObjectId getId() {
+<span class="nc" id="L42">        return id;</span>
+    }
+
+    public PersonEntity setId(ObjectId id) {
+<span class="nc" id="L46">        this.id = id;</span>
+<span class="nc" id="L47">        return this;</span>
+    }
+
+    public String getFirstName() {
+<span class="nc" id="L51">        return firstName;</span>
+    }
+
+    public PersonEntity setFirstName(String firstName) {
+<span class="nc" id="L55">        this.firstName = firstName;</span>
+<span class="nc" id="L56">        return this;</span>
+    }
+
+    public String getLastName() {
+<span class="nc" id="L60">        return lastName;</span>
+    }
+
+    public PersonEntity setLastName(String lastName) {
+<span class="nc" id="L64">        this.lastName = lastName;</span>
+<span class="nc" id="L65">        return this;</span>
+    }
+
+    public int getAge() {
+<span class="nc" id="L69">        return age;</span>
+    }
+
+    public PersonEntity setAge(int age) {
+<span class="nc" id="L73">        this.age = age;</span>
+<span class="nc" id="L74">        return this;</span>
+    }
+
+    public AddressEntity getAddress() {
+<span class="nc" id="L78">        return addressEntity;</span>
+    }
+
+    public PersonEntity setAddress(AddressEntity addressEntity) {
+<span class="nc" id="L82">        this.addressEntity = addressEntity;</span>
+<span class="nc" id="L83">        return this;</span>
+    }
+
+    public Date getCreatedAt() {
+<span class="nc" id="L87">        return createdAt;</span>
+    }
+
+    public PersonEntity setCreatedAt(Date createdAt) {
+<span class="nc" id="L91">        this.createdAt = createdAt;</span>
+<span class="nc" id="L92">        return this;</span>
+    }
+
+    public Boolean getInsurance() {
+<span class="nc" id="L96">        return insurance;</span>
+    }
+
+    public PersonEntity setInsurance(Boolean insurance) {
+<span class="nc" id="L100">        this.insurance = insurance;</span>
+<span class="nc" id="L101">        return this;</span>
+    }
+
+    public List&lt;CarEntity&gt; getCars() {
+<span class="nc" id="L105">        return carEntities;</span>
+    }
+
+    public PersonEntity setCars(List&lt;CarEntity&gt; carEntities) {
+<span class="nc" id="L109">        this.carEntities = carEntities;</span>
+<span class="nc" id="L110">        return this;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L115">        return &quot;Person{&quot; + &quot;id=&quot; + id + &quot;, firstName='&quot; + firstName + '\'' + &quot;, lastName='&quot; + lastName + '\'' + &quot;, age=&quot; + age + &quot;, address=&quot; + addressEntity + &quot;, createdAt=&quot; + createdAt + &quot;, insurance=&quot; + insurance + &quot;, cars=&quot; + carEntities + '}';</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L121" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L122">        PersonEntity personEntity = (PersonEntity) o;</span>
+<span class="nc bnc" id="L123" title="All 6 branches missed.">        return age == personEntity.age &amp;&amp; Objects.equals(id, personEntity.id) &amp;&amp; Objects.equals(firstName,</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">                                                                                                personEntity.firstName) &amp;&amp; Objects.equals(</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">                lastName, personEntity.lastName) &amp;&amp; Objects.equals(addressEntity,</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">                                                                   personEntity.addressEntity) &amp;&amp; Objects.equals(</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                createdAt, personEntity.createdAt) &amp;&amp; Objects.equals(insurance,</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">                                                                     personEntity.insurance) &amp;&amp; Objects.equals(</span>
+                carEntities, personEntity.carEntities);
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L134">        return Objects.hash(id, firstName, lastName, age, addressEntity, createdAt, insurance, carEntities);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

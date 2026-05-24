@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Agreement.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.agreement.model</a> &gt; <span class="el_source">Agreement.java</span></div><h1>Agreement.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.agreement.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.CardDetailsFromResponse;
+
+import java.util.Optional;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@Schema(description = &quot;Contains information about a user's agreement for recurring payments. &quot; +
+        &quot;An agreement represents an understanding between you and your paying user that you'll use their card to make ongoing payments for a service.&quot;)
+public class Agreement {
+    private String externalId;
+    private String reference;
+    private String description;
+    private String status;
+    private String createdDate;
+    private PaymentInstrument paymentInstrument;
+    private String userIdentifier;
+    private String cancelledDate;
+
+    @JsonProperty(&quot;agreement_id&quot;)
+    @Schema(description = &quot;The unique ID GOV.UK Pay automatically associated with this agreement when you created it.&quot;, 
+            example = &quot;cgc1ocvh0pt9fqs0ma67r42l58&quot;)
+    public String getExternalId() {
+<span class="nc" id="L32">        return externalId;</span>
+    }
+
+    @Schema(description = &quot;The reference you sent when creating this agreement.&quot;,
+            example = &quot;CT-22-23-0001&quot;)
+    public String getReference() {
+<span class="nc" id="L38">        return reference;</span>
+    }
+
+    @Schema(description = &quot;The description you sent when creating this agreement.&quot;,
+            example = &quot;Dorset Council 2022/23 council tax subscription.&quot;)
+    public String getDescription() {
+<span class="nc" id="L44">        return description;</span>
+    }
+
+    @Schema(description = &quot;The status of this agreement. &quot; +
+            &quot;You can [read more about the meanings of each agreement status.](https://docs.payments.service.gov.uk/recurring_payments/#understanding-agreement-status)&quot;,
+            allowableValues = {&quot;created&quot;, &quot;active&quot;, &quot;cancelled&quot;, &quot;inactive&quot;})
+    public String getStatus() {
+<span class="nc" id="L51">        return Optional.ofNullable(status).map(String::toLowerCase).orElse(null);</span>
+    }
+    
+    @Schema(description = &quot;The date and time you created this agreement. &quot; +
+            &quot;This value uses Coordinated Universal Time (UTC) and ISO 8601 format – `YYYY-MM-DDThh:mm:ss.sssZ`.&quot;,
+            example = &quot;2022-07-08T14:33:00.000Z&quot;)
+    public String getCreatedDate() {
+<span class="nc" id="L58">        return createdDate;</span>
+    }
+
+    @Schema(description = &quot;The identifier you sent when creating this agreement. &quot; +
+            &quot;`user_identifier` helps you identify users in your records.&quot;,
+            example = &quot;user-3fb81107-76b7-4910&quot;)
+    public String getUserIdentifier() {
+<span class="nc" id="L65">        return userIdentifier;</span>
+    }
+
+    @Schema(description = &quot;The date and time this agreement was cancelled. &quot; +
+            &quot;This value uses Coordinated Universal Time (UTC) and ISO 8601 format – `YYYY-MM-DDThh:mm:ss.sssZ`.&quot;,
+            example = &quot;2022-07-08T14:33:00.000Z&quot;)
+    public String getCancelledDate() {
+<span class="nc" id="L72">        return cancelledDate;</span>
+    }
+
+    public PaymentInstrument getPaymentInstrument() {
+<span class="nc" id="L76">        return paymentInstrument;</span>
+    }
+
+    public Agreement(String externalId, String reference, String description, String status, String createdDate,
+<span class="nc" id="L80">                     PaymentInstrument paymentInstrument, String userIdentifier, String cancelledDate) {</span>
+<span class="nc" id="L81">        this.externalId = externalId;</span>
+<span class="nc" id="L82">        this.reference = reference;</span>
+<span class="nc" id="L83">        this.description = description;</span>
+<span class="nc" id="L84">        this.status = status;</span>
+<span class="nc" id="L85">        this.createdDate = createdDate;</span>
+<span class="nc" id="L86">        this.paymentInstrument = paymentInstrument;</span>
+<span class="nc" id="L87">        this.userIdentifier = userIdentifier;</span>
+<span class="nc" id="L88">        this.cancelledDate = cancelledDate;</span>
+<span class="nc" id="L89">    }</span>
+
+    public static Agreement from(AgreementLedgerResponse agreementLedgerResponse) {
+<span class="nc" id="L92">        return new Agreement(</span>
+<span class="nc" id="L93">                agreementLedgerResponse.getExternalId(),</span>
+<span class="nc" id="L94">                agreementLedgerResponse.getReference(),</span>
+<span class="nc" id="L95">                agreementLedgerResponse.getDescription(),</span>
+<span class="nc" id="L96">                agreementLedgerResponse.getStatus(),</span>
+<span class="nc" id="L97">                agreementLedgerResponse.getCreatedDate(),</span>
+<span class="nc" id="L98">                Optional.ofNullable(agreementLedgerResponse.getPaymentInstrument()).map(PaymentInstrument::from).orElse(null),</span>
+<span class="nc" id="L99">                agreementLedgerResponse.getUserIdentifier(),</span>
+<span class="nc" id="L100">                agreementLedgerResponse.getCancelledDate());</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static class PaymentInstrument {
+        private final CardDetailsFromResponse cardDetails;
+        private final String createdDate;
+        private final String type;
+
+<span class="nc" id="L111">        public PaymentInstrument(CardDetailsFromResponse cardDetails, String createdDate, String type) {</span>
+<span class="nc" id="L112">            this.cardDetails = cardDetails;</span>
+<span class="nc" id="L113">            this.createdDate = createdDate;</span>
+<span class="nc" id="L114">            this.type = type;</span>
+<span class="nc" id="L115">        }</span>
+
+        public static PaymentInstrument from(AgreementLedgerResponse.PaymentInstrumentLedgerResponse paymentInstrumentLedgerResponse) {
+<span class="nc" id="L118">            return new PaymentInstrument(paymentInstrumentLedgerResponse.getCardDetails(), paymentInstrumentLedgerResponse.getCreatedDate(), paymentInstrumentLedgerResponse.getType());</span>
+        }
+
+        
+        @Schema(name = &quot;CardDetails&quot;)
+        public CardDetailsFromResponse getCardDetails() {
+<span class="nc" id="L124">            return cardDetails;</span>
+        }
+
+        @Schema(description = &quot;The date and time you created this payment instrument. &quot; +
+                &quot;This value uses Coordinated Universal Time (UTC) and ISO 8601 format – `YYYY-MM-DDThh:mm:ss.sssZ`.&quot;,
+                example = &quot;2022-07-08T14:33:00.000Z&quot;)
+        public String getCreatedDate() {
+<span class="nc" id="L131">            return createdDate;</span>
+        }
+
+        @Schema(description = &quot;The type of payment instrument.&quot;,
+                allowableValues = {&quot;card&quot;})
+        public String getType() {
+<span class="nc" id="L137">            return Optional.ofNullable(type).map(String::toLowerCase).orElse(null);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

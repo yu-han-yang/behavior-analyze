@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AxsysService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.featuretoggles.enhet</a> &gt; <span class="el_source">AxsysService.java</span></div><h1>AxsysService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.featuretoggles.enhet;
+
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.NavIdent;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.CorrelationIdSupplier;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.cache.EhCacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.util.List;
+
+@Component
+<span class="fc" id="L21">@Slf4j</span>
+public class AxsysService {
+    private final AxsysProperties axsysProperties;
+    private final RestTemplate restTemplate;
+
+<span class="fc" id="L26">    public AxsysService(AxsysProperties axsysProperties, RestTemplate restTemplate) {</span>
+<span class="fc" id="L27">        this.axsysProperties = axsysProperties;</span>
+<span class="fc" id="L28">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L29">    }</span>
+
+    @Cacheable(EhCacheConfig.AXSYS_CACHE)
+    public List&lt;NavEnhet&gt; hentEnheterNavAnsattHarTilgangTil(NavIdent ident) {
+<span class="fc" id="L33">        URI uri = UriComponentsBuilder.fromUri(axsysProperties.getUri())</span>
+<span class="fc" id="L34">                .pathSegment(ident.asString())</span>
+<span class="fc" id="L35">                .queryParam(&quot;inkluderAlleEnheter&quot;, &quot;false&quot;)</span>
+<span class="fc" id="L36">                .build()</span>
+<span class="fc" id="L37">                .toUri();</span>
+
+<span class="fc" id="L39">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L40">        headers.set(&quot;Nav-Call-Id&quot;, CorrelationIdSupplier.get());</span>
+<span class="fc" id="L41">        headers.set(&quot;Nav-Consumer-Id&quot;, axsysProperties.getNavConsumerId());</span>
+
+        try {
+<span class="nc" id="L44">            AxsysRespons respons = restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity&lt;&gt;(headers), AxsysRespons.class).getBody();</span>
+<span class="nc" id="L45">            return respons.tilEnheter();</span>
+<span class="fc" id="L46">        } catch (RestClientException exception) {</span>
+<span class="fc" id="L47">            log.warn(&quot;Feil ved henting av enheter for ident &quot; + ident, exception);</span>
+<span class="fc" id="L48">            throw exception;</span>
+        }
+    }
+
+    @CacheEvict(cacheNames= EhCacheConfig.AXSYS_CACHE, allEntries=true)
+    public void cacheEvict() {
+<span class="nc" id="L54">        log.info(&quot;Tømmer axsys cache for data&quot;);</span>
+<span class="nc" id="L55">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

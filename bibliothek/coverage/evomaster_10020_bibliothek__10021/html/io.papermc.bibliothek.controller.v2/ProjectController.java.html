@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.papermc.bibliothek.controller.v2</a> &gt; <span class="el_source">ProjectController.java</span></div><h1>ProjectController.java</h1><pre class="source lang-java linenums">/*
+ * This file is part of bibliothek, licensed under the MIT License.
+ *
+ * Copyright (c) 2019-2023 PaperMC
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the &quot;Software&quot;), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package io.papermc.bibliothek.controller.v2;
+
+import io.papermc.bibliothek.database.model.Project;
+import io.papermc.bibliothek.database.model.Version;
+import io.papermc.bibliothek.database.model.VersionFamily;
+import io.papermc.bibliothek.database.repository.ProjectCollection;
+import io.papermc.bibliothek.database.repository.VersionCollection;
+import io.papermc.bibliothek.database.repository.VersionFamilyCollection;
+import io.papermc.bibliothek.exception.ProjectNotFound;
+import io.papermc.bibliothek.util.HTTP;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.constraints.Pattern;
+import java.time.Duration;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+@SuppressWarnings(&quot;checkstyle:FinalClass&quot;)
+public class ProjectController {
+<span class="nc" id="L55">  private static final CacheControl CACHE = HTTP.sMaxAgePublicCache(Duration.ofMinutes(30));</span>
+  private final ProjectCollection projects;
+  private final VersionFamilyCollection families;
+  private final VersionCollection versions;
+
+  @Autowired
+  private ProjectController(
+    final ProjectCollection projects,
+    final VersionFamilyCollection families,
+    final VersionCollection versions
+<span class="nc" id="L65">  ) {</span>
+<span class="nc" id="L66">    this.projects = projects;</span>
+<span class="nc" id="L67">    this.families = families;</span>
+<span class="nc" id="L68">    this.versions = versions;</span>
+<span class="nc" id="L69">  }</span>
+
+  @ApiResponse(
+    content = @Content(
+      schema = @Schema(implementation = ProjectResponse.class)
+    ),
+    responseCode = &quot;200&quot;
+  )
+  @GetMapping(&quot;/v2/projects/{project:[a-z]+}&quot;)
+  @Operation(summary = &quot;Gets information about a project.&quot;)
+  public ResponseEntity&lt;?&gt; project(
+    @Parameter(name = &quot;project&quot;, description = &quot;The project identifier.&quot;, example = &quot;paper&quot;)
+    @PathVariable(&quot;project&quot;)
+    @Pattern(regexp = &quot;[a-z]+&quot;) //
+    final String projectName
+  ) {
+<span class="nc" id="L85">    final Project project = this.projects.findByName(projectName).orElseThrow(ProjectNotFound::new);</span>
+<span class="nc" id="L86">    final List&lt;VersionFamily&gt; families = this.families.findAllByProject(project._id());</span>
+<span class="nc" id="L87">    final List&lt;Version&gt; versions = this.versions.findAllByProject(project._id());</span>
+<span class="nc" id="L88">    return HTTP.cachedOk(ProjectResponse.from(project, families, versions), CACHE);</span>
+  }
+
+  @Schema
+<span class="nc" id="L92">  private record ProjectResponse(</span>
+    @Schema(name = &quot;project_id&quot;, pattern = &quot;[a-z]+&quot;, example = &quot;paper&quot;)
+    String project_id,
+    @Schema(name = &quot;project_name&quot;, example = &quot;Paper&quot;)
+    String project_name,
+    @Schema(name = &quot;version_groups&quot;)
+    List&lt;String&gt; version_groups,
+    @Schema(name = &quot;versions&quot;)
+    List&lt;String&gt; versions
+  ) {
+    static ProjectResponse from(final Project project, final List&lt;VersionFamily&gt; families, final List&lt;Version&gt; versions) {
+<span class="nc" id="L103">      return new ProjectResponse(</span>
+<span class="nc" id="L104">        project.name(),</span>
+<span class="nc" id="L105">        project.friendlyName(),</span>
+<span class="nc" id="L106">        families.stream().sorted(VersionFamily.COMPARATOR).map(VersionFamily::name).toList(),</span>
+<span class="nc" id="L107">        versions.stream().sorted(Version.COMPARATOR).map(Version::name).toList()</span>
+      );
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

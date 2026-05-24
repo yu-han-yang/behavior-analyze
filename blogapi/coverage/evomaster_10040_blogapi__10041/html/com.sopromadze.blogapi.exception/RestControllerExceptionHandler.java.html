@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestControllerExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.exception</a> &gt; <span class="el_source">RestControllerExceptionHandler.java</span></div><h1>RestControllerExceptionHandler.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.exception;
+
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.ExceptionResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+@ControllerAdvice
+<span class="fc" id="L22">public class RestControllerExceptionHandler {</span>
+
+	public ResponseEntity&lt;ApiResponse&gt; resolveException(BlogapiException exception) {
+<span class="nc" id="L25">		String message = exception.getMessage();</span>
+<span class="nc" id="L26">		HttpStatus status = exception.getStatus();</span>
+
+<span class="nc" id="L28">		ApiResponse apiResponse = new ApiResponse();</span>
+
+<span class="nc" id="L30">		apiResponse.setSuccess(Boolean.FALSE);</span>
+<span class="nc" id="L31">		apiResponse.setMessage(message);</span>
+
+<span class="nc" id="L33">		return new ResponseEntity&lt;&gt;(apiResponse, status);</span>
+	}
+
+	@ExceptionHandler(UnauthorizedException.class)
+	@ResponseBody
+	@ResponseStatus(code = HttpStatus.UNAUTHORIZED)
+	public ResponseEntity&lt;ApiResponse&gt; resolveException(UnauthorizedException exception) {
+
+<span class="nc" id="L41">		ApiResponse apiResponse = exception.getApiResponse();</span>
+
+<span class="nc" id="L43">		return new ResponseEntity&lt;&gt;(apiResponse, HttpStatus.UNAUTHORIZED);</span>
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	@ResponseBody
+	public ResponseEntity&lt;ApiResponse&gt; resolveException(BadRequestException exception) {
+<span class="nc" id="L49">		ApiResponse apiResponse = exception.getApiResponse();</span>
+
+<span class="nc" id="L51">		return new ResponseEntity&lt;&gt;(apiResponse, HttpStatus.BAD_REQUEST);</span>
+	}
+
+	@ExceptionHandler(ResourceNotFoundException.class)
+	@ResponseBody
+	public ResponseEntity&lt;ApiResponse&gt; resolveException(ResourceNotFoundException exception) {
+<span class="fc" id="L57">		ApiResponse apiResponse = exception.getApiResponse();</span>
+
+<span class="fc" id="L59">		return new ResponseEntity&lt;&gt;(apiResponse, HttpStatus.NOT_FOUND);</span>
+	}
+
+	@ExceptionHandler(AccessDeniedException.class)
+	@ResponseBody
+	public ResponseEntity&lt;ApiResponse&gt; resolveException(AccessDeniedException exception) {
+<span class="fc" id="L65">		ApiResponse apiResponse = exception.getApiResponse();</span>
+
+<span class="fc" id="L67">		return new ResponseEntity&lt; &gt;(apiResponse, HttpStatus.FORBIDDEN);</span>
+	}
+
+	@ExceptionHandler({ MethodArgumentNotValidException.class })
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity&lt;ExceptionResponse&gt; resolveException(MethodArgumentNotValidException ex) {
+<span class="fc" id="L74">		List&lt;FieldError&gt; fieldErrors = ex.getBindingResult().getFieldErrors();</span>
+<span class="fc" id="L75">		List&lt;String&gt; messages = new ArrayList&lt;&gt;(fieldErrors.size());</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">		for (FieldError error : fieldErrors) {</span>
+<span class="fc" id="L77">			messages.add(error.getField() + &quot; - &quot; + error.getDefaultMessage());</span>
+<span class="fc" id="L78">		}</span>
+<span class="fc" id="L79">		return new ResponseEntity&lt;&gt;(new ExceptionResponse(messages, HttpStatus.BAD_REQUEST.getReasonPhrase(),</span>
+<span class="fc" id="L80">				HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);</span>
+	}
+
+	@ExceptionHandler({ MethodArgumentTypeMismatchException.class })
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity&lt;ExceptionResponse&gt; resolveException(MethodArgumentTypeMismatchException ex) {
+<span class="nc" id="L87">		String message = &quot;Parameter '&quot; + ex.getParameter().getParameterName() + &quot;' must be '&quot;</span>
+<span class="nc" id="L88">				+ Objects.requireNonNull(ex.getRequiredType()).getSimpleName() + &quot;'&quot;;</span>
+<span class="nc" id="L89">		List&lt;String&gt; messages = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L90">		messages.add(message);</span>
+<span class="nc" id="L91">		return new ResponseEntity&lt;&gt;(new ExceptionResponse(messages, HttpStatus.BAD_REQUEST.getReasonPhrase(),</span>
+<span class="nc" id="L92">				HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);</span>
+	}
+
+	@ExceptionHandler({ HttpRequestMethodNotSupportedException.class })
+	@ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+	@ResponseBody
+	public ResponseEntity&lt;ExceptionResponse&gt; resolveException(HttpRequestMethodNotSupportedException ex) {
+<span class="nc" id="L99">		String message = &quot;Request method '&quot; + ex.getMethod() + &quot;' not supported. List of all supported methods - &quot;</span>
+<span class="nc" id="L100">				+ ex.getSupportedHttpMethods();</span>
+<span class="nc" id="L101">		List&lt;String&gt; messages = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L102">		messages.add(message);</span>
+
+<span class="nc" id="L104">		return new ResponseEntity&lt;&gt;(new ExceptionResponse(messages, HttpStatus.METHOD_NOT_ALLOWED.getReasonPhrase(),</span>
+<span class="nc" id="L105">				HttpStatus.METHOD_NOT_ALLOWED.value()), HttpStatus.METHOD_NOT_ALLOWED);</span>
+	}
+
+	@ExceptionHandler({ HttpMessageNotReadableException.class })
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity&lt;ExceptionResponse&gt; resolveException(HttpMessageNotReadableException ex) {
+<span class="fc" id="L112">		String message = &quot;Please provide Request Body in valid JSON format&quot;;</span>
+<span class="fc" id="L113">		List&lt;String&gt; messages = new ArrayList&lt;&gt;(1);</span>
+<span class="fc" id="L114">		messages.add(message);</span>
+<span class="fc" id="L115">		return new ResponseEntity&lt;&gt;(new ExceptionResponse(messages, HttpStatus.BAD_REQUEST.getReasonPhrase(),</span>
+<span class="fc" id="L116">				HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

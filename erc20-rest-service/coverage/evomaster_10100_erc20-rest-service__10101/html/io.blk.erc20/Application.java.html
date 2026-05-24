@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Application.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.blk.erc20</a> &gt; <span class="el_source">Application.java</span></div><h1>Application.java</h1><pre class="source lang-java linenums">package io.blk.erc20;
+
+import com.google.common.base.Predicates;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.Banner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.web3j.protocol.Web3jService;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.protocol.ipc.UnixIpcService;
+import org.web3j.protocol.ipc.WindowsIpcService;
+import org.web3j.quorum.Quorum;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+/**
+ * Our main application class.
+ */
+@EnableSwagger2
+@SpringBootApplication
+<span class="fc" id="L27">public class Application {</span>
+
+    public static void main(String[] args) {
+<span class="fc" id="L30">        SpringApplication application = new SpringApplication(Application.class);</span>
+<span class="fc" id="L31">        application.setBannerMode(Banner.Mode.OFF);</span>
+<span class="fc" id="L32">        application.run(args);</span>
+<span class="fc" id="L33">    }</span>
+
+    @Autowired
+    NodeConfiguration nodeConfiguration;
+
+    @Bean
+    Quorum quorum() {
+<span class="fc" id="L40">        String nodeEndpoint = nodeConfiguration.getNodeEndpoint();</span>
+        Web3jService web3jService;
+<span class="pc bpc" id="L42" title="3 of 4 branches missed.">        if (nodeEndpoint == null || nodeEndpoint.equals(&quot;&quot;)) {</span>
+<span class="fc" id="L43">            web3jService = new HttpService();</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        } else if (nodeEndpoint.startsWith(&quot;http&quot;)) {</span>
+<span class="nc" id="L45">            web3jService = new HttpService(nodeEndpoint);</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        } else if (System.getProperty(&quot;os.name&quot;).toLowerCase().startsWith(&quot;win&quot;)) {</span>
+<span class="nc" id="L47">            web3jService = new WindowsIpcService(nodeEndpoint);</span>
+        } else {
+<span class="nc" id="L49">            web3jService = new UnixIpcService(nodeEndpoint);</span>
+        }
+<span class="fc" id="L51">        return Quorum.build(web3jService);</span>
+    }
+
+    @Bean
+    public Docket lenderApi() {
+<span class="fc" id="L56">        return new Docket(DocumentationType.SWAGGER_2)</span>
+<span class="fc" id="L57">                .apiInfo(apiInfo())</span>
+<span class="fc" id="L58">                .select()</span>
+                // see https://github.com/springfox/springfox/issues/631
+<span class="fc" id="L60">                .apis(Predicates.not(</span>
+<span class="fc" id="L61">                        RequestHandlerSelectors.basePackage(&quot;org.springframework.boot&quot;)))</span>
+<span class="fc" id="L62">                .build();</span>
+    }
+
+    private ApiInfo apiInfo() {
+<span class="fc" id="L66">        return new ApiInfoBuilder()</span>
+<span class="fc" id="L67">                .title(&quot;ERC-20 API&quot;)</span>
+<span class="fc" id="L68">                .description(&quot;ERC-20 token standard RESTful service&quot;)</span>
+<span class="fc" id="L69">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotifikasjonService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon</a> &gt; <span class="el_source">NotifikasjonService.java</span></div><h1>NotifikasjonService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon;
+
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtale;
+import no.nav.tag.tiltaksgjennomforing.avtale.HendelseType;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.request.ArbeidsgiverMutationRequest;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.request.Variables;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.MutationStatus;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.nyBeskjed.NyBeskjedResponse;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.nyOppgave.NyOppgaveResponse;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.oppgaveUtfoertByEksternId.OppgaveUtfoertResponse;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.softDeleteNotifikasjonByEksternId.Data;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.softDeleteNotifikasjonByEksternId.SoftDeleteNotifikasjonResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+
+
+<span class="nc" id="L27">@Slf4j</span>
+@Component
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.notifikasjoner.enabled&quot;)
+public class NotifikasjonService {
+    private final RestTemplate restTemplate;
+    private final NotifikasjonHandler handler;
+    private final NotifikasjonerProperties notifikasjonerProperties;
+    private final NotifikasjonParser notifikasjonParser;
+
+    public NotifikasjonService(
+            @Qualifier(&quot;notifikasjonerRestTemplate&quot;) RestTemplate restTemplate,
+            @Autowired NotifikasjonParser notifikasjonParser,
+            NotifikasjonerProperties properties,
+            @Autowired NotifikasjonHandler handler
+<span class="nc" id="L41">    ) {</span>
+<span class="nc" id="L42">        this.restTemplate = restTemplate;</span>
+<span class="nc" id="L43">        this.notifikasjonerProperties = properties;</span>
+<span class="nc" id="L44">        this.notifikasjonParser = notifikasjonParser;</span>
+<span class="nc" id="L45">        this.handler = handler;</span>
+<span class="nc" id="L46">    }</span>
+
+    private HttpEntity&lt;String&gt; createRequestEntity(ArbeidsgiverMutationRequest arbeidsgiverMutationRequest) {
+<span class="nc" id="L49">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L50">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L51">        return new HttpEntity(arbeidsgiverMutationRequest, headers);</span>
+    }
+
+    public String opprettNotifikasjon(ArbeidsgiverMutationRequest arbeidsgiverMutationRequest) {
+        try {
+<span class="nc" id="L56">            return restTemplate.postForObject(</span>
+<span class="nc" id="L57">                    notifikasjonerProperties.getUri(),</span>
+<span class="nc" id="L58">                    createRequestEntity(arbeidsgiverMutationRequest),</span>
+                    String.class);
+<span class="nc" id="L60">        } catch (RestClientException exception) {</span>
+<span class="nc" id="L61">            log.error(&quot;Feil med sending av notifikasjon: &quot;, exception);</span>
+<span class="nc" id="L62">            throw exception;</span>
+        }
+    }
+
+    public String getAvtaleLenke(Avtale avtale) {
+<span class="nc" id="L67">        return notifikasjonerProperties.getLenke().concat(avtale.getId().toString())</span>
+<span class="nc" id="L68">                .concat(&quot;/?bedrift=&quot;).concat(avtale.getBedriftNr().asString());</span>
+    }
+
+    private String opprettNyMutasjon(ArbeidsgiverNotifikasjon notifikasjon, String mutation, String merkelapp, String tekst) {
+<span class="nc" id="L72">        Variables variables = new Variables();</span>
+<span class="nc" id="L73">        variables.setEksternId(notifikasjon.getId());</span>
+<span class="nc" id="L74">        variables.setVirksomhetsnummer(notifikasjon.getVirksomhetsnummer().asString());</span>
+<span class="nc" id="L75">        variables.setLenke(notifikasjon.getLenke());</span>
+<span class="nc" id="L76">        variables.setServiceCode(notifikasjon.getServiceCode().toString());</span>
+<span class="nc" id="L77">        variables.setMerkelapp(merkelapp);</span>
+<span class="nc" id="L78">        variables.setTekst(tekst);</span>
+<span class="nc" id="L79">        variables.setServiceEdition(notifikasjon.getServiceEdition().toString());</span>
+<span class="nc" id="L80">        variables.setGrupperingsId(notifikasjon.getAvtaleId());</span>
+<span class="nc" id="L81">        ArbeidsgiverMutationRequest request = new ArbeidsgiverMutationRequest(</span>
+                mutation,
+                variables);
+<span class="nc" id="L84">        return opprettNotifikasjon(request);</span>
+    }
+
+    public void opprettNyBeskjed(
+            ArbeidsgiverNotifikasjon notifikasjon,
+            NotifikasjonMerkelapp merkelapp,
+            NotifikasjonTekst tekst) {
+<span class="nc" id="L91">        notifikasjon.setOperasjonType(NotifikasjonOperasjonType.SEND_BESKJED);</span>
+<span class="nc" id="L92">        final String response = opprettNyMutasjon(</span>
+                notifikasjon,
+<span class="nc" id="L94">                notifikasjonParser.getNyBeskjed(),</span>
+<span class="nc" id="L95">                merkelapp.getValue(),</span>
+<span class="nc" id="L96">                tekst.getTekst());</span>
+<span class="nc" id="L97">        final NyBeskjedResponse beskjed = handler.readResponse(response, NyBeskjedResponse.class);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (beskjed.getData() != null) {</span>
+<span class="nc" id="L99">            handler.sjekkOgSettStatusResponse(</span>
+                    notifikasjon,
+<span class="nc" id="L101">                    handler.konverterResponse(beskjed.getData().getNyBeskjed()),</span>
+                    MutationStatus.NY_BESKJED_VELLYKKET);
+        } else {
+<span class="nc" id="L104">            handler.logErrorOgSettFeilmelding(response, notifikasjon);</span>
+        }
+<span class="nc" id="L106">    }</span>
+
+    public void opprettOppgave(
+            ArbeidsgiverNotifikasjon notifikasjon,
+            NotifikasjonMerkelapp merkelapp,
+            NotifikasjonTekst tekst) {
+<span class="nc" id="L112">        notifikasjon.setOperasjonType(NotifikasjonOperasjonType.SEND_OPPGAVE);</span>
+<span class="nc" id="L113">        final String response = opprettNyMutasjon(</span>
+                notifikasjon,
+<span class="nc" id="L115">                notifikasjonParser.getNyOppgave(),</span>
+<span class="nc" id="L116">                merkelapp.getValue(),</span>
+<span class="nc" id="L117">                tekst.getTekst());</span>
+<span class="nc" id="L118">        final NyOppgaveResponse oppgave = handler.readResponse(response, NyOppgaveResponse.class);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        if (oppgave.getData() != null) {</span>
+<span class="nc" id="L120">            handler.sjekkOgSettStatusResponse(</span>
+                    notifikasjon,
+<span class="nc" id="L122">                    handler.konverterResponse(oppgave.getData().getNyOppgave()),</span>
+                    MutationStatus.NY_OPPGAVE_VELLYKKET);
+        } else {
+<span class="nc" id="L125">            handler.logErrorOgSettFeilmelding(response, notifikasjon);</span>
+        }
+<span class="nc" id="L127">    }</span>
+
+    public void oppgaveUtfoert(
+            Avtale avtale,
+            HendelseType hendelseTypeSomSkalMerkesUtfoert,
+            MutationStatus status,
+            HendelseType hendelseTypeForNyNotifikasjon) {
+
+<span class="nc" id="L135">        final List&lt;ArbeidsgiverNotifikasjon&gt; notifikasjonList =</span>
+<span class="nc" id="L136">                handler.finnUtfoertNotifikasjon(avtale.getId(), hendelseTypeSomSkalMerkesUtfoert, status.getStatus());</span>
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (!notifikasjonList.isEmpty()) {</span>
+<span class="nc" id="L139">            notifikasjonList.forEach(n -&gt; {</span>
+<span class="nc" id="L140">                final NotifikasjonEvent event = handler.finnEllerOpprettNotifikasjonForHendelse(</span>
+<span class="nc" id="L141">                        avtale, n.getId(), hendelseTypeForNyNotifikasjon, this, notifikasjonParser,</span>
+                        MutationStatus.OPPGAVE_UTFOERT_VELLYKKET, NotifikasjonOperasjonType.SETT_OPPGAVE_UTFOERT);
+
+<span class="nc bnc" id="L144" title="All 2 branches missed.">                if (!event.notifikasjonFerdigBehandlet) {</span>
+
+<span class="nc" id="L146">                    Variables variables = new Variables();</span>
+<span class="nc" id="L147">                    variables.setEksternId(n.getId());</span>
+<span class="nc" id="L148">                    variables.setMerkelapp(NotifikasjonMerkelapp.getMerkelapp(avtale.getTiltakstype().getBeskrivelse()).getValue());</span>
+
+<span class="nc" id="L150">                    final String response = opprettNotifikasjon(new ArbeidsgiverMutationRequest(</span>
+<span class="nc" id="L151">                            notifikasjonParser.getOppgaveUtfoertByEksternId(),</span>
+                            variables
+                    ));
+
+<span class="nc" id="L155">                    final OppgaveUtfoertResponse oppgaveUtfoert = handler.readResponse(response, OppgaveUtfoertResponse.class);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">                    if (oppgaveUtfoert.getData() != null) {</span>
+<span class="nc" id="L157">                        handler.oppdaterNotifikasjon(event.getNotifikasjon(),</span>
+                                n,
+<span class="nc" id="L159">                                handler.konverterResponse(oppgaveUtfoert.getData().getOppgaveUtfoertByEksternId()),</span>
+                                MutationStatus.OPPGAVE_UTFOERT_VELLYKKET);
+                    } else {
+<span class="nc" id="L162">                        handler.logErrorOgSettFeilmelding(response, event.getNotifikasjon());</span>
+                    }
+                }
+<span class="nc" id="L165">            });</span>
+        }
+<span class="nc" id="L167">    }</span>
+
+    public void softDeleteNotifikasjoner(Avtale avtale) {
+<span class="nc" id="L170">        final List&lt;ArbeidsgiverNotifikasjon&gt; notifikasjonlist =</span>
+<span class="nc" id="L171">                handler.finnNotifikasjonerTilSletting(avtale.getId());</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (!notifikasjonlist.isEmpty()) {</span>
+<span class="nc" id="L174">            notifikasjonlist.forEach(n -&gt; {</span>
+<span class="nc" id="L175">                final NotifikasjonEvent event = handler.finnEllerOpprettNotifikasjonForHendelse(</span>
+<span class="nc" id="L176">                        avtale, n.getId(), HendelseType.ANNULLERT, this, notifikasjonParser,</span>
+                        MutationStatus.SOFT_DELETE_NOTIFIKASJON_VELLYKKET, NotifikasjonOperasjonType.SOFTDELETE_NOTIFIKASJON);
+
+<span class="nc bnc" id="L179" title="All 2 branches missed.">                if (!event.notifikasjonFerdigBehandlet) {</span>
+
+<span class="nc" id="L181">                    Variables variables = new Variables();</span>
+<span class="nc" id="L182">                    variables.setEksternId(n.getId());</span>
+<span class="nc" id="L183">                    variables.setMerkelapp(NotifikasjonMerkelapp.getMerkelapp(avtale.getTiltakstype().getBeskrivelse()).getValue());</span>
+
+<span class="nc" id="L185">                    final String response = opprettNotifikasjon(new ArbeidsgiverMutationRequest(</span>
+<span class="nc" id="L186">                            notifikasjonParser.getSoftDeleteNotifikasjonByEksternId(),</span>
+                            variables));
+<span class="nc" id="L188">                    final Data data = handler.readResponse(response, SoftDeleteNotifikasjonResponse.class).getData();</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">                    if (data != null) {</span>
+<span class="nc" id="L191">                        handler.oppdaterNotifikasjon(event.getNotifikasjon(),</span>
+                                n,
+<span class="nc" id="L193">                                handler.konverterResponse(data.getSoftDeleteNotifikasjonByEksternId()),</span>
+                                MutationStatus.SOFT_DELETE_NOTIFIKASJON_VELLYKKET);
+                    } else {
+<span class="nc" id="L196">                        handler.logErrorOgSettFeilmelding(response, event.getNotifikasjon());</span>
+                    }
+                }
+<span class="nc" id="L199">            });</span>
+        }
+<span class="nc" id="L201">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

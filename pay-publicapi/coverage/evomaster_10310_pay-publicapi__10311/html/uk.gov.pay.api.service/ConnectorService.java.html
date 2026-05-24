@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConnectorService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">ConnectorService.java</span></div><h1>ConnectorService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import org.apache.http.HttpStatus;
+import uk.gov.pay.api.agreement.model.AgreementCreatedResponse;
+import uk.gov.pay.api.agreement.model.CreateAgreementRequest;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.CancelAgreementException;
+import uk.gov.pay.api.exception.CreateAgreementException;
+import uk.gov.pay.api.exception.GetChargeException;
+import uk.gov.pay.api.exception.GetEventsException;
+import uk.gov.pay.api.exception.GetRefundException;
+import uk.gov.pay.api.exception.GetRefundsException;
+import uk.gov.pay.api.model.Charge;
+import uk.gov.pay.api.model.ChargeFromResponse;
+import uk.gov.pay.api.model.PaymentEvents;
+import uk.gov.pay.api.model.RefundFromConnector;
+import uk.gov.pay.api.model.RefundsFromConnector;
+
+import javax.inject.Inject;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import static javax.ws.rs.client.Entity.json;
+import static org.apache.http.HttpStatus.SC_OK;
+
+public class ConnectorService {
+    private final Client client;
+    private final ConnectorUriGenerator connectorUriGenerator;
+
+    @Inject
+<span class="fc" id="L33">    public ConnectorService(Client client, ConnectorUriGenerator connectorUriGenerator) {</span>
+<span class="fc" id="L34">        this.client = client;</span>
+<span class="fc" id="L35">        this.connectorUriGenerator = connectorUriGenerator;</span>
+<span class="fc" id="L36">    }</span>
+
+    public Charge getCharge(Account account, String paymentId) {
+<span class="nc" id="L39">        Response response = client</span>
+<span class="nc" id="L40">                .target(connectorUriGenerator.chargeURI(account, paymentId))</span>
+<span class="nc" id="L41">                .request()</span>
+<span class="nc" id="L42">                .get();</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L45">            ChargeFromResponse chargeFromResponse = response.readEntity(ChargeFromResponse.class);</span>
+<span class="nc" id="L46">            return Charge.from(chargeFromResponse);</span>
+        }
+
+<span class="nc" id="L49">        throw new GetChargeException(response);</span>
+    }
+
+    public PaymentEvents getChargeEvents(Account account, String paymentId) {
+<span class="nc" id="L53">        Response connectorResponse = client</span>
+<span class="nc" id="L54">                .target(connectorUriGenerator.chargeEventsURI(account, paymentId))</span>
+<span class="nc" id="L55">                .request()</span>
+<span class="nc" id="L56">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L57">                .get();</span>
+
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (connectorResponse.getStatus() == SC_OK) {</span>
+<span class="nc" id="L60">            return connectorResponse.readEntity(PaymentEvents.class);</span>
+        }
+
+<span class="nc" id="L63">        throw new GetEventsException(connectorResponse);</span>
+    }
+
+    public RefundsFromConnector getPaymentRefunds(String accountId, String paymentId) {
+<span class="nc" id="L67">        Response connectorResponse = client</span>
+<span class="nc" id="L68">                .target(connectorUriGenerator.refundsForPaymentURI(accountId, paymentId))</span>
+<span class="nc" id="L69">                .request()</span>
+<span class="nc" id="L70">                .get();</span>
+
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (connectorResponse.getStatus() == SC_OK) {</span>
+<span class="nc" id="L73">            return connectorResponse.readEntity(RefundsFromConnector.class);</span>
+        }
+
+<span class="nc" id="L76">        throw new GetRefundsException(connectorResponse);</span>
+    }
+
+    public RefundFromConnector getPaymentRefund(String accountId, String paymentId, String refundId) {
+<span class="nc" id="L80">        Response connectorResponse = client</span>
+<span class="nc" id="L81">                .target(connectorUriGenerator.refundForPaymentURI(accountId, paymentId, refundId))</span>
+<span class="nc" id="L82">                .request()</span>
+<span class="nc" id="L83">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L84">                .get();</span>
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (connectorResponse.getStatus() == SC_OK) {</span>
+<span class="nc" id="L87">            return connectorResponse.readEntity(RefundFromConnector.class);</span>
+        }
+
+<span class="nc" id="L90">        throw new GetRefundException(connectorResponse);</span>
+    }
+
+    public AgreementCreatedResponse createAgreement(Account account, CreateAgreementRequest createAgreementRequest) {
+<span class="nc" id="L94">        Response response = client</span>
+<span class="nc" id="L95">                .target(connectorUriGenerator.getAgreementURI(account))</span>
+<span class="nc" id="L96">                .request()</span>
+<span class="nc" id="L97">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L98">                .post(buildCreateAgreementRequestPayload(createAgreementRequest));</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        if (response.getStatus() != HttpStatus.SC_CREATED) {</span>
+<span class="nc" id="L100">            throw new CreateAgreementException(response);</span>
+        }
+<span class="nc" id="L102">        return response.readEntity(AgreementCreatedResponse.class);</span>
+    }
+
+    public void cancelAgreement(Account account, String agreementId) {
+<span class="nc" id="L106">        Response response = client</span>
+<span class="nc" id="L107">                .target(connectorUriGenerator.cancelAgreementURI(account, agreementId))</span>
+<span class="nc" id="L108">                .request()</span>
+<span class="nc" id="L109">                .post(null);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (response.getStatus() != HttpStatus.SC_NO_CONTENT) {</span>
+<span class="nc" id="L111">            throw new CancelAgreementException(response);</span>
+        }
+
+<span class="nc" id="L114">        response.close();</span>
+<span class="nc" id="L115">    }</span>
+
+    private Entity buildCreateAgreementRequestPayload(CreateAgreementRequest requestPayload) {
+<span class="nc" id="L118">        return json(requestPayload.toConnectorPayload());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

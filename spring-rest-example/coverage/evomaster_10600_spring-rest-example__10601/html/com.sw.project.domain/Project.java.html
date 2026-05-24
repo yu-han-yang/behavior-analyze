@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Project.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sw.project.domain</a> &gt; <span class="el_source">Project.java</span></div><h1>Project.java</h1><pre class="source lang-java linenums">package com.sw.project.domain;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+
+
+
+@Entity
+@Table(name = &quot;Project&quot;)
+public class Project implements Serializable  {
+
+	private static final long serialVersionUID = 1L;
+	
+	@Id
+	@Column(name = &quot;idx&quot;)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long idx;
+	
+	@Size(max=6)
+    @Column(name = &quot;code&quot;, unique=true, nullable=false) 
+	private String code;
+	
+	@NotNull
+	@Size(max = 200)
+	@Column(name = &quot;title&quot;,nullable=false)
+	private String title;
+	
+<span class="fc" id="L34">	@OneToMany(mappedBy = &quot;project&quot;, cascade = CascadeType.REMOVE, fetch = FetchType.LAZY, orphanRemoval = true)</span>
+	private final Set &lt;Problem&gt; problems = new HashSet&lt;&gt;(); //Project &lt;-&gt; Problems OneToMany
+
+<span class="fc" id="L37">	public Project() {</span>
+<span class="fc" id="L38">	}</span>
+
+<span class="fc" id="L40">	public Project(final String title) {</span>
+		
+<span class="fc" id="L42">		this.code = firstCode();</span>
+<span class="fc" id="L43">		this.title = title;</span>
+		// TODO Auto-generated constructor stub
+<span class="fc" id="L45">	}</span>
+
+	public Long getIdx() {
+<span class="nc" id="L48">		return idx;</span>
+	}
+
+	public String getTitle() {
+<span class="fc" id="L52">		return title;</span>
+	}
+	public void setTitle(String title) {
+<span class="fc" id="L55">		this.title = title;</span>
+<span class="fc" id="L56">	}</span>
+
+	public String getCode() {
+<span class="nc" id="L59">		return code;</span>
+	}
+	
+	public void setCode() {
+		
+<span class="nc" id="L64">		this.code = randomCode();</span>
+<span class="nc" id="L65">	}</span>
+
+	public void addProblem(Problem problem) {
+<span class="nc" id="L68">		problems.add(problem);</span>
+<span class="nc" id="L69">	}</span>
+	
+	public Set&lt;Problem&gt; getProblem() {
+<span class="fc" id="L72">		return problems;</span>
+	}
+	
+	@Override
+	public String toString() {
+		// TODO Auto-generated method stub
+<span class="nc" id="L78">		return &quot;idx : &quot; + idx + &quot; title : &quot; + title + &quot; code :&quot; + code;</span>
+				
+	}
+	
+	public String firstCode() {
+		
+<span class="fc" id="L84">		return randomCode();</span>
+	}	
+	
+	public String randomCode() { //6자리 인증
+		
+<span class="fc" id="L89">		Random rnd = new Random();</span>
+<span class="fc" id="L90">		StringBuffer buf = new StringBuffer();</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		for(int i=0;i&lt;6;i++){</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">		    if(rnd.nextBoolean())</span>
+<span class="fc" id="L93">		        buf.append((char)(rnd.nextInt(26) +97));</span>
+		    else
+<span class="fc" id="L95">		        buf.append((rnd.nextInt(10)));</span>
+		}
+<span class="fc" id="L97">		return buf.toString();</span>
+	}
+	
+	/*
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name=&quot;create_time&quot;, nullable = false, updatable = false)
+	@CreatedDate
+	private Date createdAt;
+	
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name=&quot;last_update_time&quot;, nullable = false)
+	@LastModifiedDate
+	private Date last_update_time;
+	*/
+	
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

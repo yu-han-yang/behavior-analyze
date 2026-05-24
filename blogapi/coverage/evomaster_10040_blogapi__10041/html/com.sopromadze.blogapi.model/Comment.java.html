@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Comment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.model</a> &gt; <span class="el_source">Comment.java</span></div><h1>Comment.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sopromadze.blogapi.model.audit.UserDateAudit;
+import com.sopromadze.blogapi.model.user.User;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
+<span class="nc bnc" id="L23" title="All 56 branches missed.">@EqualsAndHashCode(callSuper = true)</span>
+@Entity
+<span class="nc" id="L25">@Data</span>
+<span class="fc" id="L26">@NoArgsConstructor</span>
+@Table(name = &quot;comments&quot;)
+public class Comment extends UserDateAudit {
+    private static final long serialVersionUID = 1L;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+<span class="nc" id="L33">    private Long id;</span>
+
+    @Column(name = &quot;name&quot;)
+    @NotBlank
+    @Size(min = 4, max = 50)
+<span class="nc" id="L38">    private String name;</span>
+
+    @Column(name = &quot;email&quot;)
+    @NotBlank
+    @Email
+    @Size(min = 4, max = 50)
+<span class="nc" id="L44">    private String email;</span>
+
+    @Column(name = &quot;body&quot;)
+    @NotBlank
+    @Size(min = 10, message = &quot;Comment body must be minimum 10 characters&quot;)
+<span class="nc" id="L49">    private String body;</span>
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;post_id&quot;)
+    private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_id&quot;)
+    private User user;
+
+<span class="nc" id="L59">    public Comment(@NotBlank @Size(min = 10, message = &quot;Comment body must be minimum 10 characters&quot;) String body) {</span>
+<span class="nc" id="L60">        this.body = body;</span>
+<span class="nc" id="L61">    }</span>
+
+    @JsonIgnore
+    public Post getPost() {
+<span class="nc" id="L65">        return post;</span>
+    }
+
+    @JsonIgnore
+    public User getUser() {
+<span class="nc" id="L70">        return user;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleTilJournalfoeringMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.journalfoering</a> &gt; <span class="el_source">AvtaleTilJournalfoeringMapper.java</span></div><h1>AvtaleTilJournalfoeringMapper.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.journalfoering;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import no.nav.tag.tiltaksgjennomforing.avtale.*;
+
+<span class="nc" id="L8">public class AvtaleTilJournalfoeringMapper {</span>
+
+    public static AvtaleTilJournalfoering tilJournalfoering(AvtaleInnhold avtaleInnhold, Avtalerolle avtalerolle) {
+<span class="nc" id="L11">        Avtale avtale = avtaleInnhold.getAvtale();</span>
+
+<span class="nc" id="L13">        AvtaleTilJournalfoering avtaleTilJournalfoering = new AvtaleTilJournalfoering();</span>
+<span class="nc" id="L14">        avtaleTilJournalfoering.setTiltakstype(avtale.getTiltakstype());</span>
+<span class="nc" id="L15">        avtaleTilJournalfoering.setArbeidsgiverKontonummer(avtale.getGjeldendeInnhold().getArbeidsgiverKontonummer());</span>
+<span class="nc" id="L16">        avtaleTilJournalfoering.setStillingstittel(avtale.getGjeldendeInnhold().getStillingstittel());</span>
+<span class="nc" id="L17">        avtaleTilJournalfoering.setArbeidsoppgaver(avtale.getGjeldendeInnhold().getArbeidsoppgaver());</span>
+<span class="nc" id="L18">        avtaleTilJournalfoering.setLonnstilskuddProsent(avtale.getGjeldendeInnhold().getLonnstilskuddProsent());</span>
+<span class="nc" id="L19">        avtaleTilJournalfoering.setManedslonn(avtale.getGjeldendeInnhold().getManedslonn());</span>
+<span class="nc" id="L20">        avtaleTilJournalfoering.setFeriepengesats(avtale.getGjeldendeInnhold().getFeriepengesats());</span>
+<span class="nc" id="L21">        avtaleTilJournalfoering.setArbeidsgiveravgift(avtale.getGjeldendeInnhold().getArbeidsgiveravgift());</span>
+<span class="nc" id="L22">        avtaleTilJournalfoering.setMentorFornavn(avtale.getGjeldendeInnhold().getMentorFornavn());</span>
+<span class="nc" id="L23">        avtaleTilJournalfoering.setMentorEtternavn(avtale.getGjeldendeInnhold().getMentorEtternavn());</span>
+<span class="nc" id="L24">        avtaleTilJournalfoering.setMentorOppgaver(avtale.getGjeldendeInnhold().getMentorOppgaver());</span>
+<span class="nc" id="L25">        avtaleTilJournalfoering.setMentorAntallTimer(avtale.getGjeldendeInnhold().getMentorAntallTimer());</span>
+<span class="nc" id="L26">        avtaleTilJournalfoering.setMentorTimelonn(avtale.getGjeldendeInnhold().getMentorTimelonn());</span>
+<span class="nc" id="L27">        avtaleTilJournalfoering.setGodkjentAvArbeidsgiver(avtaleInnhold.getGodkjentAvArbeidsgiver().toLocalDate());</span>
+<span class="nc" id="L28">        avtaleTilJournalfoering.setGodkjentAvVeileder(avtaleInnhold.getGodkjentAvVeileder().toLocalDate());</span>
+<span class="nc" id="L29">        avtaleTilJournalfoering.setGodkjentAvDeltaker(avtaleInnhold.getGodkjentAvDeltaker().toLocalDate());</span>
+<span class="nc" id="L30">        avtaleTilJournalfoering.setOpprettet(avtale.getOpprettetTidspunkt().toLocalDate());</span>
+<span class="nc" id="L31">        avtaleTilJournalfoering.setAvtaleId(avtale.getId());</span>
+<span class="nc" id="L32">        avtaleTilJournalfoering.setAvtaleVersjonId(avtaleInnhold.getId());</span>
+<span class="nc" id="L33">        avtaleTilJournalfoering.setDeltakerFnr(identifikatorAsString(avtale.getDeltakerFnr()));</span>
+<span class="nc" id="L34">        avtaleTilJournalfoering.setMentorFnr(identifikatorAsString(avtale.getMentorFnr()));</span>
+<span class="nc" id="L35">        avtaleTilJournalfoering.setBedriftNr(identifikatorAsString(avtale.getBedriftNr()));</span>
+<span class="nc" id="L36">        avtaleTilJournalfoering.setVeilederNavIdent(identifikatorAsString(avtale.getVeilederNavIdent()));</span>
+<span class="nc" id="L37">        avtaleTilJournalfoering.setEnhetOppfolging(avtale.getEnhetOppfolging());</span>
+<span class="nc" id="L38">        avtaleTilJournalfoering.setDeltakerFornavn(avtaleInnhold.getDeltakerFornavn());</span>
+<span class="nc" id="L39">        avtaleTilJournalfoering.setDeltakerEtternavn(avtaleInnhold.getDeltakerEtternavn());</span>
+<span class="nc" id="L40">        avtaleTilJournalfoering.setDeltakerTlf(avtaleInnhold.getDeltakerTlf());</span>
+<span class="nc" id="L41">        avtaleTilJournalfoering.setBedriftNavn(avtaleInnhold.getBedriftNavn());</span>
+<span class="nc" id="L42">        avtaleTilJournalfoering.setArbeidsgiverFornavn(avtaleInnhold.getArbeidsgiverFornavn());</span>
+<span class="nc" id="L43">        avtaleTilJournalfoering.setArbeidsgiverEtternavn(avtaleInnhold.getArbeidsgiverEtternavn());</span>
+<span class="nc" id="L44">        avtaleTilJournalfoering.setArbeidsgiverTlf(avtaleInnhold.getArbeidsgiverTlf());</span>
+<span class="nc" id="L45">        avtaleTilJournalfoering.setVeilederFornavn(avtaleInnhold.getVeilederFornavn());</span>
+<span class="nc" id="L46">        avtaleTilJournalfoering.setVeilederEtternavn(avtaleInnhold.getVeilederEtternavn());</span>
+<span class="nc" id="L47">        avtaleTilJournalfoering.setVeilederTlf(avtaleInnhold.getVeilederTlf());</span>
+<span class="nc" id="L48">        avtaleTilJournalfoering.setOppfolging(avtaleInnhold.getOppfolging());</span>
+<span class="nc" id="L49">        avtaleTilJournalfoering.setTilrettelegging(avtaleInnhold.getTilrettelegging());</span>
+<span class="nc" id="L50">        avtaleTilJournalfoering.setStartDato(avtaleInnhold.getStartDato());</span>
+<span class="nc" id="L51">        avtaleTilJournalfoering.setSluttDato(avtaleInnhold.getSluttDato());</span>
+<span class="nc" id="L52">        avtaleTilJournalfoering.setStillingprosent(avtaleInnhold.getStillingprosent());</span>
+<span class="nc" id="L53">        avtaleTilJournalfoering.setAntallDagerPerUke(avtaleInnhold.getAntallDagerPerUke());</span>
+<span class="nc" id="L54">        avtaleTilJournalfoering.setMaal(maalListToMaalTilJournalfoeringList(avtaleInnhold.getMaal()));</span>
+<span class="nc" id="L55">        avtaleTilJournalfoering.setGodkjentPaVegneGrunn(godkjentPaVegneGrunn(avtaleInnhold.getGodkjentPaVegneGrunn()));</span>
+<span class="nc" id="L56">        avtaleTilJournalfoering.setGodkjentPaVegneAv(avtaleInnhold.isGodkjentPaVegneAv());</span>
+<span class="nc" id="L57">        avtaleTilJournalfoering.setVersjon(avtaleInnhold.getVersjon());</span>
+<span class="nc" id="L58">        avtaleTilJournalfoering.setHarFamilietilknytning(avtaleInnhold.getHarFamilietilknytning());</span>
+<span class="nc" id="L59">        avtaleTilJournalfoering.setFamilietilknytningForklaring((avtaleInnhold.getFamilietilknytningForklaring()));</span>
+<span class="nc" id="L60">        avtaleTilJournalfoering.setFeriepengerBelop(avtaleInnhold.getFeriepengerBelop());</span>
+<span class="nc" id="L61">        avtaleTilJournalfoering.setOtpSats(avtaleInnhold.getOtpSats());</span>
+<span class="nc" id="L62">        avtaleTilJournalfoering.setOtpBelop(avtaleInnhold.getOtpBelop());</span>
+<span class="nc" id="L63">        avtaleTilJournalfoering.setArbeidsgiveravgiftBelop(avtaleInnhold.getArbeidsgiveravgiftBelop());</span>
+<span class="nc" id="L64">        avtaleTilJournalfoering.setSumLonnsutgifter(avtaleInnhold.getSumLonnsutgifter());</span>
+<span class="nc" id="L65">        avtaleTilJournalfoering.setSumLonnstilskudd(avtaleInnhold.getSumLonnstilskudd());</span>
+<span class="nc" id="L66">        avtaleTilJournalfoering.setStillingstype(avtaleInnhold.getStillingstype());</span>
+<span class="nc" id="L67">        avtaleTilJournalfoering.setManedslonn100pst(avtaleInnhold.getManedslonn100pst());</span>
+<span class="nc" id="L68">        avtaleTilJournalfoering.setRefusjonKontaktperson(avtaleInnhold.getRefusjonKontaktperson());</span>
+<span class="nc" id="L69">        avtaleTilJournalfoering.setInkluderingstilskuddsutgift(avtaleInnhold.getInkluderingstilskuddsutgift());</span>
+<span class="nc" id="L70">        avtaleTilJournalfoering.setInkluderingstilskuddBegrunnelse(avtaleInnhold.getInkluderingstilskuddBegrunnelse());</span>
+
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if(avtalerolle != null) {</span>
+<span class="nc" id="L73">            avtaleTilJournalfoering.setAvtalerolle(avtalerolle) ;</span>
+        }
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if(avtaleInnhold.getGodkjentTaushetserklæringAvMentor() != null){</span>
+<span class="nc" id="L76">            avtaleTilJournalfoering.setGodkjentTaushetserklæringAvMentor(avtaleInnhold.getGodkjentTaushetserklæringAvMentor().toLocalDate());</span>
+        }
+
+<span class="nc" id="L79">        return avtaleTilJournalfoering;</span>
+    }
+
+    private static String identifikatorAsString(Identifikator id) {
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        return id != null ? id.asString() : &quot;&quot;;</span>
+    }
+
+    private static GodkjentPaVegneGrunnTilJournalfoering godkjentPaVegneGrunn(GodkjentPaVegneGrunn grunn) {
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if (grunn == null) {</span>
+<span class="nc" id="L88">            return null;</span>
+        }
+
+<span class="nc" id="L91">        return new GodkjentPaVegneGrunnTilJournalfoering(</span>
+<span class="nc" id="L92">                grunn.isIkkeBankId(),</span>
+<span class="nc" id="L93">                grunn.isDigitalKompetanse(),</span>
+<span class="nc" id="L94">                grunn.isReservert(),</span>
+<span class="nc" id="L95">                grunn.isArenaMigreringDeltaker()</span>
+        );
+    }
+
+
+    private static MaalTilJournalfoering maalToMaalTilJournalfoering(Maal maal) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (maal == null) {</span>
+<span class="nc" id="L102">            return null;</span>
+        }
+
+<span class="nc" id="L105">        MaalTilJournalfoering maalTilJournalfoering = new MaalTilJournalfoering();</span>
+
+<span class="nc" id="L107">        maalTilJournalfoering.setKategori(maal.getKategori().getVerdi());</span>
+<span class="nc" id="L108">        maalTilJournalfoering.setBeskrivelse(maal.getBeskrivelse());</span>
+
+<span class="nc" id="L110">        return maalTilJournalfoering;</span>
+    }
+
+    private static List&lt;MaalTilJournalfoering&gt; maalListToMaalTilJournalfoeringList(List&lt;Maal&gt; list) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        if (list == null) {</span>
+<span class="nc" id="L115">            return null;</span>
+        }
+<span class="nc" id="L117">        List&lt;MaalTilJournalfoering&gt; list1 = new ArrayList&lt;&gt;(list.size());</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (Maal maal : list) {</span>
+<span class="nc" id="L119">            list1.add(maalToMaalTilJournalfoering(maal));</span>
+<span class="nc" id="L120">        }</span>
+<span class="nc" id="L121">        return list1;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

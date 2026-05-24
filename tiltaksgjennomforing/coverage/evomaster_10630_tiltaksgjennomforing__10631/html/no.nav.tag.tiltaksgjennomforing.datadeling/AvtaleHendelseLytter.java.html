@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleHendelseLytter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.datadeling</a> &gt; <span class="el_source">AvtaleHendelseLytter.java</span></div><h1>AvtaleHendelseLytter.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.datadeling;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.*;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.*;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Component
+<span class="fc" id="L17">@RequiredArgsConstructor</span>
+<span class="fc" id="L18">@Slf4j</span>
+public class AvtaleHendelseLytter {
+
+    private final AvtaleMeldingEntitetRepository avtaleMeldingEntitetRepository;
+    private final ObjectMapper objectMapper;
+
+    @EventListener
+    public void avtaleOpprettetAvArbeidsgiver(AvtaleOpprettetAvArbeidsgiver event) {
+<span class="nc" id="L26">        Avtale avtale = event.getAvtale();</span>
+<span class="nc" id="L27">        lagHendelse(avtale, HendelseType.OPPRETTET_AV_ARBEIDSGIVER, avtale.getBedriftNr(), Avtalerolle.ARBEIDSGIVER);</span>
+<span class="nc" id="L28">    }</span>
+
+    @EventListener
+    public void avtaleOpprettetAvVeileder(AvtaleOpprettetAvVeileder event) {
+<span class="nc" id="L32">        Avtale avtale = event.getAvtale();</span>
+<span class="nc" id="L33">        lagHendelse(avtale, HendelseType.OPPRETTET, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L34">    }</span>
+
+    @EventListener
+    public void avtaleEndret(AvtaleEndret event) {
+<span class="nc" id="L38">        Avtale avtale = event.getAvtale();</span>
+<span class="nc" id="L39">        lagHendelse(avtale, HendelseType.ENDRET, event.getUtfortAv(), event.getUtfortAvRolle());</span>
+<span class="nc" id="L40">    }</span>
+
+    @EventListener
+    public void avtaleInngått(AvtaleInngått event) {
+<span class="nc" id="L44">        Avtale avtale = event.getAvtale();</span>
+<span class="nc" id="L45">        lagHendelse(avtale, HendelseType.AVTALE_INNGÅTT, event.getUtførtAv(), event.getUtførtAvRolle());</span>
+<span class="nc" id="L46">    }</span>
+
+    @EventListener
+    public void avtaleForlenget(AvtaleForlenget event) {
+<span class="nc" id="L50">        lagHendelse(event.getAvtale(), HendelseType.AVTALE_FORLENGET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L51">    }</span>
+
+    @EventListener
+    public void avtaleForkortet(AvtaleForkortet event) {
+<span class="nc" id="L55">        lagHendelse(event.getAvtale(), HendelseType.AVTALE_FORKORTET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L56">    }</span>
+
+    @EventListener
+    public void avtaleAnnullert(AnnullertAvVeileder event) {
+<span class="nc" id="L60">        lagHendelse(event.getAvtale(), HendelseType.ANNULLERT, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L61">    }</span>
+
+    @EventListener
+    public void tilskuddsberegningEndret(TilskuddsberegningEndret event) {
+<span class="nc" id="L65">        lagHendelse(event.getAvtale(), HendelseType.TILSKUDDSBEREGNING_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L66">    }</span>
+
+    @EventListener
+    public void stillingsbeskrivelseEndret(StillingsbeskrivelseEndret event) {
+<span class="nc" id="L70">        lagHendelse(event.getAvtale(), HendelseType.STILLINGSBESKRIVELSE_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L71">    }</span>
+
+    @EventListener
+    public void kontaktinformasjonEndret(KontaktinformasjonEndret event) {
+<span class="nc" id="L75">        lagHendelse(event.getAvtale(), HendelseType.KONTAKTINFORMASJON_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L76">    }</span>
+
+    @EventListener
+    public void oppfølgingOgTilretteleggingEndret(OppfølgingOgTilretteleggingEndret event) {
+<span class="nc" id="L80">        lagHendelse(event.getAvtale(), HendelseType.OPPFØLGING_OG_TILRETTELEGGING_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L81">    }</span>
+
+    @EventListener
+    public void målEndret(MålEndret event) {
+<span class="nc" id="L85">        lagHendelse(event.getAvtale(), HendelseType.MÅL_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L86">    }</span>
+
+    @EventListener
+    public void inkluderingstilskuddEndret(InkluderingstilskuddEndret event) {
+<span class="nc" id="L90">        lagHendelse(event.getAvtale(), HendelseType.INKLUDERINGSTILSKUDD_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L91">    }</span>
+
+    @EventListener
+    public void omMentorEndret(OmMentorEndret event) {
+<span class="nc" id="L95">        lagHendelse(event.getAvtale(), HendelseType.OM_MENTOR_ENDRET, event.getUtførtAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L96">    }</span>
+
+    @EventListener
+    public void nyVeilederPåAvtale(AvtaleNyVeileder event) {
+<span class="nc" id="L100">        lagHendelse(event.getAvtale(), HendelseType.NY_VEILEDER, event.getAvtale().getVeilederNavIdent(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L101">    }</span>
+
+    @EventListener
+    public void godkjentAvArbeidsgiver(GodkjentAvArbeidsgiver event) {
+<span class="nc" id="L105">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_AV_ARBEIDSGIVER, event.getUtfortAv(), Avtalerolle.ARBEIDSGIVER);</span>
+<span class="nc" id="L106">    }</span>
+    @EventListener
+    public void godkjentAvVeileder(GodkjentAvVeileder event) {
+<span class="nc" id="L109">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_AV_VEILEDER, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L110">    }</span>
+    @EventListener
+    public void godkjentAvDeltaker(GodkjentAvDeltaker event) {
+<span class="nc" id="L113">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_AV_DELTAKER, event.getUtfortAv(), Avtalerolle.DELTAKER);</span>
+<span class="nc" id="L114">    }</span>
+    @EventListener
+    public void godkjentPåVegneAvDeltaker(GodkjentPaVegneAvDeltaker event) {
+<span class="nc" id="L117">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_PAA_VEGNE_AV, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L118">    }</span>
+    @EventListener
+    public void godkjentPåVegneAvArbeidsgiver(GodkjentPaVegneAvArbeidsgiver event) {
+<span class="nc" id="L121">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_PAA_VEGNE_AV_ARBEIDSGIVER, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L122">    }</span>
+    @EventListener
+    public void godkjentPåVegneAvDeltakerOgArbeidsgiver(GodkjentPaVegneAvDeltakerOgArbeidsgiver event) {
+<span class="nc" id="L125">        lagHendelse(event.getAvtale(), HendelseType.GODKJENT_PAA_VEGNE_AV_DELTAKER_OG_ARBEIDSGIVER, event.getUtfortAv(), Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L126">    }</span>
+    @EventListener
+    public void signertAvMentor(SignertAvMentor event) {
+<span class="nc" id="L129">        lagHendelse(event.getAvtale(), HendelseType.SIGNERT_AV_MENTOR, event.getUtfortAv(), Avtalerolle.MENTOR);</span>
+<span class="nc" id="L130">    }</span>
+
+    private void lagHendelse(Avtale avtale, HendelseType hendelseType, Identifikator utførtAv, Avtalerolle utførtAvRolle) {
+<span class="nc" id="L133">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L134">        UUID meldingId = UUID.randomUUID();</span>
+
+<span class="nc" id="L136">        AvtaleHendelseUtførtAvRolle rolle = AvtaleHendelseUtførtAvRolle.SYSTEM;</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if(utførtAvRolle != null) {</span>
+<span class="nc" id="L138">            rolle = AvtaleHendelseUtførtAvRolle.valueOf(utførtAvRolle.name());</span>
+        }
+<span class="nc" id="L140">        var melding = AvtaleMelding.create(avtale, avtale.getGjeldendeInnhold(), utførtAv, rolle, hendelseType);</span>
+        try {
+<span class="nc" id="L142">            String meldingSomString = objectMapper.writeValueAsString(melding);</span>
+<span class="nc" id="L143">            AvtaleMeldingEntitet entitet = new AvtaleMeldingEntitet(meldingId, avtale.getId(), tidspunkt, hendelseType, avtale.statusSomEnum(), meldingSomString);</span>
+<span class="nc" id="L144">            avtaleMeldingEntitetRepository.save(entitet);</span>
+<span class="nc" id="L145">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L146">            log.error(&quot;Feil ved parsing av AvtaleHendelseMelding til json for avtale med id: {}&quot;, avtale.getId());</span>
+<span class="nc" id="L147">            throw new RuntimeException(e);</span>
+<span class="nc" id="L148">        }</span>
+<span class="nc" id="L149">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops</a> &gt; <span class="el_source">EmployeeController.java</span></div><h1>EmployeeController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.printshops;
+
+import com.google.gson.Gson;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.Document;
+import io.github.proxyprint.kitchen.models.printshops.Employee;
+import io.github.proxyprint.kitchen.models.repositories.DocumentDAO;
+import io.github.proxyprint.kitchen.models.repositories.EmployeeDAO;
+import java.io.File;
+
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
+import javax.annotation.Resource;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 14-05-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L32">public class EmployeeController {</span>
+
+    @Resource(name = &quot;documentsPath&quot;)
+    private String documentsPath;
+    @Autowired
+    private EmployeeDAO employees;
+    @Autowired
+    private DocumentDAO documents;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns a document&quot;, notes = &quot;This method allows employees to get a document by a given id.&quot;)
+    @Secured(&quot;ROLE_EMPLOYEE&quot;)
+    @RequestMapping(value = &quot;/documents/{id}&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;FileSystemResource&gt; getEmployees(@PathVariable(value = &quot;id&quot;) long id, Principal principal) {
+<span class="fc" id="L47">        HttpHeaders headers = new HttpHeaders();</span>
+
+<span class="fc" id="L49">        Employee emp = this.employees.findByUsername(principal.getName());</span>
+<span class="fc" id="L50">        Document doc = this.documents.findOne(id);</span>
+
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        if (doc == null) {</span>
+<span class="fc" id="L53">            headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="fc" id="L54">            return new ResponseEntity(headers, HttpStatus.NOT_FOUND);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        } else if (emp.getPrintShop().getId() != doc.getPrintRequest().getPrintshop().getId()) {</span>
+<span class="nc" id="L56">            headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L57">            return new ResponseEntity(headers, HttpStatus.UNAUTHORIZED);</span>
+        } else {
+<span class="nc" id="L59">            headers.setContentType(MediaType.parseMediaType(&quot;application/pdf&quot;));</span>
+<span class="nc" id="L60">            headers.add(&quot;Content-Disposition&quot;, &quot;inline;filename=&quot; + doc.getName() + &quot;.pdf&quot;);</span>
+<span class="nc" id="L61">            headers.setCacheControl(&quot;must-revalidate, post-check=0, pre-check=0&quot;);</span>
+
+<span class="nc" id="L63">            return new ResponseEntity(new FileSystemResource(new File(this.documentsPath+doc.getFile().getName())), headers, HttpStatus.OK);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

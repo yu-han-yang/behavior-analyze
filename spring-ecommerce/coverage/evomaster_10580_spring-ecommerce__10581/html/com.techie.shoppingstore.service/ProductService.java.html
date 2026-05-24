@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.techie.shoppingstore.service</a> &gt; <span class="el_source">ProductService.java</span></div><h1>ProductService.java</h1><pre class="source lang-java linenums">package com.techie.shoppingstore.service;
+
+import com.techie.shoppingstore.dto.ProductAvailability;
+import com.techie.shoppingstore.dto.ProductDto;
+import com.techie.shoppingstore.dto.ProductRatingDto;
+import com.techie.shoppingstore.exceptions.SpringStoreException;
+import com.techie.shoppingstore.model.Category;
+import com.techie.shoppingstore.model.ElasticSearchProduct;
+import com.techie.shoppingstore.model.Product;
+import com.techie.shoppingstore.model.ProductRating;
+import com.techie.shoppingstore.repository.CategoryRepository;
+import com.techie.shoppingstore.repository.ProductRepository;
+import com.techie.shoppingstore.repository.ProductSearchRepository;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisKeyValueTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
+
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
+
+@Service
+<span class="fc" id="L31">@AllArgsConstructor</span>
+<span class="fc" id="L32">@Slf4j</span>
+public class ProductService {
+
+    private final ProductRepository productRepository;
+    private final ProductSearchRepository productSearchRepository;
+    private final CategoryRepository categoryRepository;
+    private final ProductMapper productMapper;
+    private final RedisKeyValueTemplate redisKeyValueTemplate;
+
+    @Cacheable(value = &quot;products1&quot;)
+    public List&lt;ProductDto&gt; findAll() {
+<span class="fc" id="L43">        StopWatch stopWatch = new StopWatch();</span>
+<span class="fc" id="L44">        stopWatch.start();</span>
+<span class="fc" id="L45">        List&lt;Product&gt; all = productRepository.findAll();</span>
+<span class="fc" id="L46">        log.info(&quot;Found {} products..&quot;, all.size());</span>
+<span class="fc" id="L47">        stopWatch.stop();</span>
+<span class="fc" id="L48">        log.info(&quot;Time taken to load {} products is {}&quot;, all.size(), stopWatch.getTotalTimeSeconds());</span>
+<span class="fc" id="L49">        return all</span>
+<span class="fc" id="L50">                .stream()</span>
+<span class="fc" id="L51">                .map(this::mapToDto)</span>
+<span class="fc" id="L52">                .collect(toList());</span>
+    }
+
+    private ProductDto mapToDto(Product product) {
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        ProductAvailability productAvailability = product.getQuantity() &gt; 0 ? inStock() : outOfStock();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if (product.getProductRating() != null) {</span>
+<span class="fc" id="L58">            List&lt;ProductRatingDto&gt; productRatingDtoList = product.getProductRating().stream().map(productMapper::mapProductRating).collect(toList());</span>
+<span class="fc" id="L59">            return new ProductDto(product.getName(), product.getImageUrl(), product.getSku(), product.getPrice(), product.getDescription(), product.getManufacturer(), productAvailability, product.getProductAttributeList(), product.isFeatured(), productRatingDtoList);</span>
+        } else {
+<span class="nc" id="L61">            return new ProductDto(product.getName(), product.getImageUrl(), product.getSku(), product.getPrice(), product.getDescription(), product.getManufacturer(), productAvailability, product.getProductAttributeList(), product.isFeatured(), emptyList());</span>
+        }
+    }
+
+    private ProductAvailability outOfStock() {
+<span class="fc" id="L66">        return new ProductAvailability(&quot;Out of Stock&quot;, &quot;red&quot;);</span>
+    }
+
+    private ProductAvailability inStock() {
+<span class="fc" id="L70">        return new ProductAvailability(&quot;Out of Stock&quot;, &quot;forestgreen&quot;);</span>
+    }
+
+    @Cacheable(value = &quot;singleProduct&quot;, key = &quot;#sku&quot;)
+    public ProductDto readOneProduct(String sku) {
+<span class="fc" id="L75">        log.info(&quot;Reading Product with productName - {}&quot;, sku);</span>
+<span class="fc" id="L76">        Optional&lt;Product&gt; optionalProduct = productRepository.findBySku(sku);</span>
+<span class="fc" id="L77">        Product product = optionalProduct.orElseThrow(IllegalArgumentException::new);</span>
+<span class="fc" id="L78">        return mapToDto(product);</span>
+    }
+
+    @Cacheable(value = &quot;productsByCategory&quot;)
+    public List&lt;ProductDto&gt; findByCategoryName(String categoryName) {
+<span class="fc" id="L83">        log.info(&quot;Reading Products belonging to category- {}&quot;, categoryName);</span>
+<span class="fc" id="L84">        Optional&lt;Category&gt; categoryOptional = categoryRepository.findByName(categoryName);</span>
+<span class="pc" id="L85">        Category category = categoryOptional.orElseThrow(() -&gt; new IllegalArgumentException(&quot;Category Not Found&quot;));</span>
+
+<span class="nc" id="L87">        List&lt;Product&gt; products = productRepository.findByCategory(category);</span>
+<span class="nc" id="L88">        log.info(&quot;Found {} categories&quot;, products.size());</span>
+<span class="nc" id="L89">        return products.stream().map(this::mapToDto).collect(toList());</span>
+    }
+
+    public void save(ProductDto productDto) {
+<span class="nc" id="L93">        Product product = new Product();</span>
+<span class="nc" id="L94">        product.setName(productDto.getProductName());</span>
+<span class="nc" id="L95">    }</span>
+
+    public void postProductRating(ProductRatingDto productRatingDto) {
+<span class="fc" id="L98">        Supplier&lt;SpringStoreException&gt; springStoreExceptionSupplier = () -&gt; new SpringStoreException(&quot;No Product exists with sku - &quot; + productRatingDto.getSku());</span>
+<span class="nc" id="L99">        Product product = productRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+<span class="nc" id="L100">        ElasticSearchProduct elasticSearchProduct = productSearchRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+
+<span class="nc" id="L102">        ProductRating productRating = productMapper.mapProductRatingDto(productRatingDto);</span>
+<span class="nc" id="L103">        productRating.setId(UUID.randomUUID().toString());</span>
+<span class="nc" id="L104">        productRating.setProductId(product.getId());</span>
+<span class="nc" id="L105">        productRating.setElasticSearchProductId(elasticSearchProduct.getId());</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        List&lt;ProductRating&gt; productRatingList = product.getProductRating() == null ? new ArrayList&lt;&gt;() : product.getProductRating();</span>
+<span class="nc" id="L107">        productRatingList.add(productRating);</span>
+<span class="nc" id="L108">        product.setProductRating(productRatingList);</span>
+<span class="nc" id="L109">        elasticSearchProduct.setProductRating(productRatingList);</span>
+
+<span class="nc" id="L111">        productSearchRepository.save(elasticSearchProduct);</span>
+<span class="nc" id="L112">        productRepository.save(product);</span>
+<span class="nc" id="L113">    }</span>
+
+    public void editProductRating(ProductRatingDto productRatingDto) {
+<span class="fc" id="L116">        Supplier&lt;SpringStoreException&gt; springStoreExceptionSupplier = () -&gt; new SpringStoreException(&quot;No Product exists with sku - &quot; + productRatingDto.getSku());</span>
+<span class="nc" id="L117">        Product product = productRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+<span class="nc" id="L118">        ElasticSearchProduct elasticSearchProduct = productSearchRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+
+<span class="nc" id="L120">        List&lt;ProductRating&gt; productRatingList = product.getProductRating();</span>
+<span class="nc" id="L121">        ProductRating productRating = productRatingList.stream().filter(rating -&gt; rating.getId().equals(productRatingDto.getRatingId())).findFirst().orElseThrow(() -&gt; new SpringStoreException(&quot;No Rating found with id - &quot; + productRatingDto.getRatingId()));</span>
+<span class="nc" id="L122">        productRating.setRatingStars(productRatingDto.getRatingStars());</span>
+<span class="nc" id="L123">        productRating.setReview(productRatingDto.getReview());</span>
+
+<span class="nc" id="L125">        productSearchRepository.save(elasticSearchProduct);</span>
+<span class="nc" id="L126">        productRepository.save(product);</span>
+<span class="nc" id="L127">    }</span>
+
+    public void deleteProductRating(ProductRatingDto productRatingDto) {
+<span class="fc" id="L130">        Supplier&lt;SpringStoreException&gt; springStoreExceptionSupplier = () -&gt; new SpringStoreException(&quot;No Product exists with sku - &quot; + productRatingDto.getSku());</span>
+<span class="nc" id="L131">        Product product = productRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+<span class="nc" id="L132">        ElasticSearchProduct elasticSearchProduct = productSearchRepository.findBySku(productRatingDto.getSku()).orElseThrow(springStoreExceptionSupplier);</span>
+
+<span class="nc" id="L134">        product.setProductRating(null);</span>
+<span class="nc" id="L135">        elasticSearchProduct.setProductRating(null);</span>
+
+<span class="nc" id="L137">        productSearchRepository.save(elasticSearchProduct);</span>
+<span class="nc" id="L138">        productRepository.save(product);</span>
+<span class="nc" id="L139">    }</span>
+
+    public List&lt;ProductRatingDto&gt; getProductRating(String sku) {
+<span class="fc" id="L142">        Supplier&lt;SpringStoreException&gt; springStoreExceptionSupplier = () -&gt; new SpringStoreException(&quot;No Product exists with sku - &quot; + sku);</span>
+<span class="fc" id="L143">        Product product = productRepository.findBySku(sku).orElseThrow(springStoreExceptionSupplier);</span>
+<span class="fc" id="L144">        return product.getProductRating().stream().map(productMapper::mapProductRating).collect(toList());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

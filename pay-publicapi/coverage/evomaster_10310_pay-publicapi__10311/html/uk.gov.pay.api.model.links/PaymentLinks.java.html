@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentLinks.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.links</a> &gt; <span class="el_source">PaymentLinks.java</span></div><h1>PaymentLinks.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.links;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.PaymentConnectorResponseLink;
+import uk.gov.pay.api.service.PublicApiUriGenerator;
+
+import java.net.URI;
+import java.util.List;
+
+import static javax.ws.rs.HttpMethod.GET;
+import static javax.ws.rs.HttpMethod.POST;
+
+@Schema(name = &quot;PaymentLinks&quot;, description = &quot;links for payment&quot;)
+<span class="nc" id="L15">public class PaymentLinks {</span>
+    
+    private static final String SELF_FIELD = &quot;self&quot;;
+    private static final String NEXT_URL_FIELD = &quot;next_url&quot;;
+    private static final String NEXT_URL_POST_FIELD = &quot;next_url_post&quot;;
+    private static final String AUTH_URL_POST_FIELD = &quot;auth_url_post&quot;;
+    private static final String EVENTS_FIELD = &quot;events&quot;;
+    private static final String CANCEL_FIELD = &quot;cancel&quot;;
+    private static final String REFUNDS_FIELD = &quot;refunds&quot;;
+    private static final String CAPTURE_FIELD = &quot;capture&quot;;
+
+    @JsonProperty(value = SELF_FIELD)
+    private Link self;
+
+    @JsonProperty(NEXT_URL_FIELD)
+    private Link nextUrl;
+
+    @JsonProperty(NEXT_URL_POST_FIELD)
+    private PostLink nextUrlPost;
+    
+    @JsonProperty(AUTH_URL_POST_FIELD)
+    private PostLink authUrlPost;
+
+    @JsonProperty(value = EVENTS_FIELD)
+    private Link events;
+
+    @JsonProperty(value = REFUNDS_FIELD)
+    private Link refunds;
+
+    @JsonProperty(value = CANCEL_FIELD)
+    private PostLink cancel;
+    
+    @JsonProperty(value = CAPTURE_FIELD)
+    private PostLink capture;
+
+    public Link getSelf() {
+<span class="nc" id="L51">        return self;</span>
+    }
+
+    public Link getNextUrl() {
+<span class="nc" id="L55">        return nextUrl;</span>
+    }
+
+    public PostLink getNextUrlPost() {
+<span class="nc" id="L59">        return nextUrlPost;</span>
+    }
+    
+    public PostLink getAuthUrlPost() {
+<span class="nc" id="L63">        return authUrlPost;</span>
+    }
+
+    public Link getEvents() {
+<span class="nc" id="L67">        return events;</span>
+    }
+
+    public Link getRefunds() {
+<span class="nc" id="L71">        return refunds;</span>
+    }
+
+    public PostLink getCancel() {
+<span class="nc" id="L75">        return cancel;</span>
+    }
+
+    public PostLink getCapture() {
+<span class="nc" id="L79">        return capture;</span>
+    }
+
+    public void addKnownLinksValueOf(List&lt;PaymentConnectorResponseLink&gt; chargeLinks, URI paymentAuthorisationUri) {
+<span class="nc" id="L83">        addNextUrlIfPresent(chargeLinks);</span>
+<span class="nc" id="L84">        addNextUrlPostIfPresent(chargeLinks);</span>
+<span class="nc" id="L85">        addAuthUrlPostIfPresent(chargeLinks, paymentAuthorisationUri);</span>
+<span class="nc" id="L86">        addCaptureUrlIfPresent(chargeLinks);</span>
+<span class="nc" id="L87">    }</span>
+
+    public void addSelf(String href) {
+<span class="nc" id="L90">        this.self = new Link(href, GET);</span>
+<span class="nc" id="L91">    }</span>
+
+    public void addEvents(String href) {
+<span class="nc" id="L94">        this.events = new Link(href, GET);</span>
+<span class="nc" id="L95">    }</span>
+
+    public void addRefunds(String href) {
+<span class="nc" id="L98">        this.refunds = new Link(href, GET);</span>
+<span class="nc" id="L99">    }</span>
+
+    public void addCancel(String href) {
+<span class="nc" id="L102">        this.cancel = new PostLink(href, POST);</span>
+<span class="nc" id="L103">    }</span>
+    
+    public void addCapture(String href) {
+<span class="nc" id="L106">        this.capture = new PostLink(href, POST);</span>
+<span class="nc" id="L107">    }</span>
+    
+    private void addAuthUrlPostIfPresent(List&lt;PaymentConnectorResponseLink&gt; chargeLinks, URI paymentAuthorisationUri) {
+<span class="nc" id="L110">        chargeLinks.stream()</span>
+<span class="nc" id="L111">                .filter(links -&gt; AUTH_URL_POST_FIELD.equals(links.getRel()))</span>
+<span class="nc" id="L112">                .findFirst()</span>
+<span class="nc" id="L113">                .ifPresent(links -&gt; this.authUrlPost = new PostLink(paymentAuthorisationUri.toString(), links.getMethod(), links.getType(), links.getParams()));</span>
+<span class="nc" id="L114">    }</span>
+
+    private void addNextUrlPostIfPresent(List&lt;PaymentConnectorResponseLink&gt; chargeLinks) {
+<span class="nc" id="L117">        chargeLinks.stream()</span>
+<span class="nc" id="L118">                .filter(chargeLink -&gt; NEXT_URL_POST_FIELD.equals(chargeLink.getRel()))</span>
+<span class="nc" id="L119">                .findFirst()</span>
+<span class="nc" id="L120">                .ifPresent(chargeLink -&gt; this.nextUrlPost = new PostLink(chargeLink.getHref(), chargeLink.getMethod(), chargeLink.getType(), chargeLink.getParams()));</span>
+<span class="nc" id="L121">    }</span>
+
+    private void addNextUrlIfPresent(List&lt;PaymentConnectorResponseLink&gt; chargeLinks) {
+<span class="nc" id="L124">        chargeLinks.stream()</span>
+<span class="nc" id="L125">                .filter(chargeLink -&gt; NEXT_URL_FIELD.equals(chargeLink.getRel()))</span>
+<span class="nc" id="L126">                .findFirst()</span>
+<span class="nc" id="L127">                .ifPresent(chargeLink -&gt; this.nextUrl = new Link(chargeLink.getHref(), chargeLink.getMethod()));</span>
+<span class="nc" id="L128">    }</span>
+
+    private void addCaptureUrlIfPresent(List&lt;PaymentConnectorResponseLink&gt; chargeLinks) {
+<span class="nc" id="L131">        chargeLinks.stream()</span>
+<span class="nc" id="L132">                .filter(chargeLink -&gt; CAPTURE_FIELD.equals(chargeLink.getRel()))</span>
+<span class="nc" id="L133">                .findFirst()</span>
+<span class="nc" id="L134">                .ifPresent(chargeLink -&gt; this.capture = new PostLink(chargeLink.getHref(), chargeLink.getMethod()));</span>
+<span class="nc" id="L135">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

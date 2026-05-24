@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmsProducer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.kafka</a> &gt; <span class="el_source">SmsProducer.java</span></div><h1>SmsProducer.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.kafka;
+
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.kafka.Topics;
+import no.nav.tag.tiltaksgjennomforing.varsel.Sms;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.stereotype.Component;
+import org.springframework.util.concurrent.ListenableFutureCallback;
+
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.kafka.enabled&quot;)
+@Component
+<span class="nc" id="L15">@Slf4j</span>
+public class SmsProducer {
+    private final KafkaTemplate&lt;String, Sms&gt; kafkaTemplate;
+
+<span class="nc" id="L19">    public SmsProducer(@Qualifier(&quot;aivenTiltaksgjennomforingVarsel&quot;) KafkaTemplate&lt;String, Sms&gt; kafkaTemplate) {</span>
+<span class="nc" id="L20">        this.kafkaTemplate = kafkaTemplate;</span>
+<span class="nc" id="L21">    }</span>
+
+    public void sendSmsVarselMeldingTilKafka(Sms sms) {
+<span class="nc" id="L24">        kafkaTemplate.send(Topics.TILTAK_SMS, sms.getSmsVarselId().toString(), sms).addCallback(new ListenableFutureCallback&lt;&gt;() {</span>
+            @Override
+            public void onFailure(Throwable ex) {
+<span class="nc" id="L27">                log.warn(&quot;Sms med id={} kunne ikke sendes til Kafka topic&quot;, sms.getSmsVarselId());</span>
+<span class="nc" id="L28">            }</span>
+
+            @Override
+            public void onSuccess(SendResult&lt;String, Sms&gt; result) {
+<span class="nc" id="L32">                log.info(&quot;Sms med id={} sendt på Kafka topic {}&quot;, sms.getSmsVarselId(), result.getProducerRecord().topic());</span>
+<span class="nc" id="L33">            }</span>
+        });
+<span class="nc" id="L35">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>HumanStandardToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.blk.erc20.generated</a> &gt; <span class="el_source">HumanStandardToken.java</span></div><h1>HumanStandardToken.java</h1><pre class="source lang-java linenums">package io.blk.erc20.generated;
+
+import io.reactivex.Flowable;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.web3j.abi.EventEncoder;
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.abi.datatypes.Event;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.Utf8String;
+import org.web3j.abi.datatypes.generated.Uint256;
+import org.web3j.abi.datatypes.generated.Uint8;
+import org.web3j.crypto.Credentials;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.RemoteCall;
+import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.protocol.core.methods.response.Log;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.tx.Contract;
+import org.web3j.tx.TransactionManager;
+import org.web3j.tx.gas.ContractGasProvider;
+
+/**
+ * &lt;p&gt;Auto generated code.
+ * &lt;p&gt;&lt;strong&gt;Do not modify!&lt;/strong&gt;
+ * &lt;p&gt;Please use the &lt;a href=&quot;https://docs.web3j.io/command_line.html&quot;&gt;web3j command line tools&lt;/a&gt;,
+ * or the org.web3j.codegen.SolidityFunctionWrapperGenerator in the 
+ * &lt;a href=&quot;https://github.com/web3j/web3j/tree/master/codegen&quot;&gt;codegen module&lt;/a&gt; to update.
+ *
+ * &lt;p&gt;Generated with web3j version 4.3.0.
+ */
+public class HumanStandardToken extends Contract {
+    private static final String BINARY = &quot;60c0604052600460808190527f48302e310000000000000000000000000000000000000000000000000000000060a090815261003e916006919061016b565b5034801561004b57600080fd5b50604051610a4f380380610a4f8339810180604052608081101561006e57600080fd5b81516020830180519193928301929164010000000081111561008f57600080fd5b820160208101848111156100a257600080fd5b81516401000000008111828201871017156100bc57600080fd5b505060208201516040909201805191949293916401000000008111156100e157600080fd5b820160208101848111156100f457600080fd5b815164010000000081118282018710171561010e57600080fd5b5050336000908152600160209081526040822089905590889055865191945061013e93506003925086019061016b565b506004805460ff191660ff8416179055805161016190600590602084019061016b565b5050505050610206565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f106101ac57805160ff19168380011785556101d9565b828001600101855582156101d9579182015b828111156101d95782518255916020019190600101906101be565b506101e59291506101e9565b5090565b61020391905b808211156101e557600081556001016101ef565b90565b61083a806102156000396000f3fe608060405234801561001057600080fd5b50600436106100c6576000357c01000000000000000000000000000000000000000000000000000000009004806354fd4d501161008e57806354fd4d50146101f657806370a08231146101fe57806395d89b4114610224578063a9059cbb1461022c578063cae9ca5114610258578063dd62ed3e146102dd576100c6565b806306fdde03146100cb578063095ea7b31461014857806318160ddd1461018857806323b872dd146101a2578063313ce567146101d8575b600080fd5b6100d361030b565b6040805160208082528351818301528351919283929083019185019080838360005b8381101561010d5781810151838201526020016100f5565b50505050905090810190601f16801561013a5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b6101746004803603604081101561015e57600080fd5b50600160a060020a038135169060200135610399565b604080519115158252519081900360200190f35b610190610400565b60408051918252519081900360200190f35b610174600480360360608110156101b857600080fd5b50600160a060020a03813581169160208101359091169060400135610406565b6101e06104f3565b6040805160ff9092168252519081900360200190f35b6100d36104fc565b6101906004803603602081101561021457600080fd5b5035600160a060020a0316610557565b6100d3610572565b6101746004803603604081101561024257600080fd5b50600160a060020a0381351690602001356105cd565b6101746004803603606081101561026e57600080fd5b600160a060020a038235169160208101359181019060608101604082013564010000000081111561029e57600080fd5b8201836020820111156102b057600080fd5b803590602001918460018302840111640100000000831117156102d257600080fd5b509092509050610666565b610190600480360360408110156102f357600080fd5b50600160a060020a03813581169160200135166107b5565b6003805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103915780601f1061036657610100808354040283529160200191610391565b820191906000526020600020905b81548152906001019060200180831161037457829003601f168201915b505050505081565b336000818152600260209081526040808320600160a060020a038716808552908352818420869055815186815291519394909390927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925928290030190a35060015b92915050565b60005481565b600160a060020a03831660009081526001602052604081205482118015906104515750600160a060020a03841660009081526002602090815260408083203384529091529020548211155b801561045d5750600082115b156104e857600160a060020a03808416600081815260016020908152604080832080548801905593881680835284832080548890039055600282528483203384528252918490208054879003905583518681529351929391927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9281900390910190a35060016104ec565b5060005b9392505050565b60045460ff1681565b6006805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103915780601f1061036657610100808354040283529160200191610391565b600160a060020a031660009081526001602052604090205490565b6005805460408051602060026001851615610100026000190190941693909304601f810184900484028201840190925281815292918301828280156103915780601f1061036657610100808354040283529160200191610391565b3360009081526001602052604081205482118015906105ec5750600082115b1561065e5733600081815260016020908152604080832080548790039055600160a060020a03871680845292819020805487019055805186815290519293927fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef929181900390910190a35060016103fa565b5060006103fa565b336000818152600260209081526040808320600160a060020a038916808552908352818420889055815188815291519394909390927f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925928290030190a3600085600160a060020a031660405160200180806020018281038252602e8152602001806107e1602e91396040019150506040516020818303038152906040526040518082805190602001908083835b602083106107325780518252601f199092019160209182019101610713565b6001836020036101000a0380198251168184511680821785525050505050509050019150506000604051808303816000865af19150503d8060008114610794576040519150601f19603f3d011682016040523d82523d6000602084013e610799565b606091505b505090508015156107a957600080fd5b50600195945050505050565b600160a060020a0391821660009081526002602090815260408083209390941682529190915220549056fe72656365697665417070726f76616c28616464726573732c75696e743235362c616464726573732c627974657329a165627a7a72305820d15a070a95051e159632a5f42da17cdc0b4e940c8c7574a86370e2f434405abd0029&quot;;
+
+    public static final String FUNC_NAME = &quot;name&quot;;
+
+    public static final String FUNC_APPROVE = &quot;approve&quot;;
+
+    public static final String FUNC_TOTALSUPPLY = &quot;totalSupply&quot;;
+
+    public static final String FUNC_TRANSFERFROM = &quot;transferFrom&quot;;
+
+    public static final String FUNC_DECIMALS = &quot;decimals&quot;;
+
+    public static final String FUNC_VERSION = &quot;version&quot;;
+
+    public static final String FUNC_BALANCEOF = &quot;balanceOf&quot;;
+
+    public static final String FUNC_SYMBOL = &quot;symbol&quot;;
+
+    public static final String FUNC_TRANSFER = &quot;transfer&quot;;
+
+    public static final String FUNC_APPROVEANDCALL = &quot;approveAndCall&quot;;
+
+    public static final String FUNC_ALLOWANCE = &quot;allowance&quot;;
+
+<span class="fc" id="L64">    public static final Event TRANSFER_EVENT = new Event(&quot;Transfer&quot;, </span>
+<span class="fc" id="L65">            Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Address&gt;(true) {}, new TypeReference&lt;Address&gt;(true) {}, new TypeReference&lt;Uint256&gt;() {}));</span>
+    ;
+
+<span class="fc" id="L68">    public static final Event APPROVAL_EVENT = new Event(&quot;Approval&quot;, </span>
+<span class="fc" id="L69">            Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Address&gt;(true) {}, new TypeReference&lt;Address&gt;(true) {}, new TypeReference&lt;Uint256&gt;() {}));</span>
+    ;
+
+    @Deprecated
+    protected HumanStandardToken(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+<span class="nc" id="L74">        super(BINARY, contractAddress, web3j, credentials, gasPrice, gasLimit);</span>
+<span class="nc" id="L75">    }</span>
+
+    protected HumanStandardToken(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
+<span class="nc" id="L78">        super(BINARY, contractAddress, web3j, credentials, contractGasProvider);</span>
+<span class="nc" id="L79">    }</span>
+
+    @Deprecated
+    protected HumanStandardToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+<span class="nc" id="L83">        super(BINARY, contractAddress, web3j, transactionManager, gasPrice, gasLimit);</span>
+<span class="nc" id="L84">    }</span>
+
+    protected HumanStandardToken(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+<span class="fc" id="L87">        super(BINARY, contractAddress, web3j, transactionManager, contractGasProvider);</span>
+<span class="fc" id="L88">    }</span>
+
+    public RemoteCall&lt;String&gt; name() {
+<span class="nc" id="L91">        final Function function = new Function(FUNC_NAME, </span>
+<span class="nc" id="L92">                Arrays.&lt;Type&gt;asList(), </span>
+<span class="nc" id="L93">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Utf8String&gt;() {}));</span>
+<span class="nc" id="L94">        return executeRemoteCallSingleValueReturn(function, String.class);</span>
+    }
+
+    public RemoteCall&lt;TransactionReceipt&gt; approve(String _spender, BigInteger _value) {
+<span class="nc" id="L98">        final Function function = new Function(</span>
+                FUNC_APPROVE, 
+<span class="nc" id="L100">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_spender), </span>
+                new org.web3j.abi.datatypes.generated.Uint256(_value)), 
+<span class="nc" id="L102">                Collections.&lt;TypeReference&lt;?&gt;&gt;emptyList());</span>
+<span class="nc" id="L103">        return executeRemoteCallTransaction(function);</span>
+    }
+
+    public RemoteCall&lt;BigInteger&gt; totalSupply() {
+<span class="nc" id="L107">        final Function function = new Function(FUNC_TOTALSUPPLY, </span>
+<span class="nc" id="L108">                Arrays.&lt;Type&gt;asList(), </span>
+<span class="nc" id="L109">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Uint256&gt;() {}));</span>
+<span class="nc" id="L110">        return executeRemoteCallSingleValueReturn(function, BigInteger.class);</span>
+    }
+
+    public RemoteCall&lt;TransactionReceipt&gt; transferFrom(String _from, String _to, BigInteger _value) {
+<span class="nc" id="L114">        final Function function = new Function(</span>
+                FUNC_TRANSFERFROM, 
+<span class="nc" id="L116">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_from), </span>
+                new org.web3j.abi.datatypes.Address(_to), 
+                new org.web3j.abi.datatypes.generated.Uint256(_value)), 
+<span class="nc" id="L119">                Collections.&lt;TypeReference&lt;?&gt;&gt;emptyList());</span>
+<span class="nc" id="L120">        return executeRemoteCallTransaction(function);</span>
+    }
+
+    public RemoteCall&lt;BigInteger&gt; decimals() {
+<span class="nc" id="L124">        final Function function = new Function(FUNC_DECIMALS, </span>
+<span class="nc" id="L125">                Arrays.&lt;Type&gt;asList(), </span>
+<span class="nc" id="L126">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Uint8&gt;() {}));</span>
+<span class="nc" id="L127">        return executeRemoteCallSingleValueReturn(function, BigInteger.class);</span>
+    }
+
+    public RemoteCall&lt;String&gt; version() {
+<span class="nc" id="L131">        final Function function = new Function(FUNC_VERSION, </span>
+<span class="nc" id="L132">                Arrays.&lt;Type&gt;asList(), </span>
+<span class="nc" id="L133">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Utf8String&gt;() {}));</span>
+<span class="nc" id="L134">        return executeRemoteCallSingleValueReturn(function, String.class);</span>
+    }
+
+    public RemoteCall&lt;BigInteger&gt; balanceOf(String _owner) {
+<span class="nc" id="L138">        final Function function = new Function(FUNC_BALANCEOF, </span>
+<span class="nc" id="L139">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_owner)), </span>
+<span class="nc" id="L140">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Uint256&gt;() {}));</span>
+<span class="nc" id="L141">        return executeRemoteCallSingleValueReturn(function, BigInteger.class);</span>
+    }
+
+    public RemoteCall&lt;String&gt; symbol() {
+<span class="nc" id="L145">        final Function function = new Function(FUNC_SYMBOL, </span>
+<span class="nc" id="L146">                Arrays.&lt;Type&gt;asList(), </span>
+<span class="nc" id="L147">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Utf8String&gt;() {}));</span>
+<span class="nc" id="L148">        return executeRemoteCallSingleValueReturn(function, String.class);</span>
+    }
+
+    public RemoteCall&lt;TransactionReceipt&gt; transfer(String _to, BigInteger _value) {
+<span class="nc" id="L152">        final Function function = new Function(</span>
+                FUNC_TRANSFER, 
+<span class="nc" id="L154">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_to), </span>
+                new org.web3j.abi.datatypes.generated.Uint256(_value)), 
+<span class="nc" id="L156">                Collections.&lt;TypeReference&lt;?&gt;&gt;emptyList());</span>
+<span class="nc" id="L157">        return executeRemoteCallTransaction(function);</span>
+    }
+
+    public RemoteCall&lt;TransactionReceipt&gt; approveAndCall(String _spender, BigInteger _value, byte[] _extraData) {
+<span class="nc" id="L161">        final Function function = new Function(</span>
+                FUNC_APPROVEANDCALL, 
+<span class="nc" id="L163">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_spender), </span>
+                new org.web3j.abi.datatypes.generated.Uint256(_value), 
+                new org.web3j.abi.datatypes.DynamicBytes(_extraData)), 
+<span class="nc" id="L166">                Collections.&lt;TypeReference&lt;?&gt;&gt;emptyList());</span>
+<span class="nc" id="L167">        return executeRemoteCallTransaction(function);</span>
+    }
+
+    public RemoteCall&lt;BigInteger&gt; allowance(String _owner, String _spender) {
+<span class="nc" id="L171">        final Function function = new Function(FUNC_ALLOWANCE, </span>
+<span class="nc" id="L172">                Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.Address(_owner), </span>
+                new org.web3j.abi.datatypes.Address(_spender)), 
+<span class="nc" id="L174">                Arrays.&lt;TypeReference&lt;?&gt;&gt;asList(new TypeReference&lt;Uint256&gt;() {}));</span>
+<span class="nc" id="L175">        return executeRemoteCallSingleValueReturn(function, BigInteger.class);</span>
+    }
+
+    public List&lt;TransferEventResponse&gt; getTransferEvents(TransactionReceipt transactionReceipt) {
+<span class="nc" id="L179">        List&lt;Contract.EventValuesWithLog&gt; valueList = extractEventParametersWithLog(TRANSFER_EVENT, transactionReceipt);</span>
+<span class="nc" id="L180">        ArrayList&lt;TransferEventResponse&gt; responses = new ArrayList&lt;TransferEventResponse&gt;(valueList.size());</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        for (Contract.EventValuesWithLog eventValues : valueList) {</span>
+<span class="nc" id="L182">            TransferEventResponse typedResponse = new TransferEventResponse();</span>
+<span class="nc" id="L183">            typedResponse.log = eventValues.getLog();</span>
+<span class="nc" id="L184">            typedResponse._from = (String) eventValues.getIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L185">            typedResponse._to = (String) eventValues.getIndexedValues().get(1).getValue();</span>
+<span class="nc" id="L186">            typedResponse._value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L187">            responses.add(typedResponse);</span>
+<span class="nc" id="L188">        }</span>
+<span class="nc" id="L189">        return responses;</span>
+    }
+
+    public Flowable&lt;TransferEventResponse&gt; transferEventFlowable(EthFilter filter) {
+<span class="nc" id="L193">        return web3j.ethLogFlowable(filter).map(new io.reactivex.functions.Function&lt;Log, TransferEventResponse&gt;() {</span>
+            @Override
+            public TransferEventResponse apply(Log log) {
+<span class="nc" id="L196">                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(TRANSFER_EVENT, log);</span>
+<span class="nc" id="L197">                TransferEventResponse typedResponse = new TransferEventResponse();</span>
+<span class="nc" id="L198">                typedResponse.log = log;</span>
+<span class="nc" id="L199">                typedResponse._from = (String) eventValues.getIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L200">                typedResponse._to = (String) eventValues.getIndexedValues().get(1).getValue();</span>
+<span class="nc" id="L201">                typedResponse._value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L202">                return typedResponse;</span>
+            }
+        });
+    }
+
+    public Flowable&lt;TransferEventResponse&gt; transferEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+<span class="nc" id="L208">        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());</span>
+<span class="nc" id="L209">        filter.addSingleTopic(EventEncoder.encode(TRANSFER_EVENT));</span>
+<span class="nc" id="L210">        return transferEventFlowable(filter);</span>
+    }
+
+    public List&lt;ApprovalEventResponse&gt; getApprovalEvents(TransactionReceipt transactionReceipt) {
+<span class="nc" id="L214">        List&lt;Contract.EventValuesWithLog&gt; valueList = extractEventParametersWithLog(APPROVAL_EVENT, transactionReceipt);</span>
+<span class="nc" id="L215">        ArrayList&lt;ApprovalEventResponse&gt; responses = new ArrayList&lt;ApprovalEventResponse&gt;(valueList.size());</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        for (Contract.EventValuesWithLog eventValues : valueList) {</span>
+<span class="nc" id="L217">            ApprovalEventResponse typedResponse = new ApprovalEventResponse();</span>
+<span class="nc" id="L218">            typedResponse.log = eventValues.getLog();</span>
+<span class="nc" id="L219">            typedResponse._owner = (String) eventValues.getIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L220">            typedResponse._spender = (String) eventValues.getIndexedValues().get(1).getValue();</span>
+<span class="nc" id="L221">            typedResponse._value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L222">            responses.add(typedResponse);</span>
+<span class="nc" id="L223">        }</span>
+<span class="nc" id="L224">        return responses;</span>
+    }
+
+    public Flowable&lt;ApprovalEventResponse&gt; approvalEventFlowable(EthFilter filter) {
+<span class="nc" id="L228">        return web3j.ethLogFlowable(filter).map(new io.reactivex.functions.Function&lt;Log, ApprovalEventResponse&gt;() {</span>
+            @Override
+            public ApprovalEventResponse apply(Log log) {
+<span class="nc" id="L231">                Contract.EventValuesWithLog eventValues = extractEventParametersWithLog(APPROVAL_EVENT, log);</span>
+<span class="nc" id="L232">                ApprovalEventResponse typedResponse = new ApprovalEventResponse();</span>
+<span class="nc" id="L233">                typedResponse.log = log;</span>
+<span class="nc" id="L234">                typedResponse._owner = (String) eventValues.getIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L235">                typedResponse._spender = (String) eventValues.getIndexedValues().get(1).getValue();</span>
+<span class="nc" id="L236">                typedResponse._value = (BigInteger) eventValues.getNonIndexedValues().get(0).getValue();</span>
+<span class="nc" id="L237">                return typedResponse;</span>
+            }
+        });
+    }
+
+    public Flowable&lt;ApprovalEventResponse&gt; approvalEventFlowable(DefaultBlockParameter startBlock, DefaultBlockParameter endBlock) {
+<span class="nc" id="L243">        EthFilter filter = new EthFilter(startBlock, endBlock, getContractAddress());</span>
+<span class="nc" id="L244">        filter.addSingleTopic(EventEncoder.encode(APPROVAL_EVENT));</span>
+<span class="nc" id="L245">        return approvalEventFlowable(filter);</span>
+    }
+
+    @Deprecated
+    public static HumanStandardToken load(String contractAddress, Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit) {
+<span class="nc" id="L250">        return new HumanStandardToken(contractAddress, web3j, credentials, gasPrice, gasLimit);</span>
+    }
+
+    @Deprecated
+    public static HumanStandardToken load(String contractAddress, Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit) {
+<span class="nc" id="L255">        return new HumanStandardToken(contractAddress, web3j, transactionManager, gasPrice, gasLimit);</span>
+    }
+
+    public static HumanStandardToken load(String contractAddress, Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider) {
+<span class="nc" id="L259">        return new HumanStandardToken(contractAddress, web3j, credentials, contractGasProvider);</span>
+    }
+
+    public static HumanStandardToken load(String contractAddress, Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider) {
+<span class="nc" id="L263">        return new HumanStandardToken(contractAddress, web3j, transactionManager, contractGasProvider);</span>
+    }
+
+    public static RemoteCall&lt;HumanStandardToken&gt; deploy(Web3j web3j, Credentials credentials, ContractGasProvider contractGasProvider, BigInteger _initialAmount, String _tokenName, BigInteger _decimalUnits, String _tokenSymbol) {
+<span class="nc" id="L267">        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.generated.Uint256(_initialAmount), </span>
+                new org.web3j.abi.datatypes.Utf8String(_tokenName), 
+                new org.web3j.abi.datatypes.generated.Uint8(_decimalUnits), 
+                new org.web3j.abi.datatypes.Utf8String(_tokenSymbol)));
+<span class="nc" id="L271">        return deployRemoteCall(HumanStandardToken.class, web3j, credentials, contractGasProvider, BINARY, encodedConstructor);</span>
+    }
+
+    public static RemoteCall&lt;HumanStandardToken&gt; deploy(Web3j web3j, TransactionManager transactionManager, ContractGasProvider contractGasProvider, BigInteger _initialAmount, String _tokenName, BigInteger _decimalUnits, String _tokenSymbol) {
+<span class="nc" id="L275">        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.generated.Uint256(_initialAmount), </span>
+                new org.web3j.abi.datatypes.Utf8String(_tokenName), 
+                new org.web3j.abi.datatypes.generated.Uint8(_decimalUnits), 
+                new org.web3j.abi.datatypes.Utf8String(_tokenSymbol)));
+<span class="nc" id="L279">        return deployRemoteCall(HumanStandardToken.class, web3j, transactionManager, contractGasProvider, BINARY, encodedConstructor);</span>
+    }
+
+    @Deprecated
+    public static RemoteCall&lt;HumanStandardToken&gt; deploy(Web3j web3j, Credentials credentials, BigInteger gasPrice, BigInteger gasLimit, BigInteger _initialAmount, String _tokenName, BigInteger _decimalUnits, String _tokenSymbol) {
+<span class="nc" id="L284">        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.generated.Uint256(_initialAmount), </span>
+                new org.web3j.abi.datatypes.Utf8String(_tokenName), 
+                new org.web3j.abi.datatypes.generated.Uint8(_decimalUnits), 
+                new org.web3j.abi.datatypes.Utf8String(_tokenSymbol)));
+<span class="nc" id="L288">        return deployRemoteCall(HumanStandardToken.class, web3j, credentials, gasPrice, gasLimit, BINARY, encodedConstructor);</span>
+    }
+
+    @Deprecated
+    public static RemoteCall&lt;HumanStandardToken&gt; deploy(Web3j web3j, TransactionManager transactionManager, BigInteger gasPrice, BigInteger gasLimit, BigInteger _initialAmount, String _tokenName, BigInteger _decimalUnits, String _tokenSymbol) {
+<span class="fc" id="L293">        String encodedConstructor = FunctionEncoder.encodeConstructor(Arrays.&lt;Type&gt;asList(new org.web3j.abi.datatypes.generated.Uint256(_initialAmount), </span>
+                new org.web3j.abi.datatypes.Utf8String(_tokenName), 
+                new org.web3j.abi.datatypes.generated.Uint8(_decimalUnits), 
+                new org.web3j.abi.datatypes.Utf8String(_tokenSymbol)));
+<span class="fc" id="L297">        return deployRemoteCall(HumanStandardToken.class, web3j, transactionManager, gasPrice, gasLimit, BINARY, encodedConstructor);</span>
+    }
+
+<span class="nc" id="L300">    public static class TransferEventResponse {</span>
+        public Log log;
+
+        public String _from;
+
+        public String _to;
+
+        public BigInteger _value;
+    }
+
+<span class="nc" id="L310">    public static class ApprovalEventResponse {</span>
+        public Log log;
+
+        public String _owner;
+
+        public String _spender;
+
+        public BigInteger _value;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

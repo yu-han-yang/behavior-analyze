@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RedisRateLimiter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.filter.ratelimit</a> &gt; <span class="el_source">RedisRateLimiter.java</span></div><h1>RedisRateLimiter.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.filter.ratelimit;
+
+import com.codahale.metrics.MetricRegistry;
+import com.google.inject.Inject;
+import com.google.inject.OutOfScopeException;
+import io.dropwizard.setup.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.app.config.RateLimiterConfig;
+import uk.gov.pay.api.filter.RateLimiterKey;
+import uk.gov.pay.api.managed.RedisClientManager;
+
+import javax.inject.Singleton;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoField;
+import java.util.concurrent.Callable;
+
+@Singleton
+public class RedisRateLimiter {
+<span class="fc" id="L20">    private static final Logger LOGGER = LoggerFactory.getLogger(RedisRateLimiter.class);</span>
+    private final MetricRegistry metricsRegistry;
+
+    private RateLimitManager rateLimitManager;
+    private RedisClientManager redisClientManager;
+
+    @Inject
+<span class="fc" id="L27">    public RedisRateLimiter(RateLimiterConfig rateLimiterConfig, RedisClientManager redisClientManager, Environment environment) {</span>
+<span class="fc" id="L28">        this.rateLimitManager = new RateLimitManager(rateLimiterConfig);</span>
+<span class="fc" id="L29">        this.redisClientManager = redisClientManager;</span>
+<span class="fc" id="L30">        this.metricsRegistry = environment.metrics();</span>
+<span class="fc" id="L31">    }</span>
+
+    /**
+     * @throws RateLimitException
+     */
+    void checkRateOf(String accountId, RateLimiterKey key)
+            throws RedisException, RateLimitException {
+
+        Long count;
+
+        try {
+<span class="nc" id="L42">            int rateLimitInterval = rateLimitManager.getRateLimitInterval(accountId);</span>
+<span class="nc" id="L43">            count = updateAllowance(key.getKey(), rateLimitInterval);</span>
+<span class="nc" id="L44">        } catch (Exception e) {</span>
+<span class="nc" id="L45">            LOGGER.info(&quot;Failed to update allowance. Cause of error: &quot; + e.getMessage());</span>
+            // Exception possible if redis is unavailable or perMillis is too high        
+<span class="nc" id="L47">            throw new RedisException();</span>
+<span class="nc" id="L48">        }</span>
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        if (count != null) {</span>
+<span class="nc" id="L51">            int allowedNumberOfRequests = rateLimitManager.getAllowedNumberOfRequests(key, accountId);</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (count &gt; allowedNumberOfRequests) {</span>
+<span class="nc" id="L53">                LOGGER.info(String.format(&quot;RedisRateLimiter - Rate limit exceeded for account [%s] and method [%s] - count: %d, rate allowed: %d&quot;,</span>
+<span class="nc" id="L54">                        accountId, key.getKeyType(), count, allowedNumberOfRequests));</span>
+<span class="nc" id="L55">                throw new RateLimitException();</span>
+            }
+        }
+<span class="nc" id="L58">    }</span>
+
+    private Long updateAllowance(String key, int rateLimitInterval) throws Exception {
+<span class="nc" id="L61">        String derivedKey = getKeyForWindow(key, rateLimitInterval);</span>
+<span class="nc" id="L62">        Long count = time(&quot;redis.incr&quot;, () -&gt; redisClientManager.getRedisConnection().sync().incr(derivedKey));</span>
+<span class="nc" id="L63">        time(&quot;redis.expire&quot;, () -&gt; redisClientManager.getRedisConnection().sync().expire(derivedKey, rateLimitInterval / 1000));</span>
+<span class="nc" id="L64">        return count;</span>
+    }
+
+    private &lt;T&gt; T time(String metricName, Callable&lt;T&gt; callable) throws Exception {
+<span class="nc" id="L68">        return this.metricsRegistry.timer(metricName).time(callable);</span>
+    }
+
+    /**
+     * Derives Key (Service Key + Window) to use in Redis for noOfReq limiting.
+     * Recommended to use perMillis to lowest granularity. i.e, to seconds. 1000, 2000
+     * &lt;p&gt;
+     * Depends on perMillis
+     * &lt;p&gt;
+     * - perMillis &lt; 1000 : Window considered for milliseconds
+     * - perMillis &gt;=1000 &amp;&amp; &lt;60000 : Window considered for seconds(s)
+     * - perMillis &gt;=60000 &amp;&amp; &lt;3600000 : Window considered for minute(s)
+     *
+     * @return new key based on perMillis (works for second/minute/hour windows only)
+     */
+    private String getKeyForWindow(String key, int rateLimitInterval) throws OutOfScopeException {
+
+<span class="nc" id="L85">        LocalDateTime now = LocalDateTime.now();</span>
+
+        int window;
+
+<span class="nc bnc" id="L89" title="All 4 branches missed.">        if (rateLimitInterval &gt;= 1 &amp;&amp; rateLimitInterval &lt; 1000) {</span>
+<span class="nc" id="L90">            window = (now.get(ChronoField.MILLI_OF_DAY) / rateLimitInterval) + 1;</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">        } else if (rateLimitInterval &gt;= 1000 &amp;&amp; rateLimitInterval &lt; 60000) {</span>
+<span class="nc" id="L92">            window = now.get(ChronoField.SECOND_OF_MINUTE) / (rateLimitInterval / 1000);</span>
+<span class="nc bnc" id="L93" title="All 4 branches missed.">        } else if (rateLimitInterval &gt;= 60000 &amp;&amp; rateLimitInterval &lt; 3600000) {</span>
+<span class="nc" id="L94">            window = now.get(ChronoField.MINUTE_OF_HOUR) / (rateLimitInterval / 1000);</span>
+        } else {
+<span class="nc" id="L96">            throw new OutOfScopeException(&quot;Rate limit interval specified is not currently supported&quot;);</span>
+        }
+
+<span class="nc" id="L99">        return key + window;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

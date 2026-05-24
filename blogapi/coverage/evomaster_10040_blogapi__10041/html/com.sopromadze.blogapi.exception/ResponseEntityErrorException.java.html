@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResponseEntityErrorException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.exception</a> &gt; <span class="el_source">ResponseEntityErrorException.java</span></div><h1>ResponseEntityErrorException.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.exception;
+
+import com.sopromadze.blogapi.payload.ApiResponse;
+import org.springframework.http.ResponseEntity;
+
+public class ResponseEntityErrorException extends RuntimeException {
+	private static final long serialVersionUID = -3156815846745801694L;
+
+	private transient ResponseEntity&lt;ApiResponse&gt; apiResponse;
+
+<span class="nc" id="L11">	public ResponseEntityErrorException(ResponseEntity&lt;ApiResponse&gt; apiResponse) {</span>
+<span class="nc" id="L12">		this.apiResponse = apiResponse;</span>
+<span class="nc" id="L13">	}</span>
+
+	public ResponseEntity&lt;ApiResponse&gt; getApiResponse() {
+<span class="nc" id="L16">		return apiResponse;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

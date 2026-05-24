@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Album.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.model</a> &gt; <span class="el_source">Album.java</span></div><h1>Album.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sopromadze.blogapi.model.audit.UserDateAudit;
+import com.sopromadze.blogapi.model.user.User;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
+import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+<span class="nc bnc" id="L26" title="All 40 branches missed.">@EqualsAndHashCode(callSuper = true)</span>
+@Entity
+<span class="pc" id="L28">@Data</span>
+@Table(name = &quot;albums&quot;, uniqueConstraints = { @UniqueConstraint(columnNames = { &quot;title&quot; }) })
+public class Album extends UserDateAudit {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+<span class="fc" id="L35">	private Long id;</span>
+
+	@NotBlank
+	@Column(name = &quot;title&quot;)
+<span class="fc" id="L39">	private String title;</span>
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = &quot;user_id&quot;)
+	private User user;
+
+	@OneToMany(mappedBy = &quot;album&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+	private List&lt;Photo&gt; photo;
+
+	@JsonIgnore
+	public User getUser() {
+<span class="fc" id="L50">		return user;</span>
+	}
+
+	public List&lt;Photo&gt; getPhoto() {
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">		return this.photo == null ? null : new ArrayList&lt;&gt;(this.photo);</span>
+	}
+
+	public void setPhoto(List&lt;Photo&gt; photo) {
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">		if (photo == null) {</span>
+<span class="fc" id="L59">			this.photo = null;</span>
+		} else {
+<span class="nc" id="L61">			this.photo = Collections.unmodifiableList(photo);</span>
+		}
+<span class="fc" id="L63">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

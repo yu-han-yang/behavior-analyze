@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentUriGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">PaymentUriGenerator.java</span></div><h1>PaymentUriGenerator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
+
+<span class="fc" id="L6">public class PaymentUriGenerator {</span>
+    public URI getPaymentURI(String baseUrl, String chargeId) {
+<span class="nc" id="L8">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L9">                .path(&quot;/v1/payments/{paymentId}&quot;)</span>
+<span class="nc" id="L10">                .build(chargeId);</span>
+    }
+
+    public URI getPaymentEventsURI(String baseUrl, String chargeId) {
+<span class="nc" id="L14">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L15">                .path(&quot;/v1/payments/{paymentId}/events&quot;)</span>
+<span class="nc" id="L16">                .build(chargeId);</span>
+    }
+
+    public URI getPaymentCancelURI(String baseUrl, String chargeId) {
+<span class="nc" id="L20">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L21">                .path(&quot;/v1/payments/{paymentId}/cancel&quot;)</span>
+<span class="nc" id="L22">                .build(chargeId);</span>
+    }
+
+    public URI getPaymentRefundsURI(String baseUrl, String chargeId) {
+<span class="nc" id="L26">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L27">                .path(&quot;/v1/payments/{paymentId}/refunds&quot;)</span>
+<span class="nc" id="L28">                .build(chargeId);</span>
+    }
+
+    public URI getPaymentCaptureURI(String baseUrl, String chargeId) {
+<span class="nc" id="L32">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L33">                .path(&quot;/v1/payments/{paymentId}/capture&quot;)</span>
+<span class="nc" id="L34">                .build(chargeId);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

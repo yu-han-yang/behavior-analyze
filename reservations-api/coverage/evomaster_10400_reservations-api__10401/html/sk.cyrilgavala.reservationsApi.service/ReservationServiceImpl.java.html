@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">sk.cyrilgavala.reservationsApi.service</a> &gt; <span class="el_source">ReservationServiceImpl.java</span></div><h1>ReservationServiceImpl.java</h1><pre class="source lang-java linenums">package sk.cyrilgavala.reservationsApi.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import sk.cyrilgavala.reservationsApi.exception.ReservationException;
+import sk.cyrilgavala.reservationsApi.mapper.ReservationMapper;
+import sk.cyrilgavala.reservationsApi.model.Reservation;
+import sk.cyrilgavala.reservationsApi.repository.ReservationRepository;
+import sk.cyrilgavala.reservationsApi.web.request.CreateReservationRequest;
+import sk.cyrilgavala.reservationsApi.web.request.UpdateReservationRequest;
+import sk.cyrilgavala.reservationsApi.web.response.ReservationResponse;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+<span class="fc" id="L20">@Slf4j</span>
+@Service
+@Transactional
+<span class="fc" id="L23">@RequiredArgsConstructor</span>
+public class ReservationServiceImpl implements ReservationService {
+	private static final String RESERVATION_UNPROCESSABLE_START_DATE_IS_AFTER_END_DATE = &quot;Reservation unprocessable: start date is after end date&quot;;
+	private static final String RESERVATION_UNPROCESSABLE_COVERS_ANOTHER_RESERVATION = &quot;Reservation unprocessable: covers another reservation&quot;;
+	private static final String RESERVATION_UNPROCESSABLE_START_DATE_IN_PAST = &quot;Reservation unprocessable: start date is in past&quot;;
+	private final ReservationRepository repository;
+	private final ReservationMapper mapper;
+
+	@Override
+	public ReservationResponse createReservation(CreateReservationRequest request) {
+<span class="nc" id="L33">		validateDates(request.getReservationFrom(), request.getReservationTo());</span>
+<span class="nc" id="L34">		Reservation mappedReservation = mapper.createRequestToModel(request);</span>
+<span class="nc" id="L35">		Reservation savedReservation = repository.insert(mappedReservation);</span>
+<span class="nc" id="L36">		return mapper.modelToResponse(savedReservation);</span>
+	}
+
+	@Override
+	public ReservationResponse updateReservation(UpdateReservationRequest request) {
+<span class="nc" id="L41">		validateDates(request.getReservationFrom(), request.getReservationTo());</span>
+<span class="nc" id="L42">		Reservation loadedReservation = repository.findByUuid(request.getUuid());</span>
+<span class="nc" id="L43">		Reservation updatedReservation = mapper.updateRequestToModel(loadedReservation, request);</span>
+<span class="nc" id="L44">		Reservation savedReservation = repository.save(updatedReservation);</span>
+<span class="nc" id="L45">		return mapper.modelToResponse(savedReservation);</span>
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List&lt;ReservationResponse&gt; getAllReservations() {
+<span class="fc" id="L51">		return repository.findAll(Sort.by(&quot;reservationFrom&quot;).descending())</span>
+<span class="fc" id="L52">			.stream()</span>
+<span class="fc" id="L53">			.map(mapper::modelToResponse)</span>
+<span class="fc" id="L54">			.collect(Collectors.toList());</span>
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List&lt;ReservationResponse&gt; getAllReservationsForUsername(String username) {
+<span class="fc" id="L60">		return repository.findAllByReservationFor(username, Sort.by(&quot;reservationFrom&quot;).descending())</span>
+<span class="fc" id="L61">			.stream()</span>
+<span class="fc" id="L62">			.map(mapper::modelToResponse)</span>
+<span class="fc" id="L63">			.collect(Collectors.toList());</span>
+	}
+
+	@Override
+	public void deleteReservation(String reservationUuid) {
+<span class="fc" id="L68">		repository.deleteById(reservationUuid);</span>
+<span class="fc" id="L69">	}</span>
+
+	private void validateDates(LocalDateTime from, LocalDateTime to) {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">		if (from.isAfter(to)) {</span>
+<span class="nc" id="L73">			log.error(RESERVATION_UNPROCESSABLE_START_DATE_IS_AFTER_END_DATE);</span>
+<span class="nc" id="L74">			throw new ReservationException(RESERVATION_UNPROCESSABLE_START_DATE_IS_AFTER_END_DATE);</span>
+		}
+<span class="nc" id="L76">		LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">		if (now.isAfter(from)) {</span>
+<span class="nc" id="L78">			log.error(RESERVATION_UNPROCESSABLE_START_DATE_IN_PAST);</span>
+<span class="nc" id="L79">			throw new ReservationException(RESERVATION_UNPROCESSABLE_START_DATE_IN_PAST);</span>
+		}
+<span class="nc" id="L81">		List&lt;Reservation&gt; reservations = repository.findAllBetween(from, to);</span>
+<span class="nc" id="L82">		reservations.stream()</span>
+<span class="nc" id="L83">			.findFirst()</span>
+<span class="nc" id="L84">			.ifPresent(reservation -&gt; {</span>
+<span class="nc" id="L85">				log.error(RESERVATION_UNPROCESSABLE_COVERS_ANOTHER_RESERVATION);</span>
+<span class="nc" id="L86">				throw new ReservationException(RESERVATION_UNPROCESSABLE_COVERS_ANOTHER_RESERVATION);</span>
+			});
+<span class="nc" id="L88">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

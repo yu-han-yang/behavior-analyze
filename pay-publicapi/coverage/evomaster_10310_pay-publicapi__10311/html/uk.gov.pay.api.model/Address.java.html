@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Address.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">Address.java</span></div><h1>Address.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import javax.validation.constraints.Size;
+import java.util.Objects;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(NON_NULL)
+@Schema(name = &quot;Address&quot;, description = &quot;A structure representing the billing address of a card&quot;)
+public class Address {
+
+    @Size(max = 255, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String line1;
+
+    @Size(max = 255, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String line2;
+
+    @Size(max = 25, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String postcode;
+
+    @Size(max = 255, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String city;
+
+    private String country;
+
+    public Address(@JsonProperty(&quot;line1&quot;) String line1,
+                   @JsonProperty(&quot;line2&quot;) String line2,
+                   @JsonProperty(&quot;postcode&quot;) String postcode,
+                   @JsonProperty(&quot;city&quot;) String city,
+<span class="nc" id="L36">                   @JsonProperty(&quot;country&quot;) String country) {</span>
+<span class="nc" id="L37">        this.line1 = line1;</span>
+<span class="nc" id="L38">        this.line2 = line2;</span>
+<span class="nc" id="L39">        this.postcode = postcode;</span>
+<span class="nc" id="L40">        this.city = city;</span>
+<span class="nc" id="L41">        this.country = country;</span>
+<span class="nc" id="L42">    }</span>
+
+    @Schema(example = &quot;address line 1&quot;, description = &quot;The first line of the paying user’s address.&quot;)
+    public String getLine1() {
+<span class="nc" id="L46">        return line1;</span>
+    }
+
+    @Schema(example = &quot;address line 2&quot;, description = &quot;The second line of the paying user’s address.&quot;)
+    public String getLine2() {
+<span class="nc" id="L51">        return line2;</span>
+    }
+
+    @Schema(example = &quot;AB1 2CD&quot;, description = &quot;The paying user's postcode.&quot;)
+    public String getPostcode() {
+<span class="nc" id="L56">        return postcode;</span>
+    }
+
+    @Schema(example = &quot;address city&quot;, description=&quot;The paying user's city.&quot;)
+    public String getCity() {
+<span class="nc" id="L61">        return city;</span>
+    }
+
+    @Schema(example = &quot;GB&quot;, description = &quot;The paying user’s country, displayed as a 2-character ISO-3166-1-alpha-2 code.&quot;)
+    public String getCountry() {
+<span class="nc" id="L66">        return country;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L72" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L73">        Address address = (Address) o;</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        return Objects.equals(line1, address.line1) &amp;&amp;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">                Objects.equals(line2, address.line2) &amp;&amp;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">                Objects.equals(postcode, address.postcode) &amp;&amp;</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                Objects.equals(city, address.city) &amp;&amp;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">                Objects.equals(country, address.country);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L83">        return Objects.hash(line1, line2, postcode, city, country);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreatePaymentRefundRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CreatePaymentRefundRequest.java</span></div><h1>CreatePaymentRefundRequest.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.Optional;
+
+@Schema(name = &quot;PaymentRefundRequest&quot;, description = &quot;The Payment Refund Request Payload&quot;)
+public class CreatePaymentRefundRequest {
+
+    public static final String REFUND_AMOUNT_AVAILABLE = &quot;refund_amount_available&quot;;
+    public static final int REFUND_MIN_VALUE = 1;
+
+    @Schema(description = &quot;The amount you want to [refund to your user]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/refunding_payments/) in pence.&quot;, required = true,
+            example = &quot;150000&quot;, minimum = &quot;1&quot;, maximum = &quot;10000000&quot;)
+    private int amount;
+    @JsonProperty(&quot;refund_amount_available&quot;)
+    @Schema(description = &quot;Amount in pence. Total amount still available before issuing the refund&quot;, required = false,
+            example = &quot;200000&quot;, minimum = &quot;1&quot;, maximum = &quot;10000000&quot;)
+    private Integer refundAmountAvailable;
+
+<span class="nc" id="L23">    public CreatePaymentRefundRequest() {</span>
+<span class="nc" id="L24">    }</span>
+
+<span class="nc" id="L26">    public CreatePaymentRefundRequest(int amount, Integer refundAmountAvailable) {</span>
+<span class="nc" id="L27">        this.amount = amount;</span>
+<span class="nc" id="L28">        this.refundAmountAvailable = refundAmountAvailable;</span>
+<span class="nc" id="L29">    }</span>
+
+    public int getAmount() {
+<span class="nc" id="L32">        return amount;</span>
+    }
+
+    /**
+     * This field should be made compulsory at a later stage
+     *
+     * @return
+     */
+    public Optional&lt;Integer&gt; getRefundAmountAvailable() {
+<span class="nc" id="L41">        return Optional.ofNullable(refundAmountAvailable);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L46">        return &quot;CreatePaymentRefundRequest{&quot; +</span>
+                &quot;amount=&quot; + amount +
+                &quot;, refundAmountAvailable=&quot; + refundAmountAvailable +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

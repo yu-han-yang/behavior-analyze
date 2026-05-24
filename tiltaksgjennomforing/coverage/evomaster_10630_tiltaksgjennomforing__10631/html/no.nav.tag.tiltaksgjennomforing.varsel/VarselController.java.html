@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VarselController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel</a> &gt; <span class="el_source">VarselController.java</span></div><h1>VarselController.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel;
+
+import io.micrometer.core.annotation.Timed;
+import lombok.RequiredArgsConstructor;
+import no.nav.security.token.support.core.api.Protected;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggingService;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtale;
+import no.nav.tag.tiltaksgjennomforing.avtale.AvtaleRepository;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalepart;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalerolle;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
+
+@Protected
+@RestController
+@RequestMapping(&quot;/varsler&quot;)
+@Timed
+<span class="fc" id="L22">@RequiredArgsConstructor</span>
+public class VarselController {
+    private final InnloggingService innloggingService;
+    private final VarselRepository varselRepository;
+    private final AvtaleRepository avtaleRepository;
+
+    @GetMapping(&quot;/oversikt&quot;)
+    public List&lt;Varsel&gt; hentVarslerMedBjelleForOversikt(
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L31">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L32">        return varselRepository.findAllByLestIsFalseAndBjelleIsTrueAndIdentifikatorIn(avtalepart.identifikatorer());</span>
+    }
+
+    @GetMapping(&quot;/avtale-modal&quot;)
+    public List&lt;Varsel&gt; hentVarslerMedBjelleForAvtale(
+            @RequestParam(value = &quot;avtaleId&quot;) UUID avtaleId, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L38">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L39">        return varselRepository.findAllByLestIsFalseAndBjelleIsTrueAndAvtaleIdAndIdentifikatorIn(avtaleId, avtalepart.identifikatorer());</span>
+    }
+
+    @GetMapping(&quot;/avtale-logg&quot;)
+    public List&lt;Varsel&gt; hentAlleVarslerForAvtale(
+            @RequestParam(value = &quot;avtaleId&quot;) UUID avtaleId, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L45">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L46">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow();</span>
+<span class="nc" id="L47">        avtalepart.sjekkTilgang(avtale);</span>
+<span class="nc" id="L48">        return varselRepository.findAllByAvtaleIdAndMottaker(avtaleId, innloggetPart);</span>
+    }
+
+    @PostMapping(&quot;{varselId}/sett-til-lest&quot;)
+    @Transactional
+    public ResponseEntity&lt;?&gt; settTilLest(@PathVariable(&quot;varselId&quot;) UUID varselId, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L54">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L55">        Varsel varsel = varselRepository.findByIdAndIdentifikatorIn(varselId, avtalepart.identifikatorer());</span>
+<span class="nc" id="L56">        varsel.settTilLest();</span>
+<span class="nc" id="L57">        varselRepository.save(varsel);</span>
+<span class="nc" id="L58">        return ResponseEntity.ok().build();</span>
+    }
+
+    @PostMapping(&quot;/sett-alle-til-lest&quot;)
+    @Transactional
+    public ResponseEntity&lt;?&gt; settFlereVarslerTilLest(@RequestBody List&lt;UUID&gt; varselIder, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L64">        varselIder.forEach(varselId -&gt; settTilLest(varselId, innloggetPart));</span>
+<span class="nc" id="L65">        return ResponseEntity.ok().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

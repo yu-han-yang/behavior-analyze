@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrintingSchemaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.consumer</a> &gt; <span class="el_source">PrintingSchemaController.java</span></div><h1>PrintingSchemaController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.consumer;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.PrintingSchema;
+import io.github.proxyprint.kitchen.models.repositories.ConsumerDAO;
+import io.github.proxyprint.kitchen.models.repositories.PrintingSchemaDAO;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Set;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
+
+/**
+ * Created by daniel on 28-04-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L28">public class PrintingSchemaController {</span>
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private PrintingSchemaDAO printingSchemas;
+    @Autowired
+    private Gson GSON;
+
+    /**
+     * Get all the consumer's PrintingSchemas.
+     * @param id, the id of the consumer.
+     * @return set of the printing schemas belonging to the consumer matched by the id.
+     */
+    @ApiOperation(value = &quot;Returns a set of the printing schemas.&quot;, notes = &quot;This method allows consumers to get his PrintingSchemas.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/{consumerID}/printingschemas&quot;, method = RequestMethod.GET)
+    public String getConsumerPrintingSchemas(@PathVariable(value = &quot;consumerID&quot;) long id) {
+<span class="nc" id="L45">        Set&lt;PrintingSchema&gt; consumerSchemas = consumers.findOne(id).getPrintingSchemas();</span>
+<span class="nc" id="L46">        JsonObject response = new JsonObject();</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if(consumerSchemas!=null) {</span>
+<span class="nc" id="L48">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L49">            response.add(&quot;pschemas&quot;,GSON.toJsonTree(consumerSchemas));</span>
+<span class="nc" id="L50">            return GSON.toJson(response);</span>
+        } else {
+<span class="nc" id="L52">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L53">            return GSON.toJson(response);</span>
+        }
+    }
+
+    /**
+     * Add a new PrintingSchema to user's printing schemas collection.
+     * Test
+     * curl --data &quot;name=MyFancySchema&amp;bindingSpecs=SPIRAL&amp;coverSpecs=CRISTAL_ACETATE&amp;paperSpecs=COLOR,A4,SIMPLEX&quot; -u joao:1234 localhost:8080/consumer/1001/printingschemas
+     * @param id, the id of the consumer.
+     * @param ps, the PrintingSchema created by the consumer.
+     * @return HttpStatus.OK if everything went well.
+     */
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to add a new printing schema to his printing schemas collection.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/{consumerID}/printingschemas&quot;, method = RequestMethod.POST)
+    public String addNewConsumerPrintingSchema(@PathVariable(value = &quot;consumerID&quot;) long id, @RequestBody PrintingSchema ps) {
+<span class="fc" id="L69">        JsonObject obj = new JsonObject();</span>
+<span class="fc" id="L70">        Consumer c = consumers.findOne(id);</span>
+<span class="fc" id="L71">        PrintingSchema addedPS = printingSchemas.save(ps);</span>
+<span class="nc" id="L72">        boolean res = c.addPrintingSchema(addedPS);</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if(res) {</span>
+<span class="nc" id="L74">            consumers.save(c);</span>
+<span class="nc" id="L75">            obj.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L76">            obj.addProperty(&quot;id&quot;, addedPS.getId());</span>
+<span class="nc" id="L77">            return GSON.toJson(obj);</span>
+        } else {
+<span class="nc" id="L79">            obj.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L80">            return GSON.toJson(obj);</span>
+        }
+    }
+
+    /**
+     * Delete a PrintingSchema.
+     * Test
+     * curl -u joao:1234 -X DELETE localhost:8080/consumer/1001/printingschemas/{printingSchemaID}
+     * @param cid, the id of the consumer.
+     * @param psid, the id of the printing schema to delete.
+     * @return HttpStatus.OK if everything went well.
+     */
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to delete a printing schema from his printing schemas collection.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/{consumerID}/printingschemas/{printingSchemaID}&quot;, method = RequestMethod.DELETE)
+    public String deleteConsumerPrintingSchema(@PathVariable(value = &quot;consumerID&quot;) long cid, @PathVariable(value = &quot;printingSchemaID&quot;) long psid) {
+<span class="fc" id="L96">        JsonObject obj = new JsonObject();</span>
+<span class="fc" id="L97">        PrintingSchema ps = printingSchemas.findOne(psid);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if(!ps.isDeleted()) {</span>
+<span class="nc" id="L99">            ps.delete();</span>
+<span class="nc" id="L100">            printingSchemas.save(ps);</span>
+<span class="nc" id="L101">            obj.addProperty(&quot;success&quot;, true);</span>
+        } else {
+<span class="nc" id="L103">            obj.addProperty(&quot;false&quot;, true);</span>
+        }
+<span class="nc" id="L105">        return GSON.toJson(obj);</span>
+    }
+
+    /**
+     * Edit an existing PrintingSchema.
+     * Test
+     * curl -X PUT --data &quot;name=MyFancyEditedSchema&amp;bindingSpecs=STAPLING&amp;paperSpecs=COLOR,A4,SIMPLEX&quot; -u joao:1234 localhost:8080/consumer/1001/printingschemas/{printingSchemaID}
+     * @param cid, the id of the consumer.
+     * @param psid, the PrintingSchema id.
+     * @return HttpStatus.OK if everything went well.
+     */
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to edit a printing schema from his printing schemas collection.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/{consumerID}/printingschemas/{printingSchemaID}&quot;, method = RequestMethod.PUT)
+    public ResponseEntity&lt;String&gt; editConsumerPrintingSchema(@PathVariable(value = &quot;consumerID&quot;) long cid, @PathVariable(value = &quot;printingSchemaID&quot;) long psid, @RequestBody PrintingSchema pschema) {
+<span class="fc" id="L120">        PrintingSchema ps = printingSchemas.findOne(psid);</span>
+<span class="nc" id="L121">        ps.setBindingSpecs(pschema.getBindingSpecs());</span>
+<span class="nc" id="L122">        ps.setCoverSpecs(pschema.getCoverSpecs());</span>
+<span class="nc" id="L123">        ps.setName(pschema.getName());</span>
+<span class="nc" id="L124">        ps.setPaperSpecs(pschema.getPaperSpecs());</span>
+
+<span class="nc" id="L126">        JsonObject obj = new JsonObject();</span>
+
+<span class="nc" id="L128">        PrintingSchema res = printingSchemas.save(ps);</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if(res!=null) {</span>
+<span class="nc" id="L130">            obj.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L131">             return new ResponseEntity&lt;&gt;(GSON.toJson(obj), HttpStatus.OK);</span>
+        } else {
+<span class="nc" id="L133">            obj.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L134">             return new ResponseEntity&lt;&gt;(GSON.toJson(obj), HttpStatus.INTERNAL_SERVER_ERROR);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

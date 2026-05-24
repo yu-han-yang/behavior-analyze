@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchChargesExceptionMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.exception.mapper</a> &gt; <span class="el_source">SearchChargesExceptionMapper.java</span></div><h1>SearchChargesExceptionMapper.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.exception.mapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.exception.SearchPaymentsException;
+import uk.gov.pay.api.model.RequestError;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+
+import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static uk.gov.pay.api.model.RequestError.Code.SEARCH_PAYMENTS_CONNECTOR_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.SEARCH_PAYMENTS_NOT_FOUND;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+
+<span class="fc" id="L17">public class SearchChargesExceptionMapper implements ExceptionMapper&lt;SearchPaymentsException&gt; {</span>
+<span class="fc" id="L18">    private static final Logger LOGGER = LoggerFactory.getLogger(SearchChargesExceptionMapper.class);</span>
+
+    @Override
+    public Response toResponse(SearchPaymentsException exception) {
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        if (exception.getErrorStatus() == NOT_FOUND.getStatusCode()) {</span>
+<span class="nc" id="L23">            return Response</span>
+<span class="nc" id="L24">                    .status(NOT_FOUND)</span>
+<span class="nc" id="L25">                    .entity(aRequestError(SEARCH_PAYMENTS_NOT_FOUND))</span>
+<span class="nc" id="L26">                    .build();</span>
+        }
+        else {
+<span class="nc" id="L29">            RequestError requestError = aRequestError(SEARCH_PAYMENTS_CONNECTOR_ERROR);</span>
+<span class="nc" id="L30">            final Response.Status status = INTERNAL_SERVER_ERROR;</span>
+<span class="nc" id="L31">            LOGGER.error(&quot;Connector response was {}.\n Returning http status {} with error body {}&quot;, exception.getMessage(), status, requestError);</span>
+<span class="nc" id="L32">            return Response</span>
+<span class="nc" id="L33">                    .status(status)</span>
+<span class="nc" id="L34">                    .entity(requestError)</span>
+<span class="nc" id="L35">                    .build();</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

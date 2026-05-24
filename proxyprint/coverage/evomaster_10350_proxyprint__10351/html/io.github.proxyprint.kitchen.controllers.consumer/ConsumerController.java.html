@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsumerController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.consumer</a> &gt; <span class="el_source">ConsumerController.java</span></div><h1>ConsumerController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.consumer;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+import io.github.proxyprint.kitchen.models.Admin;
+import io.github.proxyprint.kitchen.models.Money;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.Document;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.DocumentSpec;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.BudgetCalculator;
+import io.github.proxyprint.kitchen.models.repositories.*;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.security.Principal;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 04-04-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L48">public class ConsumerController {</span>
+
+    @Resource(name = &quot;documentsPath&quot;)
+    private String documentsPath;
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private AdminDAO admin;
+    @Autowired
+    private PrintingSchemaDAO printingSchemas;
+    @Autowired
+    private DocumentDAO documents;
+    @Autowired
+    private PrintShopDAO printShops;
+    @Autowired
+    private PrintRequestDAO printrequests;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns success/insuccess&quot;, notes = &quot;This method allows consumer registration.&quot;)
+    @RequestMapping(value = &quot;/consumer/register&quot;, method = RequestMethod.POST)
+    public String addUser(WebRequest request) {
+<span class="fc" id="L70">        boolean success = false;</span>
+
+<span class="fc" id="L72">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L73">        String username = request.getParameter(&quot;username&quot;);</span>
+<span class="fc" id="L74">        Consumer c = consumers.findByUsername(username);</span>
+
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">        if (c == null) {</span>
+<span class="fc" id="L77">            String password = request.getParameter(&quot;password&quot;);</span>
+<span class="fc" id="L78">            String email = request.getParameter(&quot;email&quot;);</span>
+<span class="fc" id="L79">            String name = request.getParameter(&quot;name&quot;);</span>
+<span class="fc" id="L80">            String lat = request.getParameter(&quot;latitude&quot;);</span>
+<span class="fc" id="L81">            String lon = request.getParameter(&quot;longitude&quot;);</span>
+<span class="fc" id="L82">            c = new Consumer(name, username, password, email, lat, lon);</span>
+<span class="fc" id="L83">            consumers.save(c);</span>
+<span class="fc" id="L84">            response.add(&quot;consumer&quot;, GSON.toJsonTree(c));</span>
+<span class="fc" id="L85">            success = true;</span>
+<span class="fc" id="L86">        } else {</span>
+<span class="nc" id="L87">            response.addProperty(&quot;error&quot;, &quot;O username já se encontra em uso.&quot;);</span>
+<span class="nc" id="L88">            success = false;</span>
+        }
+
+<span class="fc" id="L91">        response.addProperty(&quot;success&quot;, success);</span>
+<span class="fc" id="L92">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns all the user information&quot;, notes = &quot;This method allows consumers to get their personal information.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/consumer/info&quot;, method = RequestMethod.GET)
+    public String getConsumerInfo(Principal principal) {
+<span class="fc" id="L99">        boolean success = false;</span>
+
+<span class="fc" id="L101">        JsonObject response = new JsonObject();</span>
+
+<span class="pc bpc" id="L103" title="1 of 2 branches missed.">        if(principal.getName()!=null) {</span>
+<span class="fc" id="L104">            Consumer c = consumers.findByUsername(principal.getName());</span>
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">            if(c!=null) {</span>
+<span class="fc" id="L106">                response.add(&quot;consumer&quot;, GSON.toJsonTree(c));</span>
+<span class="fc" id="L107">                success = true;</span>
+            }
+        }
+<span class="fc" id="L110">        response.addProperty(&quot;success&quot;, success);</span>
+<span class="fc" id="L111">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Updates the consumer information&quot;, notes = &quot;This method allows consumers to update their personal information.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/consumer/info/update&quot;, method = RequestMethod.PUT)
+    public String updateConsumerInfo(Principal principal, HttpServletRequest request) {
+<span class="fc" id="L118">        boolean success = false;</span>
+
+<span class="fc" id="L120">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L122">        String requestJSON = null;</span>
+<span class="fc" id="L123">        Consumer editedConsumer= null;</span>
+        try {
+<span class="fc" id="L125">            requestJSON = IOUtils.toString(request.getInputStream());</span>
+<span class="fc" id="L126">            editedConsumer = GSON.fromJson(requestJSON, Consumer.class);</span>
+<span class="nc" id="L127">        } catch (IOException e) {</span>
+<span class="nc" id="L128">            e.printStackTrace();</span>
+<span class="fc" id="L129">        }</span>
+
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if(principal.getName()!=null) {</span>
+<span class="fc" id="L132">            Consumer c = consumers.findByUsername(principal.getName());</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">            if(c!=null) {</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                if(!c.getName().equals(editedConsumer.getName())) {</span>
+<span class="fc" id="L135">                    c.setName(editedConsumer.getName());</span>
+                }
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">                if(!c.getUsername().equals(editedConsumer.getUsername())) {</span>
+<span class="fc" id="L138">                    c.setUsername(editedConsumer.getUsername());</span>
+                }
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                if(!c.getPassword().equals(editedConsumer.getPassword())) {</span>
+<span class="fc" id="L141">                    c.setPassword(editedConsumer.getPassword());</span>
+                }
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                if(!c.getEmail().equals(editedConsumer.getEmail())) {</span>
+<span class="fc" id="L144">                    c.setEmail(editedConsumer.getEmail());</span>
+                }
+<span class="fc" id="L146">                consumers.save(c);</span>
+<span class="fc" id="L147">                success = true;</span>
+            }
+        }
+<span class="fc" id="L150">        response.addProperty(&quot;success&quot;, success);</span>
+<span class="fc" id="L151">        return GSON.toJson(response);</span>
+    }
+
+    private void singleFileHandle(MultipartFile file, PrintRequest printRequest, Map&lt;String, Long&gt; documentsIds) {
+<span class="nc" id="L155">        String filetype = FilenameUtils.getExtension(file.getOriginalFilename());</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (!filetype.equals(&quot;pdf&quot;)) {</span>
+<span class="nc" id="L157">            return;</span>
+        }
+<span class="nc" id="L159">        String name = FilenameUtils.removeExtension(file.getOriginalFilename());</span>
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (!file.isEmpty()) {</span>
+            try {
+<span class="nc" id="L163">                PDDocument pdf = PDDocument.load(file.getInputStream());</span>
+<span class="nc" id="L164">                int count = pdf.getNumberOfPages();</span>
+<span class="nc" id="L165">                pdf.close();</span>
+
+<span class="nc" id="L167">                Document doc = new Document(name, count, printRequest);</span>
+<span class="nc" id="L168">                doc = this.documents.save(doc);</span>
+<span class="nc" id="L169">                printRequest.addDocument(doc);</span>
+<span class="nc" id="L170">                documentsIds.put(doc.getName() + &quot;.pdf&quot;, doc.getId());</span>
+
+<span class="nc" id="L172">                System.out.println();</span>
+<span class="nc" id="L173">                FileOutputStream fos = new FileOutputStream(new File(this.documentsPath+doc.getFile().getName()));</span>
+<span class="nc" id="L174">                IOUtils.copy(file.getInputStream(), fos);</span>
+<span class="nc" id="L175">                fos.close();</span>
+<span class="nc" id="L176">            } catch (IOException ex) {</span>
+<span class="nc" id="L177">                Logger.getLogger(ConsumerController.class.getName()).log(Level.SEVERE, null, ex);</span>
+<span class="nc" id="L178">            }</span>
+        } else {
+
+        }
+<span class="nc" id="L182">    }</span>
+
+    private Map&lt;Long, String&gt; calcBudgetsForPrintShops(List&lt;Long&gt; pshopIDs, PrintRequest printRequest) {
+<span class="nc" id="L185">        Map&lt;Long, String&gt; budgets = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L187">        Set&lt;Document&gt; prDocs = printRequest.getDocuments();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        for (long pshopID : pshopIDs) {</span>
+<span class="nc" id="L189">            PrintShop printShop = printShops.findOne(pshopID);</span>
+<span class="nc" id="L190">            BudgetCalculator budgetCalculator = new BudgetCalculator(printShop);</span>
+<span class="nc" id="L191">            float totalCost = 0; // In the future we may specifie the budget by file its easy!</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">            for (Document document : prDocs) {</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">                for (DocumentSpec documentSpec : document.getSpecs()) {</span>
+<span class="nc" id="L194">                    float specCost = 0;</span>
+<span class="nc bnc" id="L195" title="All 4 branches missed.">                    if (documentSpec.getFirstPage() != 0 &amp;&amp; documentSpec.getLastPage() != 0) {</span>
+                        // Partial calculation
+<span class="nc" id="L197">                        specCost = budgetCalculator.calculatePrice(documentSpec.getFirstPage(), documentSpec.getLastPage(), documentSpec.getPrintingSchema());</span>
+                    } else {
+                        // Total calculation
+<span class="nc" id="L200">                        specCost = budgetCalculator.calculatePrice(1, document.getTotalPages(), documentSpec.getPrintingSchema());</span>
+                    }
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                    if (specCost != -1) totalCost += specCost;</span>
+                    else {
+<span class="nc" id="L204">                        budgets.put(pshopID, &quot;Esta reprografia não pode satisfazer o pedido&quot;);</span>
+                    }
+<span class="nc" id="L206">                }</span>
+<span class="nc" id="L207">            }</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">            if (totalCost &gt; 0) budgets.put(pshopID, String.valueOf(totalCost)); // add to budgets</span>
+<span class="nc" id="L209">        }</span>
+
+<span class="nc" id="L211">        return budgets;</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to remove all notifications.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/consumer/{username}/notifications&quot;, method = RequestMethod.DELETE)
+    public ResponseEntity&lt;String&gt; deleteAllNotifications (@PathVariable(value = &quot;username&quot;) String username) {
+<span class="fc" id="L218">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L219">        Consumer c = consumers.findByUsername(username);</span>
+<span class="nc" id="L220">        c.removeAllNotifications();</span>
+<span class="nc" id="L221">        consumers.save(c);</span>
+
+<span class="nc" id="L223">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L224">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to mark as read all notifications.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value =&quot;/consumer/{username}/notifications&quot;, method = RequestMethod.PUT)
+    public ResponseEntity&lt;String&gt; readAllNotifications (@PathVariable(value = &quot;username&quot;) String username) {
+
+<span class="fc" id="L232">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L233">        Consumer c = consumers.findByUsername(username);</span>
+<span class="nc" id="L234">        c.readAllNotifications();</span>
+<span class="nc" id="L235">        consumers.save(c);</span>
+
+<span class="nc" id="L237">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L238">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns pending requests.&quot;, notes = &quot;This method retrieves to the consumer his pending requests.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/requests&quot;, method = RequestMethod.GET)
+    public String getRequests(Principal principal) {
+
+<span class="fc" id="L246">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L247">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">        if (consumer == null) {</span>
+<span class="nc" id="L250">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L251">            return GSON.toJson(response);</span>
+        }
+
+
+<span class="fc" id="L255">        List&lt;PrintRequest.Status&gt; status = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L256">        status.add(PrintRequest.Status.PENDING);</span>
+
+<span class="fc" id="L258">        List&lt;PrintRequest&gt; printRequestsList = printrequests.findByStatusInAndConsumer(status, consumer);</span>
+<span class="fc" id="L259">        Type listOfPRequests = new TypeToken&lt;List&lt;PrintShop&gt;&gt;(){}.getType();</span>
+
+<span class="fc" id="L261">        response.add(&quot;printrequests&quot;, GSON.toJsonTree(printRequestsList,listOfPRequests));</span>
+<span class="fc" id="L262">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L263">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows consumers to cancel a pending request.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/requests/cancel/{id}&quot;, method = RequestMethod.DELETE)
+    public String cancelRequests(@PathVariable(value = &quot;id&quot;) long id, Principal principal) {
+
+<span class="fc" id="L271">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L272">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        if (consumer == null) {</span>
+<span class="nc" id="L275">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L276">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L279">        PrintRequest printRequest = printrequests.findByIdInAndConsumer(id,consumer);</span>
+
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">        if (printRequest == null) {</span>
+<span class="fc" id="L282">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L283">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">        if(printRequest.getStatus() == PrintRequest.Status.PENDING){</span>
+
+<span class="nc" id="L288">            PrintShop p = printRequest.getPrintshop();</span>
+<span class="nc" id="L289">            p.getPrintRequests().remove(printRequest);</span>
+<span class="nc" id="L290">            printShops.save(p);</span>
+
+<span class="nc" id="L292">            consumer.getPrintRequests().remove(printRequest);</span>
+
+            // Refund consumer with proxyprint money :D
+<span class="nc" id="L295">            Admin master = admin.findAll().iterator().next();</span>
+<span class="nc" id="L296">            double returnQuantity = printRequest.getCost();</span>
+<span class="nc" id="L297">            master.getBalance().subtractDoubleQuantity(returnQuantity);</span>
+<span class="nc" id="L298">            admin.save(master);</span>
+<span class="nc" id="L299">            consumer.getBalance().addDoubleQuantity(returnQuantity);</span>
+<span class="nc" id="L300">            consumers.save(consumer);</span>
+
+<span class="nc" id="L302">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L303">        } else{</span>
+<span class="nc" id="L304">            response.addProperty(&quot;success&quot;, false);</span>
+        }
+
+<span class="nc" id="L307">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns satisfied requests.&quot;, notes = &quot;This method retrieves the history of satisfied requests from a consumer.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/satisfied&quot;, method = RequestMethod.GET)
+    public String getPrintShopSatisfiedRequests(Principal principal) {
+<span class="fc" id="L314">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L316">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">        if (consumer == null) {</span>
+<span class="nc" id="L319">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L320">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L323">        List&lt;PrintRequest.Status&gt; status = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L324">        status.add(PrintRequest.Status.FINISHED);</span>
+<span class="fc" id="L325">        status.add(PrintRequest.Status.LIFTED);</span>
+
+<span class="fc" id="L327">        List&lt;PrintRequest&gt; printRequestsList = printrequests.findByStatusInAndConsumer(status, consumer);</span>
+
+<span class="fc" id="L329">        JsonArray jsonArray = new JsonArray();</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">        for (PrintRequest satisfiedRequest : printRequestsList){</span>
+<span class="fc" id="L331">            JsonObject aux = new JsonObject();</span>
+<span class="fc" id="L332">            aux.add(&quot;printrequest&quot;, GSON.toJsonTree(satisfiedRequest));</span>
+<span class="nc" id="L333">            aux.addProperty(&quot;printshop&quot;, satisfiedRequest.getPrintshop().getName());</span>
+<span class="nc" id="L334">            jsonArray.add(aux);</span>
+<span class="nc" id="L335">        }</span>
+
+<span class="nc" id="L337">        response.add(&quot;satisfiedrequests&quot;, jsonArray);</span>
+<span class="nc" id="L338">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L339">        return GSON.toJson(response);</span>
+    }
+
+
+    @ApiOperation(value = &quot;Returns a certain consumer's balance.&quot;, notes = &quot;Returns the consumer's balance, normaly used for update purposes.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/consumer/balance&quot;, method = RequestMethod.GET)
+    public String getConsumerBalance(Principal principal) {
+<span class="fc" id="L347">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L348">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        if (consumer != null) {</span>
+<span class="fc" id="L350">            Money balance = consumer.getBalance();</span>
+<span class="fc" id="L351">            response.add(&quot;balance&quot;, GSON.toJsonTree(balance));</span>
+<span class="fc" id="L352">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L353">            return GSON.toJson(response);</span>
+        }
+<span class="nc" id="L355">        response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L356">        return GSON.toJson(response);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionServiceController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">org.cbioportal.session_service.web</a> &gt; <span class="el_source">SessionServiceController.java</span></div><h1>SessionServiceController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Memorial Sloan-Kettering Cancer Center.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS
+ * FOR A PARTICULAR PURPOSE. The software and documentation provided hereunder
+ * is on an &quot;as is&quot; basis, and Memorial Sloan-Kettering Cancer Center has no
+ * obligations to provide maintenance, support, updates, enhancements or
+ * modifications. In no event shall Memorial Sloan-Kettering Cancer Center be
+ * liable to any party for direct, indirect, special, incidental or
+ * consequential damages, including lost profits, arising out of the use of this
+ * software and its documentation, even if Memorial Sloan-Kettering Cancer
+ * Center has been advised of the possibility of such damage.
+ */
+
+/*
+ * This file is part of cBioPortal Session Service.
+ *
+ * cBioPortal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+*/
+
+package org.cbioportal.session_service.web;
+
+import org.cbioportal.session_service.domain.*;
+import org.cbioportal.session_service.service.exception.*;
+import org.cbioportal.session_service.service.SessionService;
+
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
+import io.swagger.annotations.ApiParam;
+
+import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * @author Manda Wilson 
+ */
+@RestController // shorthand for @Controller, @ResponseBody
+@RequestMapping(value = &quot;/api/sessions/&quot;)
+@EnableWebSecurity
+<span class="fc" id="L65">public class SessionServiceController  extends WebSecurityConfigurerAdapter {</span>
+    @Value(&quot;${security.basic.enabled:false}&quot;)
+    private boolean securityEnabled;
+
+    @Autowired
+    private SessionService sessionService;
+
+    @RequestMapping(method = RequestMethod.POST, value=&quot;/{source}/{type}&quot;)
+    @JsonView(Session.Views.IdOnly.class)
+    public Session addSession(@PathVariable String source, 
+        @PathVariable SessionType type, 
+        @RequestBody String data) { 
+<span class="fc" id="L77">        return sessionService.addSession(source, type, data);</span>
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value=&quot;/{source}/{type}&quot;)
+    @JsonView(Session.Views.Full.class)
+    public Iterable&lt;Session&gt; getSessions(@PathVariable String source, 
+        @PathVariable SessionType type) {
+<span class="fc" id="L84">        return sessionService.getSessions(source, type);</span>
+    }
+    
+    @RequestMapping(method = RequestMethod.GET, value=&quot;/{source}/{type}/query&quot;)
+    @JsonView(Session.Views.Full.class)
+    public Iterable&lt;Session&gt; getSessionsByQuery(@PathVariable String source, 
+        @PathVariable SessionType type, 
+        @RequestParam(name=&quot;field&quot;) String field,
+        @RequestParam(name=&quot;value&quot;) String value) {
+<span class="fc" id="L93">        String query = &quot;{\&quot;&quot;+field+&quot;\&quot;:\&quot;&quot;+value+&quot;\&quot;}&quot;;</span>
+<span class="fc" id="L94">        return sessionService.getSessionsByQuery(source, type, query);</span>
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = &quot;/{source}/{type}/query/fetch&quot;)
+    @JsonView(Session.Views.Full.class)
+    public Iterable&lt;Session&gt; fetchSessionsByQuery(@PathVariable String source,
+            @PathVariable SessionType type,
+            @ApiParam(required = true, value = &quot;selection filter similar to mongo filter&quot;)
+            @RequestBody String query) {
+<span class="nc" id="L103">        return sessionService.getSessionsByQuery(source, type, query);</span>
+    }
+
+    @RequestMapping(value = &quot;/{source}/{type}/{id}&quot;, method = RequestMethod.GET)
+    @JsonView(Session.Views.Full.class)
+    public Session getSession(@PathVariable String source, 
+        @PathVariable SessionType type,
+        @PathVariable String id) {
+<span class="fc" id="L111">        return sessionService.getSession(source, type, id);</span>
+    }
+
+    @RequestMapping(value = &quot;/{source}/{type}/{id}&quot;, method = RequestMethod.PUT)
+    public void updateSession(@PathVariable String source, 
+        @PathVariable SessionType type,
+        @PathVariable String id, 
+        @RequestBody String data) {
+<span class="nc" id="L119">        sessionService.updateSession(source, type, id, data);</span>
+<span class="nc" id="L120">    }</span>
+
+    @RequestMapping(value = &quot;/{source}/{type}/{id}&quot;, method = RequestMethod.DELETE)
+    public void deleteSession(@PathVariable String source, 
+        @PathVariable SessionType type,
+        @PathVariable String id) {
+<span class="nc" id="L126">        sessionService.deleteSession(source, type, id);</span>
+<span class="nc" id="L127">    } </span>
+
+    @ExceptionHandler
+    public void handleSessionInvalid(SessionInvalidException e, HttpServletResponse response) 
+        throws IOException {
+<span class="fc" id="L132">        response.sendError(HttpStatus.BAD_REQUEST.value(), e.getMessage());</span>
+<span class="fc" id="L133">    }</span>
+
+    @ExceptionHandler
+    public void handleSessionQueryInvalid(SessionQueryInvalidException e, HttpServletResponse response) 
+        throws IOException {
+<span class="fc" id="L138">        response.sendError(HttpStatus.BAD_REQUEST.value(), e.getMessage());</span>
+<span class="fc" id="L139">    }</span>
+    
+    @ResponseStatus(code = HttpStatus.NOT_FOUND, reason = &quot;Session not found&quot;)
+    @ExceptionHandler(SessionNotFoundException.class)
+<span class="fc" id="L143">    public void handleSessionNotFound() {}</span>
+    
+    @ExceptionHandler
+    public void handleSessionTypeInvalid(MethodArgumentTypeMismatchException e, HttpServletResponse response)
+            throws IOException {
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">        if (e.getRequiredType() == SessionType.class) {</span>
+<span class="fc" id="L149">            List&lt;String&gt; validTypes = Stream.of(SessionType.values()).map(Enum::name).collect(Collectors.toList());</span>
+<span class="fc" id="L150">            response.sendError(HttpStatus.BAD_REQUEST.value(), &quot;valid types are: &quot; + String.join(&quot;, &quot;, validTypes));</span>
+<span class="fc" id="L151">        } else {</span>
+<span class="nc" id="L152">            response.sendError(HttpStatus.BAD_REQUEST.value(), e.getMessage());</span>
+        }
+<span class="fc" id="L154">    }</span>
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">        if (securityEnabled) {</span>
+<span class="nc" id="L159">            http</span>
+<span class="nc" id="L160">                .csrf().disable()</span>
+<span class="nc" id="L161">                .authorizeRequests()</span>
+<span class="nc" id="L162">                .antMatchers(&quot;/info&quot;).permitAll()</span>
+<span class="nc" id="L163">                .anyRequest().authenticated()</span>
+<span class="nc" id="L164">                .and().httpBasic();</span>
+        } else {
+<span class="fc" id="L166">            http</span>
+<span class="fc" id="L167">                .csrf().disable()</span>
+<span class="fc" id="L168">                .authorizeRequests()</span>
+<span class="fc" id="L169">                .antMatchers(&quot;/**&quot;)</span>
+<span class="fc" id="L170">                .permitAll();</span>
+
+        }
+<span class="fc" id="L173">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OppgaveRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.oppgave</a> &gt; <span class="el_source">OppgaveRequest.java</span></div><h1>OppgaveRequest.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.oppgave;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import no.nav.tag.tiltaksgjennomforing.avtale.Tiltakstype;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+
+import java.time.LocalDate;
+
+<span class="nc bnc" id="L11" title="All 70 branches missed.">@Data</span>
+<span class="nc" id="L12">@AllArgsConstructor</span>
+public class OppgaveRequest {
+
+    private final static String BESKRIVELSE = &quot;Avtale er opprettet av arbeidsgiver på tiltak %s. Se avtalen under filteret 'Ufordelte' i https://tiltaksgjennomforing.intern.nav.no/tiltaksgjennomforing&quot;;
+    private final static String TEMA = &quot;TIL&quot;;
+    private final static String HOY_PRI = &quot;NORM&quot;;
+    private final static String OPPG_TYPE = &quot;VURD_HENV&quot;;
+    private final static String BEHANDLINGSTYPE = &quot;ae0034&quot;;
+
+<span class="nc" id="L21">    private final String beskrivelse;</span>
+<span class="nc" id="L22">    private final String tema = TEMA;</span>
+<span class="nc" id="L23">    private final String prioritet = HOY_PRI;</span>
+<span class="nc" id="L24">    private final String oppgavetype = OPPG_TYPE;</span>
+<span class="nc" id="L25">    private final String behandlingstype = BEHANDLINGSTYPE;</span>
+<span class="nc" id="L26">    private final String behandlingstema;</span>
+
+<span class="nc" id="L28">    @JsonFormat(pattern = &quot;yyyy-MM-dd&quot;)</span>
+<span class="nc" id="L29">    private final LocalDate aktivDato = Now.localDate();</span>
+<span class="nc" id="L30">    private final String aktoerId;</span>
+
+<span class="nc" id="L32">    public OppgaveRequest(String aktørId, Tiltakstype tiltakstype) {</span>
+<span class="nc" id="L33">        this.aktoerId = aktørId;</span>
+<span class="nc" id="L34">        this.behandlingstema = tiltakstype.getBehandlingstema();</span>
+<span class="nc" id="L35">        this.beskrivelse = String.format(BESKRIVELSE, tiltakstype.getBeskrivelse());</span>
+<span class="nc" id="L36">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

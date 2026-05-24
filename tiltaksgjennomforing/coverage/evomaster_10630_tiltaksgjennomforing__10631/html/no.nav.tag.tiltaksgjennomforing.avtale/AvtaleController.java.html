@@ -1,0 +1,760 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AvtaleController.java</span></div><h1>AvtaleController.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import io.micrometer.core.annotation.Timed;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.security.token.support.core.api.Protected;
+import no.nav.tag.tiltaksgjennomforing.ApiBeskrivelse;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggingService;
+import no.nav.tag.tiltaksgjennomforing.dokgen.DokgenService;
+import no.nav.tag.tiltaksgjennomforing.enhet.Norg2Client;
+import no.nav.tag.tiltaksgjennomforing.enhet.VeilarbArenaClient;
+import no.nav.tag.tiltaksgjennomforing.exceptions.Feilkode;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilkodeException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.RessursFinnesIkkeException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.TiltaksgjennomforingException;
+import no.nav.tag.tiltaksgjennomforing.okonomi.KontoregisterService;
+import no.nav.tag.tiltaksgjennomforing.orgenhet.EregService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import static java.util.Map.entry;
+import static no.nav.tag.tiltaksgjennomforing.avtale.AvtaleSorterer.getSortingOrderForPageable;
+import static no.nav.tag.tiltaksgjennomforing.utils.Utils.lagUri;
+
+@Protected
+@RestController
+@RequestMapping(&quot;/avtaler&quot;)
+@Timed
+<span class="fc" id="L40">@Slf4j</span>
+<span class="fc" id="L41">@RequiredArgsConstructor</span>
+public class AvtaleController {
+
+    private final AvtaleRepository avtaleRepository;
+    private final AvtaleInnholdRepository avtaleInnholdRepository;
+    private final ArenaRyddeAvtaleRepository arenaRyddeAvtaleRepository;
+    private final InnloggingService innloggingService;
+    private final EregService eregService;
+    private final Norg2Client norg2Client;
+    private final KontoregisterService kontoregisterService;
+    private final DokgenService dokgenService;
+    private final TilskuddsperiodeConfig tilskuddsperiodeConfig;
+    private final SalesforceKontorerConfig salesforceKontorerConfig;
+    private final VeilarbArenaClient veilarbArenaClient;
+    private final FilterSokRepository filterSokRepository;
+
+    @ApiBeskrivelse(&quot;Hent detaljer for avtale om arbeidsmarkedstiltak&quot;)
+    @GetMapping(&quot;/{avtaleId}&quot;)
+    public Avtale hent(@PathVariable(&quot;avtaleId&quot;) UUID id, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L60">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L61">        return avtalepart.hentAvtale(avtaleRepository, id);</span>
+    }
+
+    @GetMapping(&quot;/{avtaleId}/vis-salesforce-dialog&quot;)
+    public Boolean visSalesforceDialog(@PathVariable(&quot;avtaleId&quot;) UUID id, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L66">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L67">        Avtale avtale = avtalepart.hentAvtale(avtaleRepository, id);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if(salesforceKontorerConfig.getEnheter().contains(avtale.getEnhetOppfolging()) &amp;&amp;</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">                avtale.getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD &amp;&amp;</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">                (avtale.statusSomEnum() == Status.GJENNOMFØRES || avtale.statusSomEnum() == Status.AVSLUTTET)) {</span>
+<span class="nc" id="L71">            return true;</span>
+        }
+<span class="nc" id="L73">        return false;</span>
+    }
+
+    @ApiBeskrivelse(&quot;Hent detaljer for avtale om arbeidsmarkedstiltak&quot;)
+    @GetMapping(&quot;/avtaleNr/{avtaleNr}&quot;)
+    public Avtale hentFraAvtaleNr(@PathVariable(&quot;avtaleNr&quot;) int avtaleNr, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L79">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L80">        return avtalepart.hentAvtaleFraAvtaleNr(avtaleRepository, avtaleNr);</span>
+    }
+
+    @GetMapping(&quot;/{avtaleId}/versjoner&quot;)
+    public List&lt;AvtaleInnhold&gt; hentVersjoner(
+            @PathVariable(&quot;avtaleId&quot;) UUID id,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L88">        return innloggingService</span>
+<span class="nc" id="L89">                .hentAvtalepart(innloggetPart)</span>
+<span class="nc" id="L90">                .hentAvtaleVersjoner(</span>
+                        avtaleRepository,
+                        avtaleInnholdRepository,
+                        id
+                );
+    }
+
+    @ApiBeskrivelse(&quot;Hent liste over avtaler om arbeidsmarkedstiltak&quot;)
+    @GetMapping
+    @Timed(percentiles = {0.5d, 0.75d, 0.9d, 0.99d, 0.999d})
+    public Map&lt;String, Object&gt; hentAlleAvtalerInnloggetBrukerHarTilgangTil(
+
+            AvtalePredicate queryParametre,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart,
+            @RequestParam(value = &quot;sorteringskolonne&quot;, required = false, defaultValue = Avtale.Fields.sistEndret) String sorteringskolonne,
+            @RequestParam(value = &quot;page&quot;, required = false, defaultValue = &quot;0&quot;) Integer page,
+            @RequestParam(value = &quot;size&quot;, required = false, defaultValue = &quot;10&quot;) Integer size
+    ) {
+<span class="nc" id="L108">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L109">        Pageable pageable = PageRequest.of(Math.abs(page), Math.abs(size), Sort.by(getSortingOrderForPageable(sorteringskolonne)));</span>
+<span class="nc" id="L110">        Map&lt;String, Object&gt; avtaler = avtalepart.hentAlleAvtalerMedLesetilgang(</span>
+                avtaleRepository,
+                queryParametre,
+                sorteringskolonne,
+                pageable
+
+        );
+<span class="nc" id="L117">        return avtaler;</span>
+    }
+
+    @ApiBeskrivelse(&quot;Hent liste over avtaler om arbeidsmarkedstiltak&quot;)
+    @GetMapping(&quot;/sok&quot;)
+    @Timed(percentiles = {0.5d, 0.75d, 0.9d, 0.99d, 0.999d})
+    public Map&lt;String, Object&gt; hentAlleAvtalerInnloggetBrukerHarTilgangTilMedGet(
+            @RequestParam(value = &quot;sokId&quot;) String filterSokId,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart,
+            @RequestParam(value = &quot;sorteringskolonne&quot;, required = false, defaultValue = Avtale.Fields.sistEndret) String sorteringskolonne,
+            @RequestParam(value = &quot;page&quot;, required = false, defaultValue = &quot;0&quot;) Integer page,
+            @RequestParam(value = &quot;size&quot;, required = false, defaultValue = &quot;10&quot;) Integer size
+    ) {
+<span class="nc" id="L130">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+
+<span class="nc" id="L132">        FilterSok filterSok = filterSokRepository.findFilterSokBySokId(filterSokId).orElse(null);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (filterSok != null) {</span>
+<span class="nc" id="L134">            filterSok.setAntallGangerSokt(filterSok.getAntallGangerSokt() + 1);</span>
+<span class="nc" id="L135">            filterSok.setSistSoktTidspunkt(LocalDateTime.now());</span>
+<span class="nc" id="L136">            filterSokRepository.save(filterSok);</span>
+<span class="nc" id="L137">            AvtalePredicate avtalePredicate = filterSok.getAvtalePredicate();</span>
+
+<span class="nc" id="L139">            Pageable pageable = PageRequest.of(Math.abs(page), Math.abs(size), Sort.by(getSortingOrderForPageable(sorteringskolonne)));</span>
+<span class="nc" id="L140">            Map&lt;String, Object&gt; avtaler = avtalepart.hentAlleAvtalerMedLesetilgang(</span>
+                    avtaleRepository,
+                    avtalePredicate,
+                    sorteringskolonne,
+                    pageable
+
+            );
+<span class="nc" id="L147">            HashMap&lt;String, Object&gt; stringObjectHashMap = new HashMap&lt;&gt;(avtaler);</span>
+<span class="nc" id="L148">            stringObjectHashMap.put(&quot;sokeParametere&quot;, avtalePredicate);</span>
+<span class="nc" id="L149">            stringObjectHashMap.put(&quot;sokId&quot;, filterSok.getSokId());</span>
+<span class="nc" id="L150">            stringObjectHashMap.put(&quot;sorteringskolonne&quot;, sorteringskolonne);</span>
+<span class="nc" id="L151">            return stringObjectHashMap;</span>
+
+        } else {
+<span class="nc" id="L154">            return Map.ofEntries(</span>
+<span class="nc" id="L155">                    entry(&quot;avtaler&quot;, List.of()),</span>
+<span class="nc" id="L156">                    entry(&quot;size&quot;, 0),</span>
+<span class="nc" id="L157">                    entry(&quot;currentPage&quot;, 0),</span>
+<span class="nc" id="L158">                    entry(&quot;totalItems&quot;, 0),</span>
+<span class="nc" id="L159">                    entry(&quot;totalPages&quot;, 0),</span>
+<span class="nc" id="L160">                    entry(&quot;sokeParametere&quot;, new AvtalePredicate()),</span>
+<span class="nc" id="L161">                    entry(&quot;sorteringskolonne&quot;, &quot;sistEndret&quot;),</span>
+<span class="nc" id="L162">                    entry(&quot;sokId&quot;, &quot;&quot;)</span>
+            );
+        }
+    }
+
+    @ApiBeskrivelse(&quot;Hent liste over avtaler om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/sok&quot;)
+    @Timed(percentiles = {0.5d, 0.75d, 0.9d, 0.99d, 0.999d})
+    public Map&lt;String, Object&gt; hentAlleAvtalerInnloggetBrukerHarTilgangTilMedPost(
+            @RequestBody AvtalePredicate queryParametre,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart,
+            @RequestParam(value = &quot;sorteringskolonne&quot;, required = false, defaultValue = Avtale.Fields.sistEndret) String sorteringskolonne,
+            @RequestParam(value = &quot;page&quot;, required = false, defaultValue = &quot;0&quot;) Integer page,
+            @RequestParam(value = &quot;size&quot;, required = false, defaultValue = &quot;10&quot;) Integer size
+    ) {
+
+<span class="nc" id="L178">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L179">        Pageable pageable = PageRequest.of(Math.abs(page), Math.abs(size), Sort.by(getSortingOrderForPageable(sorteringskolonne)));</span>
+<span class="nc" id="L180">        Map&lt;String, Object&gt; avtaler = avtalepart.hentAlleAvtalerMedLesetilgang(</span>
+                avtaleRepository,
+                queryParametre,
+                sorteringskolonne,
+                pageable
+
+        );
+<span class="nc" id="L187">        HashMap&lt;String, Object&gt; stringObjectHashMap = new HashMap&lt;&gt;(avtaler);</span>
+<span class="nc" id="L188">        stringObjectHashMap.put(&quot;sokeParametere&quot;, queryParametre);</span>
+<span class="nc" id="L189">        stringObjectHashMap.put(&quot;sorteringskolonne&quot;, sorteringskolonne);</span>
+
+
+<span class="nc" id="L192">        FilterSok filterSokiDb = filterSokRepository.findFilterSokBySokId(queryParametre.generateHash()).orElse(null);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (filterSokiDb != null) {</span>
+<span class="nc" id="L194">            stringObjectHashMap.put(&quot;sokId&quot;, filterSokiDb.getSokId());</span>
+<span class="nc" id="L195">            filterSokiDb.setAntallGangerSokt(filterSokiDb.getAntallGangerSokt() + 1);</span>
+<span class="nc" id="L196">            filterSokiDb.setSistSoktTidspunkt(LocalDateTime.now());</span>
+<span class="nc" id="L197">            filterSokRepository.save(filterSokiDb);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            if (!filterSokiDb.erLik(queryParametre)) {</span>
+<span class="nc" id="L199">                log.error(&quot;Kollisjon i søkId: &quot; + filterSokiDb.getSokId());</span>
+            }
+        } else {
+<span class="nc" id="L202">            FilterSok filterSok = new FilterSok(queryParametre);</span>
+<span class="nc" id="L203">            filterSokRepository.save(filterSok);</span>
+<span class="nc" id="L204">            stringObjectHashMap.put(&quot;sokId&quot;, filterSok.getSokId());</span>
+        }
+<span class="nc" id="L206">        return stringObjectHashMap;</span>
+    }
+
+    @ApiBeskrivelse(&quot;Hent liste over avtaler om arbeidsmarkedstiltak&quot;)
+    @GetMapping(&quot;/beslutter-liste&quot;)
+    @Timed(percentiles = {0.5d, 0.75d, 0.9d, 0.99d, 0.999d})
+    public Map&lt;String, Object&gt; finnGodkjenteAvtalerMedTilskuddsperiodestatusOgNavEnheterListe(
+            AvtalePredicate queryParametre,
+            @RequestParam(value = &quot;sorteringskolonne&quot;, required = false, defaultValue = &quot;startDato&quot;) String sorteringskolonne,
+            @RequestParam(value = &quot;page&quot;, required = false, defaultValue = &quot;0&quot;) Integer page,
+            @RequestParam(value = &quot;size&quot;, required = false, defaultValue = &quot;20&quot;) Integer size,
+            @RequestParam(value = &quot;sorteringOrder&quot;, required = false, defaultValue = &quot;ASC&quot;) String sorteringOrder
+    ) {
+<span class="nc" id="L219">        Beslutter beslutter = innloggingService.hentBeslutter();</span>
+<span class="nc" id="L220">        Page&lt;BeslutterOversiktDTO&gt; avtaler = beslutter.finnGodkjenteAvtalerMedTilskuddsperiodestatusOgNavEnheterListe(</span>
+                avtaleRepository,
+                queryParametre,
+                sorteringskolonne,
+                page,
+                size,
+                sorteringOrder
+        );
+<span class="nc" id="L228">        List&lt;BeslutterOversiktDTO&gt; avtalerMedTilgang = avtaler.getContent().stream()</span>
+<span class="nc" id="L229">                .filter(oversiktDTO -&gt; beslutter.harTilgangTilFnr(</span>
+<span class="nc" id="L230">                        oversiktDTO.getDeltakerFnr())).toList();</span>
+
+<span class="nc" id="L232">        return Map.ofEntries(</span>
+<span class="nc" id="L233">                entry(&quot;avtaler&quot;, avtalerMedTilgang),</span>
+<span class="nc" id="L234">                entry(&quot;size&quot;, avtaler.getSize()),</span>
+<span class="nc" id="L235">                entry(&quot;currentPage&quot;, avtaler.getNumber()),</span>
+<span class="nc" id="L236">                entry(&quot;totalItems&quot;, avtaler.getTotalElements()),</span>
+<span class="nc" id="L237">                entry(&quot;totalPages&quot;, avtaler.getTotalPages())</span>
+        );
+    }
+
+    @GetMapping(&quot;/{avtaleId}/pdf&quot;)
+    public HttpEntity&lt;?&gt; hentAvtalePdf(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L246">        Avtale avtale = innloggingService.hentAvtalepart(innloggetPart).hentAvtale(avtaleRepository, avtaleId);</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        if (!avtale.erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L248">            throw new FeilkodeException(Feilkode.KAN_IKKE_LASTE_NED_PDF);</span>
+        }
+<span class="nc" id="L250">        byte[] avtalePdf = dokgenService.avtalePdf(avtale, innloggetPart);</span>
+<span class="nc" id="L251">        HttpHeaders header = new HttpHeaders();</span>
+<span class="nc" id="L252">        header.setContentType(MediaType.APPLICATION_PDF);</span>
+<span class="nc" id="L253">        header.set(HttpHeaders.CONTENT_DISPOSITION, &quot;inline; filename=Avtale om &quot; + avtale.getTiltakstype().getBeskrivelse() + &quot;.pdf&quot;);</span>
+<span class="nc" id="L254">        header.setContentLength(avtalePdf.length);</span>
+<span class="nc" id="L255">        return new HttpEntity&lt;&gt;(avtalePdf, header);</span>
+    }
+
+    @PutMapping(&quot;/{avtaleId}&quot;)
+    @Transactional
+    public ResponseEntity&lt;?&gt; endreAvtale(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody EndreAvtale endreAvtale,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart) {
+<span class="nc" id="L265">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L266">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L267">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+
+<span class="nc" id="L269">        avtalepart.endreAvtale(sistEndret, endreAvtale, avtale, tilskuddsperiodeConfig.getTiltakstyper());</span>
+<span class="nc" id="L270">        Avtale lagretAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc" id="L271">        return ResponseEntity.ok().lastModified(lagretAvtale.getSistEndret()).build();</span>
+    }
+
+    @ApiBeskrivelse(&quot;Test endring av avtale om arbeidsmarkedstiltak&quot;)
+    @PutMapping(&quot;/{avtaleId}/dry-run&quot;)
+    public Avtale endreAvtaleDryRun(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody EndreAvtale endreAvtale, @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L281">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L282">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L283">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L284">        avtalepart.endreAvtale(sistEndret, endreAvtale, avtale, tilskuddsperiodeConfig.getTiltakstyper());</span>
+<span class="nc" id="L285">        return avtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/opphev-godkjenninger&quot;)
+    @Transactional
+    public void opphevGodkjenninger(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L294">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L295">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L296">        avtalepart.opphevGodkjenninger(avtale);</span>
+<span class="nc" id="L297">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L298">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/godkjenn&quot;)
+    @Transactional
+    public void godkjenn(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L307">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L308">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L309">        avtalepart.godkjennAvtale(sistEndret, avtale);</span>
+<span class="nc" id="L310">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L311">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/mentorGodkjennTaushetserklæring&quot;)
+    @Transactional
+    public void mentorGodkjennTaushetserklæring(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L320">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        if (!avtalepart.rolle().equals(Avtalerolle.MENTOR))</span>
+<span class="nc" id="L322">            throw new TiltaksgjennomforingException(&quot;Du må være mentor for å signere her&quot;);</span>
+<span class="nc" id="L323">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L324">        avtalepart.godkjennAvtale(sistEndret, avtale);</span>
+<span class="nc" id="L325">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L326">    }</span>
+
+    // Arbeidsgiver-operasjoner
+
+    @ApiBeskrivelse(&quot;Hent liste over avtaler om arbeidsmarkedstiltak&quot;)
+    @GetMapping(&quot;/min-side-arbeidsgiver&quot;)
+    public List&lt;Avtale&gt; hentAlleAvtalerForMinSideArbeidsgiver(@RequestParam(&quot;bedriftNr&quot;) BedriftNr bedriftNr) {
+<span class="nc" id="L333">        Arbeidsgiver arbeidsgiver = innloggingService.hentArbeidsgiver();</span>
+<span class="nc" id="L334">        return arbeidsgiver.hentAvtalerForMinsideArbeidsgiver(avtaleRepository, bedriftNr);</span>
+    }
+
+    @GetMapping(path = &quot;/{avtaleId}/kontonummer-arbeidsgiver&quot;)
+    public String hentBedriftKontonummer(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @CookieValue(&quot;innlogget-part&quot;) Avtalerolle innloggetPart
+    ) {
+<span class="nc" id="L342">        Avtalepart avtalepart = innloggingService.hentAvtalepart(innloggetPart);</span>
+<span class="nc" id="L343">        Avtale avtale = avtalepart.hentAvtale(avtaleRepository, avtaleId);</span>
+<span class="nc" id="L344">        return kontoregisterService.hentKontonummer(avtale.getBedriftNr().asString());</span>
+    }
+
+    @PostMapping(&quot;/opprett-som-arbeidsgiver&quot;)
+    @Transactional
+    public ResponseEntity&lt;?&gt; opprettAvtaleSomArbeidsgiver(@RequestBody OpprettAvtale opprettAvtale) {
+<span class="nc" id="L350">        Arbeidsgiver arbeidsgiver = innloggingService.hentArbeidsgiver();</span>
+<span class="nc" id="L351">        Avtale avtale = arbeidsgiver.opprettAvtale(opprettAvtale);</span>
+<span class="nc" id="L352">        Avtale opprettetAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc" id="L353">        URI uri = lagUri(&quot;/avtaler/&quot; + opprettetAvtale.getId());</span>
+<span class="nc" id="L354">        return ResponseEntity.created(uri).build();</span>
+    }
+
+    /**
+     * VEILEDER-OPERASJONER
+     **/
+    @ApiBeskrivelse(&quot;Hent liste over registrerte avtaler for bruker&quot;)
+    @GetMapping(&quot;/deltaker-allerede-paa-tiltak&quot;)
+    @Transactional
+    public ResponseEntity&lt;List&lt;AlleredeRegistrertAvtale&gt;&gt; sjekkOmDeltakerAlleredeErRegistrertPaaTiltak(
+            @RequestParam(value = &quot;deltakerFnr&quot;) Fnr deltakerFnr,
+            @RequestParam(value = &quot;tiltakstype&quot;) Tiltakstype tiltakstype,
+            @RequestParam(value = &quot;startDato&quot;, required = false) String startDato,
+            @RequestParam(value = &quot;sluttDato&quot;, required = false) String sluttDato,
+            @RequestParam(value = &quot;avtaleId&quot;, required = false) String avtaleId
+
+    ) {
+<span class="nc" id="L371">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L372">        List&lt;AlleredeRegistrertAvtale&gt; avtaler = veileder.hentAvtaleDeltakerAlleredeErRegistrertPaa(</span>
+                deltakerFnr,
+                tiltakstype,
+<span class="nc bnc" id="L375" title="All 2 branches missed.">                avtaleId != null ? UUID.fromString(avtaleId) : null,</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">                startDato != null ? LocalDate.parse(startDato) : null,</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                sluttDato != null ? LocalDate.parse(sluttDato) : null,</span>
+                avtaleRepository
+        );
+<span class="nc" id="L380">        return new ResponseEntity&lt;List&lt;AlleredeRegistrertAvtale&gt;&gt;(avtaler, HttpStatus.OK);</span>
+    }
+
+    @PostMapping
+    @Transactional
+    public ResponseEntity&lt;?&gt; opprettAvtaleSomVeileder(
+            @RequestBody OpprettAvtale opprettAvtale,
+            @RequestParam(value = &quot;ryddeavtale&quot;, required = false)
+            Boolean ryddeavtale
+    ) {
+<span class="nc" id="L390">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L391">        Avtale avtale = veileder.opprettAvtale(opprettAvtale);</span>
+<span class="nc" id="L392">        avtale.leggTilBedriftNavn(eregService.hentVirksomhet(avtale.getBedriftNr()).getBedriftNavn());</span>
+
+<span class="nc" id="L394">        Avtale opprettetAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc bnc" id="L395" title="All 4 branches missed.">        if (ryddeavtale != null &amp;&amp; ryddeavtale) {</span>
+<span class="nc" id="L396">            ArenaRyddeAvtale arenaRyddeAvtale = new ArenaRyddeAvtale();</span>
+<span class="nc" id="L397">            arenaRyddeAvtale.setAvtale(avtale);</span>
+<span class="nc" id="L398">            arenaRyddeAvtaleRepository.save(arenaRyddeAvtale);</span>
+        }
+<span class="nc" id="L400">        URI uri = lagUri(&quot;/avtaler/&quot; + opprettetAvtale.getId());</span>
+<span class="nc" id="L401">        return ResponseEntity.created(uri).build();</span>
+    }
+
+    @PostMapping(&quot;/opprett-mentor-avtale&quot;)
+    @Transactional
+    public ResponseEntity&lt;?&gt; opprettMentorAvtale(@RequestBody OpprettMentorAvtale opprettMentorAvtale) {
+<span class="fc" id="L407">        Avtale avtale = null;</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">        if (opprettMentorAvtale.getDeltakerFnr().equals(opprettMentorAvtale.getMentorFnr())) {</span>
+<span class="nc" id="L409">            throw new FeilkodeException(Feilkode.DELTAGER_OG_MENTOR_KAN_IKKE_HA_SAMME_FØDSELSNUMMER);</span>
+        }
+
+<span class="nc bnc" id="L412" title="All 2 branches missed.">        if (opprettMentorAvtale.getAvtalerolle().equals(Avtalerolle.VEILEDER)) {</span>
+<span class="nc" id="L413">            avtale = innloggingService.hentVeileder().opprettMentorAvtale(opprettMentorAvtale);</span>
+
+<span class="nc bnc" id="L415" title="All 2 branches missed.">        } else if (opprettMentorAvtale.getAvtalerolle().equals(Avtalerolle.ARBEIDSGIVER)) {</span>
+<span class="nc" id="L416">            avtale = innloggingService.hentArbeidsgiver().opprettMentorAvtale(opprettMentorAvtale);</span>
+        }
+<span class="nc bnc" id="L418" title="All 2 branches missed.">        if (avtale == null) {</span>
+<span class="nc" id="L419">            throw new RuntimeException(&quot;Opprett Mentor fant ingen avtale å behandle.&quot;);</span>
+        }
+<span class="nc" id="L421">        avtale.leggTilBedriftNavn(eregService.hentVirksomhet(opprettMentorAvtale.getBedriftNr()).getBedriftNavn());</span>
+<span class="nc" id="L422">        Avtale opprettetAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc" id="L423">        URI uri = lagUri(&quot;/avtaler/&quot; + opprettetAvtale.getId());</span>
+<span class="nc" id="L424">        return ResponseEntity.created(uri).build();</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/forkort&quot;)
+    @Transactional
+    public void forkortAvtale(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody ForkortAvtale forkortAvtale
+    ) {
+<span class="nc" id="L434">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L435">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L436">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L437">        veileder.forkortAvtale(avtale, forkortAvtale.getSluttDato(), forkortAvtale.getGrunn(), forkortAvtale.getAnnetGrunn());</span>
+<span class="nc" id="L438">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L439">    }</span>
+
+    @ApiBeskrivelse(&quot;Test forkortelse av avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/forkort-dry-run&quot;)
+    public Avtale forkortAvtaleDryRun(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody ForkortAvtale forkortAvtale
+    ) {
+<span class="nc" id="L448">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L449">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L450">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+        // Er ikke nødvending med en reell grunn siden det ikke påvirker tilskuddsperioder
+<span class="nc" id="L452">        veileder.forkortAvtale(avtale, forkortAvtale.getSluttDato(), &quot;dry run&quot;, &quot;&quot;);</span>
+<span class="nc" id="L453">        return avtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/forleng&quot;)
+    @Transactional
+    public void forlengAvtale(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody ForlengAvtale forlengAvtale
+    ) {
+<span class="nc" id="L463">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L464">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L465">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L466">        veileder.forlengAvtale(forlengAvtale.getSluttDato(), avtale);</span>
+<span class="nc" id="L467">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L468">    }</span>
+
+    @ApiBeskrivelse(&quot;Test forlengelse av avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/forleng-dry-run&quot;)
+    public Avtale forlengAvtaleDryRun(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody ForlengAvtale forlengAvtale
+    ) {
+<span class="nc" id="L477">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L478">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L479">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L480">        veileder.forlengAvtale(forlengAvtale.getSluttDato(), avtale);</span>
+<span class="nc" id="L481">        return avtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/endre-maal&quot;)
+    @Transactional
+    public void endreMål(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreMål endreMål
+    ) {
+<span class="nc" id="L490">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L491">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L492">        veileder.endreMål(endreMål, avtale);</span>
+<span class="nc" id="L493">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L494">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-inkluderingstilskudd&quot;)
+    @Transactional
+    public void endreInkluderingstilskudd(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreInkluderingstilskudd endreInkluderingstilskudd) {
+<span class="nc" id="L500">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L501">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L502">        veileder.endreInkluderingstilskudd(endreInkluderingstilskudd, avtale);</span>
+<span class="nc" id="L503">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L504">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-stillingbeskrivelse&quot;)
+    @Transactional
+    public void endreStillingbeskrivelse(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreStillingsbeskrivelse endreStillingsbeskrivelse
+    ) {
+<span class="nc" id="L512">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L513">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L514">        veileder.endreStillingbeskrivelse(endreStillingsbeskrivelse, avtale);</span>
+<span class="nc" id="L515">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L516">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-oppfolging-og-tilrettelegging&quot;)
+    @Transactional
+    public void endreOppfølgingOgTilrettelegging(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreOppfølgingOgTilrettelegging endreOppfølgingOgTilrettelegging
+    ) {
+<span class="nc" id="L524">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L525">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L526">        veileder.endreOppfølgingOgTilrettelegging(endreOppfølgingOgTilrettelegging, avtale);</span>
+<span class="nc" id="L527">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L528">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-om-mentor&quot;)
+    @Transactional
+    public void endreOmMentor(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreOmMentor endreOmMentor
+    ) {
+<span class="nc" id="L536">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L537">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L538">        veileder.endreOmMentor(endreOmMentor, avtale);</span>
+<span class="nc" id="L539">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L540">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-kontaktinfo&quot;)
+    @Transactional
+    public void endreKontaktinfo(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreKontaktInformasjon endreKontaktInformasjon
+    ) {
+<span class="nc" id="L548">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L549">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L550">        veileder.endreKontaktinfo(endreKontaktInformasjon, avtale);</span>
+<span class="nc" id="L551">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L552">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/endre-tilskuddsberegning&quot;)
+    @Transactional
+    public void endreTilskuddsberegning(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreTilskuddsberegning endreTilskuddsberegning) {
+<span class="nc" id="L558">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L559">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L560">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L561">        veileder.endreTilskuddsberegning(endreTilskuddsberegning, avtale);</span>
+<span class="nc" id="L562">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L563">    }</span>
+
+    @ApiBeskrivelse(&quot;Test endring av tilskuddsberegning på avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/endre-tilskuddsberegning-dry-run&quot;)
+    public Avtale endreTilskuddsberegningDryRun(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreTilskuddsberegning endreTilskuddsberegning
+    ) {
+<span class="nc" id="L571">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L572">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L573">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L574">        veileder.endreTilskuddsberegning(endreTilskuddsberegning, avtale);</span>
+<span class="nc" id="L575">        return avtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/send-tilbake-til-beslutter&quot;)
+    @Transactional
+    public void sendTilbakeTilBeslutter(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L581">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L582">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L583">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L584">        veileder.sendTilbakeTilBeslutter(avtale);</span>
+<span class="nc" id="L585">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L586">    }</span>
+
+    @PostMapping({ &quot;/{avtaleId}/godkjenn-paa-vegne-av&quot;, &quot;/{avtaleId}/godkjenn-paa-vegne-av-deltaker&quot; })
+    @Transactional
+    public void godkjennPaVegneAv(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody GodkjentPaVegneGrunn paVegneAvGrunn
+    ) {
+<span class="nc" id="L594">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L595">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L596">        veileder.godkjennForVeilederOgDeltaker(paVegneAvGrunn, avtale);</span>
+<span class="nc" id="L597">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L598">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/godkjenn-paa-vegne-av-arbeidsgiver&quot;)
+    @Transactional
+    public void godkjennPaVegneAvArbeidsgiver(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody GodkjentPaVegneAvArbeidsgiverGrunn paVegneAvGrunn
+    ) {
+<span class="nc" id="L606">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L607">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L608">        veileder.godkjennForVeilederOgArbeidsgiver(paVegneAvGrunn, avtale);</span>
+<span class="nc" id="L609">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L610">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/godkjenn-paa-vegne-av-deltaker-og-arbeidsgiver&quot;)
+    @Transactional
+    public void godkjennPaVegneAvDeltakerOgArbeidsgiver(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody GodkjentPaVegneAvDeltakerOgArbeidsgiverGrunn paVegneAvGrunn
+    ) {
+<span class="nc" id="L618">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L619">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L620">        veileder.godkjennForVeilederOgDeltakerOgArbeidsgiver(paVegneAvGrunn, avtale);</span>
+<span class="nc" id="L621">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L622">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/annuller&quot;)
+    @Transactional
+    public void annuller(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestHeader(HttpHeaders.IF_UNMODIFIED_SINCE) Instant sistEndret,
+            @RequestBody AnnullertInfo annullertInfo
+    ) {
+<span class="nc" id="L631">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L632">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L633">        veileder.annullerAvtale(sistEndret, annullertInfo.getAnnullertGrunn(), avtale);</span>
+<span class="nc" id="L634">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L635">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/slettemerk&quot;)
+    @Transactional
+    public void slettemerk(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L640">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L641">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L642">        veileder.slettemerk(avtale);</span>
+<span class="nc" id="L643">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L644">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/del-med-avtalepart&quot;)
+    @Transactional
+    public void delAvtaleMedAvtalepart(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId, @RequestBody Avtalerolle avtalerolle) {
+<span class="nc" id="L649">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L650">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L651">        veileder.delAvtaleMedAvtalepart(avtalerolle, avtale);</span>
+<span class="nc" id="L652">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L653">    }</span>
+
+    @PutMapping(&quot;/{avtaleId}/overta&quot;)
+    @Transactional
+    public void settNyVeilederPåAvtale(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L658">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L659">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L660">        veileder.hentOppfølgingFraArena(avtale, veilarbArenaClient);</span>
+<span class="nc" id="L661">        veileder.overtaAvtale(avtale);</span>
+<span class="nc" id="L662">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L663">    }</span>
+
+    @PostMapping(&quot;/{avtaleId}/juster-arena-migreringsdato&quot;)
+    @Transactional
+    public void justerArenaMigreringsdato(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId, @RequestBody JusterArenaMigreringsdato justerArenaMigreringsdato) {
+<span class="nc" id="L668">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L669">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc bnc" id="L670" title="All 2 branches missed.">        if (avtale.erAvtaleInngått()) {</span>
+<span class="nc" id="L671">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_ARENA_MIGRERINGSDATO_INNGAATT_AVTALE);</span>
+        }
+<span class="nc" id="L673">        veileder.sjekkTilgang(avtale);</span>
+<span class="nc" id="L674">        avtale.nyeTilskuddsperioderEtterMigreringFraArena(justerArenaMigreringsdato.getMigreringsdato(), false);</span>
+<span class="nc" id="L675">        Optional&lt;ArenaRyddeAvtale&gt; lagretAvtaleSomRyddeAvtale = arenaRyddeAvtaleRepository.findByAvtale(avtale);</span>
+
+<span class="nc bnc" id="L677" title="All 2 branches missed.">        if (!lagretAvtaleSomRyddeAvtale.isPresent()) {</span>
+<span class="nc" id="L678">            ArenaRyddeAvtale arenaRyddeAvtale = new ArenaRyddeAvtale();</span>
+<span class="nc" id="L679">            arenaRyddeAvtale.setAvtale(avtale);</span>
+<span class="nc" id="L680">            arenaRyddeAvtale.setMigreringsdato(justerArenaMigreringsdato.getMigreringsdato());</span>
+<span class="nc" id="L681">            arenaRyddeAvtaleRepository.save(arenaRyddeAvtale);</span>
+<span class="nc" id="L682">        } else {</span>
+<span class="nc" id="L683">            ArenaRyddeAvtale oppdatertRyddeAvtale = lagretAvtaleSomRyddeAvtale.get();</span>
+<span class="nc" id="L684">            oppdatertRyddeAvtale.setMigreringsdato(justerArenaMigreringsdato.getMigreringsdato());</span>
+<span class="nc" id="L685">            arenaRyddeAvtaleRepository.save(oppdatertRyddeAvtale);</span>
+        }
+<span class="nc" id="L687">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L688">    }</span>
+
+    @ApiBeskrivelse(&quot;Justering av migreringsdato i avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/juster-arena-migreringsdato/dry-run&quot;)
+    public Avtale justerArenaMigreringsdatoDryRun(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId, @RequestBody JusterArenaMigreringsdato justerArenaMigreringsdato) {
+<span class="nc" id="L693">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L694">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L695">        veileder.sjekkTilgang(avtale);</span>
+<span class="nc" id="L696">        avtale.nyeTilskuddsperioderEtterMigreringFraArena(justerArenaMigreringsdato.getMigreringsdato(), false);</span>
+<span class="nc" id="L697">        return avtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/godkjenn-tilskuddsperiode&quot;)
+    @Transactional
+    public void godkjennTilskuddsperiode(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody GodkjennTilskuddsperiodeRequest godkjennTilskuddsperiodeRequest
+    ) {
+<span class="nc" id="L706">        Beslutter beslutter = innloggingService.hentBeslutter();</span>
+<span class="nc" id="L707">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L708">        beslutter.godkjennTilskuddsperiode(avtale, godkjennTilskuddsperiodeRequest.getEnhet());</span>
+<span class="nc" id="L709">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L710">    }</span>
+
+    @ApiBeskrivelse(&quot;Oppdater avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/set-om-avtalen-kan-etterregistreres&quot;)
+    @Transactional
+    public Avtale setOmAvtalenKanEtterregistreres(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L716">        Beslutter beslutter = innloggingService.hentBeslutter();</span>
+<span class="nc" id="L717">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L718">        beslutter.setOmAvtalenKanEtterregistreres(avtale);</span>
+<span class="nc" id="L719">        var oppdatertAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc" id="L720">        return oppdatertAvtale;</span>
+    }
+
+    @ApiBeskrivelse(&quot;Oppdater avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/endre-kostnadssted&quot;)
+    @Transactional
+    public Avtale endreKostnadssted(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId,
+            @RequestBody EndreKostnadsstedRequest endreKostnadsstedRequest
+    ) {
+<span class="nc" id="L730">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L731">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L732">        veileder.oppdatereKostnadssted(avtale, norg2Client, endreKostnadsstedRequest.getEnhet());</span>
+<span class="nc" id="L733">        var oppdatertAvtale = avtaleRepository.save(avtale);</span>
+<span class="nc" id="L734">        return oppdatertAvtale;</span>
+    }
+
+    @PostMapping(&quot;/{avtaleId}/avslag-tilskuddsperiode&quot;)
+    @Transactional
+    public void avslåTilskuddsperiode(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId, @RequestBody AvslagRequest avslagRequest) {
+<span class="nc" id="L740">        Beslutter beslutter = innloggingService.hentBeslutter();</span>
+<span class="nc" id="L741">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L742">        beslutter.avslåTilskuddsperiode(avtale, avslagRequest.getAvslagsårsaker(), avslagRequest.getAvslagsforklaring());</span>
+<span class="nc" id="L743">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L744">    }</span>
+
+    @ApiBeskrivelse(&quot;Oppdater avtale om arbeidsmarkedstiltak&quot;)
+    @PostMapping(&quot;/{avtaleId}/oppdaterOppfølgingsEnhet&quot;)
+    public Avtale oppdaterOppfølgingsEnhet(
+            @PathVariable(&quot;avtaleId&quot;) UUID avtaleId
+    ) {
+<span class="nc" id="L751">        Veileder veileder = innloggingService.hentVeileder();</span>
+<span class="nc" id="L752">        Avtale avtale = veileder.hentAvtale(avtaleRepository, avtaleId);</span>
+<span class="nc" id="L753">        veileder.oppdatereEnheterEtterForespørsel(avtale);</span>
+<span class="nc" id="L754">        var oppdatertAvtale = avtaleRepository.save(avtale);</span>
+
+<span class="nc" id="L756">        return oppdatertAvtale;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

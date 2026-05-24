@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Controller.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.blk.erc20</a> &gt; <span class="el_source">Controller.java</span></div><h1>Controller.java</h1><pre class="source lang-java linenums">package io.blk.erc20;
+
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import javax.servlet.http.HttpServletRequest;
+
+import io.reactivex.annotations.Nullable;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiOperation;
+import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Controller for our ERC-20 contract API.
+ */
+@Api(&quot;ERC-20 token standard API&quot;)
+@RestController
+public class Controller {
+
+    private final ContractService ContractService;
+
+    @Autowired
+<span class="fc" id="L33">    public Controller(ContractService ContractService) {</span>
+<span class="fc" id="L34">        this.ContractService = ContractService;</span>
+<span class="fc" id="L35">    }</span>
+
+    @ApiOperation(&quot;Application configuration&quot;)
+    @RequestMapping(value = &quot;/config&quot;, method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    NodeConfiguration config() {
+<span class="fc" id="L41">        return ContractService.getConfig();</span>
+    }
+
+    @ApiOperation(
+            value = &quot;Deploy new ERC-20 token&quot;,
+            notes = &quot;Returns hex encoded contract address&quot;)
+    @ApiImplicitParam(name = &quot;privateFor&quot;,
+            value = &quot;Comma separated list of public keys of enclave nodes that transaction is &quot;
+                    + &quot;private for&quot;,
+            paramType = &quot;header&quot;,
+            dataType = &quot;string&quot;)
+    @RequestMapping(value = &quot;/deploy&quot;, method = RequestMethod.POST)
+    String deploy(
+            HttpServletRequest request,
+            @RequestBody ContractSpecification contractSpecification) throws Exception {
+
+<span class="pc" id="L57">        return ContractService.deploy(</span>
+<span class="fc" id="L58">                extractPrivateFor(request),</span>
+<span class="fc" id="L59">                contractSpecification.getInitialAmount(),</span>
+<span class="fc" id="L60">                contractSpecification.getTokenName(),</span>
+<span class="fc" id="L61">                contractSpecification.getDecimalUnits(),</span>
+<span class="fc" id="L62">                contractSpecification.getTokenSymbol());</span>
+    }
+
+    @ApiOperation(&quot;Get token name&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/name&quot;, method = RequestMethod.GET)
+    String name(@PathVariable String contractAddress) throws Exception {
+<span class="nc" id="L68">        return ContractService.name(contractAddress);</span>
+    }
+
+    @ApiOperation(
+            value = &quot;Approve transfers by a specific address up to the provided total quantity&quot;,
+            notes = &quot;Returns hex encoded transaction hash, and Approval event if called&quot;)
+    @ApiImplicitParam(name = &quot;privateFor&quot;,
+            value = &quot;Comma separated list of public keys of enclave nodes that transaction is &quot;
+                    + &quot;private for&quot;,
+            paramType = &quot;header&quot;,
+            dataType = &quot;string&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/approve&quot;, method = RequestMethod.POST)
+    TransactionResponse&lt;ContractService.ApprovalEventResponse&gt; approve(
+            HttpServletRequest request,
+            @PathVariable String contractAddress,
+            @RequestBody ApproveRequest approveRequest) throws Exception {
+<span class="pc" id="L84">        return ContractService.approve(</span>
+<span class="fc" id="L85">                extractPrivateFor(request),</span>
+                contractAddress,
+<span class="fc" id="L87">                approveRequest.getSpender(),</span>
+<span class="fc" id="L88">                approveRequest.getValue());</span>
+    }
+
+    @ApiOperation(&quot;Get total supply of tokens&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/totalSupply&quot;, method = RequestMethod.GET)
+    String totalSupply(@PathVariable String contractAddress) throws Exception {
+<span class="nc" id="L94">        return ContractService.totalSupply(contractAddress);</span>
+    }
+
+    @ApiOperation(
+            value = &quot;Transfer tokens between addresses (must already be approved)&quot;,
+            notes = &quot;Returns hex encoded transaction hash, and Transfer event if called&quot;)
+    @ApiImplicitParam(name = &quot;privateFor&quot;,
+            value = &quot;Comma separated list of public keys of enclave nodes that transaction is &quot;
+                    + &quot;private for&quot;,
+            paramType = &quot;header&quot;,
+            dataType = &quot;string&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/transferFrom&quot;, method = RequestMethod.POST)
+    TransactionResponse&lt;ContractService.TransferEventResponse&gt; transferFrom(
+            HttpServletRequest request,
+            @PathVariable String contractAddress,
+            @RequestBody TransferFromRequest transferFromRequest) throws Exception {
+<span class="pc" id="L110">        return ContractService.transferFrom(</span>
+<span class="fc" id="L111">                extractPrivateFor(request),</span>
+                contractAddress,
+<span class="fc" id="L113">                transferFromRequest.getFrom(),</span>
+<span class="fc" id="L114">                transferFromRequest.getTo(),</span>
+<span class="fc" id="L115">                transferFromRequest.getValue());</span>
+    }
+
+    @ApiOperation(&quot;Get decimal precision of tokens&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/decimals&quot;, method = RequestMethod.GET)
+    String decimals(@PathVariable String contractAddress) throws Exception {
+<span class="nc" id="L121">        return ContractService.decimals(contractAddress);</span>
+    }
+
+    @ApiOperation(&quot;Get contract version&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/version&quot;, method = RequestMethod.GET)
+    String version(@PathVariable String contractAddress) throws Exception {
+<span class="nc" id="L127">        return ContractService.version(contractAddress);</span>
+    }
+
+    @ApiOperation(&quot;Get token balance for address&quot;)
+    @RequestMapping(
+            value = &quot;/{contractAddress}/balanceOf/{ownerAddress}&quot;, method = RequestMethod.GET)
+    String balanceOf(
+            @PathVariable String contractAddress,
+            @PathVariable String ownerAddress) throws Exception {
+<span class="nc" id="L136">        return ContractService.balanceOf(contractAddress, ownerAddress);</span>
+    }
+
+    @ApiOperation(&quot;Get token symbol&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/symbol&quot;, method = RequestMethod.GET)
+    String symbol(@PathVariable String contractAddress) throws Exception {
+<span class="nc" id="L142">        return ContractService.symbol(contractAddress);</span>
+    }
+
+    @ApiOperation(
+            value = &quot;Transfer tokens you own to another address&quot;,
+            notes = &quot;Returns hex encoded transaction hash, and Transfer event if called&quot;)
+    @ApiImplicitParam(name = &quot;privateFor&quot;,
+            value = &quot;Comma separated list of public keys of enclave nodes that transaction is &quot;
+                    + &quot;private for&quot;,
+            paramType = &quot;header&quot;,
+            dataType = &quot;string&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/transfer&quot;, method = RequestMethod.POST)
+    TransactionResponse&lt;ContractService.TransferEventResponse&gt; transfer(
+            HttpServletRequest request,
+            @PathVariable String contractAddress,
+            @RequestBody TransferRequest transferRequest) throws Exception {
+<span class="pc" id="L158">        return ContractService.transfer(</span>
+<span class="fc" id="L159">                extractPrivateFor(request),</span>
+                contractAddress,
+<span class="fc" id="L161">                transferRequest.getTo(),</span>
+<span class="fc" id="L162">                transferRequest.getValue());</span>
+    }
+
+    @ApiOperation(
+            value = &quot;Approve transfers by a specific contract address up to the provided total &quot;
+                    + &quot;quantity, and notify that contract address of the approval&quot;,
+            notes = &quot;Returns hex encoded transaction hash, and Approval event if called&quot;)
+    @ApiImplicitParam(name = &quot;privateFor&quot;,
+            value = &quot;Comma separated list of public keys of enclave nodes that transaction is &quot;
+                    + &quot;private for&quot;,
+            paramType = &quot;header&quot;,
+            dataType = &quot;string&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/approveAndCall&quot;, method = RequestMethod.POST)
+    TransactionResponse&lt;ContractService.ApprovalEventResponse&gt; approveAndCall(
+            HttpServletRequest request,
+            @PathVariable String contractAddress,
+            @RequestBody ApproveAndCallRequest approveAndCallRequest) throws Exception {
+<span class="pc" id="L179">        return ContractService.approveAndCall(</span>
+<span class="fc" id="L180">                extractPrivateFor(request),</span>
+                contractAddress,
+<span class="fc" id="L182">                approveAndCallRequest.getSpender(),</span>
+<span class="fc" id="L183">                approveAndCallRequest.getValue(),</span>
+<span class="fc" id="L184">                approveAndCallRequest.getExtraData());</span>
+    }
+
+    @ApiOperation(&quot;Get quantity of tokens you can transfer on another token holder's behalf&quot;)
+    @RequestMapping(value = &quot;/{contractAddress}/allowance&quot;, method = RequestMethod.GET)
+    String allowance(
+            @PathVariable String contractAddress,
+            @RequestParam String ownerAddress,
+            @RequestParam String spenderAddress) throws Exception {
+<span class="nc" id="L193">        return ContractService.allowance(</span>
+                contractAddress, ownerAddress, spenderAddress);
+    }
+
+    private static @Nullable List&lt;String&gt; extractPrivateFor(HttpServletRequest request) {
+<span class="fc" id="L198">        String privateFor = request.getHeader(&quot;privateFor&quot;);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (privateFor == null) {</span>
+<span class="fc" id="L200">            return null;</span>
+        } else {
+<span class="fc" id="L202">            return Arrays.asList(privateFor.split(&quot;,&quot;));</span>
+        }
+    }
+
+    @Data
+    static class ContractSpecification {
+        private  BigInteger initialAmount;
+        private  String tokenName;
+        private  BigInteger decimalUnits;
+        private  String tokenSymbol;
+
+<span class="fc" id="L213">        ContractSpecification() {</span>
+<span class="fc" id="L214">        }</span>
+
+<span class="nc" id="L216">        ContractSpecification(BigInteger initialAmount, String tokenName, BigInteger decimalUnits, String tokenSymbol) {</span>
+<span class="nc" id="L217">            this.initialAmount = initialAmount;</span>
+<span class="nc" id="L218">            this.tokenName = tokenName;</span>
+<span class="nc" id="L219">            this.decimalUnits = decimalUnits;</span>
+<span class="nc" id="L220">            this.tokenSymbol = tokenSymbol;</span>
+<span class="nc" id="L221">        }</span>
+
+        public BigInteger getDecimalUnits() {
+<span class="fc" id="L224">            return decimalUnits;</span>
+        }
+
+        public BigInteger getInitialAmount() {
+<span class="fc" id="L228">            return initialAmount;</span>
+        }
+
+        public String getTokenName() {
+<span class="fc" id="L232">            return tokenName;</span>
+        }
+
+        public String getTokenSymbol() {
+<span class="fc" id="L236">            return tokenSymbol;</span>
+        }
+    }
+
+    @Data
+    static class ApproveRequest {
+        private String spender;
+        private BigInteger value;
+
+<span class="fc" id="L245">        ApproveRequest() {}</span>
+
+<span class="nc" id="L247">        ApproveRequest(String spender, BigInteger value) {</span>
+<span class="nc" id="L248">            this.spender = spender;</span>
+<span class="nc" id="L249">            this.value = value;</span>
+<span class="nc" id="L250">        }</span>
+
+        public String getSpender() {
+<span class="fc" id="L253">            return spender;</span>
+        }
+
+        public BigInteger getValue() {
+<span class="fc" id="L257">            return value;</span>
+        }
+    }
+
+    @Data
+    static class TransferFromRequest {
+        private String from;
+        private String to;
+        private BigInteger value;
+
+<span class="fc" id="L267">        TransferFromRequest() {}</span>
+
+<span class="nc" id="L269">        TransferFromRequest(String from, String to, BigInteger value) {</span>
+<span class="nc" id="L270">            this.from = from;</span>
+<span class="nc" id="L271">            this.to = to;</span>
+<span class="nc" id="L272">            this.value = value;</span>
+<span class="nc" id="L273">        }</span>
+
+
+        public String getFrom() {
+<span class="fc" id="L277">            return from;</span>
+        }
+
+        BigInteger getValue() {
+<span class="fc" id="L281">            return value;</span>
+        }
+
+        public String getTo() {
+<span class="fc" id="L285">            return to;</span>
+        }
+    }
+
+    @Data
+    static class TransferRequest {
+        private String to;
+        private BigInteger value;
+
+<span class="nc" id="L294">        TransferRequest(String to, BigInteger value) {</span>
+<span class="nc" id="L295">            this.to = to;</span>
+<span class="nc" id="L296">            this.value = value;</span>
+<span class="nc" id="L297">        }</span>
+
+<span class="fc" id="L299">        TransferRequest() {}</span>
+
+        public String getTo() {
+<span class="fc" id="L302">            return to;</span>
+        }
+
+        public BigInteger getValue() {
+<span class="fc" id="L306">            return value;</span>
+        }
+    }
+
+    @Data
+    static class ApproveAndCallRequest {
+        private String spender;
+        private BigInteger value;
+        private String extraData;
+
+<span class="fc" id="L316">        ApproveAndCallRequest() {}</span>
+
+<span class="nc" id="L318">        ApproveAndCallRequest(String spender, BigInteger value, String extraData) {</span>
+<span class="nc" id="L319">            this.spender = spender;</span>
+<span class="nc" id="L320">            this.value = value;</span>
+<span class="nc" id="L321">            this.extraData = extraData;</span>
+<span class="nc" id="L322">        }</span>
+
+        String getSpender() {
+<span class="fc" id="L325">            return spender;</span>
+        }
+
+        BigInteger getValue() {
+<span class="fc" id="L329">            return value;</span>
+        }
+
+        String getExtraData() {
+<span class="fc" id="L333">            return extraData;</span>
+        }
+    }
+
+    @Data
+    static class AllowanceRequest {
+        private String ownerAddress;
+        private String spenderAddress;
+
+<span class="nc" id="L342">        AllowanceRequest() {}</span>
+
+<span class="nc" id="L344">        AllowanceRequest(String ownerAddress, String spenderAddress) {</span>
+<span class="nc" id="L345">            this.ownerAddress = ownerAddress;</span>
+<span class="nc" id="L346">            this.spenderAddress = spenderAddress;</span>
+<span class="nc" id="L347">        }</span>
+
+        public String getOwnerAddress() {
+<span class="nc" id="L350">            return ownerAddress;</span>
+        }
+
+        public void setOwnerAddress(String ownerAddress) {
+<span class="nc" id="L354">            this.ownerAddress = ownerAddress;</span>
+<span class="nc" id="L355">        }</span>
+
+        public String getSpenderAddress() {
+<span class="nc" id="L358">            return spenderAddress;</span>
+        }
+
+        public void setSpenderAddress(String spenderAddress) {
+<span class="nc" id="L362">            this.spenderAddress = spenderAddress;</span>
+<span class="nc" id="L363">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

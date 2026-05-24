@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminLocationController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.controller.web.admin</a> &gt; <span class="el_source">AdminLocationController.java</span></div><h1>AdminLocationController.java</h1><pre class="source lang-java linenums">package com.pfa.app.controller.web.admin;
+
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.pfa.app.model.entity.Location;
+import com.pfa.app.service.LocationService;
+
+@Controller
+@RequestMapping(value = {&quot;/admins/locations&quot;})
+public class AdminLocationController {
+	
+	private final LocationService locationService;
+<span class="fc" id="L25">	private static final Logger logger = LoggerFactory.getLogger(AdminLocationController.class);</span>
+	
+	static {
+<span class="fc" id="L28">		logger.info(&quot;************ entering &quot; + AdminLocationController.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L29">	}</span>
+	
+	@Autowired
+<span class="fc" id="L32">	public AdminLocationController(final LocationService locationService) {</span>
+<span class="fc" id="L33">		this.locationService = locationService;</span>
+<span class="fc" id="L34">	}</span>
+	
+	@GetMapping(value = {&quot;/&quot;, &quot;/admin-locations-list&quot;})
+	public String displayAdminLocationsList(final Model model) {
+		
+<span class="nc" id="L39">		model.addAttribute(&quot;locations&quot;, this.locationService.findAll().getCollection());</span>
+<span class="nc" id="L40">		return &quot;admins/locations/admin-locations-list&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-locations-add&quot;, &quot;/add&quot;})
+	public String displayAdminLocationsAdd(final Model model) {
+		
+<span class="nc" id="L46">		model.addAttribute(&quot;location&quot;, new Location());</span>
+<span class="nc" id="L47">		return &quot;admins/locations/admin-locations-add&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-locations-add&quot;, &quot;/add&quot;})
+	public String handleAdminLocationsAdd(@ModelAttribute(&quot;location&quot;) @Valid final Location location, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L53" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L54">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again !&quot;);</span>
+<span class="nc" id="L55">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L56">			return &quot;admins/locations/admin-locations-add&quot;;</span>
+		}
+		
+<span class="nc" id="L59">		this.locationService.save(location);</span>
+<span class="nc" id="L60">		logger.info(&quot;Location with locationId : {} has been saved successfully&quot;, location.getLocationId());</span>
+		
+<span class="nc" id="L62">		model.addAttribute(&quot;msg&quot;, &quot;This location has been created successfully&quot;);</span>
+<span class="nc" id="L63">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L65">		return &quot;admins/locations/admin-locations-add&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-locations-edit&quot;, &quot;/edit&quot;})
+	public String displayAdminLocationsEdit(@RequestParam(&quot;locationId&quot;) final String locationId, final Model model) {
+		
+<span class="nc" id="L71">		model.addAttribute(&quot;location&quot;, this.locationService.findById(Integer.parseInt(locationId)));</span>
+<span class="nc" id="L72">		return &quot;admins/locations/admin-locations-edit&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-locations-edit&quot;, &quot;/edit&quot;})
+	public String handleAdminLocationsEdit(@ModelAttribute(&quot;location&quot;) @Valid final Location location, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L78" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L79">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again !&quot;);</span>
+<span class="nc" id="L80">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L81">			return &quot;admins/locations/admin-loclocations location0_ations-edit&quot;;</span>
+		}
+		
+<span class="nc" id="L84">		this.locationService.update(location);</span>
+<span class="nc" id="L85">		logger.info(&quot;Location with locationId : {} has been modified successfully&quot;, location.getLocationId());</span>
+		
+<span class="nc" id="L87">		model.addAttribute(&quot;msg&quot;, &quot;This location has been modified successfully&quot;);</span>
+<span class="nc" id="L88">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L90">		return &quot;admins/locations/admin-locations-edit&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-locations-delete&quot;, &quot;/delete&quot;})
+	public String handleAdminLocationsDelete(@RequestParam(&quot;locationId&quot;) final String locationId) {
+		
+<span class="nc" id="L96">		this.locationService.deleteById(Integer.parseInt(locationId));</span>
+<span class="nc" id="L97">		logger.info(&quot;Location with locationId : {} has been removed successfully&quot;, locationId);</span>
+		
+<span class="nc" id="L99">		return &quot;redirect:/admins/locations/admin-locations-list&quot;;</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthorisationRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">AuthorisationRequest.java</span></div><h1>AuthorisationRequest.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+@Schema(name = &quot;AuthorisationRequest&quot;, description = &quot;Contains the user's payment information. This information will be sent to the payment service provider to authorise the payment.&quot;)
+public class AuthorisationRequest {
+    @JsonProperty(&quot;one_time_token&quot;)
+    @NotBlank
+    private String oneTimeToken;
+    @JsonProperty(&quot;card_number&quot;)
+    @NotNull
+    @Size(min = 12, max = 19, message = &quot;Must be between 12 and 19 characters long&quot;)
+    private String cardNumber;
+    @JsonProperty(&quot;cvc&quot;)
+    @NotNull
+    @Size(min = 3, max = 4, message = &quot;Must be between 3 and 4 characters long&quot;)
+    private String cvc;
+    @JsonProperty(&quot;expiry_date&quot;)
+    @NotNull
+    @Size(min = 5, max = 5, message = &quot;Must be a valid date with the format MM/YY&quot;)
+    private String expiryDate;
+    @JsonProperty(&quot;cardholder_name&quot;)
+    @NotBlank
+    @Size(max = 255, message = &quot;Must be less than or equal to {max} characters long&quot;)
+    private String cardholderName;
+
+<span class="nc" id="L31">    public AuthorisationRequest() {</span>
+<span class="nc" id="L32">    }</span>
+
+<span class="nc" id="L34">    public AuthorisationRequest(String oneTimeToken, String cardNumber, String cvc, String expiryDate, String cardholderName) {</span>
+<span class="nc" id="L35">        this.oneTimeToken = oneTimeToken;</span>
+<span class="nc" id="L36">        this.cardNumber = cardNumber;</span>
+<span class="nc" id="L37">        this.cvc = cvc;</span>
+<span class="nc" id="L38">        this.expiryDate = expiryDate;</span>
+<span class="nc" id="L39">        this.cardholderName = cardholderName;</span>
+<span class="nc" id="L40">    }</span>
+
+    @Schema(description = &quot;This single use token authorises your request and matches it to a payment. GOV.UK Pay generated the `one_time_token` when the payment was created.&quot;, required = true, example = &quot;12345-edsfr-6789-gtyu&quot;)
+    public String getOneTimeToken() {
+<span class="nc" id="L44">        return oneTimeToken;</span>
+    }
+
+    @Schema(description = &quot;The full card number from the paying user's card.&quot;, required = true, minLength = 12, maxLength = 19, example = &quot;4242424242424242&quot;)
+    public String getCardNumber() {
+<span class="nc" id="L49">        return cardNumber;</span>
+    }
+
+    @Schema(description = &quot;The card verification code (CVC) or card verification value (CVV) on the paying user's card.&quot;, required = true, minLength = 3, maxLength = 4, example = &quot;123&quot;)
+    public String getCvc() {
+<span class="nc" id="L54">        return cvc;</span>
+    }
+
+    @Schema(description = &quot;The expiry date of the paying user's card. This value must be in `MM/YY` format.&quot;, required = true, minLength = 5, maxLength = 5, example = &quot;09/22&quot;)
+    public String getExpiryDate() {
+<span class="nc" id="L59">        return expiryDate;</span>
+    }
+
+    @Schema(description = &quot;The name on the paying user's card.&quot;, required = true, maxLength = 255, example = &quot;J. Citizen&quot;)
+    public String getCardholderName() {
+<span class="nc" id="L64">        return cardholderName;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Avtalepart.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Avtalepart.java</span></div><h1>Avtalepart.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetBruker;
+import no.nav.tag.tiltaksgjennomforing.enhet.*;
+import no.nav.tag.tiltaksgjennomforing.exceptions.*;
+import no.nav.tag.tiltaksgjennomforing.persondata.PdlRespons;
+import no.nav.tag.tiltaksgjennomforing.persondata.PersondataService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+import static java.util.Map.entry;
+
+<span class="nc" id="L21">@AllArgsConstructor</span>
+<span class="nc" id="L22">@Slf4j</span>
+<span class="nc bnc" id="L23" title="All 14 branches missed.">@Data</span>
+public abstract class Avtalepart&lt;T extends Identifikator&gt; {
+<span class="nc" id="L25">    private final T identifikator;</span>
+<span class="nc" id="L26">    static DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd. MMMM yyyy&quot;);</span>
+
+    public boolean harTilgang(Avtale avtale) {
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if (avtale.isSlettemerket()) {</span>
+<span class="nc" id="L30">            return false;</span>
+        }
+<span class="nc" id="L32">        return harTilgangTilAvtale(avtale);</span>
+    }
+
+    abstract boolean harTilgangTilAvtale(Avtale avtale);
+
+    abstract Page&lt;Avtale&gt; hentAlleAvtalerMedMuligTilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, Pageable pageable);
+
+    public Map&lt;String, Object&gt; hentAlleAvtalerMedLesetilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, String sorteringskolonne, Pageable pageable) {
+<span class="nc" id="L40">        Page&lt;Avtale&gt; avtaler = hentAlleAvtalerMedMuligTilgang(avtaleRepository, queryParametre, pageable);</span>
+
+<span class="nc" id="L42">        List&lt;Avtale&gt; avtalerMedTilgang = avtaler.getContent().stream()</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                .filter(avtale -&gt; !avtale.isFeilregistrert())</span>
+<span class="nc" id="L44">                .filter(this::harTilgang)</span>
+<span class="nc" id="L45">                .toList();</span>
+
+<span class="nc" id="L47">        List&lt;AvtaleMinimalListevisning&gt; listMinimal = avtalerMedTilgang.stream().map(AvtaleMinimalListevisning::fromAvtale).toList();</span>
+
+<span class="nc" id="L49">        return Map.ofEntries(</span>
+<span class="nc" id="L50">                entry(&quot;avtaler&quot;, listMinimal),</span>
+<span class="nc" id="L51">                entry(&quot;size&quot;, avtaler.getSize()),</span>
+<span class="nc" id="L52">                entry(&quot;currentPage&quot;, avtaler.getNumber()),</span>
+<span class="nc" id="L53">                entry(&quot;totalItems&quot;, avtaler.getTotalElements()),</span>
+<span class="nc" id="L54">                entry(&quot;totalPages&quot;, avtaler.getTotalPages())</span>
+        );
+    }
+
+    public Avtale hentAvtale(AvtaleRepository avtaleRepository, UUID avtaleId) {
+<span class="nc" id="L59">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L60">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L61">        sjekkTilgang(avtale);</span>
+<span class="nc" id="L62">        return avtale;</span>
+    }
+
+    public Avtale hentAvtaleFraAvtaleNr(AvtaleRepository avtaleRepository, int avtaleNr) {
+<span class="nc" id="L66">        Avtale avtale = avtaleRepository.findByAvtaleNr(avtaleNr).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L67">        sjekkTilgang(avtale);</span>
+<span class="nc" id="L68">        return avtale;</span>
+    }
+
+    public List&lt;AvtaleInnhold&gt; hentAvtaleVersjoner(AvtaleRepository avtaleRepository, AvtaleInnholdRepository avtaleInnholdRepository, UUID avtaleId) {
+<span class="nc" id="L72">        Avtale avtale = avtaleRepository.findById(avtaleId)</span>
+<span class="nc" id="L73">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L74">        sjekkTilgang(avtale);</span>
+<span class="nc" id="L75">        return avtaleInnholdRepository.findAllByAvtale(avtale);</span>
+    }
+
+    abstract void godkjennForAvtalepart(Avtale avtale);
+
+    abstract boolean kanEndreAvtale();
+
+    public abstract boolean erGodkjentAvInnloggetBruker(Avtale avtale);
+
+    abstract boolean kanOppheveGodkjenninger(Avtale avtale);
+
+    abstract void opphevGodkjenningerSomAvtalepart(Avtale avtale);
+
+    public void godkjennAvtale(Instant sistEndret, Avtale avtale) {
+<span class="nc" id="L89">        sjekkTilgang(avtale);</span>
+<span class="nc" id="L90">        avtale.sjekkSistEndret(sistEndret);</span>
+<span class="nc" id="L91">        godkjennForAvtalepart(avtale);</span>
+<span class="nc" id="L92">    }</span>
+
+    public void sjekkTilgang(Avtale avtale) {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (!harTilgang(avtale)) {</span>
+<span class="nc" id="L96">            throw new TilgangskontrollException(&quot;Ikke tilgang til avtale&quot;);</span>
+        }
+<span class="nc" id="L98">    }</span>
+
+    protected void avtalePartKanEndreAvtale() {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (!kanEndreAvtale()) {</span>
+<span class="nc" id="L102">            throw new KanIkkeEndreException();</span>
+        }
+<span class="nc" id="L104">    }</span>
+
+    public void endreAvtale(
+            Instant sistEndret,
+            EndreAvtale endreAvtale,
+            Avtale avtale,
+            EnumSet&lt;Tiltakstype&gt; tiltakstyperMedTilskuddsperioder
+    ) {
+<span class="nc" id="L112">        sjekkTilgang(avtale);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (!kanEndreAvtale()) {</span>
+<span class="nc" id="L114">            throw new KanIkkeEndreException();</span>
+        }
+<span class="nc" id="L116">        avvisDatoerTilbakeITid(avtale, endreAvtale.getStartDato(), endreAvtale.getSluttDato());</span>
+<span class="nc" id="L117">        avtale.endreAvtale(sistEndret, endreAvtale, rolle(), tiltakstyperMedTilskuddsperioder, identifikator);</span>
+<span class="nc" id="L118">    }</span>
+
+    protected void sjekkTilgangOgEndreAvtale(
+            Instant sistEndret,
+            EndreAvtale endreAvtale,
+            Avtale avtale,
+            EnumSet&lt;Tiltakstype&gt; tiltakstyperMedTilskuddsperioder
+    ) {
+<span class="nc" id="L126">        sjekkTilgang(avtale);</span>
+<span class="nc" id="L127">        avtalePartKanEndreAvtale();</span>
+<span class="nc" id="L128">        avvisDatoerTilbakeITid(avtale, endreAvtale.getStartDato(), endreAvtale.getSluttDato());</span>
+<span class="nc" id="L129">        avtale.endreAvtale(</span>
+                sistEndret,
+                endreAvtale,
+<span class="nc" id="L132">                rolle(),</span>
+                tiltakstyperMedTilskuddsperioder,
+                identifikator
+        );
+<span class="nc" id="L136">    }</span>
+
+    protected void avvisDatoerTilbakeITid(Avtale avtale, LocalDate startDato, LocalDate sluttDato) {
+<span class="nc" id="L139">    }</span>
+
+    protected abstract Avtalerolle rolle();
+
+    public void opphevGodkjenninger(Avtale avtale) {
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (!kanOppheveGodkjenninger(avtale)) {</span>
+<span class="nc" id="L145">            throw new KanIkkeOppheveException();</span>
+        }
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        boolean AlleParterHarIkkeGodkjentAvtale = !avtale.erGodkjentAvVeileder() &amp;&amp;</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                !avtale.erGodkjentAvArbeidsgiver() &amp;&amp;</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">                !avtale.erGodkjentAvDeltaker();</span>
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (AlleParterHarIkkeGodkjentAvtale) {</span>
+<span class="nc" id="L152">            throw new KanIkkeOppheveException();</span>
+        }
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (avtale.erAvtaleInngått()) {</span>
+<span class="nc" id="L155">            throw new FeilkodeException(Feilkode.KAN_IKKE_OPPHEVE_GODKJENNINGER_VED_INNGAATT_AVTALE);</span>
+        }
+<span class="nc" id="L157">        opphevGodkjenningerSomAvtalepart(avtale);</span>
+<span class="nc" id="L158">    }</span>
+
+    public abstract InnloggetBruker innloggetBruker();
+
+    public Collection&lt;? extends Identifikator&gt; identifikatorer() {
+<span class="nc" id="L163">        return List.of(getIdentifikator());</span>
+    }
+
+    protected void hentGeoEnhetFraNorg2(Avtale avtale, PdlRespons pdlRespons, Norg2Client norg2Client) {
+<span class="nc" id="L167">        Norg2GeoResponse enhet = PersondataService.hentGeoLokasjonFraPdlRespons(pdlRespons)</span>
+<span class="nc" id="L168">                .map(norg2Client::hentGeografiskEnhet).orElse(null);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (enhet == null) return;</span>
+<span class="nc" id="L170">        avtale.setEnhetGeografisk(enhet.getEnhetNr());</span>
+<span class="nc" id="L171">        avtale.setEnhetsnavnGeografisk(enhet.getNavn());</span>
+<span class="nc" id="L172">    }</span>
+
+    protected void hentOppfølingenhetNavnFraNorg2(Avtale avtale, Norg2Client norg2Client) {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        if (avtale.getEnhetOppfolging() == null) return;</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        if (avtale.getEnhetOppfolging().equals(avtale.getEnhetGeografisk())) {</span>
+<span class="nc" id="L177">            avtale.setEnhetsnavnOppfolging(avtale.getEnhetsnavnGeografisk());</span>
+        } else {
+<span class="nc" id="L179">            final Norg2OppfølgingResponse response = norg2Client.hentOppfølgingsEnhetsnavn(avtale.getEnhetOppfolging());</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (response == null) return;</span>
+<span class="nc" id="L181">            avtale.setEnhetsnavnOppfolging(response.getNavn());</span>
+        }
+<span class="nc" id="L183">    }</span>
+
+    public void settLonntilskuddProsentsats(Avtale avtale) {
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (avtale.getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD) {</span>
+<span class="nc" id="L187">            avtale.getGjeldendeInnhold().setLonnstilskuddProsent(</span>
+<span class="nc" id="L188">                    avtale.getKvalifiseringsgruppe().finnLonntilskuddProsentsatsUtifraKvalifiseringsgruppe(</span>
+<span class="nc" id="L189">                            40,</span>
+<span class="nc" id="L190">                            60</span>
+                    )
+            );
+        }
+<span class="nc" id="L194">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

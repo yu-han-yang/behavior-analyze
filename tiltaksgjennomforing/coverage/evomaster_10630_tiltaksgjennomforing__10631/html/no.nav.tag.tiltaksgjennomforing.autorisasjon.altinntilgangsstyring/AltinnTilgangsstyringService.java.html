@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AltinnTilgangsstyringService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.autorisasjon.altinntilgangsstyring</a> &gt; <span class="el_source">AltinnTilgangsstyringService.java</span></div><h1>AltinnTilgangsstyringService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.autorisasjon.altinntilgangsstyring;
+
+import lombok.extern.slf4j.Slf4j;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.AltinnConfig;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.AltinnrettigheterProxyKlient;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.AltinnrettigheterProxyKlientConfig;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.ProxyConfig;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.error.exceptions.AltinnrettigheterProxyKlientFallbackException;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.model.*;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils;
+import no.nav.tag.tiltaksgjennomforing.avtale.BedriftNr;
+import no.nav.tag.tiltaksgjennomforing.avtale.Fnr;
+import no.nav.tag.tiltaksgjennomforing.avtale.Tiltakstype;
+import no.nav.tag.tiltaksgjennomforing.exceptions.AltinnFeilException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.TiltaksgjennomforingException;
+import no.nav.tag.tiltaksgjennomforing.utils.MultiValueMap;
+import no.nav.tag.tiltaksgjennomforing.utils.Utils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
+
+@Component
+<span class="fc" id="L24">@Slf4j</span>
+public class AltinnTilgangsstyringService {
+    private final AltinnTilgangsstyringProperties altinnTilgangsstyringProperties;
+    private final AltinnrettigheterProxyKlient klient;
+
+    public AltinnTilgangsstyringService(
+            AltinnTilgangsstyringProperties altinnTilgangsstyringProperties,
+            TokenUtils tokenUtils,
+<span class="fc" id="L32">            @Value(&quot;${spring.application.name}&quot;) String applicationName) {</span>
+
+<span class="pc bpc" id="L34" title="1 of 2 branches missed.">        if (Utils.erNoenTomme(altinnTilgangsstyringProperties.getArbtreningServiceCode(),</span>
+<span class="fc" id="L35">                altinnTilgangsstyringProperties.getArbtreningServiceEdition(),</span>
+<span class="fc" id="L36">                altinnTilgangsstyringProperties.getLtsMidlertidigServiceCode(),</span>
+<span class="fc" id="L37">                altinnTilgangsstyringProperties.getLtsMidlertidigServiceEdition(),</span>
+<span class="fc" id="L38">                altinnTilgangsstyringProperties.getLtsVarigServiceCode(),</span>
+<span class="fc" id="L39">                altinnTilgangsstyringProperties.getLtsVarigServiceEdition(),</span>
+<span class="fc" id="L40">                altinnTilgangsstyringProperties.getSommerjobbServiceCode(),</span>
+<span class="fc" id="L41">                altinnTilgangsstyringProperties.getSommerjobbServiceEdition())) {</span>
+<span class="nc" id="L42">            throw new TiltaksgjennomforingException(&quot;Altinn konfigurasjon ikke komplett&quot;);</span>
+        }
+<span class="fc" id="L44">        this.altinnTilgangsstyringProperties = altinnTilgangsstyringProperties;</span>
+
+<span class="fc" id="L46">        String altinnProxyUrl = altinnTilgangsstyringProperties.getProxyUri().toString();</span>
+<span class="fc" id="L47">        String altinnProxyFallbackUrl = altinnTilgangsstyringProperties.getUri().toString();</span>
+
+<span class="fc" id="L49">        AltinnrettigheterProxyKlientConfig proxyKlientConfig = new AltinnrettigheterProxyKlientConfig(</span>
+                new ProxyConfig(applicationName, altinnProxyUrl),
+                new AltinnConfig(
+                        altinnProxyFallbackUrl,
+<span class="fc" id="L53">                        altinnTilgangsstyringProperties.getAltinnApiKey(),</span>
+<span class="fc" id="L54">                        altinnTilgangsstyringProperties.getApiGwApiKey()</span>
+                )
+        );
+<span class="fc" id="L57">        this.klient = new AltinnrettigheterProxyKlient(proxyKlientConfig);</span>
+
+<span class="fc" id="L59">    }</span>
+
+    public Map&lt;BedriftNr, Collection&lt;Tiltakstype&gt;&gt; hentTilganger(Fnr fnr, HentArbeidsgiverToken hentArbeidsgiverToken) {
+<span class="nc" id="L62">        MultiValueMap&lt;BedriftNr, Tiltakstype&gt; tilganger = MultiValueMap.empty();</span>
+<span class="nc" id="L63">        String arbeidsgiverToken = hentArbeidsgiverToken.hentArbeidsgiverToken();</span>
+
+<span class="nc" id="L65">        AltinnReportee[] arbeidstreningOrger = kallAltinn(altinnTilgangsstyringProperties.getArbtreningServiceCode(), altinnTilgangsstyringProperties.getArbtreningServiceEdition(), fnr, arbeidsgiverToken);</span>
+<span class="nc" id="L66">        leggTil(tilganger, arbeidstreningOrger, Tiltakstype.ARBEIDSTRENING);</span>
+
+<span class="nc" id="L68">        AltinnReportee[] varigLtsOrger = kallAltinn(altinnTilgangsstyringProperties.getLtsVarigServiceCode(), altinnTilgangsstyringProperties.getLtsVarigServiceEdition(), fnr, arbeidsgiverToken);</span>
+<span class="nc" id="L69">        leggTil(tilganger, varigLtsOrger, Tiltakstype.VARIG_LONNSTILSKUDD);</span>
+
+<span class="nc" id="L71">        AltinnReportee[] midlLtsOrger = kallAltinn(altinnTilgangsstyringProperties.getLtsMidlertidigServiceCode(), altinnTilgangsstyringProperties.getLtsMidlertidigServiceEdition(), fnr, arbeidsgiverToken);</span>
+<span class="nc" id="L72">        leggTil(tilganger, midlLtsOrger, Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD);</span>
+
+<span class="nc" id="L74">        AltinnReportee[] sommerjobbOrger = kallAltinn(altinnTilgangsstyringProperties.getSommerjobbServiceCode(), altinnTilgangsstyringProperties.getSommerjobbServiceEdition(), fnr, arbeidsgiverToken);</span>
+<span class="nc" id="L75">        leggTil(tilganger, sommerjobbOrger, Tiltakstype.SOMMERJOBB);</span>
+
+<span class="nc" id="L77">        AltinnReportee[] mentorOrger = kallAltinn(altinnTilgangsstyringProperties.getMentorServiceCode(), altinnTilgangsstyringProperties.getMentorServiceEdition(), fnr, arbeidsgiverToken);</span>
+<span class="nc" id="L78">        leggTil(tilganger, mentorOrger, Tiltakstype.MENTOR);</span>
+
+<span class="nc" id="L80">        AltinnReportee[] inkluderingstilskuddOrger = kallAltinn(altinnTilgangsstyringProperties.getInkluderingstilskuddServiceCode(), altinnTilgangsstyringProperties.getInkluderingstilskuddServiceEdition(), fnr,</span>
+                arbeidsgiverToken);
+<span class="nc" id="L82">        leggTil(tilganger, inkluderingstilskuddOrger, Tiltakstype.INKLUDERINGSTILSKUDD);</span>
+
+<span class="nc" id="L84">        return tilganger.toMap();</span>
+    }
+
+    private void leggTil(MultiValueMap&lt;BedriftNr, Tiltakstype&gt; tilganger, AltinnReportee[] arbeidstreningOrger, Tiltakstype tiltakstype) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        for (AltinnReportee altinnReportee : arbeidstreningOrger) {</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">            if (!altinnReportee.getType().equals(&quot;Enterprise&quot;)) {</span>
+<span class="nc" id="L90">                tilganger.put(new BedriftNr(altinnReportee.getOrganizationNumber()), tiltakstype);</span>
+            }
+        }
+<span class="nc" id="L93">    }</span>
+
+    public Set&lt;AltinnReportee&gt; hentAltinnOrganisasjoner(Fnr fnr, HentArbeidsgiverToken hentArbeidsgiverToken) {
+<span class="nc" id="L96">        return new HashSet&lt;&gt;(List.of(kallAltinn(null, null, fnr, hentArbeidsgiverToken.hentArbeidsgiverToken())));</span>
+    }
+
+    private AltinnReportee[] kallAltinn(Integer serviceCode, Integer serviceEdition, Fnr fnr, String arbeidsgiverToken) {
+        try {
+            List&lt;AltinnReportee&gt; reportees;
+<span class="pc bpc" id="L102" title="3 of 4 branches missed.">            if (serviceCode != null &amp;&amp; serviceEdition != null) {</span>
+<span class="nc" id="L103">                reportees = klient.hentOrganisasjoner(</span>
+                        new SelvbetjeningToken(arbeidsgiverToken),
+<span class="nc" id="L105">                        new Subject(fnr.asString()), new ServiceCode(serviceCode.toString()), new ServiceEdition(serviceEdition.toString()),</span>
+                        true
+                );
+            } else {
+<span class="nc" id="L109">                reportees = klient.hentOrganisasjoner(new SelvbetjeningToken(arbeidsgiverToken), new Subject(fnr.asString()), true);</span>
+            }
+<span class="nc" id="L111">            return reportees.toArray(new AltinnReportee[0]);</span>
+
+<span class="fc" id="L113">        } catch (AltinnrettigheterProxyKlientFallbackException exception) {</span>
+<span class="fc" id="L114">            log.warn(&quot;Feil ved kall mot Altinn.&quot;, exception);</span>
+<span class="fc" id="L115">            throw new AltinnFeilException();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

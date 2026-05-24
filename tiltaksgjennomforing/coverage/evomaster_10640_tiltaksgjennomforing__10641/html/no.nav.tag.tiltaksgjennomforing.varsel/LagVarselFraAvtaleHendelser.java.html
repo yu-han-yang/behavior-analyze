@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LagVarselFraAvtaleHendelser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel</a> &gt; <span class="el_source">LagVarselFraAvtaleHendelser.java</span></div><h1>LagVarselFraAvtaleHendelser.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel;
+
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalerolle;
+import no.nav.tag.tiltaksgjennomforing.avtale.HendelseType;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.*;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="fc" id="L12">@RequiredArgsConstructor</span>
+public class LagVarselFraAvtaleHendelser {
+    private final VarselRepository varselRepository;
+
+    @EventListener
+    public void avtaleOpprettet(AvtaleOpprettetAvVeileder event) {
+<span class="nc" id="L18">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.OPPRETTET);</span>
+<span class="nc" id="L19">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L20">    }</span>
+
+    @EventListener
+    public void avtaleOpprettetAvArbeidsgiver(AvtaleOpprettetAvArbeidsgiver event) {
+<span class="nc" id="L24">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.ARBEIDSGIVER, event.getAvtale().getBedriftNr(), HendelseType.OPPRETTET_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L25">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L26">    }</span>
+
+    @EventListener
+    public void avtaleDeltMedAvtalepart(AvtaleDeltMedAvtalepart event) {
+<span class="nc bnc" id="L30" title="All 2 branches missed.">        if (event.getAvtalepart() == Avtalerolle.ARBEIDSGIVER) {</span>
+<span class="nc" id="L31">            VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, null, HendelseType.DELT_MED_ARBEIDSGIVER);</span>
+<span class="nc" id="L32">            varselRepository.saveAll(List.of(factory.veileder(), factory.arbeidsgiver()));</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        } else if (event.getAvtalepart() == Avtalerolle.DELTAKER) {</span>
+<span class="nc" id="L34">            VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, null, HendelseType.DELT_MED_DELTAKER);</span>
+<span class="nc" id="L35">            varselRepository.saveAll(List.of(factory.veileder(), factory.deltaker()));</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        } else if (event.getAvtalepart() == Avtalerolle.MENTOR) {</span>
+<span class="nc" id="L37">            VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, null, HendelseType.DELT_MED_MENTOR);</span>
+<span class="nc" id="L38">            varselRepository.saveAll(List.of(factory.veileder(), factory.mentor()));</span>
+        }
+<span class="nc" id="L40">    }</span>
+
+    //TODO: Hent IDENTEN til beslutter her og ikke veileder
+    @EventListener
+    public void tilskuddsperiodeAvslått(TilskuddsperiodeAvslått event) {
+<span class="nc" id="L45">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.BESLUTTER, event.getUtfortAv(), HendelseType.TILSKUDDSPERIODE_AVSLATT);</span>
+<span class="nc" id="L46">        varselRepository.saveAll(List.of(factory.veileder()));</span>
+<span class="nc" id="L47">    }</span>
+
+    //TODO: Hent IDENTEN til beslutter her og ikke veileder
+    @EventListener
+    public void tilskuddsperiodeGodkjent(TilskuddsperiodeGodkjent event) {
+<span class="nc" id="L52">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.BESLUTTER, event.getUtfortAv(), HendelseType.TILSKUDDSPERIODE_GODKJENT);</span>
+<span class="nc" id="L53">        varselRepository.saveAll(List.of(factory.veileder()));</span>
+<span class="nc" id="L54">    }</span>
+
+    @EventListener
+    public void avtaleEndret(AvtaleEndret event) {
+<span class="nc" id="L58">        VarselFactory factory = new VarselFactory(event.getAvtale(), event.getUtfortAvRolle(), event.getUtfortAv(), HendelseType.ENDRET);</span>
+<span class="nc" id="L59">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L60">    }</span>
+
+    @EventListener
+    public void godkjenningerOpphevetAvArbeidsgiver(GodkjenningerOpphevetAvArbeidsgiver event) {
+<span class="nc" id="L64">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.ARBEIDSGIVER, event.getAvtale().getBedriftNr(), HendelseType.GODKJENNINGER_OPPHEVET_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L65">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L66">    }</span>
+
+    @EventListener
+    public void godkjenningerOpphevetAvVeileder(GodkjenningerOpphevetAvVeileder event) {
+<span class="nc" id="L70">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, null, HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER);</span>
+<span class="nc" id="L71">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L72">    }</span>
+    @EventListener
+    public void godkjentAvDeltaker(GodkjentAvDeltaker event) {
+<span class="nc" id="L75">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.DELTAKER, event.getUtfortAv(), HendelseType.GODKJENT_AV_DELTAKER);</span>
+<span class="nc" id="L76">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L77">    }</span>
+
+    @EventListener
+    public void signertAvMentor(SignertAvMentor event) {
+<span class="nc" id="L81">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.MENTOR, event.getUtfortAv(), HendelseType.SIGNERT_AV_MENTOR);</span>
+<span class="nc" id="L82">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L83">    }</span>
+
+    @EventListener
+    public void godkjentAvArbeidsgiver(GodkjentAvArbeidsgiver event) {
+<span class="nc" id="L87">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.ARBEIDSGIVER, event.getUtfortAv(), HendelseType.GODKJENT_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L88">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L89">    }</span>
+
+    @EventListener
+    public void godkjentAvVeileder(GodkjentAvVeileder event) {
+<span class="nc" id="L93">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.GODKJENT_AV_VEILEDER);</span>
+<span class="nc" id="L94">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L95">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAv(GodkjentPaVegneAvDeltaker event) {
+<span class="nc" id="L99">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.GODKJENT_PAA_VEGNE_AV);</span>
+<span class="nc" id="L100">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L101">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvArbeidsgiver(GodkjentPaVegneAvArbeidsgiver event) {
+<span class="nc" id="L105">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.GODKJENT_PAA_VEGNE_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L106">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L107">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvDeltakerOgArbeidsgiver(GodkjentPaVegneAvDeltakerOgArbeidsgiver event) {
+<span class="nc" id="L111">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.GODKJENT_PAA_VEGNE_AV_DELTAKER_OG_ARBEIDSGIVER);</span>
+<span class="nc" id="L112">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L113">    }</span>
+
+    @EventListener
+    public void godkjentForEtterregistrering(GodkjentForEtterregistrering event) {
+<span class="nc" id="L117">        VarselFactory factory = new VarselFactory (event.getAvtale(), Avtalerolle.BESLUTTER, event.getUtfortAv(), HendelseType.GODKJENT_FOR_ETTERREGISTRERING);</span>
+<span class="nc" id="L118">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L119">    }</span>
+
+    @EventListener
+    public void fjernetEtterregistrering(FjernetEtterregistrering event) {
+<span class="nc" id="L123">        VarselFactory factory = new VarselFactory (event.getAvtale(), Avtalerolle.BESLUTTER, event.getUtfortAv(), HendelseType.FJERNET_ETTERREGISTRERING);</span>
+<span class="nc" id="L124">        varselRepository.save(factory.veileder());</span>
+<span class="nc" id="L125">    }</span>
+
+    @EventListener
+    public void avtaleInngått(AvtaleInngått event) {
+<span class="nc" id="L129">        VarselFactory factory = new VarselFactory(event.getAvtale(), event.getUtførtAvRolle(), event.getUtførtAv(), HendelseType.AVTALE_INNGÅTT);</span>
+<span class="nc" id="L130">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L131">    }</span>
+
+    @EventListener
+    public void nyVeileder(AvtaleNyVeileder event) {
+<span class="nc" id="L135">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getAvtale().getVeilederNavIdent(), HendelseType.NY_VEILEDER);</span>
+<span class="nc" id="L136">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L137">    }</span>
+
+    @EventListener
+    public void fordelt(AvtaleOpprettetAvArbeidsgiverErFordelt event) {
+<span class="nc" id="L141">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getAvtale().getVeilederNavIdent(), HendelseType.AVTALE_FORDELT);</span>
+<span class="nc" id="L142">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L143">    }</span>
+
+    @EventListener
+    public void avbrutt(AvbruttAvVeileder event) {
+<span class="nc" id="L147">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.AVBRUTT);</span>
+<span class="nc" id="L148">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L149">    }</span>
+
+    @EventListener
+    public void annullert(AnnullertAvVeileder event) {
+<span class="nc" id="L153">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.ANNULLERT);</span>
+<span class="nc" id="L154">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L155">    }</span>
+
+    @EventListener
+    public void låstOpp(AvtaleLåstOpp event) {
+<span class="nc" id="L159">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, null, HendelseType.LÅST_OPP);</span>
+<span class="nc" id="L160">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L161">    }</span>
+
+    @EventListener
+    public void gjenopprettet(AvtaleGjenopprettet event) {
+<span class="nc" id="L165">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtfortAv(), HendelseType.GJENOPPRETTET);</span>
+<span class="nc" id="L166">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L167">    }</span>
+
+    @EventListener
+    public void forkortAvtale(AvtaleForkortet event) {
+<span class="nc" id="L171">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.AVTALE_FORKORTET);</span>
+<span class="nc" id="L172">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L173">    }</span>
+
+    @EventListener
+    public void forlengAvtale(AvtaleForlenget event) {
+<span class="nc" id="L177">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.AVTALE_FORLENGET);</span>
+<span class="nc" id="L178">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L179">    }</span>
+
+    @EventListener
+    public void målEndret(MålEndret event) {
+<span class="nc" id="L183">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.MÅL_ENDRET);</span>
+<span class="nc" id="L184">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L185">    }</span>
+
+    @EventListener
+    public void inkluderingstilskuddEndret(InkluderingstilskuddEndret event) {
+<span class="nc" id="L189">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.INKLUDERINGSTILSKUDD_ENDRET);</span>
+<span class="nc" id="L190">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L191">    }</span>
+
+    @EventListener
+    public void omMentorEndret(OmMentorEndret event) {
+<span class="nc" id="L195">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.OM_MENTOR_ENDRET);</span>
+<span class="nc" id="L196">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L197">    }</span>
+
+    @EventListener
+    public void endreTilskuddsberegning(TilskuddsberegningEndret event) {
+<span class="nc" id="L201">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.TILSKUDDSBEREGNING_ENDRET);</span>
+<span class="nc" id="L202">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L203">    }</span>
+
+    @EventListener
+    public void endreKontaktInformasjon(KontaktinformasjonEndret event) {
+<span class="nc" id="L207">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.KONTAKTINFORMASJON_ENDRET);</span>
+<span class="nc" id="L208">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L209">    }</span>
+
+    @EventListener
+    public void endreStillingbeskrivelse(StillingsbeskrivelseEndret event) {
+<span class="nc" id="L213">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.STILLINGSBESKRIVELSE_ENDRET);</span>
+<span class="nc" id="L214">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L215">    }</span>
+
+    @EventListener
+    public void endreOppfølgingOgTilretteleggingInformasjon(OppfølgingOgTilretteleggingEndret event) {
+<span class="nc" id="L219">        VarselFactory factory = new VarselFactory(event.getAvtale(), Avtalerolle.VEILEDER, event.getUtførtAv(), HendelseType.OPPFØLGING_OG_TILRETTELEGGING_ENDRET);</span>
+<span class="nc" id="L220">        varselRepository.saveAll(factory.alleParter());</span>
+<span class="nc" id="L221">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

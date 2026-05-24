@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResponseConstants.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.common</a> &gt; <span class="el_source">ResponseConstants.java</span></div><h1>ResponseConstants.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.common;
+
+<span class="nc" id="L3">public final class ResponseConstants {</span>
+    
+    public static final String RESPONSE_200_DESCRIPTION = &quot;OK - your request was successful.&quot;;
+    public static final String RESPONSE_201_DESCRIPTION = &quot;Created&quot;;
+    public static final String RESPONSE_400_DESCRIPTION = &quot;Bad request&quot;;
+    public static final String RESPONSE_401_DESCRIPTION = &quot;Your API key is missing or invalid. &quot; +
+            &quot;Read more about [authenticating GOV.UK Pay API requests](https://docs.payments.service.gov.uk/api_reference/#authentication)&quot;;
+    public static final String RESPONSE_404_DESCRIPTION = &quot;Not found&quot;;
+    public static final String RESPONSE_409_DESCRIPTION = &quot;Conflict&quot;;
+    public static final String RESPONSE_422_DESCRIPTION = &quot;Your request failed. Check the `code` and `description` in the response to find out why your request failed.&quot;;
+    public static final String RESPONSE_429_DESCRIPTION = &quot;Too many requests&quot;;
+    public static final String RESPONSE_500_DESCRIPTION = &quot;Downstream system error&quot;;
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

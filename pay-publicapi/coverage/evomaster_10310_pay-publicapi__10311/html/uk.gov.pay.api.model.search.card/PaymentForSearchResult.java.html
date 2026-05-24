@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentForSearchResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.search.card</a> &gt; <span class="el_source">PaymentForSearchResult.java</span></div><h1>PaymentForSearchResult.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.search.card;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.AuthorisationSummary;
+import uk.gov.pay.api.model.CardDetails;
+import uk.gov.pay.api.model.CardDetailsFromResponse;
+import uk.gov.pay.api.model.CardPayment;
+import uk.gov.pay.api.model.PaymentConnectorResponseLink;
+import uk.gov.pay.api.model.PaymentSettlementSummary;
+import uk.gov.pay.api.model.PaymentState;
+import uk.gov.pay.api.model.RefundSummary;
+import uk.gov.pay.api.model.TransactionResponse;
+import uk.gov.pay.api.model.links.PaymentLinksForSearch;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import java.net.URI;
+import java.util.List;
+
+@Schema(name = &quot;PaymentDetailForSearch&quot;)
+public class PaymentForSearchResult extends CardPayment {
+
+<span class="nc" id="L25">    @JsonProperty(LINKS_JSON_ATTRIBUTE)</span>
+    private PaymentLinksForSearch links = new PaymentLinksForSearch();
+
+    public PaymentForSearchResult(String chargeId, long amount, PaymentState state, String returnUrl, String description,
+                                  String reference, String email, String paymentProvider, String createdDate, SupportedLanguage language,
+                                  boolean delayedCapture, boolean moto, RefundSummary refundSummary, PaymentSettlementSummary settlementSummary, CardDetails cardDetails,
+                                  List&lt;PaymentConnectorResponseLink&gt; links, URI selfLink, URI paymentEventsLink, URI paymentCancelLink, URI paymentRefundsLink, URI paymentCaptureUri,
+                                  Long corporateCardSurcharge, Long totalAmount, String providerId, ExternalMetadata externalMetadata,
+                                  Long fee, Long netAmount, AuthorisationSummary authorisationSummary, AuthorisationMode authorisationMode) {
+        
+<span class="nc" id="L35">        super(chargeId, amount, state, returnUrl, description, reference, email, paymentProvider,</span>
+                createdDate, refundSummary, settlementSummary, cardDetails, language, delayedCapture, moto, corporateCardSurcharge, totalAmount, providerId, externalMetadata,
+                fee, netAmount, authorisationSummary, null, authorisationMode);
+<span class="nc" id="L38">        this.links.addSelf(selfLink.toString());</span>
+<span class="nc" id="L39">        this.links.addEvents(paymentEventsLink.toString());</span>
+<span class="nc" id="L40">        this.links.addRefunds(paymentRefundsLink.toString());</span>
+
+<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (!state.isFinished() &amp;&amp; authorisationMode != AuthorisationMode.AGREEMENT) {</span>
+<span class="nc" id="L43">            this.links.addCancel(paymentCancelLink.toString());</span>
+        }
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if (links.stream().anyMatch(link -&gt; &quot;capture&quot;.equals(link.getRel()))) {</span>
+<span class="nc" id="L46">            this.links.addCapture(paymentCaptureUri.toString());</span>
+        }
+<span class="nc" id="L48">    }</span>
+
+    public static PaymentForSearchResult valueOf(
+            TransactionResponse paymentResult,
+            URI selfLink,
+            URI paymentEventsLink,
+            URI paymentCancelLink,
+            URI paymentRefundsLink,
+            URI paymentCaptureUri) {
+        
+<span class="nc" id="L58">        return new PaymentForSearchResult(</span>
+<span class="nc" id="L59">                paymentResult.getTransactionId(),</span>
+<span class="nc" id="L60">                paymentResult.getAmount(),</span>
+<span class="nc" id="L61">                paymentResult.getState(),</span>
+<span class="nc" id="L62">                paymentResult.getReturnUrl(),</span>
+<span class="nc" id="L63">                paymentResult.getDescription(),</span>
+<span class="nc" id="L64">                paymentResult.getReference(),</span>
+<span class="nc" id="L65">                paymentResult.getEmail(),</span>
+<span class="nc" id="L66">                paymentResult.getPaymentProvider(),</span>
+<span class="nc" id="L67">                paymentResult.getCreatedDate(),</span>
+<span class="nc" id="L68">                paymentResult.getLanguage(),</span>
+<span class="nc" id="L69">                paymentResult.getDelayedCapture(),</span>
+<span class="nc" id="L70">                paymentResult.isMoto(),</span>
+<span class="nc" id="L71">                paymentResult.getRefundSummary(),</span>
+<span class="nc" id="L72">                paymentResult.getSettlementSummary(),</span>
+<span class="nc" id="L73">                paymentResult.getWalletType()</span>
+<span class="nc" id="L74">                        .map(wallet -&gt; CardDetails.from(paymentResult.getCardDetailsFromResponse(), wallet.getTitleCase()))</span>
+<span class="nc" id="L75">                        .orElse(CardDetails.from(paymentResult.getCardDetailsFromResponse(), null)),</span>
+<span class="nc" id="L76">                paymentResult.getLinks(),</span>
+                selfLink,
+                paymentEventsLink,
+                paymentCancelLink,
+                paymentRefundsLink,
+                paymentCaptureUri,
+<span class="nc" id="L82">                paymentResult.getCorporateCardSurcharge(),</span>
+<span class="nc" id="L83">                paymentResult.getTotalAmount(),</span>
+<span class="nc" id="L84">                paymentResult.getGatewayTransactionId(),</span>
+<span class="nc" id="L85">                paymentResult.getMetadata().orElse(null),</span>
+<span class="nc" id="L86">                paymentResult.getFee(),</span>
+<span class="nc" id="L87">                paymentResult.getNetAmount(),</span>
+<span class="nc" id="L88">                paymentResult.getAuthorisationSummary(),</span>
+<span class="nc" id="L89">                paymentResult.getAuthorisationMode());</span>
+    }
+
+    public PaymentLinksForSearch getLinks() {
+<span class="nc" id="L93">        return links;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

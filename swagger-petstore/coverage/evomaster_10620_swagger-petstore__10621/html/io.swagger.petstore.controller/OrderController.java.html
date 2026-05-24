@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore.controller</a> &gt; <span class="el_source">OrderController.java</span></div><h1>OrderController.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2018 SmartBear Software
+ * &lt;p&gt;
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * &lt;p&gt;
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * &lt;p&gt;
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.swagger.petstore.controller;
+
+import io.swagger.oas.inflector.models.RequestContext;
+import io.swagger.oas.inflector.models.ResponseContext;
+import io.swagger.petstore.data.OrderData;
+import io.swagger.petstore.model.Order;
+import io.swagger.petstore.utils.Util;
+import org.joda.time.DateTime;
+
+import javax.ws.rs.core.Response;
+import java.util.Date;
+
+@javax.annotation.Generated(value = &quot;class io.swagger.codegen.languages.JavaInflectorServerCodegen&quot;, date = &quot;2017-04-08T15:48:56.501Z&quot;)
+<span class="fc" id="L30">public class OrderController {</span>
+
+<span class="fc" id="L32">    private static OrderData orderData = new OrderData();</span>
+
+    public ResponseContext getInventory(final RequestContext request) {
+<span class="fc" id="L35">        return new ResponseContext()</span>
+<span class="fc" id="L36">                .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L37">                .entity(orderData.getCountByStatus());</span>
+    }
+
+    public ResponseContext getOrderById(final RequestContext request, final Long orderId) {
+<span class="pc bpc" id="L41" title="1 of 2 branches missed.">        if (orderId == null) {</span>
+<span class="nc" id="L42">            return new ResponseContext()</span>
+<span class="nc" id="L43">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L44">                    .entity(&quot;No orderId provided. Try again?&quot;);</span>
+        }
+
+<span class="fc" id="L47">        final Order order = orderData.getOrderById(orderId);</span>
+
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (order != null) {</span>
+<span class="fc" id="L50">            return new ResponseContext()</span>
+<span class="fc" id="L51">                    .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L52">                    .entity(order);</span>
+        }
+
+<span class="fc" id="L55">        return new ResponseContext().status(Response.Status.NOT_FOUND).entity(&quot;Order not found&quot;);</span>
+    }
+
+    public ResponseContext placeOrder(final RequestContext request, final Order order) {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (order == null) {</span>
+<span class="nc" id="L60">            return new ResponseContext()</span>
+<span class="nc" id="L61">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L62">                    .entity(&quot;No Order provided. Try again?&quot;);</span>
+        }
+
+<span class="fc" id="L65">        orderData.addOrder(order);</span>
+<span class="fc" id="L66">        return new ResponseContext()</span>
+<span class="fc" id="L67">                .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L68">                .entity(order);</span>
+    }
+
+    public ResponseContext placeOrder(final RequestContext request, final Long id, final Long petId, final Integer quantity, final DateTime shipDate,
+                                      final String status, final Boolean complete) {
+<span class="fc" id="L73">        final Order order = OrderData.createOrder(id, petId, quantity, new Date(), status, complete);</span>
+<span class="fc" id="L74">        return placeOrder(request,order);</span>
+    }
+
+    public ResponseContext deleteOrder(final RequestContext request, final Long orderId) {
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (orderId == null) {</span>
+<span class="nc" id="L79">            return new ResponseContext()</span>
+<span class="nc" id="L80">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L81">                    .entity(&quot;No orderId provided. Try again?&quot;);</span>
+        }
+
+<span class="fc" id="L84">        orderData.deleteOrderById(orderId);</span>
+
+<span class="fc" id="L86">        final Order order = orderData.getOrderById(orderId);</span>
+
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (null == order) {</span>
+<span class="fc" id="L89">            return new ResponseContext()</span>
+<span class="fc" id="L90">                    .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L91">                    .entity(order);</span>
+        } else {
+<span class="nc" id="L93">            return new ResponseContext().status(Response.Status.NOT_MODIFIED).entity(&quot;Order couldn't be deleted.&quot;);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ManagerController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops</a> &gt; <span class="el_source">ManagerController.java</span></div><h1>ManagerController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.printshops;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.Employee;
+import io.github.proxyprint.kitchen.models.printshops.Manager;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.repositories.EmployeeDAO;
+import io.github.proxyprint.kitchen.models.repositories.ManagerDAO;
+import io.github.proxyprint.kitchen.models.repositories.PrintRequestDAO;
+import io.github.proxyprint.kitchen.models.repositories.PrintShopDAO;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.io.IOUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 27-04-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L34">public class ManagerController {</span>
+
+    @Autowired
+    PrintShopDAO printshops;
+    @Autowired
+    EmployeeDAO employees;
+    @Autowired
+    PrintRequestDAO printRequests;
+    @Autowired
+    ManagerDAO managers;
+    @Autowired
+    private Gson GSON;
+
+    /*---------------------
+        Employees
+     ---------------------*/
+    @ApiOperation(value = &quot;Returns list of employees.&quot;, notes = &quot;This method allows a manager to get the list of employees from his printshop.&quot;)
+    @Secured(&quot;ROLE_MANAGER&quot;)
+    @RequestMapping(value = &quot;/printshops/{printShopID}/employees&quot;, method = RequestMethod.GET)
+    public String getEmployees(@PathVariable(value = &quot;printShopID&quot;) long psid) {
+<span class="fc" id="L54">        PrintShop pshop = printshops.findOne(psid);</span>
+<span class="fc" id="L55">        JsonObject response = new JsonObject();</span>
+
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        if(pshop!=null) {</span>
+<span class="nc" id="L58">            List&lt;Employee&gt; employeesList = employees.findByPrintShop(pshop);</span>
+<span class="nc" id="L59">            response.add(&quot;employees&quot;, GSON.toJsonTree(employeesList));</span>
+<span class="nc" id="L60">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L61">            return GSON.toJson(response);</span>
+        }
+        else{
+<span class="fc" id="L64">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L65">            return GSON.toJson(response);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a manager to add a employee to his printshop.&quot;)
+    @Secured(&quot;ROLE_MANAGER&quot;)
+    @RequestMapping(value = &quot;/printshops/{printShopID}/employees&quot;, method = RequestMethod.POST)
+    public String addEmployee(@PathVariable(value = &quot;printShopID&quot;) long psid, HttpServletRequest request) {
+<span class="fc" id="L73">        PrintShop pshop = printshops.findOne(psid);</span>
+<span class="fc" id="L74">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L76">        String requestJSON = null;</span>
+<span class="fc" id="L77">        Employee newEmp = null;</span>
+        try {
+<span class="fc" id="L79">            requestJSON = IOUtils.toString( request.getInputStream());</span>
+<span class="fc" id="L80">            newEmp = GSON.fromJson(requestJSON, Employee.class);</span>
+<span class="nc" id="L81">        } catch (IOException e) {</span>
+<span class="nc" id="L82">            e.printStackTrace();</span>
+<span class="fc" id="L83">        }</span>
+
+<span class="pc bpc" id="L85" title="7 of 10 branches missed.">        if(pshop!=null &amp;&amp; newEmp!=null &amp;&amp; newEmp.getName()!=null &amp;&amp; newEmp.getUsername()!=null &amp;&amp; newEmp.getPassword()!=null) {</span>
+<span class="nc" id="L86">            Employee e = employees.findByUsername(newEmp.getUsername());</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if(e==null) {</span>
+<span class="nc" id="L88">                e = new Employee(newEmp.getUsername(), newEmp.getPassword(), newEmp.getName(), pshop);</span>
+<span class="nc" id="L89">                employees.save(e);</span>
+<span class="nc" id="L90">                e = employees.findByUsername(e.getUsername());</span>
+<span class="nc" id="L91">                response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L92">                response.addProperty(&quot;id&quot;, e.getId());</span>
+<span class="nc" id="L93">                return GSON.toJson(response);</span>
+            } else {
+<span class="nc" id="L95">                response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L96">                response.addProperty(&quot;message&quot;, &quot;Empregado já existe&quot;);</span>
+<span class="nc" id="L97">                return GSON.toJson(response);</span>
+            }
+        }
+        else{
+<span class="fc" id="L101">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L102">            return GSON.toJson(response);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a manager to edit a employee from his printshop.&quot;)
+    @Secured(&quot;ROLE_MANAGER&quot;)
+    @RequestMapping(value = &quot;/printshops/{printShopID}/employees&quot;, method = RequestMethod.PUT)
+    public String editEmployee(@PathVariable(value = &quot;printShopID&quot;) long psid, HttpServletRequest request) {
+<span class="fc" id="L110">        PrintShop pshop = printshops.findOne(psid);</span>
+<span class="fc" id="L111">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L113">        String requestJSON = null;</span>
+<span class="fc" id="L114">        Employee editedEmp = null;</span>
+        try {
+<span class="fc" id="L116">            requestJSON = IOUtils.toString( request.getInputStream());</span>
+<span class="fc" id="L117">            editedEmp = GSON.fromJson(requestJSON, Employee.class);</span>
+<span class="nc" id="L118">        } catch (IOException e) {</span>
+<span class="nc" id="L119">            e.printStackTrace();</span>
+<span class="fc" id="L120">        }</span>
+
+<span class="pc bpc" id="L122" title="7 of 10 branches missed.">        if(pshop!=null &amp;&amp; editedEmp!=null &amp;&amp; editedEmp.getName()!=null &amp;&amp; editedEmp.getUsername()!=null &amp;&amp; editedEmp.getPassword()!=null) {</span>
+<span class="nc" id="L123">            Employee e = employees.findOne(editedEmp.getId());</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if(e==null) {</span>
+<span class="nc" id="L125">                response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L126">                response.addProperty(&quot;message&quot;, &quot;Empregado não existe&quot;);</span>
+<span class="nc" id="L127">                return GSON.toJson(response);</span>
+            } else {
+                // Update fields
+<span class="nc" id="L130">                e.setName(editedEmp.getName());</span>
+<span class="nc" id="L131">                e.setUsername(editedEmp.getUsername());</span>
+<span class="nc" id="L132">                e.setPassword(editedEmp.getPassword());</span>
+<span class="nc" id="L133">                employees.save(e);</span>
+<span class="nc" id="L134">                response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L135">                return GSON.toJson(response);</span>
+            }
+        }
+        else{
+<span class="fc" id="L139">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L140">            return GSON.toJson(response);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a manager to delete a employee from his printshop.&quot;)
+    @Secured(&quot;ROLE_MANAGER&quot;)
+    @RequestMapping(value = &quot;/printshops/{printShopID}/employees/{employeeID}&quot;, method = RequestMethod.DELETE)
+    public String deleteEmployee(@PathVariable(value = &quot;printShopID&quot;) long psid, @PathVariable(value = &quot;employeeID&quot;) long eid) {
+<span class="fc" id="L148">        Employee emp = employees.findOne(eid);</span>
+<span class="fc" id="L149">        JsonObject response = new JsonObject();</span>
+
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        if(emp!=null) {</span>
+<span class="fc" id="L152">            employees.delete(eid);</span>
+<span class="fc" id="L153">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L154">            return GSON.toJson(response);</span>
+        }
+        else{
+<span class="fc" id="L157">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L158">            return GSON.toJson(response);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a manager to get the statistics info from his printshop.&quot;)
+    @Secured(&quot;ROLE_MANAGER&quot;)
+    @RequestMapping(value = &quot;/printshops/stats&quot;, method = RequestMethod.GET)
+    public String getPrintShopStatistics(Principal principal) {
+<span class="fc" id="L166">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L167">        Manager manager = managers.findByUsername(principal.getName());</span>
+
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">        if(manager!=null) {</span>
+<span class="fc" id="L170">            PrintShop pshop = manager.getPrintShop();</span>
+
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">            if (pshop != null) {</span>
+                // Print Request
+<span class="fc" id="L174">                List&lt;PrintRequest&gt; listPrintRequests = printRequests.findByPrintshop(pshop);</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">                if (listPrintRequests != null) {</span>
+<span class="fc" id="L176">                    List&lt;PrintRequest.Status&gt; statusesPend = new ArrayList&lt;PrintRequest.Status&gt;() {{</span>
+<span class="fc" id="L177">                        add(PrintRequest.Status.PENDING);</span>
+<span class="fc" id="L178">                    }};</span>
+<span class="fc" id="L179">                    List&lt;PrintRequest.Status&gt; statusesInProgress = new ArrayList&lt;PrintRequest.Status&gt;() {{</span>
+<span class="fc" id="L180">                        add(PrintRequest.Status.IN_PROGRESS);</span>
+<span class="fc" id="L181">                    }};</span>
+<span class="fc" id="L182">                    List&lt;PrintRequest.Status&gt; statusesFinished = new ArrayList&lt;PrintRequest.Status&gt;() {{</span>
+<span class="fc" id="L183">                        add(PrintRequest.Status.FINISHED);</span>
+<span class="fc" id="L184">                    }};</span>
+
+<span class="fc" id="L186">                    response.addProperty(&quot;nPendingRequests&quot;, printRequests.findByStatusInAndPrintshop(statusesPend, pshop).size());</span>
+<span class="fc" id="L187">                    response.addProperty(&quot;nInProgressRequests&quot;, printRequests.findByStatusInAndPrintshop(statusesInProgress, pshop).size());</span>
+<span class="fc" id="L188">                    response.addProperty(&quot;nFinished&quot;, printRequests.findByStatusInAndPrintshop(statusesFinished, pshop).size());</span>
+                }
+
+                // Employees
+<span class="fc" id="L192">                response.addProperty(&quot;nEmployees&quot;, employees.findByPrintShop(pshop).size());</span>
+
+                // WE MUST ADD THIS TO OUR POJOs (Future Work)
+                // response.addProperty(&quot;pshopProfit&quot;, pshop.getTotalRequests); ... by day, week, month, year
+<span class="fc" id="L196">                response.addProperty(&quot;pshopProfit&quot;, pshop.getPrintShopProfit());</span>
+
+<span class="fc" id="L198">                response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L199">                return GSON.toJson(response);</span>
+            }
+        }
+<span class="nc" id="L202">        response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L203">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a printshop&quot;, notes = &quot;This method allows manager to get his printshop info&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;})
+    @RequestMapping(value = &quot;/printshop&quot;, method = RequestMethod.GET)
+    public String getManagerPrintShop(Principal principal) {
+<span class="fc" id="L210">        Manager m = managers.findByUsername(principal.getName());</span>
+<span class="fc" id="L211">        PrintShop pShop = m.getPrintShop();</span>
+
+<span class="fc" id="L213">        JsonObject response = new JsonObject();</span>
+
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="nc" id="L216">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L217">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L220">        response.add(&quot;printshop&quot;, GSON.toJsonTree(pShop));</span>
+<span class="fc" id="L221">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L222">        return GSON.toJson(response);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

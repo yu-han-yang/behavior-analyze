@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestError.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">RequestError.java</span></div><h1>RequestError.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.google.common.collect.ObjectArrays.concat;
+import static java.lang.String.format;
+
+@Schema(name = &quot;RequestError&quot;, description = &quot;A Request Error response&quot;)
+@JsonInclude(NON_NULL)
+public class RequestError {
+
+<span class="nc" id="L14">    public enum Code {</span>
+
+<span class="nc" id="L16">        CREATE_PAYMENT_ACCOUNT_ERROR(&quot;P0199&quot;, &quot;There is an error with this account. Contact support with your error code - https://www.payments.service.gov.uk/support/ .&quot;),</span>
+<span class="nc" id="L17">        CREATE_PAYMENT_CONNECTOR_ERROR(&quot;P0198&quot;, &quot;Downstream system error&quot;),</span>
+<span class="nc" id="L18">        CREATE_PAYMENT_PARSING_ERROR(&quot;P0197&quot;, &quot;Unable to parse JSON&quot;),</span>
+<span class="nc" id="L19">        CREATE_PAYMENT_MOTO_NOT_ENABLED(&quot;P0196&quot;, &quot;MOTO payments are not enabled for this account. Please contact support if you would like to process MOTO payments - https://www.payments.service.gov.uk/support/ .&quot;),</span>
+<span class="nc" id="L20">        CREATE_PAYMENT_AUTHORISATION_API_NOT_ENABLED(&quot;P0195&quot;,&quot;Using authorisation_mode of moto_api is not allowed for this account&quot;),</span>
+<span class="nc" id="L21">        CREATE_PAYMENT_AGREEMENT_ID_ERROR(&quot;P0103&quot;, &quot;Invalid attribute value: set_up_agreement. Agreement ID does not exist&quot;),</span>
+<span class="nc" id="L22">        CREATE_PAYMENT_CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_ERROR(&quot;P0105&quot;, &quot;%s&quot;),</span>
+
+<span class="nc" id="L24">        GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR(&quot;P0101&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L25">        GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR(&quot;P0102&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L26">        GENERIC_UNEXPECTED_FIELD_ERROR_MESSAGE_FROM_CONNECTOR(&quot;P0104&quot;, &quot;%s&quot;),</span>
+        
+<span class="nc" id="L28">        CREATE_PAYMENT_MISSING_FIELD_ERROR(&quot;P0101&quot;, &quot;Missing mandatory attribute: %s&quot;),</span>
+<span class="nc" id="L29">        CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR(&quot;P0104&quot;, &quot;Unexpected attribute: %s&quot;),</span>
+<span class="nc" id="L30">        CREATE_PAYMENT_VALIDATION_ERROR(&quot;P0102&quot;, &quot;Invalid attribute value: %s. %s&quot;),</span>
+<span class="nc" id="L31">        CREATE_PAYMENT_HEADER_VALIDATION_ERROR(&quot;P0102&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L32">        CREATE_PAYMENT_IDEMPOTENCY_KEY_ALREADY_USED(&quot;P0191&quot;, &quot;The `Idempotency-Key` you sent in the request header has already been used to create a payment.&quot;),</span>
+
+<span class="nc" id="L34">        GET_PAYMENT_NOT_FOUND_ERROR(&quot;P0200&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L35">        GET_PAYMENT_CONNECTOR_ERROR(&quot;P0298&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L37">        GET_PAYMENT_EVENTS_NOT_FOUND_ERROR(&quot;P0300&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L38">        GET_PAYMENT_EVENTS_CONNECTOR_ERROR(&quot;P0398&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L40">        SEARCH_PAYMENTS_VALIDATION_ERROR(&quot;P0401&quot;, &quot;Invalid parameters: %s. See Public API documentation for the correct data formats&quot;),</span>
+<span class="nc" id="L41">        SEARCH_PAYMENTS_NOT_FOUND(&quot;P0402&quot;, &quot;Page not found&quot;),</span>
+<span class="nc" id="L42">        SEARCH_PAYMENTS_CONNECTOR_ERROR(&quot;P0498&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L44">        SEARCH_AGREEMENTS_VALIDATION_ERROR(&quot;P2401&quot;, &quot;Invalid parameters: %s. See Public API documentation for the correct data formats&quot;),</span>
+<span class="nc" id="L45">        SEARCH_AGREEMENTS_NOT_FOUND(&quot;P2402&quot;, &quot;Page not found&quot;),</span>
+<span class="nc" id="L46">        SEARCH_AGREEMENTS_LEDGER_ERROR(&quot;P2498&quot;, &quot;Downstream system error&quot;),  </span>
+
+<span class="nc" id="L48">        CANCEL_PAYMENT_NOT_FOUND_ERROR(&quot;P0500&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L49">        CANCEL_PAYMENT_CONNECTOR_BAD_REQUEST_ERROR(&quot;P0501&quot;, &quot;Cancellation of payment failed&quot;),</span>
+<span class="nc" id="L50">        CANCEL_PAYMENT_CONNECTOR_CONFLICT_ERROR(&quot;P0502&quot;, &quot;Cancellation of payment failed&quot;),</span>
+<span class="nc" id="L51">        CANCEL_PAYMENT_CONNECTOR_ERROR(&quot;P0598&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L53">        CAPTURE_PAYMENT_NOT_FOUND_ERROR(&quot;P1000&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L54">        CAPTURE_PAYMENT_CONNECTOR_BAD_REQUEST_ERROR(&quot;P1001&quot;, &quot;Capture of payment failed&quot;),</span>
+<span class="nc" id="L55">        CAPTURE_PAYMENT_CONNECTOR_CONFLICT_ERROR(&quot;P1003&quot;, &quot;Payment cannot be captured&quot;),</span>
+<span class="nc" id="L56">        CAPTURE_PAYMENT_CONNECTOR_ERROR(&quot;P1098&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L58">        CREATE_PAYMENT_REFUND_CONNECTOR_ERROR(&quot;P0698&quot;, &quot;Downstream system error&quot;),</span>
+<span class="nc" id="L59">        CREATE_PAYMENT_REFUND_PARSING_ERROR(&quot;P0697&quot;, &quot;Unable to parse JSON&quot;),</span>
+<span class="nc" id="L60">        CREATE_PAYMENT_REFUND_NOT_FOUND_ERROR(&quot;P0600&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L61">        CREATE_PAYMENT_REFUND_MISSING_FIELD_ERROR(&quot;P0601&quot;, &quot;Missing mandatory attribute: %s&quot;),</span>
+<span class="nc" id="L62">        CREATE_PAYMENT_REFUND_VALIDATION_ERROR(&quot;P0602&quot;, &quot;Invalid attribute value: %s. %s&quot;),</span>
+<span class="nc" id="L63">        CREATE_PAYMENT_REFUND_NOT_AVAILABLE(&quot;P0603&quot;, &quot;The payment is not available for refund. Payment refund status: %s&quot;),</span>
+<span class="nc" id="L64">        CREATE_PAYMENT_REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE(&quot;P0603&quot;, &quot;The payment is disputed and cannot be refunded&quot;),</span>
+<span class="nc" id="L65">        CREATE_PAYMENT_REFUND_AMOUNT_AVAILABLE_MISMATCH(&quot;P0604&quot;, &quot;Refund amount available mismatch.&quot;),</span>
+
+<span class="nc" id="L67">        GET_PAYMENT_REFUND_NOT_FOUND_ERROR(&quot;P0700&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L68">        GET_PAYMENT_REFUND_CONNECTOR_ERROR(&quot;P0798&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L70">        GET_PAYMENT_REFUNDS_NOT_FOUND_ERROR(&quot;P0800&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L71">        GET_PAYMENT_REFUNDS_CONNECTOR_ERROR(&quot;P0898&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L73">        TOO_MANY_REQUESTS_ERROR(&quot;P0900&quot;, &quot;Too many requests&quot;),</span>
+<span class="nc" id="L74">        REQUEST_DENIED_ERROR(&quot;P0920&quot;, &quot;Request blocked by security rules. Please consult API documentation for more information.&quot;),</span>
+<span class="nc" id="L75">        RESOURCE_ACCESS_FORBIDDEN(&quot;P0930&quot;, &quot;Access to this resource is not enabled for this account. Contact support with your error code - https://www.payments.service.gov.uk/support/ .&quot;),</span>
+<span class="nc" id="L76">        ACCOUNT_NOT_LINKED_WITH_PSP(&quot;P0940&quot;, &quot;Account is not fully configured. Please refer to documentation to setup your account or contact support with your error code - https://www.payments.service.gov.uk/support/ .&quot;),</span>
+<span class="nc" id="L77">        ACCOUNT_DISABLED(&quot;P0941&quot;, &quot;GOV.UK Pay has disabled payment and refund creation on this account. Contact support with your error code - https://www.payments.service.gov.uk/support/ .&quot;),</span>
+<span class="nc" id="L78">        RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR(&quot;P0942&quot;, &quot;Recurring card payments are currently disabled for this service. Contact support with your error code - https://www.payments.service.gov.uk/support/&quot;),</span>
+
+<span class="nc" id="L80">        SEARCH_REFUNDS_VALIDATION_ERROR(&quot;P1101&quot;, &quot;Invalid parameters: %s. See Public API documentation for the correct data formats&quot;),</span>
+<span class="nc" id="L81">        SEARCH_REFUNDS_NOT_FOUND(&quot;P1100&quot;, &quot;Page not found&quot;),</span>
+<span class="nc" id="L82">        SEARCH_REFUNDS_CONNECTOR_ERROR(&quot;P1898&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L84">        AUTHORISATION_CARD_NUMBER_REJECTED_ERROR(&quot;P0010&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L85">        AUTHORISATION_REJECTED_ERROR(&quot;P0010&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L86">        AUTHORISATION_ERROR(&quot;P0050&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L87">        AUTHORISATION_TIMEOUT_ERROR(&quot;P0050&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L88">        AUTHORISATION_ONE_TIME_TOKEN_ALREADY_USED_ERROR(&quot;P1212&quot;, &quot;%s&quot;),</span>
+<span class="nc" id="L89">        AUTHORISATION_ONE_TIME_TOKEN_INVALID_ERROR(&quot;P1211&quot;, &quot;%s&quot;),</span>
+
+<span class="nc" id="L91">        CREATE_AGREEMENT_CONNECTOR_ERROR(&quot;P2198&quot;, &quot;Downstream system error&quot;),</span>
+<span class="nc" id="L92">        CREATE_AGREEMENT_PARSING_ERROR(&quot;P2197&quot;, &quot;Unable to parse JSON&quot;),</span>
+
+<span class="nc" id="L94">        CREATE_AGREEMENT_MISSING_FIELD_ERROR(&quot;P2101&quot;, &quot;Missing mandatory attribute: %s&quot;),</span>
+<span class="nc" id="L95">        CREATE_AGREEMENT_VALIDATION_ERROR(&quot;P2102&quot;, &quot;Invalid attribute value: %s. %s&quot;),</span>
+<span class="nc" id="L96">        GET_AGREEMENT_NOT_FOUND_ERROR(&quot;P2200&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L97">        GET_AGREEMENT_LEDGER_ERROR(&quot;P2298&quot;, &quot;Downstream system error&quot;),</span>
+
+<span class="nc" id="L99">        CANCEL_AGREEMENT_NOT_FOUND_ERROR(&quot;P2500&quot;, &quot;Not found&quot;),</span>
+<span class="nc" id="L100">        CANCEL_AGREEMENT_CONNECTOR_BAD_REQUEST_ERROR(&quot;P2501&quot;, &quot;Cancellation of agreement failed&quot;),</span>
+<span class="nc" id="L101">        CANCEL_AGREEMENT_CONNECTOR_ERROR(&quot;P2598&quot;, &quot;Downstream system error&quot;),</span>
+        
+<span class="nc" id="L103">        SEARCH_DISPUTES_VALIDATION_ERROR(&quot;P0401&quot;, &quot;Invalid parameters: %s. See Public API documentation for the correct data formats&quot;),</span>
+<span class="nc" id="L104">        GET_DISPUTE_LEDGER_ERROR(&quot;P0498&quot;, &quot;Downstream system error&quot;),</span>
+<span class="nc" id="L105">        SEARCH_DISPUTES_NOT_FOUND(&quot;P0402&quot;, &quot;Page not found&quot;);</span>
+
+        private String value;
+        private String format;
+
+<span class="nc" id="L110">        Code(String value, String format) {</span>
+<span class="nc" id="L111">            this.value = value;</span>
+<span class="nc" id="L112">            this.format = format;</span>
+<span class="nc" id="L113">        }</span>
+
+        public String value() {
+<span class="nc" id="L116">            return value;</span>
+        }
+
+        public String getFormat() {
+<span class="nc" id="L120">            return format;</span>
+        }
+    }
+
+    private String field;
+    private String header;
+    private final Code code;
+    private final String description;
+
+    public static RequestError aRequestError(Code code, Object... parameters) {
+<span class="nc" id="L130">        return new RequestError(code, parameters);</span>
+    }
+
+    public static RequestError aRequestError(String fieldName, Code code, Object... parameters) {
+<span class="nc" id="L134">        return new RequestError(null, fieldName, code, parameters);</span>
+    }
+
+    public static RequestError aHeaderRequestError(String header, Code code, Object... parameters) {
+<span class="nc" id="L138">        return new RequestError(header, null, code, parameters);</span>
+    }
+
+<span class="nc" id="L141">    private RequestError(Code code, Object... parameters) {</span>
+<span class="nc" id="L142">        this.code = code;</span>
+<span class="nc" id="L143">        this.description = format(code.getFormat(), parameters);</span>
+<span class="nc" id="L144">    }</span>
+
+<span class="nc" id="L146">    private RequestError(String header, String fieldName, Code code, Object... parameters) {</span>
+<span class="nc" id="L147">        this.header = header;</span>
+<span class="nc" id="L148">        this.field = fieldName;</span>
+<span class="nc" id="L149">        this.code = code;</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        this.description = format(code.getFormat(), fieldName != null ? concat(fieldName, parameters) : parameters);</span>
+<span class="nc" id="L151">    }</span>
+
+    @Schema(example = &quot;amount&quot;, description = &quot;The parameter in your request that's causing the error.&quot;)
+    public String getField() {
+<span class="nc" id="L155">        return field;</span>
+    }
+
+    @Schema(example = &quot;Idempotency-Key&quot;, description = &quot;The header in your request that's causing the error.&quot;)
+    public String getHeader() {
+<span class="nc" id="L160">        return header;</span>
+    }
+
+    @Schema(example = &quot;P0102&quot;,
+            description = &quot;An [API error code](https://docs.payments.service.gov.uk/api_reference/#gov-uk-pay-api-error-codes)&quot; +
+                    &quot;that explains why the payment failed.&lt;br&gt;&lt;br&gt;`code` only appears if the payment failed.&quot;)
+    public String getCode() {
+<span class="nc" id="L167">        return code.value();</span>
+    }
+
+    @Schema(example = &quot;Invalid attribute value: amount. Must be less than or equal to 10000000&quot;,
+            description = &quot;Additional details about the error.&quot;)
+    public String getDescription() {
+<span class="nc" id="L173">        return description;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L178">        return &quot;RequestError{&quot; +</span>
+                &quot;field=&quot; + field +
+<span class="nc" id="L180">                &quot;, code=&quot; + code.value() +</span>
+                &quot;, name=&quot; + code +
+                &quot;, description='&quot; + description + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

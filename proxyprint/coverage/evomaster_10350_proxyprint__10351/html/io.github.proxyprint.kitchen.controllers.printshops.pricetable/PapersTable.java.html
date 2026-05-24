@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PapersTable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops.pricetable</a> &gt; <span class="el_source">PapersTable.java</span></div><h1>PapersTable.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.printshops.pricetable;
+
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.RangePaperItem;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
+/**
+ * Created by daniel on 02-05-2016.
+ */
+public class PapersTable {
+<span class="fc" id="L15">    private Map&lt;String,Map&lt;String,PaperTableItem&gt;&gt; items = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L17">    public PapersTable() {</span>
+<span class="fc" id="L18">        this.items = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L19">    }</span>
+
+<span class="nc" id="L21">    public Map&lt;String, Map&lt;String,PaperTableItem&gt;&gt; getItems() { return items; }</span>
+
+<span class="nc" id="L23">    public void setItems(Map&lt;String, Map&lt;String,PaperTableItem&gt;&gt; items) { this.items = items; }</span>
+
+    /**
+     * Insert a (Range)PaperItem in a pricetable.
+     * @param pi, the PaperItem to be inserted.
+     * @param pshop, the current print shop instance.
+     * @return the updated price table.
+     */
+    public void addRangePaperItem(RangePaperItem pi, PrintShop pshop) {
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (!items.containsKey(pi.getColors().toString())) { // The color is new</span>
+            // Create new PaperTableItem
+<span class="nc" id="L34">            PaperTableItem pti = new PaperTableItem(pi.getInfLim(), pi.getSupLim());</span>
+<span class="nc" id="L35">            pti.addPriceToPaperTableItem(pi, pshop.getPrice(pi));</span>
+<span class="nc" id="L36">            pti.setColors(pi.getColors().toString());</span>
+
+            // Add new range and associated PaperTableItem instance
+<span class="nc" id="L39">            Map&lt;String,PaperTableItem&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L40">            map.put(pti.genKey(), pti);</span>
+
+            // Add to table
+<span class="nc" id="L43">            items.put(pi.getColors().toString(), map);</span>
+
+<span class="nc" id="L45">        } else { // The color already exists</span>
+<span class="nc" id="L46">            String ptiKey = pi.getInfLim() + &quot;;&quot; + pi.getSupLim();</span>
+<span class="nc" id="L47">            Map&lt;String, PaperTableItem&gt; aux = items.get(pi.getColors().toString());</span>
+<span class="nc" id="L48">            PaperTableItem pti = aux.get(ptiKey);</span>
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">            if (pti != null) {</span>
+                // PriceTableItem instance already exists add price
+<span class="nc" id="L52">                pti.addPriceToPaperTableItem(pi, pshop.getPrice(pi));</span>
+<span class="nc" id="L53">                pti.setColors(pi.getColors().toString());</span>
+<span class="nc" id="L54">                items.get(pi.getColors().toString()).put(pti.genKey(), pti);</span>
+            } else {
+                // Create new PaperTableItem
+<span class="nc" id="L57">                pti = new PaperTableItem(pi.getInfLim(), pi.getSupLim());</span>
+<span class="nc" id="L58">                pti.setColors(pi.getColors().toString());</span>
+<span class="nc" id="L59">                pti.addPriceToPaperTableItem(pi, pshop.getPrice(pi));</span>
+
+                // Add new range and associated PaperTableItem instance
+<span class="nc" id="L62">                Map&lt;String,PaperTableItem&gt; map = items.get(pi.getColors().toString());</span>
+<span class="nc" id="L63">                map.put(pti.genKey(), pti);</span>
+
+                // Add to table
+<span class="nc" id="L66">                items.put(pi.getColors().toString(), map);</span>
+            }
+        }
+<span class="nc" id="L69">    }</span>
+
+    public Map&lt;String, Set&lt;PaperTableItem&gt;&gt; getFinalTable() {
+<span class="nc" id="L72">        Map&lt;String, Set&lt;PaperTableItem&gt;&gt; finalTable = new HashMap&lt;&gt;();</span>
+
+        // Covert Map&lt;String,PaperTableItem&gt; into Set&lt;PaperTableItem&gt;
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        for(String color : items.keySet()) {</span>
+<span class="nc" id="L76">            Map&lt;String,PaperTableItem&gt; map = items.get(color);</span>
+<span class="nc" id="L77">            Set&lt;PaperTableItem&gt; set = new TreeSet&lt;&gt;();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">            for(PaperTableItem pti : map.values()) {</span>
+<span class="nc" id="L79">                set.add(pti);</span>
+<span class="nc" id="L80">            }</span>
+<span class="nc" id="L81">            finalTable.put(color,set);</span>
+<span class="nc" id="L82">        }</span>
+
+<span class="nc" id="L84">        return finalTable;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

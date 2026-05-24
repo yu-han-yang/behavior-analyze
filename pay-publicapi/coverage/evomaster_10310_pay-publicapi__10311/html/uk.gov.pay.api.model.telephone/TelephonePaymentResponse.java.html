@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TelephonePaymentResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.telephone</a> &gt; <span class="el_source">TelephonePaymentResponse.java</span></div><h1>TelephonePaymentResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.telephone;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import uk.gov.pay.api.model.ChargeFromResponse;
+import uk.gov.pay.api.model.PaymentState;
+
+import java.util.Optional;
+
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class TelephonePaymentResponse {
+    
+    private Long amount;
+    
+    private String reference;
+    
+    private String description;
+    
+    @JsonProperty(&quot;created_date&quot;)
+    private String createdDate;
+
+    @JsonProperty(&quot;authorised_date&quot;)
+    private String authorisedDate;
+    
+    private String processorId;
+    
+    private String providerId;
+
+    @JsonProperty(&quot;auth_code&quot;)
+    private String authCode;
+    
+    private PaymentOutcome paymentOutcome;
+    
+    private String cardType;
+
+    @JsonProperty(&quot;name_on_card&quot;)
+    private String nameOnCard;
+
+    @JsonProperty(&quot;email_address&quot;)
+    private String emailAddress;
+    
+    private String cardExpiry;
+    
+    private String lastFourDigits;
+    
+    private String firstSixDigits;
+
+    @JsonProperty(&quot;telephone_number&quot;)
+    private String telephoneNumber;
+    
+    private String paymentId;
+    
+    private PaymentState state;
+
+<span class="nc" id="L57">    public TelephonePaymentResponse() {</span>
+        // For Jackson
+<span class="nc" id="L59">    }</span>
+
+<span class="nc" id="L61">    public TelephonePaymentResponse(Builder builder) {</span>
+<span class="nc" id="L62">        this.amount = builder.amount;</span>
+<span class="nc" id="L63">        this.reference = builder.reference;</span>
+<span class="nc" id="L64">        this.description = builder.description;</span>
+<span class="nc" id="L65">        this.createdDate = builder.createdDate;</span>
+<span class="nc" id="L66">        this.authorisedDate = builder.authorisedDate;</span>
+<span class="nc" id="L67">        this.processorId = builder.processorId;</span>
+<span class="nc" id="L68">        this.providerId = builder.providerId;</span>
+<span class="nc" id="L69">        this.authCode = builder.authCode;</span>
+<span class="nc" id="L70">        this.paymentOutcome = builder.paymentOutcome;</span>
+<span class="nc" id="L71">        this.cardType = builder.cardType;</span>
+<span class="nc" id="L72">        this.nameOnCard = builder.nameOnCard;</span>
+<span class="nc" id="L73">        this.emailAddress = builder.emailAddress;</span>
+<span class="nc" id="L74">        this.cardExpiry = builder.cardExpiry;</span>
+<span class="nc" id="L75">        this.lastFourDigits = builder.lastFourDigits;</span>
+<span class="nc" id="L76">        this.firstSixDigits = builder.firstSixDigits;</span>
+<span class="nc" id="L77">        this.telephoneNumber = builder.telephoneNumber;</span>
+<span class="nc" id="L78">        this.paymentId = builder.paymentId;</span>
+<span class="nc" id="L79">        this.state = builder.state;</span>
+<span class="nc" id="L80">    }</span>
+
+    public TelephonePaymentResponse(Long amount, 
+                                    String reference, 
+                                    String description, 
+                                    String createdDate, 
+                                    String authorisedDate, 
+                                    String processorId, 
+                                    String providerId, 
+                                    String authCode, 
+                                    PaymentOutcome paymentOutcome, 
+                                    String cardType, 
+                                    String nameOnCard, 
+                                    String emailAddress, 
+                                    String cardExpiry, 
+                                    String lastFourDigits, 
+                                    String firstSixDigits, 
+                                    String telephoneNumber, 
+                                    String paymentId, 
+<span class="nc" id="L99">                                    PaymentState state) {</span>
+        // For testing serialization
+<span class="nc" id="L101">        this.amount = amount;</span>
+<span class="nc" id="L102">        this.reference = reference;</span>
+<span class="nc" id="L103">        this.description = description;</span>
+<span class="nc" id="L104">        this.createdDate = createdDate;</span>
+<span class="nc" id="L105">        this.authorisedDate = authorisedDate;</span>
+<span class="nc" id="L106">        this.processorId = processorId;</span>
+<span class="nc" id="L107">        this.providerId = providerId;</span>
+<span class="nc" id="L108">        this.authCode = authCode;</span>
+<span class="nc" id="L109">        this.paymentOutcome = paymentOutcome;</span>
+<span class="nc" id="L110">        this.cardType = cardType;</span>
+<span class="nc" id="L111">        this.nameOnCard = nameOnCard;</span>
+<span class="nc" id="L112">        this.emailAddress = emailAddress;</span>
+<span class="nc" id="L113">        this.cardExpiry = cardExpiry;</span>
+<span class="nc" id="L114">        this.lastFourDigits = lastFourDigits;</span>
+<span class="nc" id="L115">        this.firstSixDigits = firstSixDigits;</span>
+<span class="nc" id="L116">        this.telephoneNumber = telephoneNumber;</span>
+<span class="nc" id="L117">        this.paymentId = paymentId;</span>
+<span class="nc" id="L118">        this.state = state;</span>
+<span class="nc" id="L119">    }</span>
+
+    public Long getAmount() {
+<span class="nc" id="L122">        return amount;</span>
+    }
+
+    public String getReference() {
+<span class="nc" id="L126">        return reference;</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L130">        return description;</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getCreatedDate() {
+<span class="nc" id="L135">        return Optional.ofNullable(createdDate);</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getAuthorisedDate() {
+<span class="nc" id="L140">        return Optional.ofNullable(authorisedDate);</span>
+    }
+
+    public String getProcessorId() {
+<span class="nc" id="L144">        return processorId;</span>
+    }
+
+    public String getProviderId() {
+<span class="nc" id="L148">        return providerId;</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getAuthCode() {
+<span class="nc" id="L153">        return Optional.ofNullable(authCode);</span>
+    }
+
+    public PaymentOutcome getPaymentOutcome() {
+<span class="nc" id="L157">        return paymentOutcome;</span>
+    }
+
+    public String getCardType() {
+<span class="nc" id="L161">        return cardType;</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getNameOnCard() {
+<span class="nc" id="L166">        return Optional.ofNullable(nameOnCard);</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getEmailAddress() {
+<span class="nc" id="L171">        return Optional.ofNullable(emailAddress);</span>
+    }
+
+    public String getCardExpiry() {
+<span class="nc" id="L175">        return cardExpiry;</span>
+    }
+
+    public String getLastFourDigits() {
+<span class="nc" id="L179">        return lastFourDigits;</span>
+    }
+
+    public String getFirstSixDigits() {
+<span class="nc" id="L183">        return firstSixDigits;</span>
+    }
+
+    @JsonIgnore
+    public Optional&lt;String&gt; getTelephoneNumber() {
+<span class="nc" id="L188">        return Optional.ofNullable(telephoneNumber);</span>
+    }
+
+<span class="nc" id="L191">    public String getPaymentId() { return paymentId; }</span>
+
+    public PaymentState getState() {
+<span class="nc" id="L194">        return state;</span>
+    }
+
+    public static TelephonePaymentResponse from(ChargeFromResponse chargeFromResponse) {
+<span class="nc" id="L198">        return new TelephonePaymentResponse.Builder()</span>
+<span class="nc" id="L199">                .withAmount(chargeFromResponse.getAmount())</span>
+<span class="nc" id="L200">                .withDescription(chargeFromResponse.getDescription())</span>
+<span class="nc" id="L201">                .withReference(chargeFromResponse.getReference())</span>
+<span class="nc" id="L202">                .withCreatedDate(chargeFromResponse.getCreatedDate())</span>
+<span class="nc" id="L203">                .withAuthorisedDate(chargeFromResponse.getAuthorisedDate())</span>
+<span class="nc" id="L204">                .withProcessorId(chargeFromResponse.getProcessorId())</span>
+<span class="nc" id="L205">                .withProviderId(chargeFromResponse.getProviderId())</span>
+<span class="nc" id="L206">                .withAuthCode(chargeFromResponse.getAuthCode())</span>
+<span class="nc" id="L207">                .withPaymentOutcome(chargeFromResponse.getPaymentOutcome())</span>
+<span class="nc" id="L208">                .withCardType(chargeFromResponse.getCardBrand())</span>
+<span class="nc" id="L209">                .withEmailAddress(chargeFromResponse.getEmail())</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">                .withNameOnCard(chargeFromResponse.getCardDetailsFromResponse() != null ? chargeFromResponse.getCardDetailsFromResponse().getCardHolderName() : null)</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">                .withCardExpiry(chargeFromResponse.getCardDetailsFromResponse() != null  ? chargeFromResponse.getCardDetailsFromResponse().getExpiryDate() : null)</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">                .withLastFourDigits(chargeFromResponse.getCardDetailsFromResponse() != null ? chargeFromResponse.getCardDetailsFromResponse().getLastDigitsCardNumber() : null)</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">                .withFirstSixDigits(chargeFromResponse.getCardDetailsFromResponse() != null ? chargeFromResponse.getCardDetailsFromResponse().getFirstDigitsCardNumber() : null)</span>
+<span class="nc" id="L214">                .withTelephoneNumber(chargeFromResponse.getTelephoneNumber())</span>
+<span class="nc" id="L215">                .withPaymentId(chargeFromResponse.getChargeId())</span>
+<span class="nc" id="L216">                .withState(chargeFromResponse.getState())</span>
+<span class="nc" id="L217">                .build();</span>
+    }
+
+<span class="nc" id="L220">    public static class Builder {</span>
+        private Long amount;
+        private String reference;
+        private String description;
+        private String createdDate;
+        private String authorisedDate;
+        private String processorId;
+        private String providerId;
+        private String authCode;
+        private PaymentOutcome paymentOutcome;
+        private String cardType;
+        private String nameOnCard;
+        private String emailAddress;
+        private String cardExpiry;
+        private String lastFourDigits;
+        private String firstSixDigits;
+        private String telephoneNumber;
+        private String paymentId;
+        private PaymentState state;
+
+        public Builder withAmount(Long amount) {
+<span class="nc" id="L241">            this.amount = amount;</span>
+<span class="nc" id="L242">            return this;</span>
+        }
+
+        public Builder withReference(String reference) {
+<span class="nc" id="L246">            this.reference = reference;</span>
+<span class="nc" id="L247">            return this;</span>
+        }
+
+        public Builder withDescription(String description) {
+<span class="nc" id="L251">            this.description = description;</span>
+<span class="nc" id="L252">            return this;</span>
+        }
+
+        public Builder withCreatedDate(String createdDate) {
+<span class="nc" id="L256">            this.createdDate = createdDate;</span>
+<span class="nc" id="L257">            return this;</span>
+        }
+
+        public Builder withAuthorisedDate(String authorisedDate) {
+<span class="nc" id="L261">            this.authorisedDate = authorisedDate;</span>
+<span class="nc" id="L262">            return this;</span>
+        }
+
+        public Builder withProcessorId(String processorId) {
+<span class="nc" id="L266">            this.processorId = processorId;</span>
+<span class="nc" id="L267">            return this;</span>
+        }
+
+        public Builder withProviderId(String providerId) {
+<span class="nc" id="L271">            this.providerId = providerId;</span>
+<span class="nc" id="L272">            return this;</span>
+        }
+
+        public Builder withAuthCode(String authCode) {
+<span class="nc" id="L276">            this.authCode = authCode;</span>
+<span class="nc" id="L277">            return this;</span>
+        }
+
+        public Builder withPaymentOutcome(PaymentOutcome paymentOutcome) {
+<span class="nc" id="L281">            this.paymentOutcome = paymentOutcome;</span>
+<span class="nc" id="L282">            return this;</span>
+        }
+
+        public Builder withCardType(String cardType) {
+<span class="nc" id="L286">            this.cardType = cardType;</span>
+<span class="nc" id="L287">            return this;</span>
+        }
+
+        public Builder withNameOnCard(String nameOnCard) {
+<span class="nc" id="L291">            this.nameOnCard = nameOnCard;</span>
+<span class="nc" id="L292">            return this;</span>
+        }
+
+        public Builder withEmailAddress(String emailAddress) {
+<span class="nc" id="L296">            this.emailAddress = emailAddress;</span>
+<span class="nc" id="L297">            return this;</span>
+        }
+
+        public Builder withCardExpiry(String cardExpiry) {
+<span class="nc" id="L301">            this.cardExpiry = cardExpiry;</span>
+<span class="nc" id="L302">            return this;</span>
+        }
+
+        public Builder withLastFourDigits(String lastFourDigits) {
+<span class="nc" id="L306">            this.lastFourDigits = lastFourDigits;</span>
+<span class="nc" id="L307">            return this;</span>
+        }
+
+        public Builder withFirstSixDigits(String firstSixDigits) {
+<span class="nc" id="L311">            this.firstSixDigits = firstSixDigits;</span>
+<span class="nc" id="L312">            return this;</span>
+        }
+
+        public Builder withTelephoneNumber(String telephoneNumber) {
+<span class="nc" id="L316">            this.telephoneNumber = telephoneNumber;</span>
+<span class="nc" id="L317">            return this;</span>
+        }
+
+        public Builder withPaymentId(String paymentId) {
+<span class="nc" id="L321">            this.paymentId = paymentId;</span>
+<span class="nc" id="L322">            return this;</span>
+        }
+
+        public Builder withState(PaymentState state) {
+<span class="nc" id="L326">            this.state = state;</span>
+<span class="nc" id="L327">            return this;</span>
+        }
+
+        public TelephonePaymentResponse build () {
+<span class="nc" id="L331">            return new TelephonePaymentResponse(this);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

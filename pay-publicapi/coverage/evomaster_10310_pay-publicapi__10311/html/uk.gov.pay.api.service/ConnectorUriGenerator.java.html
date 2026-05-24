@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConnectorUriGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">ConnectorUriGenerator.java</span></div><h1>ConnectorUriGenerator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.app.config.PublicApiConfig;
+import uk.gov.pay.api.auth.Account;
+
+import javax.inject.Inject;
+import javax.ws.rs.core.UriBuilder;
+import java.util.Collections;
+import java.util.Map;
+
+import static java.lang.String.format;
+
+public class ConnectorUriGenerator {
+    private final PublicApiConfig configuration;
+
+    @Inject
+<span class="fc" id="L17">    public ConnectorUriGenerator(PublicApiConfig configuration) {</span>
+<span class="fc" id="L18">        this.configuration = configuration;</span>
+<span class="fc" id="L19">    }</span>
+
+    String chargesURI(Account account) {
+<span class="nc" id="L22">        return buildConnectorUri(format(&quot;/v1/api/accounts/%s/charges&quot;, account.getAccountId()));</span>
+    }
+
+    String chargeURI(Account account, String chargeId) {
+<span class="nc" id="L26">        String path = format(&quot;/v1/api/accounts/%s/charges/%s&quot;, account.getAccountId(), chargeId); //TODO rename to /payments instead /charges</span>
+<span class="nc" id="L27">        return buildConnectorUri(path);</span>
+    }
+
+    public String chargeEventsURI(Account account, String paymentId) {
+<span class="nc" id="L31">        String path = format(&quot;/v1/api/accounts/%s/charges/%s/events&quot;, account.getAccountId(), paymentId);</span>
+<span class="nc" id="L32">        return buildConnectorUri(path);</span>
+    }
+
+    String cancelURI(Account account, String paymentId) {
+<span class="nc" id="L36">        String path = format(&quot;/v1/api/accounts/%s/charges/%s/cancel&quot;, account.getAccountId(), paymentId);</span>
+<span class="nc" id="L37">        return buildConnectorUri(path, Collections.emptyMap());</span>
+    }
+
+    public String telephoneChargesURI(Account account) {
+<span class="nc" id="L41">        return buildConnectorUri(format(&quot;/v1/api/accounts/%s/telephone-charges&quot;, account.getAccountId()));</span>
+    }
+
+    String captureURI(Account account, String chargeId) {
+<span class="nc" id="L45">        String path = format(&quot;/v1/api/accounts/%s/charges/%s/capture&quot;, account.getAccountId(), chargeId);</span>
+<span class="nc" id="L46">        return buildConnectorUri(path);</span>
+    }
+
+    String refundsForPaymentURI(String accountId, String chargeId) {
+<span class="nc" id="L50">        String path = format(&quot;/v1/api/accounts/%s/charges/%s/refunds&quot;, accountId, chargeId);</span>
+<span class="nc" id="L51">        return buildConnectorUri(path);</span>
+    }
+
+    String refundForPaymentURI(String accountId, String chargeId, String refundId) {
+<span class="nc" id="L55">        String path = format(&quot;/v1/api/accounts/%s/charges/%s/refunds/%s&quot;, accountId, chargeId, refundId);</span>
+<span class="nc" id="L56">        return buildConnectorUri(path);</span>
+    }
+
+    String authorisationURI() {
+<span class="nc" id="L60">        String path = &quot;/v1/api/charges/authorise&quot;;</span>
+<span class="nc" id="L61">        return buildConnectorUri(path);</span>
+    }
+
+    public String getAgreementURI(Account account) {
+<span class="nc" id="L65">        String path = format(&quot;/v1/api/accounts/%s/agreements&quot;, account.getAccountId());</span>
+<span class="nc" id="L66">        return buildConnectorUri(path);</span>
+    }
+
+    public String cancelAgreementURI(Account account, String agreementId) {
+<span class="nc" id="L70">        String path = format(&quot;/v1/api/accounts/%s/agreements/%s/cancel&quot;, account.getAccountId(), agreementId);</span>
+<span class="nc" id="L71">        return buildConnectorUri(path, Collections.emptyMap());</span>
+    }
+
+    private String buildConnectorUri(String path) {
+<span class="nc" id="L75">        return buildConnectorUri(path, Collections.emptyMap());</span>
+    }
+
+    private String buildConnectorUri(String path, Map&lt;String, String&gt; params) {
+<span class="nc" id="L79">        UriBuilder builder = UriBuilder.fromPath(configuration.getConnectorUrl()).path(path);</span>
+<span class="nc" id="L80">        params.entrySet().stream()</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">                .filter(k -&gt; k.getValue() != null)</span>
+<span class="nc" id="L82">                .forEach(k -&gt; builder.queryParam(k.getKey(), k.getValue()));</span>
+<span class="nc" id="L83">        return builder.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

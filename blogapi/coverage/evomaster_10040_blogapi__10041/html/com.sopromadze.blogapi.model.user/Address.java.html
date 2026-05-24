@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Address.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.model.user</a> &gt; <span class="el_source">Address.java</span></div><h1>Address.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.model.user;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sopromadze.blogapi.model.audit.UserDateAudit;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import java.time.Instant;
+
+<span class="nc bnc" id="L21" title="All 64 branches missed.">@EqualsAndHashCode(callSuper = true)</span>
+@Entity
+<span class="nc" id="L23">@Data</span>
+<span class="fc" id="L24">@NoArgsConstructor</span>
+@Table(name = &quot;address&quot;)
+public class Address extends UserDateAudit {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	@Column(name = &quot;street&quot;)
+<span class="nc" id="L34">	private String street;</span>
+
+	@Column(name = &quot;suite&quot;)
+<span class="nc" id="L37">	private String suite;</span>
+
+	@Column(name = &quot;city&quot;)
+<span class="nc" id="L40">	private String city;</span>
+
+	@Column(name = &quot;zipcode&quot;)
+<span class="nc" id="L43">	private String zipcode;</span>
+
+	@OneToOne(cascade = CascadeType.ALL)
+	@JoinColumn(name = &quot;geo_id&quot;)
+<span class="nc" id="L47">	private Geo geo;</span>
+
+	@OneToOne(mappedBy = &quot;address&quot;)
+<span class="nc" id="L50">	private User user;</span>
+
+<span class="nc" id="L52">	public Address(String street, String suite, String city, String zipcode, Geo geo) {</span>
+<span class="nc" id="L53">		this.street = street;</span>
+<span class="nc" id="L54">		this.suite = suite;</span>
+<span class="nc" id="L55">		this.city = city;</span>
+<span class="nc" id="L56">		this.zipcode = zipcode;</span>
+<span class="nc" id="L57">		this.geo = geo;</span>
+<span class="nc" id="L58">	}</span>
+
+	@JsonIgnore
+	public Long getId() {
+<span class="nc" id="L62">		return id;</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public Long getCreatedBy() {
+<span class="nc" id="L68">		return super.getCreatedBy();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setCreatedBy(Long createdBy) {
+<span class="nc" id="L74">		super.setCreatedBy(createdBy);</span>
+<span class="nc" id="L75">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Long getUpdatedBy() {
+<span class="nc" id="L80">		return super.getUpdatedBy();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setUpdatedBy(Long updatedBy) {
+<span class="nc" id="L86">		super.setUpdatedBy(updatedBy);</span>
+<span class="nc" id="L87">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Instant getCreatedAt() {
+<span class="nc" id="L92">		return super.getCreatedAt();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setCreatedAt(Instant createdAt) {
+<span class="nc" id="L98">		super.setCreatedAt(createdAt);</span>
+<span class="nc" id="L99">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Instant getUpdatedAt() {
+<span class="nc" id="L104">		return super.getUpdatedAt();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setUpdatedAt(Instant updatedAt) {
+<span class="nc" id="L110">		super.setUpdatedAt(updatedAt);</span>
+<span class="nc" id="L111">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ByEnvironmentStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.featuretoggles</a> &gt; <span class="el_source">ByEnvironmentStrategy.java</span></div><h1>ByEnvironmentStrategy.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.featuretoggles;
+
+
+import io.getunleash.strategy.Strategy;
+import no.nav.tag.tiltaksgjennomforing.Miljø;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.Optional;
+
+import static java.util.Arrays.asList;
+
+@Component
+public class ByEnvironmentStrategy implements Strategy {
+
+    private final String environment;
+
+<span class="fc" id="L19">    public ByEnvironmentStrategy(@Value(&quot;${MILJO:}&quot;) String clusterName) {</span>
+<span class="pc bpc" id="L20" title="1 of 2 branches missed.">        this.environment = clusterName.isEmpty() ? Miljø.LOCAL : clusterName;</span>
+<span class="fc" id="L21">    }</span>
+
+    @Override
+    public String getName() {
+<span class="nc" id="L25">        return &quot;byEnvironment&quot;;</span>
+    }
+
+    @Override
+    public boolean isEnabled(Map&lt;String, String&gt; parameters) {
+<span class="nc" id="L30">        return Optional.ofNullable(parameters)</span>
+<span class="nc" id="L31">                .map(map -&gt; map.get(&quot;miljø&quot;))</span>
+<span class="nc" id="L32">                .map(env -&gt; asList(env.split(&quot;,&quot;)).contains(environment))</span>
+<span class="nc" id="L33">                .orElse(false);</span>
+    }
+
+    String getEnvironment() {
+<span class="nc" id="L37">        return environment;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateChargeExceptionMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.exception.mapper</a> &gt; <span class="el_source">CreateChargeExceptionMapper.java</span></div><h1>CreateChargeExceptionMapper.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.exception.mapper;
+
+import org.eclipse.jetty.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.exception.CreateChargeException;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.service.payments.commons.model.ErrorIdentifier;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+
+import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.SET_UP_AGREEMENT_FIELD_NAME;
+import static uk.gov.pay.api.model.RequestError.Code.ACCOUNT_DISABLED;
+import static uk.gov.pay.api.model.RequestError.Code.ACCOUNT_NOT_LINKED_WITH_PSP;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_ACCOUNT_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_AGREEMENT_ID_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_AUTHORISATION_API_NOT_ENABLED;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_CONNECTOR_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_IDEMPOTENCY_KEY_ALREADY_USED;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_MOTO_NOT_ENABLED;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR;
+import static uk.gov.pay.api.model.RequestError.Code.GENERIC_UNEXPECTED_FIELD_ERROR_MESSAGE_FROM_CONNECTOR;
+import static uk.gov.pay.api.model.RequestError.Code.GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR;
+import static uk.gov.pay.api.model.RequestError.Code.RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.RESOURCE_ACCESS_FORBIDDEN;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+
+<span class="fc" id="L34">public class CreateChargeExceptionMapper implements ExceptionMapper&lt;CreateChargeException&gt; {</span>
+
+<span class="fc" id="L36">    private static final Logger LOGGER = LoggerFactory.getLogger(CreateChargeExceptionMapper.class);</span>
+
+    @Override
+    public Response toResponse(CreateChargeException exception) {
+
+        RequestError requestError;
+<span class="nc" id="L42">        int statusCode = HttpStatus.INTERNAL_SERVER_ERROR_500;</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (exception.getErrorStatus() == NOT_FOUND.getStatusCode()) {</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">            if (exception.getErrorIdentifier() == ErrorIdentifier.AGREEMENT_NOT_FOUND) {</span>
+<span class="nc" id="L46">                statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L47">                requestError = aRequestError(&quot;set_up_agreement&quot;, CREATE_PAYMENT_AGREEMENT_ID_ERROR);</span>
+            } else {
+<span class="nc" id="L49">                requestError = aRequestError(CREATE_PAYMENT_ACCOUNT_ERROR);</span>
+            }
+        } else {
+<span class="nc" id="L52">            ErrorIdentifier errorIdentifier = exception.getErrorIdentifier();</span>
+<span class="nc bnc" id="L53" title="All 16 branches missed.">            switch (errorIdentifier) {</span>
+                case ZERO_AMOUNT_NOT_ALLOWED:
+<span class="nc" id="L55">                    statusCode = HttpStatus.UNPROCESSABLE_ENTITY_422;</span>
+<span class="nc" id="L56">                    requestError = aRequestError(&quot;amount&quot;, CREATE_PAYMENT_VALIDATION_ERROR,</span>
+                            &quot;Must be greater than or equal to 1&quot;);
+<span class="nc" id="L58">                    break;</span>
+                case MOTO_NOT_ALLOWED:
+<span class="nc" id="L60">                    statusCode = HttpStatus.UNPROCESSABLE_ENTITY_422;</span>
+<span class="nc" id="L61">                    requestError = aRequestError(CREATE_PAYMENT_MOTO_NOT_ENABLED);</span>
+<span class="nc" id="L62">                    break;</span>
+                case ACCOUNT_DISABLED:
+<span class="nc" id="L64">                    statusCode = HttpStatus.FORBIDDEN_403;</span>
+<span class="nc" id="L65">                    requestError = aRequestError(ACCOUNT_DISABLED);</span>
+<span class="nc" id="L66">                    break;</span>
+                case TELEPHONE_PAYMENT_NOTIFICATIONS_NOT_ALLOWED:
+<span class="nc" id="L68">                    statusCode = HttpStatus.FORBIDDEN_403;</span>
+<span class="nc" id="L69">                    requestError = aRequestError(RESOURCE_ACCESS_FORBIDDEN);</span>
+<span class="nc" id="L70">                    break;</span>
+                case ACCOUNT_NOT_LINKED_WITH_PSP:
+<span class="nc" id="L72">                    statusCode = HttpStatus.FORBIDDEN_403;</span>
+<span class="nc" id="L73">                    requestError = aRequestError(ACCOUNT_NOT_LINKED_WITH_PSP);</span>
+<span class="nc" id="L74">                    break;</span>
+                case AUTHORISATION_API_NOT_ALLOWED:
+<span class="nc" id="L76">                    statusCode = HttpStatus.UNPROCESSABLE_ENTITY_422;</span>
+<span class="nc" id="L77">                    requestError = aRequestError(CREATE_PAYMENT_AUTHORISATION_API_NOT_ENABLED);</span>
+<span class="nc" id="L78">                    break;</span>
+                case AGREEMENT_NOT_FOUND:
+<span class="nc" id="L80">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L81">                    requestError = aRequestError(&quot;agreement_id&quot;, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Agreement does not exist&quot;);</span>
+<span class="nc" id="L82">                    break;</span>
+                case AGREEMENT_NOT_ACTIVE:
+<span class="nc" id="L84">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L85">                    requestError = aRequestError(&quot;agreement_id&quot;, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Agreement must be active&quot;);</span>
+<span class="nc" id="L86">                    break;</span>
+                case MISSING_MANDATORY_ATTRIBUTE:
+<span class="nc" id="L88">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L89">                    requestError = aRequestError(GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L90">                    break;</span>
+                case UNEXPECTED_ATTRIBUTE:
+<span class="nc" id="L92">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L93">                    requestError = aRequestError(GENERIC_UNEXPECTED_FIELD_ERROR_MESSAGE_FROM_CONNECTOR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L94">                    break;</span>
+                case INCORRECT_AUTHORISATION_MODE_FOR_SAVE_PAYMENT_INSTRUMENT_TO_AGREEMENT:
+<span class="nc" id="L96">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L97">                    requestError = aRequestError(CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR, SET_UP_AGREEMENT_FIELD_NAME);</span>
+<span class="nc" id="L98">                    break;</span>
+                case INVALID_ATTRIBUTE_VALUE:
+<span class="nc" id="L100">                    statusCode = HttpStatus.UNPROCESSABLE_ENTITY_422;</span>
+<span class="nc" id="L101">                    requestError = aRequestError(GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L102">                    break;</span>
+                case RECURRING_CARD_PAYMENTS_NOT_ALLOWED:
+<span class="nc" id="L104">                    statusCode = HttpStatus.UNPROCESSABLE_ENTITY_422;</span>
+<span class="nc" id="L105">                    requestError = aRequestError(RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR);</span>
+<span class="nc" id="L106">                    break;</span>
+                case IDEMPOTENCY_KEY_USED:
+<span class="nc" id="L108">                    statusCode = HttpStatus.CONFLICT_409;</span>
+<span class="nc" id="L109">                    requestError = aRequestError(CREATE_PAYMENT_IDEMPOTENCY_KEY_ALREADY_USED);</span>
+<span class="nc" id="L110">                    break;</span>
+                case CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_REJECTED:
+<span class="nc" id="L112">                    statusCode = HttpStatus.BAD_REQUEST_400;</span>
+<span class="nc" id="L113">                    requestError = aRequestError(CREATE_PAYMENT_CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_ERROR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L114">                    break;</span>
+                default:
+<span class="nc" id="L116">                    requestError = aRequestError(CREATE_PAYMENT_CONNECTOR_ERROR);</span>
+<span class="nc" id="L117">                    LOGGER.info(&quot;Connector invalid response was {}.\n Returning http status {} with error body {}&quot;,</span>
+<span class="nc" id="L118">                            exception.getMessage(), INTERNAL_SERVER_ERROR, requestError);</span>
+
+            }
+        }
+
+<span class="nc" id="L123">        return Response.status(statusCode).entity(requestError).build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

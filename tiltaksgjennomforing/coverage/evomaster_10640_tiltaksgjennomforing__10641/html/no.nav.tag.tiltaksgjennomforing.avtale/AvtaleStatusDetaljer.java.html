@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleStatusDetaljer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AvtaleStatusDetaljer.java</span></div><h1>AvtaleStatusDetaljer.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+<span class="nc bnc" id="L7" title="All 66 branches missed.">@Data</span>
+<span class="nc" id="L8">@AllArgsConstructor</span>
+<span class="nc" id="L9">@NoArgsConstructor</span>
+public class AvtaleStatusDetaljer {
+<span class="nc" id="L11">    boolean godkjentAvInnloggetBruker;</span>
+<span class="nc" id="L12">    String header;</span>
+<span class="nc" id="L13">    String infoDel1;</span>
+<span class="nc" id="L14">    String infoDel2;</span>
+<span class="nc" id="L15">    String part1;</span>
+<span class="nc" id="L16">    Boolean part1Status;</span>
+<span class="nc" id="L17">    String part2;</span>
+<span class="nc" id="L18">    Boolean part2Status;</span>
+    void setInnloggetBrukerStatus( String header,String infoDel1,String infoDel2){
+<span class="nc" id="L20">        this.header=header;</span>
+<span class="nc" id="L21">        this.infoDel1=infoDel1;</span>
+<span class="nc" id="L22">        this.infoDel2=infoDel2;</span>
+<span class="nc" id="L23">    }</span>
+    void setPart1Detaljer(String part1,boolean part1Status){
+<span class="nc" id="L25">        this.part1=part1;</span>
+<span class="nc" id="L26">        this.part1Status=part1Status;</span>
+<span class="nc" id="L27">    }</span>
+    void setPart2Detaljer(String part2, boolean part2Status){
+<span class="nc" id="L29">        this.part2=part2;</span>
+<span class="nc" id="L30">        this.part2Status=part2Status;</span>
+<span class="nc" id="L31">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PostServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">PostServiceImpl.java</span></div><h1>PostServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.BadRequestException;
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.exception.UnauthorizedException;
+import com.sopromadze.blogapi.model.Category;
+import com.sopromadze.blogapi.model.Post;
+import com.sopromadze.blogapi.model.Tag;
+import com.sopromadze.blogapi.model.role.RoleName;
+import com.sopromadze.blogapi.model.user.User;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.payload.PostRequest;
+import com.sopromadze.blogapi.payload.PostResponse;
+import com.sopromadze.blogapi.repository.CategoryRepository;
+import com.sopromadze.blogapi.repository.PostRepository;
+import com.sopromadze.blogapi.repository.TagRepository;
+import com.sopromadze.blogapi.repository.UserRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.PostService;
+import com.sopromadze.blogapi.utils.AppConstants;
+import com.sopromadze.blogapi.utils.AppUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static com.sopromadze.blogapi.utils.AppConstants.CATEGORY;
+import static com.sopromadze.blogapi.utils.AppConstants.CREATED_AT;
+import static com.sopromadze.blogapi.utils.AppConstants.ID;
+import static com.sopromadze.blogapi.utils.AppConstants.POST;
+import static com.sopromadze.blogapi.utils.AppConstants.TAG;
+import static com.sopromadze.blogapi.utils.AppConstants.USER;
+
+@Service
+<span class="fc" id="L43">public class PostServiceImpl implements PostService {</span>
+	@Autowired
+	private PostRepository postRepository;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private CategoryRepository categoryRepository;
+
+	@Autowired
+	private TagRepository tagRepository;
+
+	@Override
+	public PagedResponse&lt;Post&gt; getAllPosts(int page, int size) {
+<span class="fc" id="L58">		validatePageNumberAndSize(page, size);</span>
+
+<span class="fc" id="L60">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+
+<span class="nc" id="L62">		Page&lt;Post&gt; posts = postRepository.findAll(pageable);</span>
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">		List&lt;Post&gt; content = posts.getNumberOfElements() == 0 ? Collections.emptyList() : posts.getContent();</span>
+
+<span class="nc" id="L66">		return new PagedResponse&lt;&gt;(content, posts.getNumber(), posts.getSize(), posts.getTotalElements(),</span>
+<span class="nc" id="L67">				posts.getTotalPages(), posts.isLast());</span>
+	}
+
+	@Override
+	public PagedResponse&lt;Post&gt; getPostsByCreatedBy(String username, int page, int size) {
+<span class="fc" id="L72">		validatePageNumberAndSize(page, size);</span>
+<span class="fc" id="L73">		User user = userRepository.getUserByName(username);</span>
+<span class="fc" id="L74">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+<span class="nc" id="L75">		Page&lt;Post&gt; posts = postRepository.findByCreatedBy(user.getId(), pageable);</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">		List&lt;Post&gt; content = posts.getNumberOfElements() == 0 ? Collections.emptyList() : posts.getContent();</span>
+
+<span class="nc" id="L79">		return new PagedResponse&lt;&gt;(content, posts.getNumber(), posts.getSize(), posts.getTotalElements(),</span>
+<span class="nc" id="L80">				posts.getTotalPages(), posts.isLast());</span>
+	}
+
+	@Override
+	public PagedResponse&lt;Post&gt; getPostsByCategory(Long id, int page, int size) {
+<span class="fc" id="L85">		AppUtils.validatePageNumberAndSize(page, size);</span>
+<span class="nc" id="L86">		Category category = categoryRepository.findById(id)</span>
+<span class="nc" id="L87">				.orElseThrow(() -&gt; new ResourceNotFoundException(CATEGORY, ID, id));</span>
+
+<span class="nc" id="L89">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+<span class="nc" id="L90">		Page&lt;Post&gt; posts = postRepository.findByCategory(category.getId(), pageable);</span>
+
+<span class="nc bnc" id="L92" title="All 2 branches missed.">		List&lt;Post&gt; content = posts.getNumberOfElements() == 0 ? Collections.emptyList() : posts.getContent();</span>
+
+<span class="nc" id="L94">		return new PagedResponse&lt;&gt;(content, posts.getNumber(), posts.getSize(), posts.getTotalElements(),</span>
+<span class="nc" id="L95">				posts.getTotalPages(), posts.isLast());</span>
+	}
+
+	@Override
+	public PagedResponse&lt;Post&gt; getPostsByTag(Long id, int page, int size) {
+<span class="fc" id="L100">		AppUtils.validatePageNumberAndSize(page, size);</span>
+
+<span class="nc" id="L102">		Tag tag = tagRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TAG, ID, id));</span>
+
+<span class="nc" id="L104">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+
+<span class="nc" id="L106">		Page&lt;Post&gt; posts = postRepository.findByTags(Collections.singletonList(tag), pageable);</span>
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">		List&lt;Post&gt; content = posts.getNumberOfElements() == 0 ? Collections.emptyList() : posts.getContent();</span>
+
+<span class="nc" id="L110">		return new PagedResponse&lt;&gt;(content, posts.getNumber(), posts.getSize(), posts.getTotalElements(),</span>
+<span class="nc" id="L111">				posts.getTotalPages(), posts.isLast());</span>
+	}
+
+	@Override
+	public Post updatePost(Long id, PostRequest newPostRequest, UserPrincipal currentUser) {
+<span class="nc" id="L116">		Post post = postRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(POST, ID, id));</span>
+<span class="nc" id="L117">		Category category = categoryRepository.findById(newPostRequest.getCategoryId())</span>
+<span class="nc" id="L118">				.orElseThrow(() -&gt; new ResourceNotFoundException(CATEGORY, ID, newPostRequest.getCategoryId()));</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">		if (post.getUser().getId().equals(currentUser.getId())</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">				|| currentUser.getAuthorities().contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L121">			post.setTitle(newPostRequest.getTitle());</span>
+<span class="nc" id="L122">			post.setBody(newPostRequest.getBody());</span>
+<span class="nc" id="L123">			post.setCategory(category);</span>
+<span class="nc" id="L124">			return postRepository.save(post);</span>
+		}
+<span class="nc" id="L126">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to edit this post&quot;);</span>
+
+<span class="nc" id="L128">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public ApiResponse deletePost(Long id, UserPrincipal currentUser) {
+<span class="nc" id="L133">		Post post = postRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(POST, ID, id));</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">		if (post.getUser().getId().equals(currentUser.getId())</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">				|| currentUser.getAuthorities().contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L136">			postRepository.deleteById(id);</span>
+<span class="nc" id="L137">			return new ApiResponse(Boolean.TRUE, &quot;You successfully deleted post&quot;);</span>
+		}
+
+<span class="nc" id="L140">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to delete this post&quot;);</span>
+
+<span class="nc" id="L142">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public PostResponse addPost(PostRequest postRequest, UserPrincipal currentUser) {
+<span class="nc" id="L147">		User user = userRepository.findById(currentUser.getId())</span>
+<span class="nc" id="L148">				.orElseThrow(() -&gt; new ResourceNotFoundException(USER, ID, 1L));</span>
+<span class="nc" id="L149">		Category category = categoryRepository.findById(postRequest.getCategoryId())</span>
+<span class="nc" id="L150">				.orElseThrow(() -&gt; new ResourceNotFoundException(CATEGORY, ID, postRequest.getCategoryId()));</span>
+
+<span class="nc" id="L152">		List&lt;Tag&gt; tags = new ArrayList&lt;&gt;(postRequest.getTags().size());</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">		for (String name : postRequest.getTags()) {</span>
+<span class="nc" id="L155">			Tag tag = tagRepository.findByName(name);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">			tag = tag == null ? tagRepository.save(new Tag(name)) : tag;</span>
+
+<span class="nc" id="L158">			tags.add(tag);</span>
+<span class="nc" id="L159">		}</span>
+
+<span class="nc" id="L161">		Post post = new Post();</span>
+<span class="nc" id="L162">		post.setBody(postRequest.getBody());</span>
+<span class="nc" id="L163">		post.setTitle(postRequest.getTitle());</span>
+<span class="nc" id="L164">		post.setCategory(category);</span>
+<span class="nc" id="L165">		post.setUser(user);</span>
+<span class="nc" id="L166">		post.setTags(tags);</span>
+
+<span class="nc" id="L168">		Post newPost = postRepository.save(post);</span>
+
+<span class="nc" id="L170">		PostResponse postResponse = new PostResponse();</span>
+
+<span class="nc" id="L172">		postResponse.setTitle(newPost.getTitle());</span>
+<span class="nc" id="L173">		postResponse.setBody(newPost.getBody());</span>
+<span class="nc" id="L174">		postResponse.setCategory(newPost.getCategory().getName());</span>
+
+<span class="nc" id="L176">		List&lt;String&gt; tagNames = new ArrayList&lt;&gt;(newPost.getTags().size());</span>
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">		for (Tag tag : newPost.getTags()) {</span>
+<span class="nc" id="L179">			tagNames.add(tag.getName());</span>
+<span class="nc" id="L180">		}</span>
+
+<span class="nc" id="L182">		postResponse.setTags(tagNames);</span>
+
+<span class="nc" id="L184">		return postResponse;</span>
+	}
+
+	@Override
+	public Post getPost(Long id) {
+<span class="nc" id="L189">		return postRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(POST, ID, id));</span>
+	}
+
+	private void validatePageNumberAndSize(int page, int size) {
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">		if (page &lt; 0) {</span>
+<span class="nc" id="L194">			throw new BadRequestException(&quot;Page number cannot be less than zero.&quot;);</span>
+		}
+
+<span class="pc bpc" id="L197" title="1 of 2 branches missed.">		if (size &lt; 0) {</span>
+<span class="nc" id="L198">			throw new BadRequestException(&quot;Size number cannot be less than zero.&quot;);</span>
+		}
+
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">		if (size &gt; AppConstants.MAX_PAGE_SIZE) {</span>
+<span class="nc" id="L202">			throw new BadRequestException(&quot;Page size must not be greater than &quot; + AppConstants.MAX_PAGE_SIZE);</span>
+		}
+<span class="fc" id="L204">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

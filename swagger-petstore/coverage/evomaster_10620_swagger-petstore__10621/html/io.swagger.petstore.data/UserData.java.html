@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore.data</a> &gt; <span class="el_source">UserData.java</span></div><h1>UserData.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2018 SmartBear Software
+ * &lt;p&gt;
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * &lt;p&gt;
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * &lt;p&gt;
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.swagger.petstore.data;
+
+import io.swagger.petstore.model.User;
+
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="fc" id="L24">public class UserData {</span>
+<span class="fc" id="L25">    private static List&lt;User&gt; users = new ArrayList&lt;&gt;();</span>
+
+    static {
+<span class="fc" id="L28">        users.add(createUser(1, &quot;user1&quot;, &quot;first name 1&quot;, &quot;last name 1&quot;,</span>
+                &quot;email1@test.com&quot;, &quot;123-456-7890&quot;, 1));
+<span class="fc" id="L30">        users.add(createUser(2, &quot;user2&quot;, &quot;first name 2&quot;, &quot;last name 2&quot;,</span>
+                &quot;email2@test.com&quot;, &quot;123-456-7890&quot;, 2));
+<span class="fc" id="L32">        users.add(createUser(3, &quot;user3&quot;, &quot;first name 3&quot;, &quot;last name 3&quot;,</span>
+                &quot;email3@test.com&quot;, &quot;123-456-7890&quot;, 3));
+<span class="fc" id="L34">        users.add(createUser(4, &quot;user4&quot;, &quot;first name 4&quot;, &quot;last name 4&quot;,</span>
+                &quot;email4@test.com&quot;, &quot;123-456-7890&quot;, 1));
+<span class="fc" id="L36">        users.add(createUser(5, &quot;user5&quot;, &quot;first name 5&quot;, &quot;last name 5&quot;,</span>
+                &quot;email5@test.com&quot;, &quot;123-456-7890&quot;, 2));
+<span class="fc" id="L38">        users.add(createUser(6, &quot;user6&quot;, &quot;first name 6&quot;, &quot;last name 6&quot;,</span>
+                &quot;email6@test.com&quot;, &quot;123-456-7890&quot;, 3));
+<span class="fc" id="L40">        users.add(createUser(7, &quot;user7&quot;, &quot;first name 7&quot;, &quot;last name 7&quot;,</span>
+                &quot;email7@test.com&quot;, &quot;123-456-7890&quot;, 1));
+<span class="fc" id="L42">        users.add(createUser(8, &quot;user8&quot;, &quot;first name 8&quot;, &quot;last name 8&quot;,</span>
+                &quot;email8@test.com&quot;, &quot;123-456-7890&quot;, 2));
+<span class="fc" id="L44">        users.add(createUser(9, &quot;user9&quot;, &quot;first name 9&quot;, &quot;last name 9&quot;,</span>
+                &quot;email9@test.com&quot;, &quot;123-456-7890&quot;, 3));
+<span class="fc" id="L46">        users.add(createUser(10, &quot;user10&quot;, &quot;first name 10&quot;, &quot;last name 10&quot;,</span>
+                &quot;email10@test.com&quot;, &quot;123-456-7890&quot;, 1));
+<span class="fc" id="L48">        users.add(createUser(11, &quot;user?10&quot;, &quot;first name ?10&quot;, &quot;last name ?10&quot;,</span>
+                &quot;email101@test.com&quot;, &quot;123-456-7890&quot;, 1));
+
+<span class="fc" id="L51">    }</span>
+
+    public User findUserByName(final String username) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        for (final User user : users) {</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">            if (user.getUsername().equals(username)) {</span>
+<span class="fc" id="L56">                return user;</span>
+            }
+<span class="fc" id="L58">        }</span>
+<span class="fc" id="L59">        return null;</span>
+    }
+
+    public void addUser(final User user) {
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (users.size() &gt; 0) {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            for (int i = users.size() - 1; i &gt;= 0; i--) {</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                if (users.get(i).getUsername().equals(user.getUsername())) {</span>
+<span class="nc" id="L66">                    users.remove(i);</span>
+                }
+            }
+        }
+<span class="fc" id="L70">        users.add(user);</span>
+<span class="fc" id="L71">    }</span>
+
+    public void deleteUser(final String username) {
+<span class="fc" id="L74">        users.removeIf(user -&gt; user.getUsername().equals(username));</span>
+<span class="fc" id="L75">    }</span>
+
+    public static User createUser(final long id, final String username, final String firstName,
+                                   final String lastName, final String email, final String phone, final int userStatus) {
+<span class="fc" id="L79">        final User user = new User();</span>
+<span class="fc" id="L80">        user.setId(id);</span>
+<span class="fc" id="L81">        user.setUsername(username);</span>
+<span class="fc" id="L82">        user.setFirstName(firstName);</span>
+<span class="fc" id="L83">        user.setLastName(lastName);</span>
+<span class="fc" id="L84">        user.setEmail(email);</span>
+<span class="fc" id="L85">        user.setPassword(&quot;XXXXXXXXXXX&quot;);</span>
+<span class="fc" id="L86">        user.setPhone(phone);</span>
+<span class="fc" id="L87">        user.setUserStatus(userStatus);</span>
+<span class="fc" id="L88">        return user;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

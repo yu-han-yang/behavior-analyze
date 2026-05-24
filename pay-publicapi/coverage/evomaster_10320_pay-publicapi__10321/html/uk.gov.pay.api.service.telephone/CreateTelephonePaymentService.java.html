@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateTelephonePaymentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service.telephone</a> &gt; <span class="el_source">CreateTelephonePaymentService.java</span></div><h1>CreateTelephonePaymentService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service.telephone;
+
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.HttpStatus;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.CreateChargeException;
+import uk.gov.pay.api.model.ChargeFromResponse;
+import uk.gov.pay.api.model.telephone.CreateTelephonePaymentRequest;
+import uk.gov.pay.api.model.telephone.TelephonePaymentResponse;
+import uk.gov.pay.api.service.ConnectorUriGenerator;
+
+import javax.inject.Inject;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import static javax.ws.rs.client.Entity.json;
+
+public class CreateTelephonePaymentService {
+
+    private final Client client;
+    private final ConnectorUriGenerator connectorUriGenerator;
+
+    @Inject
+<span class="fc" id="L27">    public CreateTelephonePaymentService(Client client, ConnectorUriGenerator connectorUriGenerator) {</span>
+<span class="fc" id="L28">        this.client = client;</span>
+<span class="fc" id="L29">        this.connectorUriGenerator = connectorUriGenerator;</span>
+<span class="fc" id="L30">    }</span>
+    
+    public Pair&lt;TelephonePaymentResponse, Integer&gt; create(Account account, CreateTelephonePaymentRequest createTelephonePaymentRequest) {
+<span class="nc" id="L33">        Response connectorResponse = createTelephoneCharge(account, createTelephonePaymentRequest);</span>
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (!createdSuccessfully(connectorResponse)) {</span>
+<span class="nc" id="L36">            throw new CreateChargeException(connectorResponse);</span>
+        }
+
+<span class="nc" id="L39">        ChargeFromResponse chargeFromResponse = connectorResponse.readEntity(ChargeFromResponse.class);</span>
+<span class="nc" id="L40">        TelephonePaymentResponse telephonePaymentResponse = TelephonePaymentResponse.from(chargeFromResponse);</span>
+<span class="nc" id="L41">        return Pair.of(telephonePaymentResponse, connectorResponse.getStatus());</span>
+    }
+
+    private boolean createdSuccessfully(Response connectorResponse) {
+<span class="nc bnc" id="L45" title="All 4 branches missed.">        return connectorResponse.getStatus() == HttpStatus.SC_CREATED || connectorResponse.getStatus() == HttpStatus.SC_OK;</span>
+    }
+
+    private Response createTelephoneCharge(Account account, CreateTelephonePaymentRequest createTelephonePaymentRequest) {
+<span class="nc" id="L49">        return client</span>
+<span class="nc" id="L50">                .target(connectorUriGenerator.telephoneChargesURI(account))</span>
+<span class="nc" id="L51">                .request()</span>
+<span class="nc" id="L52">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L53">                .post(buildTelephoneChargeRequestPayload(createTelephonePaymentRequest));</span>
+    }
+
+    private Entity buildTelephoneChargeRequestPayload(CreateTelephonePaymentRequest requestPayload) {
+<span class="nc" id="L57">        return json(requestPayload.toConnectorPayload());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

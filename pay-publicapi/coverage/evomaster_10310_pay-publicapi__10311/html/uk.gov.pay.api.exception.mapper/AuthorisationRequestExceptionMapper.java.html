@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthorisationRequestExceptionMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.exception.mapper</a> &gt; <span class="el_source">AuthorisationRequestExceptionMapper.java</span></div><h1>AuthorisationRequestExceptionMapper.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.exception.mapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.exception.AuthorisationRequestException;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.service.payments.commons.model.ErrorIdentifier;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+
+import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static javax.ws.rs.core.Response.Status.PAYMENT_REQUIRED;
+import static org.apache.http.HttpStatus.SC_UNPROCESSABLE_ENTITY;
+import static uk.gov.pay.api.model.RequestError.Code.AUTHORISATION_CARD_NUMBER_REJECTED_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.AUTHORISATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.AUTHORISATION_ONE_TIME_TOKEN_ALREADY_USED_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.AUTHORISATION_ONE_TIME_TOKEN_INVALID_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.AUTHORISATION_REJECTED_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_CONNECTOR_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+
+<span class="fc" id="L25">public class AuthorisationRequestExceptionMapper implements ExceptionMapper&lt;AuthorisationRequestException&gt; {</span>
+<span class="fc" id="L26">    private static final Logger LOGGER = LoggerFactory.getLogger(AuthorisationRequestExceptionMapper.class);</span>
+    @Override
+    public Response toResponse(AuthorisationRequestException exception) {
+        int errorStatus;
+<span class="nc" id="L30">        ErrorIdentifier errorIdentifier = exception.getErrorIdentifier();</span>
+        RequestError requestError;
+<span class="nc bnc" id="L32" title="All 7 branches missed.">        switch (errorIdentifier) {</span>
+            case CARD_NUMBER_REJECTED:
+<span class="nc" id="L34">                errorStatus = PAYMENT_REQUIRED.getStatusCode();</span>
+<span class="nc" id="L35">                requestError = aRequestError(AUTHORISATION_CARD_NUMBER_REJECTED_ERROR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L36">                break;</span>
+            case AUTHORISATION_REJECTED:
+<span class="nc" id="L38">                errorStatus = PAYMENT_REQUIRED.getStatusCode();</span>
+<span class="nc" id="L39">                requestError = aRequestError(AUTHORISATION_REJECTED_ERROR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L40">                break;</span>
+            case AUTHORISATION_ERROR:
+            case AUTHORISATION_TIMEOUT:
+<span class="nc" id="L43">                errorStatus = INTERNAL_SERVER_ERROR.getStatusCode();</span>
+<span class="nc" id="L44">                requestError = aRequestError(AUTHORISATION_ERROR, &quot;There was an error authorising the payment&quot;);</span>
+<span class="nc" id="L45">                break;</span>
+            case ONE_TIME_TOKEN_ALREADY_USED:
+<span class="nc" id="L47">                errorStatus = BAD_REQUEST.getStatusCode();</span>
+<span class="nc" id="L48">                requestError = aRequestError(AUTHORISATION_ONE_TIME_TOKEN_ALREADY_USED_ERROR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L49">                break;</span>
+            case ONE_TIME_TOKEN_INVALID:
+<span class="nc" id="L51">                errorStatus = BAD_REQUEST.getStatusCode();</span>
+<span class="nc" id="L52">                requestError = aRequestError(AUTHORISATION_ONE_TIME_TOKEN_INVALID_ERROR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L53">                break;</span>
+            case INVALID_ATTRIBUTE_VALUE:
+<span class="nc" id="L55">                errorStatus = SC_UNPROCESSABLE_ENTITY;</span>
+<span class="nc" id="L56">                requestError = aRequestError(GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR, exception.getConnectorErrorMessage());</span>
+<span class="nc" id="L57">                break;</span>
+            default:
+<span class="nc" id="L59">                LOGGER.error(&quot;Connector invalid response was {}.\n Returning http status {}&quot;, exception.getConnectorErrorMessage(), INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L60">                errorStatus = INTERNAL_SERVER_ERROR.getStatusCode();</span>
+<span class="nc" id="L61">                requestError = aRequestError(CREATE_PAYMENT_CONNECTOR_ERROR, exception.getConnectorErrorMessage());</span>
+        }
+<span class="nc" id="L63">        return Response</span>
+<span class="nc" id="L64">                .status(errorStatus)</span>
+<span class="nc" id="L65">                .entity(requestError)</span>
+<span class="nc" id="L66">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrintRequestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.consumer</a> &gt; <span class="el_source">PrintRequestController.java</span></div><h1>PrintRequestController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.consumer;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.Admin;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.PrintingSchema;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.Document;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.DocumentSpec;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.Item;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.PaperItem;
+import io.github.proxyprint.kitchen.models.repositories.*;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+import javax.print.Doc;
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.security.Principal;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 20-05-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L45">public class PrintRequestController {</span>
+
+    @Autowired
+    private Environment environment;
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private PrintingSchemaDAO printingSchemas;
+    @Autowired
+    private DocumentDAO documents;
+    @Autowired
+    private DocumentSpecDAO documentsSpecs;
+    @Autowired
+    private PrintRequestDAO printRequests;
+    @Autowired
+    private PrintShopDAO printShops;
+    @Autowired
+    private PrintRequestDAO printrequests;
+    @Autowired
+    private AdminDAO admin;
+    @Autowired
+    private Gson GSON;
+
+    /*------------------------------------
+        Budget
+    * -----------------------------------*/
+    @ApiOperation(value = &quot;Returns a set of budgets&quot;, notes = &quot;This method calculates budgets for a given and already specified print request. The budgets are calculated for specific printshops also passed along as parameters.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/consumer/budget&quot;, method = RequestMethod.POST)
+    public String calcBudgetForPrintRequest(HttpServletRequest request, Principal principal, @RequestPart(&quot;printRequest&quot;) String requestJSON) throws IOException {
+<span class="nc" id="L75">        JsonObject response = new JsonObject();</span>
+<span class="nc" id="L76">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="nc" id="L78">        PrintRequest printRequest = new PrintRequest();</span>
+<span class="nc" id="L79">        printRequest.setConsumer(consumer);</span>
+<span class="nc" id="L80">        printRequest = printRequests.save(printRequest);</span>
+
+<span class="nc" id="L82">        List&lt;Long&gt; pshopIDs = null;</span>
+<span class="nc" id="L83">        Map prequest = new Gson().fromJson(requestJSON, Map.class);</span>
+
+        // PrintShops
+<span class="nc" id="L86">        List&lt;Double&gt; tmpPshopIDs = (List&lt;Double&gt;) prequest.get(&quot;printshops&quot;);</span>
+<span class="nc" id="L87">        pshopIDs = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        for (double doubleID : tmpPshopIDs) {</span>
+<span class="nc" id="L89">            pshopIDs.add((long) Double.valueOf((double) doubleID).intValue());</span>
+<span class="nc" id="L90">        }</span>
+        // Process files
+<span class="nc" id="L92">        Map&lt;String, Long&gt; documentsIds = processSumitedFiles(printRequest, request);</span>
+        // Parse and store documents and specifications
+<span class="nc" id="L94">        storeDocumentsAndSpecs(prequest, documentsIds);</span>
+        // Finally calculate the budgets :D
+<span class="nc" id="L96">        List&lt;PrintShop&gt; pshops = getListOfPrintShops(pshopIDs);</span>
+<span class="nc" id="L97">        Map&lt;Long, String&gt; budgets = printRequest.calcBudgetsForPrintShops(pshops);</span>
+
+<span class="nc" id="L99">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L100">        response.add(&quot;budgets&quot;, GSON.toJsonTree(budgets));</span>
+<span class="nc" id="L101">        response.addProperty(&quot;printRequestID&quot;, printRequest.getId());</span>
+
+<span class="nc" id="L103">        return GSON.toJson(response);</span>
+    }
+
+    public Map&lt;String, Long&gt; processSumitedFiles(PrintRequest printRequest, HttpServletRequest request) {
+<span class="nc" id="L107">        MultipartHttpServletRequest multipartRequest = (MultipartHttpServletRequest) request;</span>
+<span class="nc" id="L108">        Map&lt;String, Long&gt; documentsIds = new HashMap&lt;String, Long&gt;();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        for (Collection&lt;MultipartFile&gt; files : multipartRequest.getMultiFileMap().values()) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            for (MultipartFile file : files) {</span>
+<span class="nc" id="L111">                singleFileHandle(file, printRequest, documentsIds);</span>
+<span class="nc" id="L112">            }</span>
+<span class="nc" id="L113">        }</span>
+<span class="nc" id="L114">        return documentsIds;</span>
+    }
+
+    public void storeDocumentsAndSpecs(Map prequest, Map&lt;String, Long&gt; documentsIds) {
+<span class="nc" id="L118">        Map&lt;String, Map&gt; mdocuments = (Map) prequest.get(&quot;files&quot;);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">        for (Map.Entry&lt;String, Map&gt; documentSpecs : mdocuments.entrySet()) {</span>
+<span class="nc" id="L120">            String fileName = documentSpecs.getKey();</span>
+<span class="nc" id="L121">            List&lt;Map&lt;String, String&gt;&gt; specs = (List) documentSpecs.getValue().get(&quot;specs&quot;);</span>
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            for (Map&lt;String, String&gt; entry : specs) {</span>
+<span class="nc" id="L124">                Object tmpid = entry.get(&quot;id&quot;);</span>
+<span class="nc" id="L125">                Object tmpinfLim = entry.get(&quot;from&quot;);</span>
+<span class="nc" id="L126">                Object tmpsupLim = entry.get(&quot;to&quot;);</span>
+
+<span class="nc" id="L128">                long id = (long) Double.valueOf((double) tmpid).intValue();</span>
+
+<span class="nc" id="L130">                int infLim = 0;</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                if (tmpinfLim != null) {</span>
+<span class="nc" id="L132">                    infLim = Double.valueOf((double) tmpinfLim).intValue();</span>
+                }
+
+<span class="nc" id="L135">                int supLim = 0;</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">                if (tmpsupLim != null) {</span>
+<span class="nc" id="L137">                    supLim = Double.valueOf((double) tmpsupLim).intValue();</span>
+                }
+
+                // Get printing schema by its id
+<span class="nc" id="L141">                PrintingSchema tmpschema = printingSchemas.findOne(id);</span>
+
+                // Create DocumentSpec and associate it with respective Document
+<span class="nc" id="L144">                DocumentSpec tmpdc = new DocumentSpec(infLim, supLim, tmpschema);</span>
+<span class="nc" id="L145">                documentsSpecs.save(tmpdc);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">                if (documentsIds.containsKey(fileName)) {</span>
+<span class="nc" id="L147">                    long did = documentsIds.get(fileName);</span>
+<span class="nc" id="L148">                    Document tmpdoc = documents.findOne(did);</span>
+<span class="nc" id="L149">                    tmpdoc.addSpecification(tmpdc);</span>
+<span class="nc" id="L150">                    documents.save(tmpdoc);</span>
+                }
+<span class="nc" id="L152">            }</span>
+<span class="nc" id="L153">        }</span>
+<span class="nc" id="L154">    }</span>
+
+    public List&lt;PrintShop&gt; getListOfPrintShops(List&lt;Long&gt; pshopsIDs) {
+<span class="nc" id="L157">        List&lt;PrintShop&gt; pshops = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        for (long pid : pshopsIDs) {</span>
+<span class="nc" id="L159">            pshops.add(printShops.findOne(pid));</span>
+<span class="nc" id="L160">        }</span>
+<span class="nc" id="L161">        return pshops;</span>
+    }
+
+    private void singleFileHandle(MultipartFile file, PrintRequest printRequest, Map&lt;String, Long&gt; documentsIds) {
+<span class="nc" id="L165">        String filetype = FilenameUtils.getExtension(file.getOriginalFilename());</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (!filetype.equalsIgnoreCase(&quot;pdf&quot;)) {</span>
+<span class="nc" id="L167">            return;</span>
+        }
+<span class="nc" id="L169">        String name = FilenameUtils.removeExtension(file.getOriginalFilename());</span>
+
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (!file.isEmpty()) {</span>
+            try {
+<span class="nc" id="L173">                PDDocument pdf = PDDocument.load(file.getInputStream());</span>
+<span class="nc" id="L174">                int count = pdf.getNumberOfPages();</span>
+<span class="nc" id="L175">                pdf.close();</span>
+
+<span class="nc" id="L177">                Document doc = new Document(name, count, printRequest);</span>
+<span class="nc" id="L178">                doc = this.documents.save(doc);</span>
+<span class="nc" id="L179">                printRequest.addDocument(doc);</span>
+<span class="nc" id="L180">                documentsIds.put(doc.getName() + &quot;.pdf&quot;, doc.getId());</span>
+
+<span class="nc" id="L182">                FileOutputStream fos = new FileOutputStream(new File(Document.DIRECTORY_PATH + doc.getId() + &quot;.pdf&quot;));</span>
+<span class="nc" id="L183">                IOUtils.copy(file.getInputStream(), fos);</span>
+<span class="nc" id="L184">                fos.close();</span>
+<span class="nc" id="L185">            } catch (IOException ex) {</span>
+<span class="nc" id="L186">                Logger.getLogger(ConsumerController.class.getName()).log(Level.SEVERE, null, ex);</span>
+<span class="nc" id="L187">            }</span>
+        } else {
+
+        }
+<span class="nc" id="L191">    }</span>
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    @ApiOperation(value = &quot;Returns success/insuccess&quot;, notes = &quot;This method allow clients to POST a print request and associate it to a given printshop with a given budget, the payment may or not occur according to the payment method.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/consumer/printrequest/{printRequestID}/submit&quot;, method = RequestMethod.POST)
+    public String finishAndSubmitPrintRequest(@PathVariable(value = &quot;printRequestID&quot;) long prid, HttpServletRequest request, Principal principal) {
+<span class="fc" id="L198">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L199">        PrintRequest printRequest = printRequests.findOne(prid);</span>
+<span class="fc" id="L200">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="fc" id="L202">        String requestJSON = null;</span>
+        try {
+<span class="fc" id="L204">            requestJSON = IOUtils.toString(request.getInputStream());</span>
+<span class="nc" id="L205">        } catch (IOException e) {</span>
+<span class="nc" id="L206">            e.printStackTrace();</span>
+<span class="fc" id="L207">        }</span>
+<span class="fc" id="L208">        Map mrequest = new Gson().fromJson(requestJSON, Map.class);</span>
+
+<span class="fc" id="L210">        long pshopID = (long) Double.valueOf((double) mrequest.get(&quot;printshopID&quot;)).intValue();</span>
+<span class="nc" id="L211">        double cost = round((Double) mrequest.get(&quot;budget&quot;), 2);</span>
+<span class="nc" id="L212">        String paymentMethod = (String) mrequest.get(&quot;paymentMethod&quot;);</span>
+
+<span class="nc bnc" id="L214" title="All 4 branches missed.">        if (printRequest != null &amp;&amp; consumer != null) {</span>
+<span class="nc" id="L215">            PrintShop pshop = printShops.findOne(pshopID);</span>
+
+<span class="nc bnc" id="L217" title="All 2 branches missed.">            if (pshop != null) {</span>
+                // Final attributes for given print request
+<span class="nc" id="L219">                printRequest.setArrivalTimestamp(new Date());</span>
+<span class="nc" id="L220">                printRequest.setStatus(PrintRequest.Status.NOT_PAYED);</span>
+<span class="nc" id="L221">                printRequest.setCost(cost);</span>
+
+<span class="nc bnc" id="L223" title="All 2 branches missed.">                if (paymentMethod.equals(PrintRequest.PROXY_PAYMENT)) {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                    if (consumer.getBalance().getMoneyAsDouble() &lt; cost) {</span>
+<span class="nc" id="L225">                        response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L226">                        response.addProperty(&quot;message&quot;, &quot;Não possuí saldo suficiente para efetuar o pedido.&quot;);</span>
+<span class="nc" id="L227">                        return GSON.toJson(response);</span>
+                    } else {
+<span class="nc" id="L229">                        consumer.getBalance().subtractDoubleQuantity(cost);</span>
+<span class="nc" id="L230">                        Admin master = admin.findAll().iterator().next();</span>
+<span class="nc" id="L231">                        master.getBalance().addDoubleQuantity(cost);</span>
+<span class="nc" id="L232">                        consumers.save(consumer);</span>
+<span class="nc" id="L233">                        admin.save(master);</span>
+<span class="nc" id="L234">                        printRequest.setStatus(PrintRequest.Status.PENDING);</span>
+<span class="nc" id="L235">                    }</span>
+                } else {
+<span class="nc" id="L237">                    printRequest.setPaymentType(PrintRequest.PAYPAL_PAYMENT);</span>
+                }
+
+<span class="nc" id="L240">                printRequests.save(printRequest);</span>
+<span class="nc" id="L241">                pshop.addPrintRequest(printRequest);</span>
+
+<span class="nc" id="L243">                printShops.save(pshop);</span>
+<span class="nc" id="L244">                response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L245">                return GSON.toJson(response);</span>
+            }
+        }
+
+<span class="nc" id="L249">        response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L250">        return GSON.toJson(response);</span>
+    }
+
+    protected double round(double value, int places) {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (places &lt; 0) {</span>
+<span class="nc" id="L255">            throw new IllegalArgumentException();</span>
+        }
+
+<span class="nc" id="L258">        BigDecimal bd = new BigDecimal(value);</span>
+<span class="nc" id="L259">        bd = bd.setScale(places, RoundingMode.HALF_UP);</span>
+<span class="nc" id="L260">        return bd.doubleValue();</span>
+    }
+
+    /*-------------------------------------------------Integration----------------------------------------------------*/
+    @ApiOperation(value = &quot;Returns a Print Request ID&quot;, notes = &quot;This method allows other platforms to print a document using ProxyPrint&quot;)
+    @RequestMapping(value = &quot;/printdocument&quot;, method = RequestMethod.POST)
+    public String printDocument(HttpServletRequest request) throws IOException {
+<span class="fc" id="L267">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L269">        PrintRequest printRequest = new PrintRequest();</span>
+<span class="fc" id="L270">        printRequest = printRequests.save(printRequest);</span>
+
+        // Process files
+<span class="nc" id="L273">        Map&lt;String, Long&gt; documentsIds = processSumitedFiles(printRequest, request);</span>
+
+        // Parse and store documents and specifications
+<span class="nc" id="L276">        storeDocumentsWithDefaultSpecs(documentsIds);</span>
+
+<span class="nc" id="L278">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L279">        response.addProperty(&quot;printRequestID&quot;, printRequest.getId());</span>
+<span class="nc" id="L280">        return GSON.toJson(response);</span>
+    }
+
+    public void storeDocumentsWithDefaultSpecs(Map&lt;String, Long&gt; documentsIds) {
+
+<span class="nc" id="L285">        PaperItem p1 = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW);</span>
+<span class="nc" id="L286">        PrintingSchema tmpschema = new PrintingSchema(&quot;A4+2LAD+PB&quot;, p1.genKey(), &quot;BINDING,STAPLING,0,0&quot;, &quot;&quot;);</span>
+<span class="nc" id="L287">        printingSchemas.save(tmpschema);</span>
+
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        for (String fileName : documentsIds.keySet()) {</span>
+
+            // Create DocumentSpec and associate it with respective Document
+<span class="nc" id="L292">            DocumentSpec tmpdc = new DocumentSpec(0, 0, tmpschema);</span>
+<span class="nc" id="L293">            documentsSpecs.save(tmpdc);</span>
+
+<span class="nc" id="L295">            long did = documentsIds.get(fileName);</span>
+<span class="nc" id="L296">            Document tmpdoc = documents.findOne(did);</span>
+<span class="nc" id="L297">            tmpdoc.addSpecification(tmpdc);</span>
+<span class="nc" id="L298">            documents.save(tmpdoc);</span>
+<span class="nc" id="L299">        }</span>
+<span class="nc" id="L300">    }</span>
+
+    @ApiOperation(value = &quot;Returns a document&quot;, notes = &quot;This method returns the document from a print request &quot;)
+    @RequestMapping(value = &quot;/printdocument/{id}&quot;, method = RequestMethod.GET)
+    public String getDocument(@PathVariable(value = &quot;id&quot;) long id) throws IOException {
+<span class="fc" id="L305">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L307">        PrintRequest printRequest = printRequests.findOne(id);</span>
+
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">        if (printRequest == null) {</span>
+<span class="fc" id="L310">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L311">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc" id="L314">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L315">        response.add(&quot;documents&quot;, GSON.toJsonTree(printRequest.getDocuments()));</span>
+
+<span class="nc" id="L317">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a set of budgets&quot;, notes = &quot;This method calculates budgets for a given and already specified print request. The budgets are calculated for specific printshops also passed along as parameters.&quot;)
+    @Secured(&quot;ROLE_USER&quot;)
+    @RequestMapping(value = &quot;/printdocument/{id}/budget&quot;, method = RequestMethod.POST)
+    public String calcBudgetForPrintRecipe(Principal principal, @PathVariable(value = &quot;id&quot;) long id, HttpServletRequest request) throws IOException {
+<span class="fc" id="L324">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L325">        Consumer consumer = consumers.findByUsername(principal.getName());</span>
+
+<span class="fc" id="L327">        PrintRequest printRequest = printRequests.findOne(id);</span>
+<span class="nc" id="L328">        printRequest.setConsumer(consumer);</span>
+<span class="nc" id="L329">        printRequest = printRequests.save(printRequest);</span>
+
+<span class="nc" id="L331">        String requestJSON = IOUtils.toString(request.getInputStream());</span>
+
+        // PrintShops
+<span class="nc" id="L334">        List&lt;Double&gt; tmpPshopIDs = GSON.fromJson(requestJSON, List.class);</span>
+<span class="nc" id="L335">        List&lt;Long&gt; pshopIDs = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        for (Double doubleID : tmpPshopIDs) {</span>
+<span class="nc" id="L338">            pshopIDs.add((long) Double.valueOf(doubleID).intValue());</span>
+<span class="nc" id="L339">        }</span>
+
+        // Finally calculate the budgets :D
+<span class="nc" id="L342">        List&lt;PrintShop&gt; pshops = getListOfPrintShops(pshopIDs);</span>
+<span class="nc" id="L343">        Map&lt;Long, String&gt; budgets = printRequest.calcBudgetsForPrintShops(pshops);</span>
+
+<span class="nc" id="L345">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L346">        response.add(&quot;budgets&quot;, GSON.toJsonTree(budgets));</span>
+<span class="nc" id="L347">        response.addProperty(&quot;printRequestID&quot;, printRequest.getId());</span>
+
+        //se nao estiver no heroku, fazer tunel
+        //if (this.environment.acceptsProfiles(&quot;!heroku&quot;)) {
+        //    response.addProperty(&quot;externalURL&quot;, NgrokConfig.getExternalUrl());
+        //}
+<span class="nc" id="L353">        return GSON.toJson(response);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

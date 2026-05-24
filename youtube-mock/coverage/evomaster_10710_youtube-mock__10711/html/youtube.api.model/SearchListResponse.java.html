@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchListResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">SearchListResponse.java</span></div><h1>SearchListResponse.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.util.List;
+
+@JsonPropertyOrder({&quot;kind&quot;, &quot;etag&quot;, &quot;nextPageToken&quot;, &quot;prevPageToken&quot;, &quot;regionCode&quot;, &quot;pageInfo&quot;, &quot;items&quot;, &quot;eventId&quot;, &quot;tokenPagination&quot;, &quot;visitorId&quot;})
+@JsonInclude(JsonInclude.Include.NON_NULL)
+<span class="nc" id="L10">public class SearchListResponse {</span>
+
+    private String etag;
+
+    private String eventId;
+
+    private List&lt;SearchResult&gt; items;
+
+    private String kind;
+
+    private String nextPageToken;
+
+    private PageInfo pageInfo;
+
+    private String prevPageToken;
+
+    private String regionCode;
+
+    private TokenPagination tokenPagination;
+
+    private String visitorId;
+
+    public String getEtag() {
+<span class="nc" id="L33">        return etag;</span>
+    }
+
+    public void setEtag(String etag) {
+<span class="nc" id="L37">        this.etag = etag;</span>
+<span class="nc" id="L38">    }</span>
+
+    public String getEventId() {
+<span class="nc" id="L41">        return eventId;</span>
+    }
+
+    public void setEventId(String eventId) {
+<span class="nc" id="L45">        this.eventId = eventId;</span>
+<span class="nc" id="L46">    }</span>
+
+    public List&lt;SearchResult&gt; getItems() {
+<span class="nc" id="L49">        return items;</span>
+    }
+
+    public void setItems(List&lt;SearchResult&gt; items) {
+<span class="nc" id="L53">        this.items = items;</span>
+<span class="nc" id="L54">    }</span>
+
+    public String getKind() {
+<span class="nc" id="L57">        return kind;</span>
+    }
+
+    public void setKind(String kind) {
+<span class="nc" id="L61">        this.kind = kind;</span>
+<span class="nc" id="L62">    }</span>
+
+    public String getNextPageToken() {
+<span class="nc" id="L65">        return nextPageToken;</span>
+    }
+
+    public void setNextPageToken(String nextPageToken) {
+<span class="nc" id="L69">        this.nextPageToken = nextPageToken;</span>
+<span class="nc" id="L70">    }</span>
+
+    public PageInfo getPageInfo() {
+<span class="nc" id="L73">        return pageInfo;</span>
+    }
+
+    public void setPageInfo(PageInfo pageInfo) {
+<span class="nc" id="L77">        this.pageInfo = pageInfo;</span>
+<span class="nc" id="L78">    }</span>
+
+    public String getPrevPageToken() {
+<span class="nc" id="L81">        return prevPageToken;</span>
+    }
+
+    public void setPrevPageToken(String prevPageToken) {
+<span class="nc" id="L85">        this.prevPageToken = prevPageToken;</span>
+<span class="nc" id="L86">    }</span>
+
+    public String getRegionCode() {
+<span class="nc" id="L89">        return regionCode;</span>
+    }
+
+    public void setRegionCode(String regionCode) {
+<span class="nc" id="L93">        this.regionCode = regionCode;</span>
+<span class="nc" id="L94">    }</span>
+
+    public TokenPagination getTokenPagination() {
+<span class="nc" id="L97">        return tokenPagination;</span>
+    }
+
+    public void setTokenPagination(TokenPagination tokenPagination) {
+<span class="nc" id="L101">        this.tokenPagination = tokenPagination;</span>
+<span class="nc" id="L102">    }</span>
+
+    public String getVisitorId() {
+<span class="nc" id="L105">        return visitorId;</span>
+    }
+
+    public void setVisitorId(String visitorId) {
+<span class="nc" id="L109">        this.visitorId = visitorId;</span>
+<span class="nc" id="L110">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">UserServiceImpl.java</span></div><h1>UserServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.AccessDeniedException;
+import com.sopromadze.blogapi.exception.AppException;
+import com.sopromadze.blogapi.exception.BadRequestException;
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.exception.UnauthorizedException;
+import com.sopromadze.blogapi.model.role.Role;
+import com.sopromadze.blogapi.model.role.RoleName;
+import com.sopromadze.blogapi.model.user.Address;
+import com.sopromadze.blogapi.model.user.Company;
+import com.sopromadze.blogapi.model.user.Geo;
+import com.sopromadze.blogapi.model.user.User;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.InfoRequest;
+import com.sopromadze.blogapi.payload.UserIdentityAvailability;
+import com.sopromadze.blogapi.payload.UserProfile;
+import com.sopromadze.blogapi.payload.UserSummary;
+import com.sopromadze.blogapi.repository.PostRepository;
+import com.sopromadze.blogapi.repository.RoleRepository;
+import com.sopromadze.blogapi.repository.UserRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+<span class="fc" id="L34">public class UserServiceImpl implements UserService {</span>
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private PostRepository postRepository;
+
+	@Autowired
+	private RoleRepository roleRepository;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	@Override
+	public UserSummary getCurrentUser(UserPrincipal currentUser) {
+<span class="fc" id="L49">		return new UserSummary(currentUser.getId(), currentUser.getUsername(), currentUser.getFirstName(),</span>
+<span class="fc" id="L50">				currentUser.getLastName());</span>
+	}
+
+	@Override
+	public UserIdentityAvailability checkUsernameAvailability(String username) {
+<span class="fc bfc" id="L55" title="All 2 branches covered.">		Boolean isAvailable = !userRepository.existsByUsername(username);</span>
+<span class="fc" id="L56">		return new UserIdentityAvailability(isAvailable);</span>
+	}
+
+	@Override
+	public UserIdentityAvailability checkEmailAvailability(String email) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">		Boolean isAvailable = !userRepository.existsByEmail(email);</span>
+<span class="fc" id="L62">		return new UserIdentityAvailability(isAvailable);</span>
+	}
+
+	@Override
+	public UserProfile getUserProfile(String username) {
+<span class="fc" id="L67">		User user = userRepository.getUserByName(username);</span>
+
+<span class="fc" id="L69">		Long postCount = postRepository.countByCreatedBy(user.getId());</span>
+
+<span class="fc" id="L71">		return new UserProfile(user.getId(), user.getUsername(), user.getFirstName(), user.getLastName(),</span>
+<span class="fc" id="L72">				user.getCreatedAt(), user.getEmail(), user.getAddress(), user.getPhone(), user.getWebsite(),</span>
+<span class="fc" id="L73">				user.getCompany(), postCount);</span>
+	}
+
+	@Override
+	public User addUser(User user) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">		if (userRepository.existsByUsername(user.getUsername())) {</span>
+<span class="nc" id="L79">			ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;Username is already taken&quot;);</span>
+<span class="nc" id="L80">			throw new BadRequestException(apiResponse);</span>
+		}
+
+<span class="nc bnc" id="L83" title="All 2 branches missed.">		if (userRepository.existsByEmail(user.getEmail())) {</span>
+<span class="nc" id="L84">			ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;Email is already taken&quot;);</span>
+<span class="nc" id="L85">			throw new BadRequestException(apiResponse);</span>
+		}
+
+<span class="nc" id="L88">		List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L89">		roles.add(</span>
+<span class="nc" id="L90">				roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(() -&gt; new AppException(&quot;User role not set&quot;)));</span>
+<span class="nc" id="L91">		user.setRoles(roles);</span>
+
+<span class="nc" id="L93">		user.setPassword(passwordEncoder.encode(user.getPassword()));</span>
+<span class="nc" id="L94">		return userRepository.save(user);</span>
+	}
+
+	@Override
+	public User updateUser(User newUser, String username, UserPrincipal currentUser) {
+<span class="nc" id="L99">		User user = userRepository.getUserByName(username);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">		if (user.getId().equals(currentUser.getId())</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">				|| currentUser.getAuthorities().contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L102">			user.setFirstName(newUser.getFirstName());</span>
+<span class="nc" id="L103">			user.setLastName(newUser.getLastName());</span>
+<span class="nc" id="L104">			user.setPassword(passwordEncoder.encode(newUser.getPassword()));</span>
+<span class="nc" id="L105">			user.setAddress(newUser.getAddress());</span>
+<span class="nc" id="L106">			user.setPhone(newUser.getPhone());</span>
+<span class="nc" id="L107">			user.setWebsite(newUser.getWebsite());</span>
+<span class="nc" id="L108">			user.setCompany(newUser.getCompany());</span>
+
+<span class="nc" id="L110">			return userRepository.save(user);</span>
+
+		}
+
+<span class="nc" id="L114">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to update profile of: &quot; + username);</span>
+<span class="nc" id="L115">		throw new UnauthorizedException(apiResponse);</span>
+
+	}
+
+	@Override
+	public ApiResponse deleteUser(String username, UserPrincipal currentUser) {
+<span class="fc" id="L121">		User user = userRepository.findByUsername(username)</span>
+<span class="pc" id="L122">				.orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, &quot;id&quot;, username));</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if (!user.getId().equals(currentUser.getId()) || !currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L125">			ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to delete profile of: &quot; + username);</span>
+<span class="nc" id="L126">			throw new AccessDeniedException(apiResponse);</span>
+		}
+
+<span class="nc" id="L129">		userRepository.deleteById(user.getId());</span>
+
+<span class="nc" id="L131">		return new ApiResponse(Boolean.TRUE, &quot;You successfully deleted profile of: &quot; + username);</span>
+	}
+
+	@Override
+	public ApiResponse giveAdmin(String username) {
+<span class="nc" id="L136">		User user = userRepository.getUserByName(username);</span>
+<span class="nc" id="L137">		List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L138">		roles.add(roleRepository.findByName(RoleName.ROLE_ADMIN)</span>
+<span class="nc" id="L139">				.orElseThrow(() -&gt; new AppException(&quot;User role not set&quot;)));</span>
+<span class="nc" id="L140">		roles.add(</span>
+<span class="nc" id="L141">				roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(() -&gt; new AppException(&quot;User role not set&quot;)));</span>
+<span class="nc" id="L142">		user.setRoles(roles);</span>
+<span class="nc" id="L143">		userRepository.save(user);</span>
+<span class="nc" id="L144">		return new ApiResponse(Boolean.TRUE, &quot;You gave ADMIN role to user: &quot; + username);</span>
+	}
+
+	@Override
+	public ApiResponse removeAdmin(String username) {
+<span class="nc" id="L149">		User user = userRepository.getUserByName(username);</span>
+<span class="nc" id="L150">		List&lt;Role&gt; roles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L151">		roles.add(</span>
+<span class="nc" id="L152">				roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(() -&gt; new AppException(&quot;User role not set&quot;)));</span>
+<span class="nc" id="L153">		user.setRoles(roles);</span>
+<span class="nc" id="L154">		userRepository.save(user);</span>
+<span class="nc" id="L155">		return new ApiResponse(Boolean.TRUE, &quot;You took ADMIN role from user: &quot; + username);</span>
+	}
+
+	@Override
+	public UserProfile setOrUpdateInfo(UserPrincipal currentUser, InfoRequest infoRequest) {
+<span class="nc" id="L160">		User user = userRepository.findByUsername(currentUser.getUsername())</span>
+<span class="nc" id="L161">				.orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, &quot;username&quot;, currentUser.getUsername()));</span>
+<span class="nc" id="L162">		Geo geo = new Geo(infoRequest.getLat(), infoRequest.getLng());</span>
+<span class="nc" id="L163">		Address address = new Address(infoRequest.getStreet(), infoRequest.getSuite(), infoRequest.getCity(),</span>
+<span class="nc" id="L164">				infoRequest.getZipcode(), geo);</span>
+<span class="nc" id="L165">		Company company = new Company(infoRequest.getCompanyName(), infoRequest.getCatchPhrase(), infoRequest.getBs());</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">		if (user.getId().equals(currentUser.getId())</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">				|| currentUser.getAuthorities().contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L168">			user.setAddress(address);</span>
+<span class="nc" id="L169">			user.setCompany(company);</span>
+<span class="nc" id="L170">			user.setWebsite(infoRequest.getWebsite());</span>
+<span class="nc" id="L171">			user.setPhone(infoRequest.getPhone());</span>
+<span class="nc" id="L172">			User updatedUser = userRepository.save(user);</span>
+
+<span class="nc" id="L174">			Long postCount = postRepository.countByCreatedBy(updatedUser.getId());</span>
+
+<span class="nc" id="L176">			return new UserProfile(updatedUser.getId(), updatedUser.getUsername(),</span>
+<span class="nc" id="L177">					updatedUser.getFirstName(), updatedUser.getLastName(), updatedUser.getCreatedAt(),</span>
+<span class="nc" id="L178">					updatedUser.getEmail(), updatedUser.getAddress(), updatedUser.getPhone(), updatedUser.getWebsite(),</span>
+<span class="nc" id="L179">					updatedUser.getCompany(), postCount);</span>
+		}
+
+<span class="nc" id="L182">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to update users profile&quot;, HttpStatus.FORBIDDEN);</span>
+<span class="nc" id="L183">		throw new AccessDeniedException(apiResponse);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

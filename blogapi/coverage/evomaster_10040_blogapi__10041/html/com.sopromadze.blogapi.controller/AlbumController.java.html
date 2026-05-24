@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlbumController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.controller</a> &gt; <span class="el_source">AlbumController.java</span></div><h1>AlbumController.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.controller;
+
+import com.sopromadze.blogapi.exception.ResponseEntityErrorException;
+import com.sopromadze.blogapi.model.Album;
+import com.sopromadze.blogapi.payload.AlbumResponse;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.payload.PhotoResponse;
+import com.sopromadze.blogapi.payload.request.AlbumRequest;
+import com.sopromadze.blogapi.security.CurrentUser;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.AlbumService;
+import com.sopromadze.blogapi.service.PhotoService;
+import com.sopromadze.blogapi.utils.AppConstants;
+import com.sopromadze.blogapi.utils.AppUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
+
+@RestController
+@RequestMapping(&quot;/api/albums&quot;)
+<span class="fc" id="L35">public class AlbumController {</span>
+	@Autowired
+	private AlbumService albumService;
+
+	@Autowired
+	private PhotoService photoService;
+
+	@ExceptionHandler(ResponseEntityErrorException.class)
+	public ResponseEntity&lt;ApiResponse&gt; handleExceptions(ResponseEntityErrorException exception) {
+<span class="nc" id="L44">		return exception.getApiResponse();</span>
+	}
+
+	@GetMapping
+	public PagedResponse&lt;AlbumResponse&gt; getAllAlbums(
+			@RequestParam(name = &quot;page&quot;, required = false, defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) Integer page,
+			@RequestParam(name = &quot;size&quot;, required = false, defaultValue = AppConstants.DEFAULT_PAGE_SIZE) Integer size) {
+<span class="fc" id="L51">		AppUtils.validatePageNumberAndSize(page, size);</span>
+
+<span class="fc" id="L53">		return albumService.getAllAlbums(page, size);</span>
+	}
+
+	@PostMapping
+	@PreAuthorize(&quot;hasRole('USER')&quot;)
+	public ResponseEntity&lt;Album&gt; addAlbum(@Valid @RequestBody AlbumRequest albumRequest, @CurrentUser UserPrincipal currentUser) {
+<span class="nc" id="L59">		return albumService.addAlbum(albumRequest, currentUser);</span>
+	}
+
+	@GetMapping(&quot;/{id}&quot;)
+	public ResponseEntity&lt;Album&gt; getAlbum(@PathVariable(name = &quot;id&quot;) Long id) {
+<span class="nc" id="L64">		return albumService.getAlbum(id);</span>
+	}
+
+	@PutMapping(&quot;/{id}&quot;)
+	@PreAuthorize(&quot;hasRole('USER') or hasRole('ADMIN')&quot;)
+	public ResponseEntity&lt;AlbumResponse&gt; updateAlbum(@PathVariable(name = &quot;id&quot;) Long id, @Valid @RequestBody AlbumRequest newAlbum,
+			@CurrentUser UserPrincipal currentUser) {
+<span class="nc" id="L71">		return albumService.updateAlbum(id, newAlbum, currentUser);</span>
+	}
+
+	@DeleteMapping(&quot;/{id}&quot;)
+	@PreAuthorize(&quot;hasRole('USER') or hasRole('ADMIN')&quot;)
+	public ResponseEntity&lt;ApiResponse&gt; deleteAlbum(@PathVariable(name = &quot;id&quot;) Long id, @CurrentUser UserPrincipal currentUser) {
+<span class="nc" id="L77">		return albumService.deleteAlbum(id, currentUser);</span>
+	}
+
+	@GetMapping(&quot;/{id}/photos&quot;)
+	public ResponseEntity&lt;PagedResponse&lt;PhotoResponse&gt;&gt; getAllPhotosByAlbum(@PathVariable(name = &quot;id&quot;) Long id,
+			@RequestParam(name = &quot;page&quot;, required = false, defaultValue = AppConstants.DEFAULT_PAGE_NUMBER) Integer page,
+			@RequestParam(name = &quot;size&quot;, required = false, defaultValue = AppConstants.DEFAULT_PAGE_SIZE) Integer size) {
+
+<span class="fc" id="L85">		PagedResponse&lt;PhotoResponse&gt; response = photoService.getAllPhotosByAlbum(id, page, size);</span>
+
+<span class="fc" id="L87">		return new ResponseEntity&lt;&gt;(response, HttpStatus.OK);</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Employee.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.model.entity</a> &gt; <span class="el_source">Employee.java</span></div><h1>Employee.java</h1><pre class="source lang-java linenums">package com.pfa.app.model.entity;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.Set;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Index;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonFormat.Shape;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+
+@Entity
+@Table(name = &quot;employees&quot;, indexes = {@Index(name = &quot;employees_email_IX&quot;, columnList = &quot;email&quot;, unique = true)})
+public final class Employee implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = &quot;employee_id&quot;, unique = true, nullable = false, precision = 10)
+	private Integer employeeId;
+	
+	@NotBlank(message = &quot;** Must give a firstname **&quot;)
+	@Column(name = &quot;first_name&quot;, length = 200)
+	private String firstName;
+	
+	@NotBlank(message = &quot;** Must give a lastname **&quot;)
+	@Column(name = &quot;last_name&quot;, length = 200)
+	private String lastName;
+	
+	@Email
+	// @NotBlank(message = &quot;** Must give an email **&quot;)
+	@Column(name = &quot;email&quot;, length = 200)
+	private String email;
+	
+	// @NotBlank(message = &quot;** Must give a phone number **&quot;)
+	@Column(name = &quot;phone&quot;, length = 20)
+	private String phone;
+	
+	// @NotBlank(message = &quot;** Must give a hiredate **&quot;)
+	@DateTimeFormat(pattern = &quot;dd-MM-yyyy&quot;)
+	@JsonFormat(shape = Shape.STRING, pattern = &quot;dd-MM-yyyy&quot;)
+	@JsonSerialize(using = LocalDateSerializer.class)
+	@JsonDeserialize(using = LocalDateDeserializer.class)
+	@Column(name = &quot;hiredate&quot;)
+	private LocalDate hiredate;
+	
+	@NotBlank(message = &quot;** Must give a job **&quot;)
+	@Column(name = &quot;job&quot;, length = 200)
+	private String job;
+	
+	@NotNull(message = &quot;** Must give a salary **&quot;)
+	@Column(name = &quot;salary&quot;, precision = 7, scale = 2)
+	private Double salary;
+	
+	// @NotNull(message = &quot;**Must not NULL**&quot;)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = &quot;manager_id&quot;)
+	private Employee manager;
+	
+	@JsonIgnore
+	@OneToMany(mappedBy = &quot;manager&quot;, fetch = FetchType.LAZY)
+	private Set&lt;Employee&gt; employees;
+	
+	@JsonIgnore
+	@OneToMany(mappedBy = &quot;employee&quot;, fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Set&lt;Assignment&gt; assignments;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = &quot;department_id&quot;)
+	private Department department;
+	
+	@OneToOne(mappedBy = &quot;employee&quot;, fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	private Credential credential;
+	
+<span class="fc" id="L99">	public Employee() {</span>
+		
+<span class="fc" id="L101">	}</span>
+	
+	@Override
+	public String toString() {
+<span class="fc" id="L105">		return &quot;Employee [employeeId=&quot; + employeeId + &quot;, firstName=&quot; + firstName + &quot;, lastName=&quot; + lastName + &quot;, email=&quot;</span>
+				+ email + &quot;, phone=&quot; + phone + &quot;, hiredate=&quot; + hiredate + &quot;, job=&quot; + job + &quot;, salary=&quot; + salary
+				+ &quot;, manager=&quot; + manager + &quot;, department=&quot; + department + &quot;, credential=&quot; + credential + &quot;]&quot;;
+	}
+	
+	public Integer getEmployeeId() {
+<span class="fc" id="L111">		return employeeId;</span>
+	}
+	
+	public void setEmployeeId(final Integer employeeId) {
+<span class="fc" id="L115">		this.employeeId = employeeId;</span>
+<span class="fc" id="L116">	}</span>
+
+	public String getFirstName() {
+<span class="fc" id="L119">		return firstName;</span>
+	}
+
+	public void setFirstName(final String firstName) {
+<span class="fc" id="L123">		this.firstName = firstName;</span>
+<span class="fc" id="L124">	}</span>
+
+	public String getLastName() {
+<span class="fc" id="L127">		return lastName;</span>
+	}
+
+	public void setLastName(final String lastName) {
+<span class="fc" id="L131">		this.lastName = lastName;</span>
+<span class="fc" id="L132">	}</span>
+
+	public String getEmail() {
+<span class="fc" id="L135">		return email;</span>
+	}
+
+	public void setEmail(final String email) {
+<span class="fc" id="L139">		this.email = email;</span>
+<span class="fc" id="L140">	}</span>
+
+	public String getPhone() {
+<span class="fc" id="L143">		return phone;</span>
+	}
+
+	public void setPhone(final String phone) {
+<span class="fc" id="L147">		this.phone = phone;</span>
+<span class="fc" id="L148">	}</span>
+
+	public LocalDate getHiredate() {
+<span class="fc" id="L151">		return hiredate;</span>
+	}
+
+	public void setHiredate(final LocalDate hiredate) {
+<span class="fc" id="L155">		this.hiredate = hiredate;</span>
+<span class="fc" id="L156">	}</span>
+
+	public String getJob() {
+<span class="fc" id="L159">		return job;</span>
+	}
+
+	public void setJob(final String job) {
+<span class="fc" id="L163">		this.job = job;</span>
+<span class="fc" id="L164">	}</span>
+
+	public Double getSalary() {
+<span class="fc" id="L167">		return salary;</span>
+	}
+
+	public void setSalary(final Double salary) {
+<span class="fc" id="L171">		this.salary = salary;</span>
+<span class="fc" id="L172">	}</span>
+
+	public Employee getManager() {
+<span class="fc" id="L175">		return manager;</span>
+	}
+
+	public void setManager(final Employee manager) {
+<span class="nc" id="L179">		this.manager = manager;</span>
+<span class="nc" id="L180">	}</span>
+
+	public Set&lt;Employee&gt; getEmployees() {
+<span class="nc" id="L183">		return Collections.unmodifiableSet(this.employees);</span>
+	}
+
+	public void setEmployees(final Set&lt;Employee&gt; employees) {
+<span class="nc" id="L187">		this.employees = employees;</span>
+<span class="nc" id="L188">	}</span>
+
+	public Set&lt;Assignment&gt; getAssignments() {
+<span class="nc" id="L191">		return Collections.unmodifiableSet(this.assignments);</span>
+	}
+
+	public void setAssignments(final Set&lt;Assignment&gt; assignments) {
+<span class="nc" id="L195">		this.assignments = assignments;</span>
+<span class="nc" id="L196">	}</span>
+
+	public Department getDepartment() {
+<span class="fc" id="L199">		return department;</span>
+	}
+
+	public void setDepartment(final Department department) {
+<span class="fc" id="L203">		this.department = department;</span>
+<span class="fc" id="L204">	}</span>
+
+	public Credential getCredential() {
+<span class="fc" id="L207">		return credential;</span>
+	}
+
+	public void setCredential(final Credential credential) {
+<span class="fc" id="L211">		this.credential = credential;</span>
+<span class="fc" id="L212">	}</span>
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

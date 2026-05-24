@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PayPalController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.consumer</a> &gt; <span class="el_source">PayPalController.java</span></div><h1>PayPalController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.consumer;
+
+import com.google.gson.Gson;
+import com.paypal.core.LoggingManager;
+import com.paypal.ipn.IPNMessage;
+import io.github.proxyprint.kitchen.Configuration;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.notifications.Notification;
+import io.github.proxyprint.kitchen.models.repositories.*;
+import io.github.proxyprint.kitchen.utils.NotificationManager;
+import io.github.proxyprint.kitchen.utils.PayPalWrapper;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 20-05-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L32">public class PayPalController {</span>
+    @Autowired
+    private UserDAO users;
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private EmployeeDAO employees;
+    @Autowired
+    private PrintRequestDAO printRequests;
+    @Autowired
+    private PrintShopDAO printShops;
+    @Autowired
+    private ManagerDAO managers;
+    @Autowired
+    private Gson GSON;
+    @Autowired
+    private NotificationManager notificationManager;
+
+    @ApiOperation(value = &quot;Returns nothing&quot;, notes = &quot;This method implements the payment check mechanism given by PayPal. This method acts as callback, it reacts to the change of status of a transaction to Completed (eCheck - complete).&quot;)
+    @RequestMapping(value = &quot;/paypal/ipn/{printRequestID}&quot;, method = RequestMethod.POST)
+    protected void someRequestPaymentConfirmationFromPaylPal(@PathVariable(value = &quot;printRequestID&quot;) long prid, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+<span class="fc" id="L53">        Map&lt;String,String&gt; configurationMap =  Configuration.getConfig();</span>
+<span class="fc" id="L54">        IPNMessage ipnlistener = new IPNMessage(request,configurationMap);</span>
+<span class="fc" id="L55">        boolean isIpnVerified = ipnlistener.validate();</span>
+<span class="fc" id="L56">        String transactionType = ipnlistener.getTransactionType();</span>
+<span class="fc" id="L57">        Map&lt;String,String&gt; map = ipnlistener.getIpnMap();</span>
+
+        // Parse content of interest from the IPN notification JSON Body -- :D
+<span class="fc" id="L60">        String payerEmail = map.get(&quot;payer_email&quot;);</span>
+<span class="nc" id="L61">        Double quantity = Double.valueOf(map.get(&quot;mc_gross&quot;));</span>
+<span class="nc" id="L62">        String paymentStatus = map.get(&quot;payment_status&quot;);</span>
+<span class="nc" id="L63">        String transactionID = map.get(&quot;txn_id&quot;);</span>
+
+
+<span class="nc bnc" id="L66" title="All 6 branches missed.">        if(payerEmail!=null &amp;&amp; quantity!=null &amp;&amp; paymentStatus!=null) {</span>
+<span class="nc" id="L67">            PrintRequest pr = printRequests.findOne(prid);</span>
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (pr != null) {</span>
+<span class="nc" id="L70">                LoggingManager.info(this.getClass(), &quot;******* IPN (name:value) pair : &quot; + map + &quot;  &quot; +</span>
+                        &quot;######### TransactionType : &quot; + transactionType + &quot;  ======== IPN verified : &quot; + isIpnVerified);
+
+<span class="nc" id="L73">                Consumer c = pr.getConsumer();</span>
+
+                // Divine Condition for secure request background check
+<span class="nc bnc" id="L76" title="All 8 branches missed.">                if(c!=null &amp;&amp; c.getPrintRequests().contains(pr) &amp;&amp; pr.getCost()==quantity &amp;&amp; paymentStatus.equals(PayPalWrapper.PAYPAL_COMPLETED_PAYMENT)) {</span>
+                    // The print request may now go to the printshop
+<span class="nc" id="L78">                    pr.setStatus(PrintRequest.Status.PENDING);</span>
+<span class="nc" id="L79">                    pr.setPayPalSaleID(transactionID);</span>
+<span class="nc" id="L80">                    printRequests.save(pr);</span>
+<span class="nc" id="L81">                    String message = &quot;O pagamento via PayPal do seu pedido nº #&quot;+pr.getId()+&quot; foi confirmado. Obrigado!&quot;;</span>
+<span class="nc" id="L82">                    notificationManager.sendNotification(c.getUsername(), new Notification(message));</span>
+<span class="nc" id="L83">                    return;</span>
+                }
+<span class="nc" id="L85">            } else {</span>
+<span class="nc" id="L86">                LoggingManager.info(this.getClass(), &quot;PayPal transaction ERROR: consumer with email &lt;&quot; + payerEmail + &quot;&gt; is not registred in ProxyPrint.&quot;);</span>
+<span class="nc" id="L87">                return;</span>
+            }
+<span class="nc" id="L89">        } else {</span>
+<span class="nc" id="L90">            LoggingManager.info(this.getClass(), &quot;PayPal transaction ERROR: bad IPN JSON body for values payerEmail, quantity, paymentStatus, paymentData&quot;);</span>
+        }
+<span class="nc" id="L92">    }</span>
+
+    @ApiOperation(value = &quot;It confirms that a certain consumer has pay its load up on ProxyPrint.&quot;, notes = &quot;Its a route for being remotely called by PayPal servers.&quot;)
+    @RequestMapping(value = &quot;paypal/ipn/consumer/{consumerID}&quot;, method = RequestMethod.POST)
+    protected void consumerLoadUpConfirmation(@PathVariable(value = &quot;consumerID&quot;) long cid, HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+<span class="fc" id="L97">        Map&lt;String,String&gt; configurationMap =  Configuration.getConfig();</span>
+<span class="fc" id="L98">        IPNMessage ipnlistener = new IPNMessage(request,configurationMap);</span>
+<span class="fc" id="L99">        boolean isIpnVerified = ipnlistener.validate();</span>
+<span class="fc" id="L100">        String transactionType = ipnlistener.getTransactionType();</span>
+<span class="fc" id="L101">        Map&lt;String,String&gt; map = ipnlistener.getIpnMap();</span>
+
+
+<span class="fc" id="L104">        String payerEmail = map.get(&quot;payer_email&quot;);</span>
+<span class="nc" id="L105">        Double quantity = Double.valueOf(map.get(&quot;mc_gross&quot;));</span>
+<span class="nc" id="L106">        String paymentStatus = map.get(&quot;payment_status&quot;);</span>
+<span class="nc" id="L107">        Consumer consumer = consumers.findOne(cid);</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if(consumer!=null) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">            if(paymentStatus.equals(PayPalWrapper.PAYPAL_COMPLETED_PAYMENT)) {</span>
+<span class="nc" id="L111">                LoggingManager.info(this.getClass(), &quot;******* IPN (name:value) pair : &quot; + map + &quot;  Load Balance Confirmation for Consumer #&quot;+consumer.getId());</span>
+
+                // Payment is completed
+<span class="nc" id="L114">                consumer.getBalance().addDoubleQuantity(quantity);</span>
+
+                // Send notification to user informing its balance was updated
+<span class="nc" id="L117">                String message = &quot;O seu carregamento de &quot;+quantity+&quot; € via PayPal foi confirmado. Obrigado!&quot;;</span>
+<span class="nc" id="L118">                notificationManager.sendNotification(consumer.getUsername(), new Notification(message));</span>
+<span class="nc" id="L119">                return;</span>
+            }
+            // Send notification to user informing something went wrong
+<span class="nc" id="L122">            String message = &quot;O seu carregamento de &quot;+quantity+&quot; € não pode ser confirmado. Por favor contacte proxyprint.pt@gmail.com indicando o seu username e quantia para que lhe possámos devolver o dinheiro.&quot;;</span>
+<span class="nc" id="L123">            notificationManager.sendNotification(consumer.getUsername(), new Notification(message));</span>
+        }
+<span class="nc" id="L125">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

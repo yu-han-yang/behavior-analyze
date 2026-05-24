@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlbumServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">AlbumServiceImpl.java</span></div><h1>AlbumServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.BlogapiException;
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.model.Album;
+import com.sopromadze.blogapi.model.role.RoleName;
+import com.sopromadze.blogapi.model.user.User;
+import com.sopromadze.blogapi.payload.AlbumResponse;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.payload.request.AlbumRequest;
+import com.sopromadze.blogapi.repository.AlbumRepository;
+import com.sopromadze.blogapi.repository.UserRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.AlbumService;
+import com.sopromadze.blogapi.utils.AppUtils;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static com.sopromadze.blogapi.utils.AppConstants.ID;
+
+@Service
+<span class="fc" id="L35">public class AlbumServiceImpl implements AlbumService {</span>
+	private static final String CREATED_AT = &quot;createdAt&quot;;
+
+	private static final String ALBUM_STR = &quot;Album&quot;;
+
+	private static final String YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION = &quot;You don't have permission to make this operation&quot;;
+
+	@Autowired
+	private AlbumRepository albumRepository;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private ModelMapper modelMapper;
+
+	@Override
+	public PagedResponse&lt;AlbumResponse&gt; getAllAlbums(int page, int size) {
+<span class="fc" id="L53">		AppUtils.validatePageNumberAndSize(page, size);</span>
+
+<span class="fc" id="L55">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+
+<span class="fc" id="L57">		Page&lt;Album&gt; albums = albumRepository.findAll(pageable);</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">		if (albums.getNumberOfElements() == 0) {</span>
+<span class="fc" id="L60">			return new PagedResponse&lt;&gt;(Collections.emptyList(), albums.getNumber(), albums.getSize(), albums.getTotalElements(),</span>
+<span class="fc" id="L61">					albums.getTotalPages(), albums.isLast());</span>
+		}
+
+<span class="fc" id="L64">		List&lt;AlbumResponse&gt; albumResponses = Arrays.asList(modelMapper.map(albums.getContent(), AlbumResponse[].class));</span>
+
+<span class="fc" id="L66">		return new PagedResponse&lt;&gt;(albumResponses, albums.getNumber(), albums.getSize(), albums.getTotalElements(), albums.getTotalPages(),</span>
+<span class="fc" id="L67">				albums.isLast());</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;Album&gt; addAlbum(AlbumRequest albumRequest, UserPrincipal currentUser) {
+<span class="nc" id="L72">		User user = userRepository.getUser(currentUser);</span>
+
+<span class="nc" id="L74">		Album album = new Album();</span>
+
+<span class="nc" id="L76">		modelMapper.map(albumRequest, album);</span>
+
+<span class="nc" id="L78">		album.setUser(user);</span>
+<span class="nc" id="L79">		Album newAlbum = albumRepository.save(album);</span>
+<span class="nc" id="L80">		return new ResponseEntity&lt;&gt;(newAlbum, HttpStatus.CREATED);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;Album&gt; getAlbum(Long id) {
+<span class="pc" id="L85">		Album album = albumRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(ALBUM_STR, ID, id));</span>
+<span class="nc" id="L86">		return new ResponseEntity&lt;&gt;(album, HttpStatus.OK);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;AlbumResponse&gt; updateAlbum(Long id, AlbumRequest newAlbum, UserPrincipal currentUser) {
+<span class="nc" id="L91">		Album album = albumRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(ALBUM_STR, ID, id));</span>
+<span class="nc" id="L92">		User user = userRepository.getUser(currentUser);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">		if (album.getUser().getId().equals(user.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L95">			album.setTitle(newAlbum.getTitle());</span>
+<span class="nc" id="L96">			Album updatedAlbum = albumRepository.save(album);</span>
+
+<span class="nc" id="L98">			AlbumResponse albumResponse = new AlbumResponse();</span>
+
+<span class="nc" id="L100">			modelMapper.map(updatedAlbum, albumResponse);</span>
+
+<span class="nc" id="L102">			return new ResponseEntity&lt;&gt;(albumResponse, HttpStatus.OK);</span>
+		}
+
+<span class="nc" id="L105">		throw new BlogapiException(HttpStatus.UNAUTHORIZED, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;ApiResponse&gt; deleteAlbum(Long id, UserPrincipal currentUser) {
+<span class="pc" id="L110">		Album album = albumRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(ALBUM_STR, ID, id));</span>
+<span class="nc" id="L111">		User user = userRepository.getUser(currentUser);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">		if (album.getUser().getId().equals(user.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L114">			albumRepository.deleteById(id);</span>
+<span class="nc" id="L115">			return new ResponseEntity&lt;&gt;(new ApiResponse(Boolean.TRUE, &quot;You successfully deleted album&quot;), HttpStatus.OK);</span>
+		}
+
+<span class="nc" id="L118">		throw new BlogapiException(HttpStatus.UNAUTHORIZED, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+	}
+
+	@Override
+	public PagedResponse&lt;Album&gt; getUserAlbums(String username, int page, int size) {
+<span class="fc" id="L123">		User user = userRepository.getUserByName(username);</span>
+
+<span class="fc" id="L125">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+
+<span class="fc" id="L127">		Page&lt;Album&gt; albums = albumRepository.findByCreatedBy(user.getId(), pageable);</span>
+
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">		List&lt;Album&gt; content = albums.getNumberOfElements() &gt; 0 ? albums.getContent() : Collections.emptyList();</span>
+
+<span class="fc" id="L131">		return new PagedResponse&lt;&gt;(content, albums.getNumber(), albums.getSize(), albums.getTotalElements(), albums.getTotalPages(), albums.isLast());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

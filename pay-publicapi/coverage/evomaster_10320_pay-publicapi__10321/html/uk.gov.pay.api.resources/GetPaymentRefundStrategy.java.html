@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GetPaymentRefundStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.resources</a> &gt; <span class="el_source">GetPaymentRefundStrategy.java</span></div><h1>GetPaymentRefundStrategy.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.resources;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.model.RefundResponse;
+import uk.gov.pay.api.service.GetPaymentRefundService;
+
+public class GetPaymentRefundStrategy extends LedgerOrConnectorStrategyTemplate&lt;RefundResponse&gt; {
+
+    private final Account account;
+    private final String paymentId;
+    private final String refundId;
+    private final GetPaymentRefundService getPaymentRefundsService;
+
+    public GetPaymentRefundStrategy(String strategy, Account account, String paymentId, String refundId,
+                                    GetPaymentRefundService getPaymentRefundsService) {
+<span class="nc" id="L16">        super(strategy);</span>
+<span class="nc" id="L17">        this.account = account;</span>
+<span class="nc" id="L18">        this.paymentId = paymentId;</span>
+<span class="nc" id="L19">        this.refundId = refundId;</span>
+<span class="nc" id="L20">        this.getPaymentRefundsService = getPaymentRefundsService;</span>
+<span class="nc" id="L21">    }</span>
+
+    @Override
+    protected RefundResponse executeLedgerOnlyStrategy() {
+<span class="nc" id="L25">        return getPaymentRefundsService.getLedgerPaymentRefund(account, paymentId, refundId);</span>
+    }
+
+    @Override
+    protected RefundResponse executeDefaultStrategy() {
+<span class="nc" id="L30">        return getPaymentRefundsService.getPaymentRefund(account, paymentId, refundId);</span>
+    }
+
+    @Override
+    protected RefundResponse executeConnectorOnlyStrategy() {
+<span class="nc" id="L35">        return getPaymentRefundsService.getConnectorPaymentRefund(account, paymentId, refundId);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

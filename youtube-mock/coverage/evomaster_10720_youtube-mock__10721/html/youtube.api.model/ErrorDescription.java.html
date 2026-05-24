@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ErrorDescription.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">ErrorDescription.java</span></div><h1>ErrorDescription.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+<span class="fc" id="L6">public class ErrorDescription {</span>
+
+    private String domain;
+
+    private String reason;
+
+    private String message;
+
+    private String locationType;
+
+    private String location;
+
+    public String getDomain() {
+<span class="fc" id="L19">        return domain;</span>
+    }
+
+    public void setDomain(String domain) {
+<span class="fc" id="L23">        this.domain = domain;</span>
+<span class="fc" id="L24">    }</span>
+
+    public String getReason() {
+<span class="fc" id="L27">        return reason;</span>
+    }
+
+    public void setReason(String reason) {
+<span class="fc" id="L31">        this.reason = reason;</span>
+<span class="fc" id="L32">    }</span>
+
+    public String getMessage() {
+<span class="fc" id="L35">        return message;</span>
+    }
+
+    public void setMessage(String message) {
+<span class="fc" id="L39">        this.message = message;</span>
+<span class="fc" id="L40">    }</span>
+
+    public String getLocationType() {
+<span class="fc" id="L43">        return locationType;</span>
+    }
+
+    public void setLocationType(String locationType) {
+<span class="fc" id="L47">        this.locationType = locationType;</span>
+<span class="fc" id="L48">    }</span>
+
+    public String getLocation() {
+<span class="fc" id="L51">        return location;</span>
+    }
+
+    public void setLocation(String location) {
+<span class="fc" id="L55">        this.location = location;</span>
+<span class="fc" id="L56">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

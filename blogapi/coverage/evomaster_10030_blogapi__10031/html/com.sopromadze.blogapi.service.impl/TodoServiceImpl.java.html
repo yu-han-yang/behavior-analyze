@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TodoServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">TodoServiceImpl.java</span></div><h1>TodoServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.BadRequestException;
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.exception.UnauthorizedException;
+import com.sopromadze.blogapi.model.Todo;
+import com.sopromadze.blogapi.model.user.User;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.repository.TodoRepository;
+import com.sopromadze.blogapi.repository.UserRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.TodoService;
+import com.sopromadze.blogapi.utils.AppConstants;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+
+import static com.sopromadze.blogapi.utils.AppConstants.CREATED_AT;
+import static com.sopromadze.blogapi.utils.AppConstants.ID;
+import static com.sopromadze.blogapi.utils.AppConstants.TODO;
+import static com.sopromadze.blogapi.utils.AppConstants.YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION;
+
+@Service
+<span class="fc" id="L31">public class TodoServiceImpl implements TodoService {</span>
+
+	@Autowired
+	private TodoRepository todoRepository;
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Override
+	public Todo completeTodo(Long id, UserPrincipal currentUser) {
+<span class="pc" id="L41">		Todo todo = todoRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TODO, ID, id));</span>
+
+<span class="nc" id="L43">		User user = userRepository.getUser(currentUser);</span>
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">		if (todo.getUser().getId().equals(user.getId())) {</span>
+<span class="nc" id="L46">			todo.setCompleted(Boolean.TRUE);</span>
+<span class="nc" id="L47">			return todoRepository.save(todo);</span>
+		}
+
+<span class="nc" id="L50">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+
+<span class="nc" id="L52">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public Todo unCompleteTodo(Long id, UserPrincipal currentUser) {
+<span class="pc" id="L57">		Todo todo = todoRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TODO, ID, id));</span>
+<span class="nc" id="L58">		User user = userRepository.getUser(currentUser);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">		if (todo.getUser().getId().equals(user.getId())) {</span>
+<span class="nc" id="L60">			todo.setCompleted(Boolean.FALSE);</span>
+<span class="nc" id="L61">			return todoRepository.save(todo);</span>
+		}
+
+<span class="nc" id="L64">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+
+<span class="nc" id="L66">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public PagedResponse&lt;Todo&gt; getAllTodos(UserPrincipal currentUser, int page, int size) {
+<span class="fc" id="L71">		validatePageNumberAndSize(page, size);</span>
+<span class="fc" id="L72">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, CREATED_AT);</span>
+
+<span class="fc" id="L74">		Page&lt;Todo&gt; todos = todoRepository.findByCreatedBy(currentUser.getId(), pageable);</span>
+
+<span class="fc bfc" id="L76" title="All 2 branches covered.">		List&lt;Todo&gt; content = todos.getNumberOfElements() == 0 ? Collections.emptyList() : todos.getContent();</span>
+
+<span class="fc" id="L78">		return new PagedResponse&lt;&gt;(content, todos.getNumber(), todos.getSize(), todos.getTotalElements(),</span>
+<span class="fc" id="L79">				todos.getTotalPages(), todos.isLast());</span>
+	}
+
+	@Override
+	public Todo addTodo(Todo todo, UserPrincipal currentUser) {
+<span class="fc" id="L84">		User user = userRepository.getUser(currentUser);</span>
+<span class="fc" id="L85">		todo.setUser(user);</span>
+<span class="fc" id="L86">		return todoRepository.save(todo);</span>
+	}
+
+	@Override
+	public Todo getTodo(Long id, UserPrincipal currentUser) {
+<span class="fc" id="L91">		User user = userRepository.getUser(currentUser);</span>
+<span class="pc" id="L92">		Todo todo = todoRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TODO, ID, id));</span>
+
+<span class="nc bnc" id="L94" title="All 2 branches missed.">		if (todo.getUser().getId().equals(user.getId())) {</span>
+<span class="nc" id="L95">			return todo;</span>
+		}
+
+<span class="nc" id="L98">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+
+<span class="nc" id="L100">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public Todo updateTodo(Long id, Todo newTodo, UserPrincipal currentUser) {
+<span class="fc" id="L105">		User user = userRepository.getUser(currentUser);</span>
+<span class="pc" id="L106">		Todo todo = todoRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TODO, ID, id));</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">		if (todo.getUser().getId().equals(user.getId())) {</span>
+<span class="nc" id="L108">			todo.setTitle(newTodo.getTitle());</span>
+<span class="nc" id="L109">			todo.setCompleted(newTodo.getCompleted());</span>
+<span class="nc" id="L110">			return todoRepository.save(todo);</span>
+		}
+
+<span class="nc" id="L113">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+
+<span class="nc" id="L115">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public ApiResponse deleteTodo(Long id, UserPrincipal currentUser) {
+<span class="fc" id="L120">		User user = userRepository.getUser(currentUser);</span>
+<span class="pc" id="L121">		Todo todo = todoRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(TODO, ID, id));</span>
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if (todo.getUser().getId().equals(user.getId())) {</span>
+<span class="nc" id="L124">			todoRepository.deleteById(id);</span>
+<span class="nc" id="L125">			return new ApiResponse(Boolean.TRUE, &quot;You successfully deleted todo&quot;);</span>
+		}
+
+<span class="nc" id="L128">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, YOU_DON_T_HAVE_PERMISSION_TO_MAKE_THIS_OPERATION);</span>
+
+<span class="nc" id="L130">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	private void validatePageNumberAndSize(int page, int size) {
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">		if (page &lt; 0) {</span>
+<span class="nc" id="L135">			throw new BadRequestException(&quot;Page number cannot be less than zero.&quot;);</span>
+		}
+
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">		if (size &lt; 0) {</span>
+<span class="nc" id="L139">			throw new BadRequestException(&quot;Size number cannot be less than zero.&quot;);</span>
+		}
+
+<span class="pc bpc" id="L142" title="1 of 2 branches missed.">		if (size &gt; AppConstants.MAX_PAGE_SIZE) {</span>
+<span class="nc" id="L143">			throw new BadRequestException(&quot;Page size must not be greater than &quot; + AppConstants.MAX_PAGE_SIZE);</span>
+		}
+<span class="fc" id="L145">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

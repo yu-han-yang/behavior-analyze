@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GetPaymentRefundService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">GetPaymentRefundService.java</span></div><h1>GetPaymentRefundService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.GetRefundException;
+import uk.gov.pay.api.exception.GetTransactionException;
+import uk.gov.pay.api.model.RefundFromConnector;
+import uk.gov.pay.api.model.RefundResponse;
+import uk.gov.pay.api.model.ledger.RefundTransactionFromLedger;
+
+import javax.inject.Inject;
+
+public class GetPaymentRefundService {
+
+    private final ConnectorService connectorService;
+    private final LedgerService ledgerService;
+    private PublicApiUriGenerator publicApiUriGenerator;
+
+    @Inject
+    public GetPaymentRefundService(ConnectorService connectorService,
+                                   LedgerService ledgerService,
+<span class="fc" id="L21">                                   PublicApiUriGenerator publicApiUriGenerator) {</span>
+<span class="fc" id="L22">        this.connectorService = connectorService;</span>
+<span class="fc" id="L23">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L24">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L25">    }</span>
+
+    public RefundResponse getConnectorPaymentRefund(Account account, String paymentId, String refundId) {
+<span class="nc" id="L28">        RefundFromConnector refundFromConnector = connectorService.getPaymentRefund(account.getAccountId(), paymentId, refundId);</span>
+
+<span class="nc" id="L30">        return RefundResponse.from(</span>
+                refundFromConnector,
+<span class="nc" id="L32">                publicApiUriGenerator.getRefundsURI(paymentId, refundId),</span>
+<span class="nc" id="L33">                publicApiUriGenerator.getPaymentURI(paymentId)</span>
+        );
+    }
+
+    public RefundResponse getLedgerPaymentRefund(Account account, String paymentId, String refundId) {
+        try {
+<span class="nc" id="L39">            RefundTransactionFromLedger refund = ledgerService.getRefundTransaction(account, refundId, paymentId);</span>
+
+<span class="nc" id="L41">            return RefundResponse.from(</span>
+                    refund,
+<span class="nc" id="L43">                    publicApiUriGenerator.getRefundsURI(paymentId, refundId),</span>
+<span class="nc" id="L44">                    publicApiUriGenerator.getPaymentURI(paymentId)</span>
+            );
+<span class="nc" id="L46">        } catch (GetTransactionException exception) {</span>
+<span class="nc" id="L47">            throw new GetRefundException(exception);</span>
+        }
+    }
+
+    public RefundResponse getPaymentRefund(Account account, String paymentId, String refundId) {
+        try {
+<span class="nc" id="L53">            return getConnectorPaymentRefund(account, paymentId, refundId);</span>
+<span class="nc" id="L54">        } catch (GetRefundException ex) {</span>
+<span class="nc" id="L55">            return getLedgerPaymentRefund(account, paymentId, refundId);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

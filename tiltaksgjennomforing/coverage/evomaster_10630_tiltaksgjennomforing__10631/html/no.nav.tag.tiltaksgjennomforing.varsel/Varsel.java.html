@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Varsel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel</a> &gt; <span class="el_source">Varsel.java</span></div><h1>Varsel.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+import no.nav.tag.tiltaksgjennomforing.avtale.*;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import org.springframework.data.domain.AbstractAggregateRoot;
+
+import javax.persistence.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+<span class="nc" id="L17">@Data</span>
+<span class="nc bnc" id="L18" title="All 86 branches missed.">@EqualsAndHashCode(callSuper = false)</span>
+<span class="nc" id="L19">@AllArgsConstructor</span>
+<span class="nc" id="L20">@RequiredArgsConstructor</span>
+@Entity
+public class Varsel extends AbstractAggregateRoot&lt;Varsel&gt; {
+    @Id
+<span class="nc" id="L24">    private UUID id;</span>
+<span class="nc" id="L25">    private boolean lest;</span>
+    @Convert(converter = IdentifikatorConverter.class)
+<span class="nc" id="L27">    private Identifikator identifikator;</span>
+    @Convert(converter = IdentifikatorConverter.class)
+<span class="nc" id="L29">    private Identifikator utførtAvIdentifikator;</span>
+<span class="nc" id="L30">    private String tekst;</span>
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L32">    private HendelseType hendelseType;</span>
+<span class="nc" id="L33">    private boolean bjelle;</span>
+<span class="nc" id="L34">    private UUID avtaleId;</span>
+<span class="nc" id="L35">    private LocalDateTime tidspunkt;</span>
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L37">    private Avtalerolle mottaker;</span>
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L39">    private Avtalerolle utførtAv;</span>
+
+    private static String tilskuddsperiodeAvslåttTekst(Avtale avtale, String hendelseTypeTekst) {
+<span class="nc" id="L42">        TilskuddPeriode gjeldendePeriode = avtale.gjeldendeTilskuddsperiode();</span>
+<span class="nc" id="L43">        String avslagÅrsaker = gjeldendePeriode.getAvslagsårsaker().stream()</span>
+<span class="nc" id="L44">                .map(type -&gt; type.getTekst().toLowerCase()).collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L45">        return hendelseTypeTekst</span>
+<span class="nc" id="L46">                .concat(gjeldendePeriode.getAvslåttAvNavIdent().asString())</span>
+<span class="nc" id="L47">                .concat(&quot;. Årsak til retur: &quot;)</span>
+<span class="nc" id="L48">                .concat(avslagÅrsaker)</span>
+<span class="nc" id="L49">                .concat(&quot;. Forklaring: &quot;)</span>
+<span class="nc" id="L50">                .concat(gjeldendePeriode.getAvslagsforklaring());</span>
+    }
+
+    private static String lagVarselTekst(Avtale avtale, HendelseType hendelseType) {
+<span class="nc bnc" id="L54" title="All 4 branches missed.">        switch (hendelseType) {</span>
+            case TILSKUDDSPERIODE_AVSLATT:
+<span class="nc" id="L56">                return tilskuddsperiodeAvslåttTekst(avtale, hendelseType.getTekst());</span>
+            case AVTALE_FORKORTET:
+<span class="nc" id="L58">                return &quot;Avtale forkortet til &quot; + avtale.getGjeldendeInnhold().getSluttDato().format(DateTimeFormatter.ofPattern(&quot;dd.MM.YYYY&quot;));</span>
+            case AVTALE_FORLENGET:
+<span class="nc" id="L60">                return &quot;Avtale forlenget til &quot; + avtale.getGjeldendeInnhold().getSluttDato().format(DateTimeFormatter.ofPattern(&quot;dd.MM.YYYY&quot;));</span>
+            default:
+<span class="nc" id="L62">                return hendelseType.getTekst();</span>
+        }
+    }
+
+    public static Varsel nyttVarsel(Identifikator identifikator, boolean bjelle, Avtale avtale, Avtalerolle mottaker, Avtalerolle utførtAv, Identifikator utførtAvIdentifikator, HendelseType hendelseType, UUID avtaleId) {
+<span class="nc" id="L67">        Varsel varsel = new Varsel();</span>
+<span class="nc" id="L68">        varsel.id = UUID.randomUUID();</span>
+<span class="nc" id="L69">        varsel.tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L70">        varsel.identifikator = identifikator;</span>
+<span class="nc" id="L71">        varsel.utførtAvIdentifikator = utførtAvIdentifikator;</span>
+<span class="nc" id="L72">        varsel.tekst = lagVarselTekst(avtale, hendelseType);</span>
+<span class="nc" id="L73">        varsel.hendelseType = hendelseType;</span>
+<span class="nc" id="L74">        varsel.avtaleId = avtaleId;</span>
+<span class="nc" id="L75">        varsel.bjelle = bjelle;</span>
+<span class="nc" id="L76">        varsel.mottaker = mottaker;</span>
+<span class="nc" id="L77">        varsel.utførtAv = utførtAv;</span>
+<span class="nc" id="L78">        return varsel;</span>
+    }
+
+    public void settTilLest() {
+<span class="nc" id="L82">        lest = true;</span>
+<span class="nc" id="L83">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

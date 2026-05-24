@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Mentor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Mentor.java</span></div><h1>Mentor.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import java.util.UUID;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetBruker;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetMentor;
+import no.nav.tag.tiltaksgjennomforing.exceptions.Feilkode;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilkodeException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.TilgangskontrollException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public class Mentor extends Avtalepart&lt;Fnr&gt; {
+
+    public Mentor(Fnr identifikator) {
+<span class="nc" id="L15">        super(identifikator);</span>
+<span class="nc" id="L16">    }</span>
+
+    @Override
+    public boolean harTilgangTilAvtale(Avtale avtale) {
+<span class="nc" id="L20">        return avtale.getMentorFnr().equals(getIdentifikator());</span>
+    }
+
+    @Override
+    public Avtale hentAvtale(AvtaleRepository avtaleRepository, UUID avtaleId) {
+<span class="nc" id="L25">        Avtale avtale = super.hentAvtale(avtaleRepository,avtaleId);</span>
+<span class="nc bnc" id="L26" title="All 2 branches missed.">        if(!avtale.erGodkjentTaushetserklæringAvMentor()) throw new FeilkodeException(Feilkode.IKKE_TILGANG_TIL_AVTALE);</span>
+<span class="nc" id="L27">        return skjulDeltakerFødselsnummer(avtale);</span>
+    }
+
+    @Override
+    Page&lt;Avtale&gt; hentAlleAvtalerMedMuligTilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, Pageable pageable) {
+<span class="nc" id="L32">        Page&lt;Avtale&gt; avtaler = avtaleRepository.findAllByMentorFnr(getIdentifikator(), pageable);</span>
+<span class="nc" id="L33">        Page&lt;Avtale&gt; avtalerMedMuligTilgang = avtaler</span>
+<span class="nc" id="L34">                .map(this::gjemInnholdOmMentorIkkeHarSignertErklæring)</span>
+<span class="nc" id="L35">                .map(this::skjulDeltakerFødselsnummer);</span>
+<span class="nc" id="L36">        return avtalerMedMuligTilgang;</span>
+    }
+
+    private Avtale gjemInnholdOmMentorIkkeHarSignertErklæring(Avtale avtale){
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if(!avtale.erGodkjentTaushetserklæringAvMentor()) {</span>
+<span class="nc" id="L41">            AvtaleInnhold innhold = AvtaleInnhold.nyttTomtInnhold(avtale.getTiltakstype());</span>
+<span class="nc" id="L42">            innhold.setBedriftNavn(avtale.getGjeldendeInnhold().getBedriftNavn());</span>
+<span class="nc" id="L43">            innhold.setAvtale(avtale);</span>
+<span class="nc" id="L44">            avtale.setGjeldendeInnhold(innhold);</span>
+<span class="nc" id="L45">            avtale.setDeltakerFnr(null);</span>
+<span class="nc" id="L46">            avtale.setVeilederNavIdent(null);</span>
+        }
+<span class="nc" id="L48">        return avtale;</span>
+    }
+
+    @Override
+    public void godkjennForAvtalepart(Avtale avtale) {
+<span class="nc" id="L53">        avtale.godkjennForMentor(getIdentifikator());</span>
+<span class="nc" id="L54">    }</span>
+
+    @Override
+    public boolean kanEndreAvtale() {
+<span class="nc" id="L58">        return false;</span>
+    }
+
+    @Override
+    public boolean erGodkjentAvInnloggetBruker(Avtale avtale) {
+<span class="nc bnc" id="L63" title="All 4 branches missed.">        return avtale.getMentorFnr().equals(getIdentifikator().asString()) &amp;&amp; avtale.erGodkjentTaushetserklæringAvMentor();</span>
+    }
+
+    @Override
+    boolean kanOppheveGodkjenninger(Avtale avtale) {
+<span class="nc" id="L68">        return false;</span>
+    }
+
+    @Override
+    void opphevGodkjenningerSomAvtalepart(Avtale avtale) {
+<span class="nc" id="L73">        throw new TilgangskontrollException(&quot;Deltaker kan ikke oppheve godkjenninger&quot;);</span>
+    }
+
+    private Avtale skjulDeltakerFødselsnummer(Avtale avtale){
+<span class="nc" id="L77">        avtale.setDeltakerFnr(null);</span>
+<span class="nc" id="L78">        return avtale;</span>
+    }
+
+    @Override
+    protected Avtalerolle rolle() {
+<span class="nc" id="L83">        return Avtalerolle.MENTOR;</span>
+    }
+
+    @Override
+    public InnloggetBruker innloggetBruker() {
+<span class="nc" id="L88">        return new InnloggetMentor(getIdentifikator());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

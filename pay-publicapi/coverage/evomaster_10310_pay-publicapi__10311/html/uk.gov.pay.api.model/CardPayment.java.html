@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CardPayment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CardPayment.java</span></div><h1>CardPayment.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.service.payments.commons.api.json.ExternalMetadataSerialiser;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import java.util.Optional;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+
+@JsonInclude(value = JsonInclude.Include.NON_EMPTY)
+@Schema(name = &quot;CardPayment&quot;)
+public class CardPayment {
+
+    public static final String LINKS_JSON_ATTRIBUTE = &quot;_links&quot;;
+
+    @JsonProperty(&quot;payment_id&quot;)
+    protected String paymentId;
+
+    @JsonProperty(&quot;payment_provider&quot;)
+    protected String paymentProvider;
+
+    protected long amount;
+    
+    protected String description;
+    
+    protected String reference;
+    
+    @JsonProperty(&quot;created_date&quot;)
+    protected String createdDate;
+    @JsonProperty(&quot;refund_summary&quot;)
+    private RefundSummary refundSummary;
+
+    @JsonProperty(&quot;settlement_summary&quot;)
+    private PaymentSettlementSummary settlementSummary;
+
+    @JsonProperty(&quot;card_details&quot;)
+    private CardDetails cardDetails;
+
+    @JsonSerialize(using = ToStringSerializer.class)
+    private SupportedLanguage language;
+
+    @JsonProperty(&quot;delayed_capture&quot;)
+    private boolean delayedCapture;
+    
+    @JsonProperty(&quot;moto&quot;)
+    private boolean moto;
+
+    @JsonProperty(&quot;corporate_card_surcharge&quot;)
+    private Long corporateCardSurcharge;
+
+    @JsonProperty(&quot;total_amount&quot;)
+    private Long totalAmount;
+
+    @JsonProperty(&quot;fee&quot;)
+    private Long fee;
+
+    @JsonProperty(&quot;net_amount&quot;)
+    private Long netAmount;
+
+    @JsonProperty(&quot;provider_id&quot;)
+    @Schema(example = &quot;reference-from-payment-gateway&quot;,
+            description = &quot;The unique ID your payment service provider generated for this payment. &quot; +
+                    &quot;This is not the same as the `payment_id`.&quot;,
+            accessMode = READ_ONLY)
+    private String providerId;
+
+    @JsonSerialize(using = ExternalMetadataSerialiser.class)
+    @Schema(name = &quot;metadata&quot;, example = &quot;{\&quot;property1\&quot;: \&quot;value1\&quot;, \&quot;property2\&quot;: \&quot;value2\&quot;}\&quot;&quot;)
+    private ExternalMetadata metadata;
+
+    @JsonProperty(&quot;return_url&quot;)
+    protected String returnUrl;
+    
+    protected String email;
+
+    protected PaymentState state;
+
+    //Used by Swagger to document the right model in the PaymentsResource
+    @JsonIgnore
+    protected String paymentType;
+
+    @JsonProperty(&quot;authorisation_summary&quot;)
+    private AuthorisationSummary authorisationSummary;
+    
+    @JsonProperty(&quot;agreement_id&quot;)
+    private String agreementId;
+    
+    @JsonProperty(&quot;authorisation_mode&quot;)
+    private AuthorisationMode authorisationMode;
+
+    public CardPayment(String chargeId, long amount, PaymentState state, String returnUrl, String description,
+                       String reference, String email, String paymentProvider, String createdDate,
+                       RefundSummary refundSummary, PaymentSettlementSummary settlementSummary, CardDetails cardDetails,
+                       SupportedLanguage language, boolean delayedCapture, boolean moto, Long corporateCardSurcharge, Long totalAmount,
+                       String providerId, ExternalMetadata metadata, Long fee, Long netAmount, AuthorisationSummary authorisationSummary, String agreementId,
+<span class="nc" id="L104">                       AuthorisationMode authorisationMode) {</span>
+<span class="nc" id="L105">        this.paymentId = chargeId;</span>
+<span class="nc" id="L106">        this.amount = amount;</span>
+<span class="nc" id="L107">        this.description = description;</span>
+<span class="nc" id="L108">        this.reference = reference;</span>
+<span class="nc" id="L109">        this.paymentProvider = paymentProvider;</span>
+<span class="nc" id="L110">        this.createdDate = createdDate;</span>
+<span class="nc" id="L111">        this.state = state;</span>
+<span class="nc" id="L112">        this.refundSummary = refundSummary;</span>
+<span class="nc" id="L113">        this.settlementSummary = settlementSummary;</span>
+<span class="nc" id="L114">        this.cardDetails = cardDetails;</span>
+<span class="nc" id="L115">        this.providerId = providerId;</span>
+<span class="nc" id="L116">        this.metadata = metadata;</span>
+<span class="nc" id="L117">        this.paymentType = TokenPaymentType.CARD.getFriendlyName();</span>
+<span class="nc" id="L118">        this.language = language;</span>
+<span class="nc" id="L119">        this.delayedCapture = delayedCapture;</span>
+<span class="nc" id="L120">        this.moto = moto;</span>
+<span class="nc" id="L121">        this.corporateCardSurcharge = corporateCardSurcharge;</span>
+<span class="nc" id="L122">        this.totalAmount = totalAmount;</span>
+<span class="nc" id="L123">        this.fee = fee;</span>
+<span class="nc" id="L124">        this.netAmount = netAmount;</span>
+<span class="nc" id="L125">        this.email = email;</span>
+<span class="nc" id="L126">        this.returnUrl = returnUrl;</span>
+<span class="nc" id="L127">        this.authorisationSummary = authorisationSummary;</span>
+<span class="nc" id="L128">        this.agreementId = agreementId;</span>
+<span class="nc" id="L129">        this.authorisationMode = authorisationMode;</span>
+<span class="nc" id="L130">    }</span>
+
+    /**
+     * card brand is no longer a top level charge property. It is now at `card_details.card_brand` attribute
+     * We still need to support `v1` clients with a top level card brand attribute to keep support their integrations.
+     *
+     * @return
+     */
+    @Schema(description = &quot;This attribute is deprecated. Please use `card_details.card_brand` instead.&quot;,
+            example = &quot;Visa&quot;, accessMode = READ_ONLY, deprecated = true)
+    @JsonProperty(&quot;card_brand&quot;)
+    @Deprecated
+    public String getCardBrand() {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        return cardDetails != null ? cardDetails.getCardBrand() : null;</span>
+    }
+
+    public ExternalMetadata getMetadata() {
+<span class="nc" id="L147">        return metadata;</span>
+    }
+
+    public Optional&lt;RefundSummary&gt; getRefundSummary() {
+<span class="nc" id="L151">        return Optional.ofNullable(refundSummary);</span>
+    }
+
+    public Optional&lt;PaymentSettlementSummary&gt; getSettlementSummary() {
+<span class="nc" id="L155">        return Optional.ofNullable(settlementSummary);</span>
+    }
+
+    public Optional&lt;CardDetails&gt; getCardDetails() {
+<span class="nc" id="L159">        return Optional.ofNullable(cardDetails);</span>
+    }
+
+    @Schema(name = &quot;language&quot;, example = &quot;en&quot;, 
+            description = &quot;The ISO-6391 Alpha-2 code of the [language of the user's payment page]&quot; + 
+                    &quot;(https://docs.payments.service.gov.uk/optional_features/welsh_language).&quot;)
+    public SupportedLanguage getLanguage() {
+<span class="nc" id="L166">        return language;</span>
+    }
+
+    @Schema(description = &quot;`delayed_capture` is `true` if you’re &quot; +
+            &quot;[controlling how long it takes GOV.UK Pay to take (‘capture’) a payment]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/delayed_capture).&quot;, 
+            example = &quot;false&quot;, accessMode = READ_ONLY)
+    public boolean getDelayedCapture() {
+<span class="nc" id="L174">        return delayedCapture;</span>
+    }
+
+    @Schema(description = &quot;Indicates if this payment is a [Mail Order / Telephone Order (MOTO) payment]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/moto_payments).&quot;, example = &quot;false&quot;)
+<span class="nc" id="L179">    public boolean getMoto() { return moto; }</span>
+
+    @Schema(example = &quot;250&quot;, description = &quot;The [corporate card surcharge]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/corporate_card_surcharges/#add-corporate-card-fees) &quot; +
+            &quot;amount in pence.&quot;,
+            accessMode = READ_ONLY)
+    public Optional&lt;Long&gt; getCorporateCardSurcharge() {
+<span class="nc" id="L186">        return Optional.ofNullable(corporateCardSurcharge);</span>
+    }
+
+    @Schema(example = &quot;5&quot;, description = &quot;The [payment service provider’s (PSP) transaction fee]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/reporting/#psp-fees), in pence. &quot; +
+            &quot;`fee` only appears when we have taken (‘captured’) the payment from the user &quot; +
+            &quot;or if their payment fails after they submitted their card details. &quot; +
+            &quot;`fee` will not appear if your PSP is Worldpay or you are using an API key from a test service.&quot;,
+            accessMode = READ_ONLY)
+    public Optional&lt;Long&gt; getFee() {
+<span class="nc" id="L196">        return Optional.ofNullable(fee);</span>
+    }
+
+    @Schema(example = &quot;1195&quot;, 
+            description = &quot;The amount, in pence, that will be paid into your bank account &quot; +
+                    &quot;after your payment service provider takes the `fee`.&quot;,
+            accessMode = READ_ONLY)
+    public Optional&lt;Long&gt; getNetAmount() {
+<span class="nc" id="L204">        return Optional.ofNullable(netAmount);</span>
+    }
+
+    @Schema(example = &quot;1450&quot;, 
+            description = &quot;Amount your user paid in pence, including corporate card fees. &quot; +
+            &quot;`total_amount` only appears if you [added a corporate card surcharge to the payment]&quot; + 
+            &quot;(https://docs.payments.service.gov.uk/corporate_card_surcharges/#add-corporate-card-fees).&quot;,
+            accessMode = READ_ONLY)
+    public Optional&lt;Long&gt; getTotalAmount() {
+<span class="nc" id="L213">        return Optional.ofNullable(totalAmount);</span>
+    }
+
+    public String getProviderId() {
+<span class="nc" id="L217">        return providerId;</span>
+    }
+
+    @Schema(example = &quot;http://your.service.domain/your-reference&quot;, 
+            description = &quot;The URL you direct the paying user to after their payment journey on GOV.UK Pay ends.&quot;, 
+            accessMode = READ_ONLY)
+    public Optional&lt;String&gt; getReturnUrl() {
+<span class="nc" id="L224">        return Optional.ofNullable(returnUrl);</span>
+    }
+
+    @Schema(example = &quot;The paying user’s email address.&quot;)
+    public Optional&lt;String&gt; getEmail() {
+<span class="nc" id="L229">        return Optional.ofNullable(email);</span>
+    }
+
+    public PaymentState getState() {
+<span class="nc" id="L233">        return state;</span>
+    }
+
+    @Schema(description = &quot;Object containing information about the authentication of the payment.&quot;)
+    public AuthorisationSummary getAuthorisationSummary() {
+<span class="nc" id="L238">        return authorisationSummary;</span>
+    }
+    
+    @Schema(hidden = true)
+    public String getAgreementId() {
+<span class="nc" id="L243">        return agreementId;</span>
+    }
+
+    @Schema(type = &quot;String&quot;, description = &quot;How the payment will be authorised. Payments created in `web` mode require the paying user to visit the `next_url` to complete the payment.&quot;,
+        allowableValues = {&quot;web&quot;, &quot;moto_api&quot;, &quot;external&quot;})
+    public AuthorisationMode getAuthorisationMode() {
+<span class="nc" id="L249">        return authorisationMode;</span>
+    }
+
+    @Schema(example = &quot;2016-01-21T17:15:00.000Z&quot;, accessMode = READ_ONLY)
+    public String getCreatedDate() {
+<span class="nc" id="L254">        return createdDate;</span>
+    }
+
+    @Schema(example = &quot;hu20sqlact5260q2nanm0q8u93&quot;,
+            description = &quot;The unique ID GOV.UK Pay automatically associated &quot; +
+                    &quot;with this payment when you created it.&quot;,
+            accessMode = READ_ONLY)
+    public String getPaymentId() {
+<span class="nc" id="L262">        return paymentId;</span>
+    }
+
+    @Schema(example = &quot;1200&quot;, description = &quot;The description assigned to the payment when it was created.&quot;)
+    public long getAmount() {
+<span class="nc" id="L267">        return amount;</span>
+    }
+
+    @Schema(example = &quot;Your Service Description&quot;, description = &quot;The description assigned to the payment when it was created.&quot;)
+    public String getDescription() {
+<span class="nc" id="L272">        return description;</span>
+    }
+
+    @Schema(example = &quot;your-reference&quot;,
+            description = &quot;The reference associated with the payment when it was created. &quot; +
+                    &quot;`reference` is not unique - multiple payments can have the same `reference` value.&quot;)
+    public String getReference() {
+<span class="nc" id="L279">        return reference;</span>
+    }
+
+    @Schema(example = &quot;worldpay&quot;,
+            description = &quot;The payment service provider that processed this payment.&quot;,
+            accessMode = READ_ONLY)
+    public String getPaymentProvider() {
+<span class="nc" id="L286">        return paymentProvider;</span>
+    }
+
+    @Override
+    public String toString() {
+        // Don't include:
+        // description - some services include PII
+        // reference - can come from user input for payment links, in the past they have mistakenly entered card numbers
+        // return url - services can include identifiers that are incorrectly flagged as PII or card numbers
+<span class="nc" id="L295">        return &quot;Card Payment{&quot; +</span>
+                &quot;paymentId='&quot; + paymentId + '\'' +
+                &quot;, paymentProvider='&quot; + paymentProvider + '\'' +
+<span class="nc" id="L298">                &quot;, cardBrandLabel='&quot; + getCardBrand() + '\'' +</span>
+                &quot;, amount=&quot; + amount +
+                &quot;, fee=&quot; + fee +
+                &quot;, netAmount=&quot; + netAmount +
+                &quot;, corporateCardSurcharge='&quot; + corporateCardSurcharge + '\'' +
+                &quot;, state='&quot; + state + '\'' +
+<span class="nc" id="L304">                &quot;, language='&quot; + language.toString() + '\'' +</span>
+                &quot;, delayedCapture=&quot; + delayedCapture +
+                &quot;, moto=&quot; + moto +
+                &quot;, createdDate='&quot; + createdDate + '\'' +
+                &quot;, agreementId='&quot; + agreementId + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

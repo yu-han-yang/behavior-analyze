@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LedgerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">LedgerService.java</span></div><h1>LedgerService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.agreement.model.AgreementLedgerResponse;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.GetAgreementException;
+import uk.gov.pay.api.exception.GetChargeException;
+import uk.gov.pay.api.exception.GetEventsException;
+import uk.gov.pay.api.exception.GetRefundsException;
+import uk.gov.pay.api.exception.GetTransactionException;
+import uk.gov.pay.api.exception.SearchAgreementsException;
+import uk.gov.pay.api.exception.SearchDisputesException;
+import uk.gov.pay.api.exception.SearchPaymentsException;
+import uk.gov.pay.api.exception.SearchRefundsException;
+import uk.gov.pay.api.ledger.model.AgreementSearchParams;
+import uk.gov.pay.api.ledger.model.SearchResults;
+import uk.gov.pay.api.ledger.service.LedgerUriGenerator;
+import uk.gov.pay.api.model.Charge;
+import uk.gov.pay.api.model.TransactionEvents;
+import uk.gov.pay.api.model.TransactionResponse;
+import uk.gov.pay.api.model.ledger.RefundTransactionFromLedger;
+import uk.gov.pay.api.model.ledger.RefundsFromLedger;
+import uk.gov.pay.api.model.ledger.SearchDisputesResponseFromLedger;
+import uk.gov.pay.api.model.ledger.SearchRefundsResponseFromLedger;
+import uk.gov.pay.api.model.search.card.PaymentSearchResponse;
+import uk.gov.pay.api.validation.AgreementSearchValidator;
+
+import javax.inject.Inject;
+import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.GenericType;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.HashMap;
+import java.util.Map;
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.apache.http.HttpStatus.SC_OK;
+import static uk.gov.pay.api.common.SearchConstants.GATEWAY_ACCOUNT_ID;
+
+public class LedgerService {
+    
+<span class="fc" id="L45">    private static final Logger LOGGER = LoggerFactory.getLogger(LedgerService.class);</span>
+
+    private static final String PARAM_ACCOUNT_ID = &quot;account_id&quot;;
+    private static final String PARAM_TRANSACTION_TYPE = &quot;transaction_type&quot;;
+    public static final String PARAM_EXACT_REFERENCE_MATCH = &quot;exact_reference_match&quot;;
+    private static final String PAYMENT_TRANSACTION_TYPE = &quot;PAYMENT&quot;;
+    private static final String REFUND_TRANSACTION_TYPE = &quot;REFUND&quot;;
+    private static final String DISPUTE_TRANSACTION_TYPE = &quot;DISPUTE&quot;;
+
+    private final Client client;
+    private final LedgerUriGenerator ledgerUriGenerator;
+
+    @Inject
+<span class="fc" id="L58">    public LedgerService(Client client, LedgerUriGenerator ledgerUriGenerator) {</span>
+<span class="fc" id="L59">        this.client = client;</span>
+<span class="fc" id="L60">        this.ledgerUriGenerator = ledgerUriGenerator;</span>
+<span class="fc" id="L61">    }</span>
+
+    public Charge getPaymentTransaction(Account account, String paymentId) {
+<span class="nc" id="L64">        Response response = client</span>
+<span class="nc" id="L65">                .target(ledgerUriGenerator.transactionURI(account, paymentId, PAYMENT_TRANSACTION_TYPE))</span>
+<span class="nc" id="L66">                .request()</span>
+<span class="nc" id="L67">                .get();</span>
+
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L70">            TransactionResponse transactionResponse = response.readEntity(TransactionResponse.class);</span>
+<span class="nc" id="L71">            return Charge.from(transactionResponse);</span>
+        }
+
+<span class="nc" id="L74">        throw new GetChargeException(response);</span>
+    }
+
+    public RefundTransactionFromLedger getRefundTransaction(Account account, String transactionId, String parentExternalId) {
+<span class="nc" id="L78">        Response response = client</span>
+<span class="nc" id="L79">                .target(ledgerUriGenerator.transactionURI(account, transactionId, REFUND_TRANSACTION_TYPE, parentExternalId))</span>
+<span class="nc" id="L80">                .request()</span>
+<span class="nc" id="L81">                .get();</span>
+
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L84">            return response.readEntity(RefundTransactionFromLedger.class);</span>
+        }
+
+<span class="nc" id="L87">        throw new GetTransactionException(response);</span>
+    }
+
+    public TransactionEvents getTransactionEvents(Account account, String paymentId) {
+<span class="nc" id="L91">        Response response = client</span>
+<span class="nc" id="L92">                .target(ledgerUriGenerator.transactionEventsURI(account, paymentId))</span>
+<span class="nc" id="L93">                .request()</span>
+<span class="nc" id="L94">                .get();</span>
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L97">            return response.readEntity(TransactionEvents.class);</span>
+        }
+<span class="nc" id="L99">        throw new GetEventsException(response);</span>
+    }
+
+    public RefundsFromLedger getPaymentRefunds(String accountId, String paymentId) {
+<span class="nc" id="L103">        Response response = client</span>
+<span class="nc" id="L104">                .target(ledgerUriGenerator.transactionsForTransactionURI(accountId, paymentId, REFUND_TRANSACTION_TYPE))</span>
+<span class="nc" id="L105">                .request()</span>
+<span class="nc" id="L106">                .get();</span>
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L109">            return response.readEntity(RefundsFromLedger.class);</span>
+        }
+
+<span class="nc" id="L112">        throw new GetRefundsException(response);</span>
+    }
+
+    public SearchRefundsResponseFromLedger searchRefunds(Account account, Map&lt;String, String&gt; paramsAsMap) {
+
+<span class="nc" id="L117">        paramsAsMap.put(PARAM_ACCOUNT_ID, account.getAccountId());</span>
+<span class="nc" id="L118">        paramsAsMap.put(PARAM_TRANSACTION_TYPE, REFUND_TRANSACTION_TYPE);</span>
+
+<span class="nc" id="L120">        Response response = client</span>
+<span class="nc" id="L121">                .target(ledgerUriGenerator.transactionsURIWithParams(paramsAsMap))</span>
+<span class="nc" id="L122">                .request()</span>
+<span class="nc" id="L123">                .accept(MediaType.APPLICATION_JSON_TYPE)</span>
+<span class="nc" id="L124">                .get();</span>
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+            try {
+<span class="nc" id="L128">                return response.readEntity(SearchRefundsResponseFromLedger.class);</span>
+<span class="nc" id="L129">            } catch (ProcessingException exception) {</span>
+<span class="nc" id="L130">                throw new SearchRefundsException(exception);</span>
+            }
+        }
+
+<span class="nc" id="L134">        throw new SearchRefundsException(response);</span>
+    }
+
+    public SearchDisputesResponseFromLedger searchDisputes(Account account, Map&lt;String, String&gt; paramsAsMap) {
+<span class="nc" id="L138">        paramsAsMap.put(PARAM_ACCOUNT_ID, account.getAccountId());</span>
+<span class="nc" id="L139">        paramsAsMap.put(PARAM_TRANSACTION_TYPE, DISPUTE_TRANSACTION_TYPE);</span>
+
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (paramsAsMap.containsKey(&quot;status&quot;)) {</span>
+<span class="nc" id="L142">            paramsAsMap.put(&quot;state&quot;, paramsAsMap.remove(&quot;status&quot;));</span>
+        }
+
+<span class="nc" id="L145">        Response response = client</span>
+<span class="nc" id="L146">                .target(ledgerUriGenerator.transactionsURIWithParams(paramsAsMap))</span>
+<span class="nc" id="L147">                .request()</span>
+<span class="nc" id="L148">                .accept(MediaType.APPLICATION_JSON_TYPE)</span>
+<span class="nc" id="L149">                .get();</span>
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+            try {
+<span class="nc" id="L153">                return response.readEntity(SearchDisputesResponseFromLedger.class);</span>
+<span class="nc" id="L154">            } catch (ProcessingException exception) {</span>
+<span class="nc" id="L155">                throw new SearchDisputesException(exception);</span>
+            }
+        }
+
+<span class="nc" id="L159">        throw new SearchDisputesException(response);</span>
+    }
+
+    public PaymentSearchResponse&lt;TransactionResponse&gt; searchPayments(Account account, Map&lt;String, String&gt; paramsAsMap) {
+
+<span class="nc" id="L164">        paramsAsMap.put(PARAM_ACCOUNT_ID, account.getAccountId());</span>
+<span class="nc" id="L165">        paramsAsMap.put(PARAM_TRANSACTION_TYPE, PAYMENT_TRANSACTION_TYPE);</span>
+<span class="nc" id="L166">        paramsAsMap.put(PARAM_EXACT_REFERENCE_MATCH, &quot;true&quot;);</span>
+
+<span class="nc" id="L168">        Response response = client</span>
+<span class="nc" id="L169">                .target(ledgerUriGenerator.transactionsURIWithParams(paramsAsMap))</span>
+<span class="nc" id="L170">                .request()</span>
+<span class="nc" id="L171">                .accept(MediaType.APPLICATION_JSON_TYPE)</span>
+<span class="nc" id="L172">                .get();</span>
+
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+            try {
+<span class="nc" id="L176">                return response.readEntity(new GenericType&lt;&gt;() {</span>
+                });
+<span class="nc" id="L178">            } catch (ProcessingException ex) {</span>
+<span class="nc" id="L179">                throw new SearchPaymentsException(ex);</span>
+            }
+        }
+
+<span class="nc" id="L183">        throw new SearchPaymentsException(response);</span>
+    }
+
+    public AgreementLedgerResponse getAgreement(Account account, String agreementId) {
+<span class="nc" id="L187">        Response response = client</span>
+<span class="nc" id="L188">                .target(ledgerUriGenerator.agreementURI(account, agreementId))</span>
+<span class="nc" id="L189">                .request()</span>
+<span class="nc" id="L190">                .header(&quot;X-Consistent&quot;, true)</span>
+<span class="nc" id="L191">                .get();</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (response.getStatus() == SC_OK) {</span>
+<span class="nc" id="L194">            return response.readEntity(AgreementLedgerResponse.class);</span>
+        }
+
+<span class="nc" id="L197">        throw new GetAgreementException(response);</span>
+    }
+
+    public SearchResults&lt;AgreementLedgerResponse&gt; searchAgreements(Account account, AgreementSearchParams searchParams) {
+<span class="nc" id="L201">        AgreementSearchValidator.validateSearchParameters(searchParams);</span>
+
+<span class="nc" id="L203">        var params = new HashMap&lt;&gt;(searchParams.getQueryMap());</span>
+<span class="nc" id="L204">        params.put(GATEWAY_ACCOUNT_ID, account.getAccountId());</span>
+<span class="nc" id="L205">        params.put(PARAM_EXACT_REFERENCE_MATCH, &quot;true&quot;);</span>
+
+<span class="nc" id="L207">        String url = ledgerUriGenerator.agreementsURIWithParams(params);</span>
+<span class="nc" id="L208">        Response ledgerResponse = client</span>
+<span class="nc" id="L209">                .target(url)</span>
+<span class="nc" id="L210">                .request()</span>
+<span class="nc" id="L211">                .header(HttpHeaders.ACCEPT, APPLICATION_JSON)</span>
+<span class="nc" id="L212">                .get();</span>
+<span class="nc" id="L213">        LOGGER.info(&quot;response from ledger for agreement search: {}&quot;, ledgerResponse);</span>
+
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        if (ledgerResponse.getStatus() == SC_OK) {</span>
+            try {
+<span class="nc" id="L217">                return ledgerResponse.readEntity(new GenericType&lt;&gt;() {</span>
+                });
+<span class="nc" id="L219">            } catch (ProcessingException ex) {</span>
+<span class="nc" id="L220">                throw new SearchAgreementsException(ex);</span>
+            }
+        }
+<span class="nc" id="L223">        throw new SearchAgreementsException(ledgerResponse);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

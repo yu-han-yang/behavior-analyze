@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReviewController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops</a> &gt; <span class="el_source">ReviewController.java</span></div><h1>ReviewController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Pivotal Software, Inc..
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.controllers.printshops;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.Review;
+import io.github.proxyprint.kitchen.models.repositories.ConsumerDAO;
+import io.github.proxyprint.kitchen.models.repositories.PrintShopDAO;
+import io.github.proxyprint.kitchen.models.repositories.ReviewDAO;
+import io.swagger.annotations.ApiOperation;
+import java.security.Principal;
+import java.util.Map;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
+
+/**
+ *
+ * @author jose
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L49">public class ReviewController {</span>
+
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private PrintShopDAO printshops;
+    @Autowired
+    private ReviewDAO reviews;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns all printshop reviews&quot;, notes = &quot;404 if the printshop doesn't exist.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;, &quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/printshops/{id}/reviews&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;String&gt; getPrintShopReviews(@PathVariable(&quot;id&quot;) long id) {
+<span class="fc" id="L64">        PrintShop pShop = this.printshops.findOne(id);</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="fc" id="L66">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+        } else {
+<span class="nc" id="L68">            Set&lt;Review&gt; reviews = pShop.getReviews();</span>
+            JsonObject review;
+<span class="nc" id="L70">            JsonArray obj = new JsonArray();</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            for (Review r : reviews){</span>
+<span class="nc" id="L72">                review =  new JsonObject();</span>
+<span class="nc" id="L73">                review.addProperty(&quot;id&quot;, r.getId());</span>
+<span class="nc" id="L74">                review.addProperty(&quot;description&quot;, r.getDescription());</span>
+<span class="nc" id="L75">                review.addProperty(&quot;rating&quot;, r.getRating());</span>
+<span class="nc" id="L76">                review.addProperty(&quot;username&quot;, r.getConsumer().getName());</span>
+<span class="nc" id="L77">                obj.add(review);</span>
+<span class="nc" id="L78">            }</span>
+<span class="nc" id="L79">            return new ResponseEntity(this.GSON.toJson(obj), HttpStatus.OK);</span>
+        }
+    }
+
+    @ApiOperation(value = &quot;Add a review to a printshop with the given ID&quot;, notes = &quot;404 if the printshop doesn't exist.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/printshops/{id}/reviews&quot;, method = RequestMethod.POST)
+    public ResponseEntity&lt;String&gt; addPrintShopReview(@PathVariable(&quot;id&quot;) long id, Principal principal, @RequestBody Map&lt;String, String&gt; params) {
+<span class="fc" id="L87">        PrintShop pShop = this.printshops.findOne(id);</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="fc" id="L89">           return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+        }
+<span class="nc" id="L91">        Consumer consumer = this.consumers.findByUsername(principal.getName());</span>
+<span class="nc" id="L92">        String reviewText = params.get(&quot;review&quot;);</span>
+<span class="nc" id="L93">        int rating = Integer.parseInt(params.get(&quot;rating&quot;));</span>
+<span class="nc" id="L94">        Review review = reviews.save(new Review(reviewText, rating, consumer));</span>
+<span class="nc" id="L95">        pShop.addReview(review);</span>
+<span class="nc" id="L96">        pShop.updatePrintShopRating();</span>
+<span class="nc" id="L97">        this.printshops.save(pShop);</span>
+<span class="nc" id="L98">        return new ResponseEntity(this.GSON.toJson(review), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Edit an existing printshop review&quot;, notes = &quot;404 if the printshop or the review doesn't exist.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/printshops/{printShopId}/reviews/{reviewId}&quot;, method = RequestMethod.PUT)
+    public ResponseEntity&lt;String&gt; editPrintShopReview(@PathVariable(&quot;printShopId&quot;) long printShopId, @PathVariable(&quot;reviewId&quot;) long reviewId, Principal principal, WebRequest request) {
+<span class="fc" id="L105">        PrintShop pShop = this.printshops.findOne(printShopId);</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="fc" id="L107">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+        }
+
+<span class="nc" id="L110">        Review review = this.reviews.findOne(reviewId);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (review == null) {</span>
+<span class="nc" id="L112">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        } else if (!review.getConsumer().getUsername().equals(principal.getName())) {</span>
+<span class="nc" id="L114">            return new ResponseEntity(HttpStatus.UNAUTHORIZED);</span>
+        }
+
+<span class="nc" id="L117">        pShop.removeReview(review);</span>
+
+<span class="nc" id="L119">        String reviewText = request.getParameter(&quot;review&quot;);</span>
+<span class="nc" id="L120">        int rating = Integer.parseInt(request.getParameter(&quot;rating&quot;));</span>
+
+<span class="nc" id="L122">        review.setDescription(reviewText);</span>
+<span class="nc" id="L123">        review.setRating(rating);</span>
+
+<span class="nc" id="L125">        pShop.addReview(review);</span>
+<span class="nc" id="L126">        pShop.updatePrintShopRating();</span>
+
+<span class="nc" id="L128">        this.printshops.save(pShop);</span>
+<span class="nc" id="L129">        return new ResponseEntity(this.GSON.toJson(review), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Delete an existing printshop review&quot;, notes = &quot;404 if the printshop or the review doesn't exist.&quot;)
+    @Secured({&quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/printshops/{printShopId}/reviews/{reviewId}&quot;, method = RequestMethod.DELETE)
+    public ResponseEntity&lt;String&gt; deletePrintShopReview(@PathVariable(&quot;printShopId&quot;) long printShopId, @PathVariable(&quot;reviewId&quot;) long reviewId, Principal principal, WebRequest request) {
+<span class="fc" id="L136">        PrintShop pShop = this.printshops.findOne(printShopId);</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="fc" id="L138">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+        }
+
+<span class="nc" id="L141">        Review review = this.reviews.findOne(reviewId);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (review == null) {</span>
+<span class="nc" id="L143">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        } else if (!review.getConsumer().getUsername().equals(principal.getName())) {</span>
+<span class="nc" id="L145">            return new ResponseEntity(HttpStatus.UNAUTHORIZED);</span>
+        }
+
+<span class="nc" id="L148">        pShop.removeReview(review);</span>
+<span class="nc" id="L149">        this.printshops.save(pShop);</span>
+<span class="nc" id="L150">        return new ResponseEntity(this.GSON.toJson(review), HttpStatus.OK);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

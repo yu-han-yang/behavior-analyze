@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentEventsResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">PaymentEventsResponse.java</span></div><h1>PaymentEventsResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.links.PaymentLinksForEvents;
+
+import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+
+@Schema(name = &quot;PaymentEvents&quot;, description = &quot;A List of Payment Events information&quot;)
+public class PaymentEventsResponse {
+    @JsonProperty(&quot;payment_id&quot;)
+    private final String paymentId;
+
+    private final List&lt;PaymentEventResponse&gt; events;
+
+    @JsonProperty(&quot;_links&quot;)
+    private PaymentLinksForEvents links;
+
+<span class="nc" id="L23">    private PaymentEventsResponse(String paymentId, List&lt;PaymentEventResponse&gt; events, PaymentLinksForEvents links) {</span>
+<span class="nc" id="L24">        this.paymentId = paymentId;</span>
+<span class="nc" id="L25">        this.events = events;</span>
+<span class="nc" id="L26">        this.links = links;</span>
+<span class="nc" id="L27">    }</span>
+
+    public static PaymentEventsResponse from(PaymentEvents paymentEvents, URI paymentEventsLink, URI eventsLink) {
+<span class="nc" id="L30">        List&lt;PaymentEventResponse&gt; events = paymentEvents.getEvents().stream()</span>
+<span class="nc" id="L31">                .map(paymentEvent -&gt; PaymentEventResponse.from(paymentEvent, paymentEvents.getChargeId(), paymentEventsLink.toString()))</span>
+<span class="nc" id="L32">                .collect(Collectors.toList());</span>
+<span class="nc" id="L33">        PaymentLinksForEvents paymentLinksForEvents = new PaymentLinksForEvents();</span>
+<span class="nc" id="L34">        paymentLinksForEvents.addSelf(eventsLink.toString());</span>
+<span class="nc" id="L35">        return new PaymentEventsResponse(paymentEvents.getChargeId(), events, paymentLinksForEvents);</span>
+    }
+
+    public static PaymentEventsResponse from(TransactionEvents transactionEvents, URI paymentEventsLink, URI eventsLink) {
+<span class="nc" id="L39">        List&lt;PaymentEventResponse&gt; events = transactionEvents.getEvents().stream()</span>
+<span class="nc" id="L40">                .map(paymentEvent -&gt; PaymentEventResponse.from(paymentEvent, transactionEvents.getTransactionId(), paymentEventsLink.toString()))</span>
+<span class="nc" id="L41">                .collect(Collectors.toList());</span>
+<span class="nc" id="L42">        PaymentLinksForEvents paymentLinksForEvents = new PaymentLinksForEvents();</span>
+<span class="nc" id="L43">        paymentLinksForEvents.addSelf(eventsLink.toString());</span>
+<span class="nc" id="L44">        return new PaymentEventsResponse(transactionEvents.getTransactionId(), events, paymentLinksForEvents);</span>
+    }
+
+    @Schema(example = &quot;hu20sqlact5260q2nanm0q8u93&quot;, 
+            description = &quot;The unique ID GOV.UK Pay automatically associated with this payment when you created it.&quot;,
+            accessMode = READ_ONLY)
+    public String getPaymentId() {
+<span class="nc" id="L51">        return paymentId;</span>
+    }
+
+    public List&lt;PaymentEventResponse&gt; getEvents() {
+<span class="nc" id="L55">        return events;</span>
+    }
+
+    public PaymentLinksForEvents getLinks() {
+<span class="nc" id="L59">        return links;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L64">        return &quot;PaymentEvents{&quot; +</span>
+                &quot;paymentId='&quot; + paymentId + '\'' +
+                &quot;, events=&quot; + events +
+                &quot;, links=&quot; + links +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

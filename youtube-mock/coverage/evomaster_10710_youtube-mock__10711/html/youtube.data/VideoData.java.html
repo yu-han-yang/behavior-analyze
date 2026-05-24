@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VideoData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.data</a> &gt; <span class="el_source">VideoData.java</span></div><h1>VideoData.java</h1><pre class="source lang-java linenums">package youtube.data;
+
+import youtube.api.model.*;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+
+<span class="nc" id="L11">public class VideoData {</span>
+
+    public static List&lt;Video&gt; getVideoData() throws ParseException {
+<span class="fc" id="L14">        List&lt;Video&gt; videos = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L16">        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss'Z'&quot;);</span>
+<span class="fc" id="L17">        dateFormat.setTimeZone(TimeZone.getTimeZone(&quot;UTC&quot;));</span>
+
+        //### Video 1 ###
+
+<span class="fc" id="L21">        SearchResultSnippet snippetV1 = new SearchResultSnippet();</span>
+<span class="fc" id="L22">        snippetV1.setChannelId(&quot;UC0DZmkupLYwc0yDsfocLh0A&quot;);</span>
+<span class="fc" id="L23">        snippetV1.setChannelTitle(&quot;Jelly&quot;);</span>
+<span class="fc" id="L24">        snippetV1.setDescription(&quot;Playing GTA 5 In A ZOMBIE APOCALYPSE! If you enjoyed this video, watch more here: ...&quot;);</span>
+<span class="fc" id="L25">        snippetV1.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L26">        snippetV1.setPublishedAt(dateFormat.parse(&quot;2020-03-26T20:18:39Z&quot;));</span>
+<span class="fc" id="L27">        snippetV1.setTitle(&quot;Playing GTA 5 In A ZOMBIE APOCALYPSE! (Scary)&quot;);</span>
+
+<span class="fc" id="L29">        ThumbnailDetails v1ThumbnailDetails = createThumbnailDetails(&quot;YVm37gs92ME&quot;, true);</span>
+<span class="fc" id="L30">        snippetV1.setThumbnails(v1ThumbnailDetails);</span>
+
+<span class="fc" id="L32">        VideoCategory gaming = new VideoCategory();</span>
+<span class="fc" id="L33">        gaming.setId(&quot;20&quot;);</span>
+<span class="fc" id="L34">        gaming.setTitle(&quot;Gaming&quot;);</span>
+
+<span class="fc" id="L36">        Video v1 = new Video(&quot;YVm37gs92ME&quot;, snippetV1, &quot;other&quot;,  gaming, &quot;en&quot;, Duration.ofSeconds(709), Video.VideoDimension.THREE_D, Video.VideoDefinition.HD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L37">                Arrays.asList(&quot;/m/02ntfj&quot;, &quot;/m/025zzc&quot;, &quot;/m/0bzvm2&quot;), 4502905L, 295795L, 4399L, null, false, null, true);</span>
+
+        //### Video 2 ###
+
+<span class="fc" id="L41">        SearchResultSnippet snippetV2 = new SearchResultSnippet();</span>
+<span class="fc" id="L42">        snippetV2.setChannelId(&quot;UCRpjHHu8ivVWs73uxHlWwFA&quot;);</span>
+<span class="fc" id="L43">        snippetV2.setChannelTitle(&quot;Eurovision Song Contest&quot;);</span>
+<span class="fc" id="L44">        snippetV2.setDescription(&quot;Add or download the song to your own playlist: https://ESC2018.lnk.to/Eurovision2018EY Sing along with the karaoke versions: ...&quot;);</span>
+<span class="fc" id="L45">        snippetV2.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L46">        snippetV2.setPublishedAt(dateFormat.parse(&quot;2018-03-12T13:00:02Z&quot;));</span>
+<span class="fc" id="L47">        snippetV2.setTitle(&quot;Eleni Foureira - Fuego - Cyprus - Official Music Video - Eurovision 2018&quot;);</span>
+
+<span class="fc" id="L49">        ThumbnailDetails v2ThumbnailDetails = createThumbnailDetails(&quot;eDSgs6syrgg&quot;, true);</span>
+<span class="fc" id="L50">        snippetV2.setThumbnails(v2ThumbnailDetails);</span>
+
+<span class="fc" id="L52">        VideoCategory entertainment = new VideoCategory();</span>
+<span class="fc" id="L53">        entertainment.setId(&quot;24&quot;);</span>
+<span class="fc" id="L54">        entertainment.setTitle(&quot;Entertainment&quot;);</span>
+
+<span class="fc" id="L56">        Video v2 = new Video(&quot;eDSgs6syrgg&quot;, snippetV2, &quot;other&quot;,  entertainment, &quot;en&quot;, Duration.ofSeconds(195), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L57">                Arrays.asList(&quot;/m/064t9&quot;, &quot;/m/04rlf&quot;), 20732038L, 178093L, 10335L, &quot;ytAgeRestricted&quot;, false, null, false);</span>
+
+        //### Video 3 ###
+
+<span class="fc" id="L61">        SearchResultSnippet snippetV3 = new SearchResultSnippet();</span>
+<span class="fc" id="L62">        snippetV3.setChannelId(&quot;UCGGhM6XCSJFQ6DTRffnKRIw&quot;);</span>
+<span class="fc" id="L63">        snippetV3.setChannelTitle(&quot;Muse&quot;);</span>
+<span class="fc" id="L64">        snippetV3.setDescription(&quot;Watch the music video for \&quot;Uprising\&quot; now! \&quot;Uprising\&quot; was released as the lead single from Muse's fifth studio album, The Resistance, on September 7, 2009.&quot;);</span>
+<span class="fc" id="L65">        snippetV3.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L66">        snippetV3.setPublishedAt(dateFormat.parse(&quot;2009-10-09T13:15:12Z&quot;));</span>
+<span class="fc" id="L67">        snippetV3.setTitle(&quot;Muse - Uprising [Official Video]&quot;);</span>
+
+<span class="fc" id="L69">        ThumbnailDetails v3ThumbnailDetails = createThumbnailDetails(&quot;w8KQmps-Sog&quot;, false);</span>
+<span class="fc" id="L70">        snippetV3.setThumbnails(v3ThumbnailDetails);</span>
+
+<span class="fc" id="L72">        VideoCategory music = new VideoCategory();</span>
+<span class="fc" id="L73">        music.setId(&quot;10&quot;);</span>
+<span class="fc" id="L74">        music.setTitle(&quot;Music&quot;);</span>
+
+<span class="fc" id="L76">        Video v3 = new Video(&quot;w8KQmps-Sog&quot;, snippetV3, &quot;other&quot;,  music, &quot;en&quot;, Duration.ofSeconds(252), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L77">                Arrays.asList(&quot;/m/06by7&quot;, &quot;/m/04rlf&quot;, &quot;/m/05rwpb&quot;), 189555351L, 964621L, 22910L, null, false, null, false);</span>
+
+        //### Video 4 ###
+
+<span class="fc" id="L81">        SearchResultSnippet snippetV4 = new SearchResultSnippet();</span>
+<span class="fc" id="L82">        snippetV4.setChannelId(&quot;UCeB7JZwcar2fVoK2w2f9OwA&quot;);</span>
+<span class="fc" id="L83">        snippetV4.setChannelTitle(&quot;Real Betis Balompié&quot;);</span>
+<span class="fc" id="L84">        snippetV4.setDescription(&quot;Joaquín y el Real Betis Balompié amplían su vinculación hasta 2021. SUSCRÍBETE a nuestro canal ⚽️https://www.youtube.com/user/realbetisoficial ...&quot;);</span>
+<span class="fc" id="L85">        snippetV4.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L86">        snippetV4.setPublishedAt(dateFormat.parse(&quot;2019-12-26T11:45:00Z&quot;));</span>
+<span class="fc" id="L87">        snippetV4.setTitle(&quot;JOAKING: la leyenda renueva un año más con el Real Betis&quot;);</span>
+
+<span class="fc" id="L89">        ThumbnailDetails v4ThumbnailDetails = createThumbnailDetails(&quot;cU827EbKIWg&quot;, true);</span>
+<span class="fc" id="L90">        snippetV4.setThumbnails(v4ThumbnailDetails);</span>
+
+<span class="fc" id="L92">        VideoCategory sports = new VideoCategory();</span>
+<span class="fc" id="L93">        sports.setId(&quot;17&quot;);</span>
+<span class="fc" id="L94">        sports.setTitle(&quot;Sports&quot;);</span>
+
+<span class="fc" id="L96">        Video v4 = new Video(&quot;cU827EbKIWg&quot;, snippetV4, &quot;other&quot;,  sports, &quot;es&quot;, Duration.ofSeconds(173), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,true, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L97">                Arrays.asList(&quot;/m/02vx4&quot;, &quot;/m/06ntj&quot;), 37.3565037, -5.9817521, 111173L, 4139L, 78L, null,false, null, false);</span>
+
+        //### Video 5 ###
+
+<span class="fc" id="L101">        SearchResultSnippet snippetV5 = new SearchResultSnippet();</span>
+<span class="fc" id="L102">        snippetV5.setChannelId(&quot;UCpAyEKkMwTiq8FQ_Jqr4Ckg&quot;);</span>
+<span class="fc" id="L103">        snippetV5.setChannelTitle(&quot;Alex Gasan&quot;);</span>
+<span class="fc" id="L104">        snippetV5.setDescription(&quot;&quot;);</span>
+<span class="fc" id="L105">        snippetV5.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L106">        snippetV5.setPublishedAt(dateFormat.parse(&quot;2019-07-24T08:54:40Z&quot;));</span>
+<span class="fc" id="L107">        snippetV5.setTitle(&quot;ALONSO vs SCHUMACHER || ULTIMAS VUELTAS GP SAN MARINO 2005&quot;);</span>
+
+<span class="fc" id="L109">        ThumbnailDetails v5ThumbnailDetails = createThumbnailDetails(&quot;WId93QmyzW4&quot;, false);</span>
+<span class="fc" id="L110">        snippetV5.setThumbnails(v5ThumbnailDetails);</span>
+
+<span class="fc" id="L112">        Video v5 = new Video(&quot;WId93QmyzW4&quot;, snippetV5, &quot;other&quot;,  sports, &quot;es&quot;, Duration.ofSeconds(984), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,false, Collections.singletonList(&quot;es&quot;), null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L113">                Arrays.asList(&quot;/m/06ntj&quot;, &quot;/m/0410tth&quot;), 44.344297, 11.719407, 39901L, 502L, 9L, null, false, null, true);</span>
+
+        //### Video 6 ###
+
+<span class="fc" id="L117">        SearchResultSnippet snippetV6 = new SearchResultSnippet();</span>
+<span class="fc" id="L118">        snippetV6.setChannelId(&quot;UCbdSYaPD-lr1kW27UJuk8Pw&quot;);</span>
+<span class="fc" id="L119">        snippetV6.setChannelTitle(&quot;QuantumFracture&quot;);</span>
+<span class="fc" id="L120">        snippetV6.setDescription(&quot;Si la termodinámica te parece una pesadilla, deberías ver esto. ¡Todo lo imprescindible en 5 minutos! No te pierdas ningún vídeo: solo tienes que.&quot;);</span>
+<span class="fc" id="L121">        snippetV6.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L122">        snippetV6.setPublishedAt(dateFormat.parse(&quot;2015-03-12T14:00:31Z&quot;));</span>
+<span class="fc" id="L123">        snippetV6.setTitle(&quot;Las Leyes de la Termodinámica en 5 Minutos&quot;);</span>
+
+<span class="fc" id="L125">        ThumbnailDetails v6ThumbnailDetails = createThumbnailDetails(&quot;Bvfn6eUhUAc&quot;, false);</span>
+<span class="fc" id="L126">        snippetV6.setThumbnails(v6ThumbnailDetails);</span>
+
+<span class="fc" id="L128">        VideoCategory scienceTechnology = new VideoCategory();</span>
+<span class="fc" id="L129">        scienceTechnology.setId(&quot;28&quot;);</span>
+<span class="fc" id="L130">        scienceTechnology.setTitle(&quot;Science &amp; Technology&quot;);</span>
+
+<span class="fc" id="L132">        Video v6 = new Video(&quot;Bvfn6eUhUAc&quot;, snippetV6, &quot;other&quot;,  scienceTechnology, &quot;es&quot;, Duration.ofSeconds(305), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L133">                Collections.singletonList(&quot;/m/01k8wb&quot;), 2865790L, 71204L, 1447L, null, false, null, false);</span>
+
+        //### Video 7 ###
+
+<span class="fc" id="L137">        SearchResultSnippet snippetV7 = new SearchResultSnippet();</span>
+<span class="fc" id="L138">        snippetV7.setChannelId(&quot;UCbdSYaPD-lr1kW27UJuk8Pw&quot;);</span>
+<span class="fc" id="L139">        snippetV7.setChannelTitle(&quot;QuantumFracture&quot;);</span>
+<span class="fc" id="L140">        snippetV7.setDescription(&quot;Si hay un experimento que revela lo extraño que es el mundo... Es el Experimento de la Doble Rendija. ¿Preparado para conocer la naturaleza cuántica de la ...&quot;);</span>
+<span class="fc" id="L141">        snippetV7.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L142">        snippetV7.setPublishedAt(dateFormat.parse(&quot;2017-05-18T16:04:17Z&quot;));</span>
+<span class="fc" id="L143">        snippetV7.setTitle(&quot;Este Experimento te Dejará LOCO | La Doble Rendija&quot;);</span>
+
+<span class="fc" id="L145">        ThumbnailDetails v7ThumbnailDetails = createThumbnailDetails(&quot;Y9ScxCemsPM&quot;, true);</span>
+<span class="fc" id="L146">        snippetV7.setThumbnails(v7ThumbnailDetails);</span>
+
+<span class="fc" id="L148">        Video v7 = new Video(&quot;Y9ScxCemsPM&quot;, snippetV7, &quot;other&quot;,  scienceTechnology, &quot;es&quot;, Duration.ofSeconds(598), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,true, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L149">                Collections.singletonList(&quot;/m/01k8wb&quot;), 7319059L, 187170L, 5903L, null, false, null, false);</span>
+
+        //### Video 8 ###
+
+<span class="fc" id="L153">        SearchResultSnippet snippetV8 = new SearchResultSnippet();</span>
+<span class="fc" id="L154">        snippetV8.setChannelId(&quot;UCnGjxxnmYTUxRl85hrjtEBg&quot;);</span>
+<span class="fc" id="L155">        snippetV8.setChannelTitle(&quot;DonOmarVEVO&quot;);</span>
+<span class="fc" id="L156">        snippetV8.setDescription(&quot;Best of Don Omar / Lo mejor de Don Omar: https://goo.gl/J5mJHa\nSubscribe here: https://goo.gl/aHzXZf\n\n\nMusic video by Don Omar performing Danza Kuduro. (C) 2010 Machete Music&quot;);</span>
+<span class="fc" id="L157">        snippetV8.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L158">        snippetV8.setPublishedAt(dateFormat.parse(&quot;2010-08-11T20:39:10Z&quot;));</span>
+<span class="fc" id="L159">        snippetV8.setTitle(&quot;Don Omar - Danza Kuduro ft. Lucenzo&quot;);</span>
+
+<span class="fc" id="L161">        ThumbnailDetails v8ThumbnailDetails = createThumbnailDetails(&quot;7zp1TbLFPp8&quot;, false);</span>
+<span class="fc" id="L162">        snippetV8.setThumbnails(v8ThumbnailDetails);</span>
+
+<span class="fc" id="L164">        Video v8 = new Video(&quot;7zp1TbLFPp8&quot;, snippetV8, &quot;other&quot;,  music, &quot;en&quot;, Duration.ofSeconds(236), Video.VideoDimension.TWO_D, Video.VideoDefinition.SD,false, null, Arrays.asList(&quot;AT&quot;, &quot;RO&quot;, &quot;PL&quot;, &quot;IE&quot;, &quot;LU&quot;, &quot;LT&quot;, &quot;VA&quot;, &quot;LV&quot;, &quot;PT&quot;, &quot;NL&quot;, &quot;HU&quot;, &quot;SE&quot;, &quot;IT&quot;, &quot;BG&quot;, &quot;GB&quot;, &quot;DK&quot;, &quot;SI&quot;, &quot;DE&quot;, &quot;FI&quot;, &quot;EE&quot;, &quot;MT&quot;, &quot;FR&quot;, &quot;CZ&quot;, &quot;SK&quot;, &quot;BE&quot;, &quot;GR&quot;, &quot;CY&quot;), true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L165">                null, 1107703517L, 3106827L, 175750L, null, false, null, false);</span>
+
+        //### Video 9 ###
+
+<span class="fc" id="L169">        SearchResultSnippet snippetV9 = new SearchResultSnippet();</span>
+<span class="fc" id="L170">        snippetV9.setChannelId(&quot;UC2b0o80VP4cbfPE_v8LQEOA&quot;);</span>
+<span class="fc" id="L171">        snippetV9.setChannelTitle(&quot;Movie Juice&quot;);</span>
+<span class="fc" id="L172">        snippetV9.setDescription(&quot;With 30 years in the business, come follow the older Dillon brother's successful rise to fame whilst starring alongside many other acting greats&quot;);</span>
+<span class="fc" id="L173">        snippetV9.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L174">        snippetV9.setPublishedAt(dateFormat.parse(&quot;2010-11-09T12:56:16Z&quot;));</span>
+<span class="fc" id="L175">        snippetV9.setTitle(&quot;Movie Star Bios - Matt Dillon&quot;);</span>
+
+<span class="fc" id="L177">        ThumbnailDetails v9ThumbnailDetails = createThumbnailDetails(&quot;-_MgRXuBtc8&quot;, false);</span>
+<span class="fc" id="L178">        snippetV9.setThumbnails(v9ThumbnailDetails);</span>
+
+<span class="fc" id="L180">        Video v9 = new Video(&quot;-_MgRXuBtc8&quot;, snippetV9, &quot;episode&quot;,  entertainment, &quot;en&quot;, Duration.ofSeconds(490), Video.VideoDimension.TWO_D, Video.VideoDefinition.SD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L181">                Arrays.asList(&quot;/m/02vxn&quot;, &quot;/m/02jjt&quot;, &quot;/m/0f2f9&quot;), 6689467L, 742L, 489L, null, false, null, false);</span>
+
+        //### Video 10 ###
+
+<span class="fc" id="L185">        SearchResultSnippet snippetV10 = new SearchResultSnippet();</span>
+<span class="fc" id="L186">        snippetV10.setChannelId(&quot;UCK8sQmJBp8GCxrOtXWBpyEA&quot;);</span>
+<span class="fc" id="L187">        snippetV10.setChannelTitle(&quot;Google&quot;);</span>
+<span class="fc" id="L188">        snippetV10.setDescription(&quot;Throughout history, when times are challenging, the world goes looking for heroes. And this year, searches for heroes — both superheroes and everyday heroes ...&quot;);</span>
+<span class="fc" id="L189">        snippetV10.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L190">        snippetV10.setPublishedAt(dateFormat.parse(&quot;2019-12-11T08:01:24Z&quot;));</span>
+<span class="fc" id="L191">        snippetV10.setTitle(&quot;Google — Year in Search 2019&quot;);</span>
+
+<span class="fc" id="L193">        ThumbnailDetails v10ThumbnailDetails = createThumbnailDetails(&quot;ZRCdORJiUgU&quot;, true);</span>
+<span class="fc" id="L194">        snippetV10.setThumbnails(v10ThumbnailDetails);</span>
+
+<span class="fc" id="L196">        Video v10 = new Video(&quot;ZRCdORJiUgU&quot;, snippetV10, &quot;other&quot;,  scienceTechnology, &quot;en&quot;, Duration.ofSeconds(1201), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,true, null, null, true, Video.VideoLicense.CREATIVE_COMMON,</span>
+<span class="fc" id="L197">                Arrays.asList(&quot;/m/06ntj&quot;, &quot;/m/025zzc&quot;, &quot;/m/0f2f9&quot;), 152955611L, 445402L, 23701L, null, false, null, true);</span>
+
+        //### Video 11 ###
+
+<span class="fc" id="L201">        SearchResultSnippet snippetV11 = new SearchResultSnippet();</span>
+<span class="fc" id="L202">        snippetV11.setChannelId(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+<span class="fc" id="L203">        snippetV11.setChannelTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L204">        snippetV11.setDescription(&quot;Hi! This is my first video, hope you enjoy it. Don't forget to like and subscribe!&quot;);</span>
+<span class="fc" id="L205">        snippetV11.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L206">        snippetV11.setPublishedAt(dateFormat.parse(&quot;2020-04-02T16:20:00Z&quot;));</span>
+<span class="fc" id="L207">        snippetV11.setTitle(&quot;My first video&quot;);</span>
+
+<span class="fc" id="L209">        ThumbnailDetails v11ThumbnailDetails = createThumbnailDetails(&quot;ABCD3fgH1_j&quot;, true);</span>
+<span class="fc" id="L210">        snippetV11.setThumbnails(v11ThumbnailDetails);</span>
+
+<span class="fc" id="L212">        VideoCategory videoBlogging = new VideoCategory();</span>
+<span class="fc" id="L213">        videoBlogging.setId(&quot;21&quot;);</span>
+<span class="fc" id="L214">        videoBlogging.setTitle(&quot;Videoblogging&quot;);</span>
+
+<span class="fc" id="L216">        Video v11 = new Video(&quot;ABCD3fgH1_j&quot;, snippetV11, &quot;other&quot;,  videoBlogging, &quot;en&quot;, Duration.ofSeconds(271), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,true, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L217">                Collections.singletonList(&quot;/m/098wr&quot;), 2507L, 102L, 4L, null, false, null, false);</span>
+
+        //### Video 12 ###
+
+<span class="fc" id="L221">        SearchResultSnippet snippetV12 = new SearchResultSnippet();</span>
+<span class="fc" id="L222">        snippetV12.setChannelId(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+<span class="fc" id="L223">        snippetV12.setChannelTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L224">        snippetV12.setDescription(&quot;We're live now! Come and enjoy!&quot;);</span>
+<span class="fc" id="L225">        snippetV12.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.LIVE);</span>
+<span class="fc" id="L226">        snippetV12.setPublishedAt(Date.from(Instant.now().minusSeconds(300)));</span>
+<span class="fc" id="L227">        snippetV12.setTitle(&quot;My first streaming!&quot;);</span>
+
+<span class="fc" id="L229">        ThumbnailDetails v12ThumbnailDetails = createThumbnailDetails(&quot;GjsIeZU-SaE&quot;, true);</span>
+<span class="fc" id="L230">        snippetV12.setThumbnails(v12ThumbnailDetails);</span>
+
+<span class="fc" id="L232">        Video v12 = new Video(&quot;GjsIeZU-SaE&quot;, snippetV12, &quot;other&quot;,  videoBlogging, &quot;en&quot;, Duration.ofSeconds(0), Video.VideoDimension.TWO_D, Video.VideoDefinition.HD,false, null, null, true, Video.VideoLicense.YOUTUBE,</span>
+<span class="fc" id="L233">                Collections.singletonList(&quot;/m/098wr&quot;), 207L, 28L, 1L, null, true, 68L, false);</span>
+
+<span class="fc" id="L235">        videos.add(v1);</span>
+<span class="fc" id="L236">        videos.add(v2);</span>
+<span class="fc" id="L237">        videos.add(v3);</span>
+<span class="fc" id="L238">        videos.add(v4);</span>
+<span class="fc" id="L239">        videos.add(v5);</span>
+<span class="fc" id="L240">        videos.add(v6);</span>
+<span class="fc" id="L241">        videos.add(v7);</span>
+<span class="fc" id="L242">        videos.add(v8);</span>
+<span class="fc" id="L243">        videos.add(v9);</span>
+<span class="fc" id="L244">        videos.add(v10);</span>
+<span class="fc" id="L245">        videos.add(v11);</span>
+<span class="fc" id="L246">        videos.add(v12);</span>
+
+<span class="fc" id="L248">        return videos;</span>
+    }
+
+    private static ThumbnailDetails createThumbnailDetails(String videoId, boolean fullThumbnail) {
+<span class="fc" id="L252">        ThumbnailDetails thumbnailDetails = new ThumbnailDetails();</span>
+<span class="fc" id="L253">        Thumbnail defaultThumbnail = new Thumbnail();</span>
+<span class="fc" id="L254">        String baseUrl = &quot;https://i.ytimg.com/vi/&quot;;</span>
+<span class="fc" id="L255">        defaultThumbnail.setWidth(120);</span>
+<span class="fc" id="L256">        defaultThumbnail.setHeight(90);</span>
+<span class="fc" id="L257">        defaultThumbnail.setUrl(baseUrl + videoId + &quot;/default.jpg&quot;);</span>
+<span class="fc" id="L258">        Thumbnail mediumThumbnail = new Thumbnail();</span>
+<span class="fc" id="L259">        mediumThumbnail.setWidth(320);</span>
+<span class="fc" id="L260">        mediumThumbnail.setHeight(180);</span>
+<span class="fc" id="L261">        mediumThumbnail.setUrl(baseUrl + videoId + &quot;/mqdefault.jpg&quot;);</span>
+<span class="fc" id="L262">        Thumbnail highThumbnail = new Thumbnail();</span>
+<span class="fc" id="L263">        highThumbnail.setWidth(480);</span>
+<span class="fc" id="L264">        highThumbnail.setHeight(360);</span>
+<span class="fc" id="L265">        highThumbnail.setUrl(baseUrl + videoId + &quot;/hqdefault.jpg&quot;);</span>
+<span class="fc" id="L266">        thumbnailDetails.setDefaultThumbnail(defaultThumbnail);</span>
+<span class="fc" id="L267">        thumbnailDetails.setMedium(mediumThumbnail);</span>
+<span class="fc" id="L268">        thumbnailDetails.setHigh(highThumbnail);</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        if(fullThumbnail) {</span>
+<span class="fc" id="L270">            Thumbnail standardThumbnail = new Thumbnail();</span>
+<span class="fc" id="L271">            standardThumbnail.setWidth(640);</span>
+<span class="fc" id="L272">            standardThumbnail.setHeight(480);</span>
+<span class="fc" id="L273">            standardThumbnail.setUrl(baseUrl + videoId + &quot;/sddefault.jpg&quot;);</span>
+<span class="fc" id="L274">            Thumbnail maxResThumbnail = new Thumbnail();</span>
+<span class="fc" id="L275">            maxResThumbnail.setWidth(1280);</span>
+<span class="fc" id="L276">            maxResThumbnail.setHeight(720);</span>
+<span class="fc" id="L277">            maxResThumbnail.setUrl(baseUrl + videoId + &quot;/maxresdefault.jpg&quot;);</span>
+<span class="fc" id="L278">            thumbnailDetails.setStandard(standardThumbnail);</span>
+<span class="fc" id="L279">            thumbnailDetails.setMaxres(maxResThumbnail);</span>
+        }
+<span class="fc" id="L281">        return thumbnailDetails;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

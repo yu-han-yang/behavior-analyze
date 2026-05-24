@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SommerjobbStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">SommerjobbStrategy.java</span></div><h1>SommerjobbStrategy.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import no.nav.tag.tiltaksgjennomforing.enhet.Kvalifiseringsgruppe;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilLonnstilskuddsprosentException;
+
+public class SommerjobbStrategy extends LonnstilskuddStrategy {
+
+    public SommerjobbStrategy(AvtaleInnhold avtaleInnhold) {
+<span class="nc" id="L9">        super(avtaleInnhold);</span>
+<span class="nc" id="L10">    }</span>
+
+    @Override
+    public void endreAvtaleInnholdMedKvalifiseringsgruppe(EndreAvtale endreAvtale, Kvalifiseringsgruppe kvalifiseringsgruppe) {
+<span class="nc bnc" id="L14" title="All 2 branches missed.">        if (kvalifiseringsgruppe != null) {</span>
+<span class="nc" id="L15">            final EndreAvtale endreAvtaleMedOppdatertProsentsats = settTilskuddsprosentSats(endreAvtale, kvalifiseringsgruppe);</span>
+<span class="nc" id="L16">            super.endre(endreAvtaleMedOppdatertProsentsats);</span>
+<span class="nc" id="L17">        } else {</span>
+<span class="nc" id="L18">            sjekkSommerjobbProsentsats(endreAvtale);</span>
+<span class="nc" id="L19">            super.endre(endreAvtale);</span>
+        }
+<span class="nc" id="L21">    }</span>
+
+    @Override
+    public void endre(EndreAvtale endreAvtale) {
+<span class="nc" id="L25">        endreAvtale.setStillingstype(Stillingstype.MIDLERTIDIG);</span>
+<span class="nc" id="L26">        sjekkSommerjobbProsentsats(endreAvtale);</span>
+<span class="nc" id="L27">        avtaleInnhold.setLonnstilskuddProsent(endreAvtale.getLonnstilskuddProsent());</span>
+<span class="nc" id="L28">        super.endre(endreAvtale);</span>
+<span class="nc" id="L29">    }</span>
+
+    private void sjekkSommerjobbProsentsats(EndreAvtale endreAvtale) {
+<span class="nc" id="L32">        Integer lonnstilskuddProsent = endreAvtale.getLonnstilskuddProsent();</span>
+<span class="nc bnc" id="L33" title="All 6 branches missed.">        if (lonnstilskuddProsent != null &amp;&amp; !(lonnstilskuddProsent == 75 || lonnstilskuddProsent == 50)) {</span>
+<span class="nc" id="L34">            throw new FeilLonnstilskuddsprosentException();</span>
+        }
+<span class="nc" id="L36">    }</span>
+
+    private EndreAvtale settTilskuddsprosentSats(EndreAvtale endreAvtale, Kvalifiseringsgruppe kvalifiseringsgruppe) {
+<span class="nc" id="L39">        final Integer sats = kvalifiseringsgruppe.finnLonntilskuddProsentsatsUtifraKvalifiseringsgruppe(50, 75);</span>
+<span class="nc" id="L40">        endreAvtale.setLonnstilskuddProsent(sats);</span>
+<span class="nc" id="L41">        return endreAvtale;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

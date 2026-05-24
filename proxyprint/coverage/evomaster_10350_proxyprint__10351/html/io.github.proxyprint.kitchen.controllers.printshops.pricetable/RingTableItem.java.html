@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RingTableItem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops.pricetable</a> &gt; <span class="el_source">RingTableItem.java</span></div><h1>RingTableItem.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.printshops.pricetable;
+
+import io.github.proxyprint.kitchen.models.printshops.pricetable.Item;
+
+/**
+ * Created by daniel on 02-05-2016.
+ */
+public class RingTableItem implements Comparable&lt;RingTableItem&gt; {
+    private String ringType;
+    private int infLim;
+    private int supLim;
+    private String price;
+
+<span class="fc" id="L14">    public RingTableItem() {</span>
+<span class="fc" id="L15">    }</span>
+
+<span class="nc" id="L17">    public RingTableItem(String ringType, int infLim, int supLim, String price) {</span>
+<span class="nc" id="L18">        this.ringType = ringType;</span>
+<span class="nc" id="L19">        this.infLim = infLim;</span>
+<span class="nc" id="L20">        this.supLim = supLim;</span>
+<span class="nc" id="L21">        this.price = price;</span>
+<span class="nc" id="L22">    }</span>
+
+    public String getRingType() {
+<span class="nc" id="L25">        return ringType;</span>
+    }
+
+    public void setRingType(String ringType) {
+<span class="fc" id="L29">        this.ringType = ringType;</span>
+<span class="fc" id="L30">    }</span>
+
+    public int getInfLim() {
+<span class="nc" id="L33">        return infLim;</span>
+    }
+
+    public void setInfLim(int infLim) {
+<span class="fc" id="L37">        this.infLim = infLim;</span>
+<span class="fc" id="L38">    }</span>
+
+    public int getSupLim() {
+<span class="nc" id="L41">        return supLim;</span>
+    }
+
+    public void setSupLim(int supLim) {
+<span class="fc" id="L45">        this.supLim = supLim;</span>
+<span class="fc" id="L46">    }</span>
+
+    public String getPrice() {
+<span class="nc" id="L49">        return price;</span>
+    }
+
+    public void setPrice(String price) {
+<span class="fc" id="L53">        this.price = price;</span>
+<span class="fc" id="L54">    }</span>
+
+    @Override
+    public int compareTo(RingTableItem rti) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if(rti.getSupLim() &gt; this.getSupLim()) return -1;</span>
+<span class="nc" id="L59">        else return 1;</span>
+    }
+
+    public static String getPresentationStringForRings(Item.RingType rt) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if(rt.equals(Item.RingType.PLASTIC)) {</span>
+<span class="nc" id="L64">            return &quot;Argolas de Plástico&quot;;</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        } else if(rt.equals(Item.RingType.SPIRAL)) {</span>
+<span class="nc" id="L66">            return &quot;Argolas Espiral&quot;;</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        } else if(rt.equals(Item.RingType.WIRE)) {</span>
+<span class="nc" id="L68">            return &quot;Argolas de Arame&quot;;</span>
+        }
+<span class="nc" id="L70">        return &quot;&quot;;</span>
+    }
+
+    public static Item.RingType getRingTypeForPresentationString(String rt) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if(rt.equals(&quot;Argolas de Plástico&quot;)) {</span>
+<span class="nc" id="L75">            return Item.RingType.PLASTIC;</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        } else if(rt.equals(&quot;Argolas Espiral&quot;)) {</span>
+<span class="nc" id="L77">            return Item.RingType.SPIRAL;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        } else if(rt.equals(&quot;Argolas de Arame&quot;)) {</span>
+<span class="nc" id="L79">            return Item.RingType.WIRE;</span>
+        }
+<span class="nc" id="L81">        return Item.RingType.PLASTIC;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

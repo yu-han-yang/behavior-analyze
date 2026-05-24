@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CategoryServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">CategoryServiceImpl.java</span></div><h1>CategoryServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.exception.UnauthorizedException;
+import com.sopromadze.blogapi.model.Category;
+import com.sopromadze.blogapi.model.role.RoleName;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.repository.CategoryRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.CategoryService;
+import com.sopromadze.blogapi.utils.AppUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+
+@Service
+<span class="fc" id="L27">public class CategoryServiceImpl implements CategoryService {</span>
+
+	@Autowired
+	private CategoryRepository categoryRepository;
+
+	@Override
+	public PagedResponse&lt;Category&gt; getAllCategories(int page, int size) {
+<span class="fc" id="L34">		AppUtils.validatePageNumberAndSize(page, size);</span>
+
+<span class="fc" id="L36">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, &quot;createdAt&quot;);</span>
+
+<span class="nc" id="L38">		Page&lt;Category&gt; categories = categoryRepository.findAll(pageable);</span>
+
+<span class="nc bnc" id="L40" title="All 2 branches missed.">		List&lt;Category&gt; content = categories.getNumberOfElements() == 0 ? Collections.emptyList() : categories.getContent();</span>
+
+<span class="nc" id="L42">		return new PagedResponse&lt;&gt;(content, categories.getNumber(), categories.getSize(), categories.getTotalElements(),</span>
+<span class="nc" id="L43">				categories.getTotalPages(), categories.isLast());</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;Category&gt; getCategory(Long id) {
+<span class="nc" id="L48">		Category category = categoryRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category&quot;, &quot;id&quot;, id));</span>
+<span class="nc" id="L49">		return new ResponseEntity&lt;&gt;(category, HttpStatus.OK);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;Category&gt; addCategory(Category category, UserPrincipal currentUser) {
+<span class="nc" id="L54">		Category newCategory = categoryRepository.save(category);</span>
+<span class="nc" id="L55">		return new ResponseEntity&lt;&gt;(newCategory, HttpStatus.CREATED);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;Category&gt; updateCategory(Long id, Category newCategory, UserPrincipal currentUser) {
+<span class="nc" id="L60">		Category category = categoryRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Category&quot;, &quot;id&quot;, id));</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">		if (category.getCreatedBy().equals(currentUser.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L63">			category.setName(newCategory.getName());</span>
+<span class="nc" id="L64">			Category updatedCategory = categoryRepository.save(category);</span>
+<span class="nc" id="L65">			return new ResponseEntity&lt;&gt;(updatedCategory, HttpStatus.OK);</span>
+		}
+
+<span class="nc" id="L68">		throw new UnauthorizedException(&quot;You don't have permission to edit this category&quot;);</span>
+	}
+
+	@Override
+	public ResponseEntity&lt;ApiResponse&gt; deleteCategory(Long id, UserPrincipal currentUser) {
+<span class="nc" id="L73">		Category category = categoryRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;category&quot;, &quot;id&quot;, id));</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">		if (category.getCreatedBy().equals(currentUser.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L76">			categoryRepository.deleteById(id);</span>
+<span class="nc" id="L77">			return new ResponseEntity&lt;&gt;(new ApiResponse(Boolean.TRUE, &quot;You successfully deleted category&quot;), HttpStatus.OK);</span>
+		}
+<span class="nc" id="L79">		throw new UnauthorizedException(&quot;You don't have permission to delete this category&quot;);</span>
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminEmployeeController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.controller.web.admin</a> &gt; <span class="el_source">AdminEmployeeController.java</span></div><h1>AdminEmployeeController.java</h1><pre class="source lang-java linenums">package com.pfa.app.controller.web.admin;
+
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.pfa.app.constant.AccountEnum;
+import com.pfa.app.model.entity.Credential;
+import com.pfa.app.model.entity.Employee;
+import com.pfa.app.service.CredentialService;
+import com.pfa.app.service.EmployeeService;
+
+@Controller
+@RequestMapping(value = {&quot;/admins/employees&quot;})
+public class AdminEmployeeController {
+	
+	private final EmployeeService employeeService;
+	private final CredentialService credentialService;
+<span class="fc" id="L29">	private static final Logger logger = LoggerFactory.getLogger(AdminEmployeeController.class);</span>
+	
+	static {
+<span class="fc" id="L32">		logger.info(&quot;************ entering &quot; + AdminEmployeeController.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L33">	}</span>
+	
+	@Autowired
+<span class="fc" id="L36">	public AdminEmployeeController(final EmployeeService employeeService, final CredentialService credentialService) {</span>
+<span class="fc" id="L37">		this.employeeService = employeeService;</span>
+<span class="fc" id="L38">		this.credentialService = credentialService;</span>
+<span class="fc" id="L39">	}</span>
+	
+	@GetMapping(value = {&quot;/admin-employee-credentials&quot;, &quot;/credentials&quot;})
+	public String displayAdminEmployeeCredentialsList(@RequestParam(&quot;userId&quot;) final String userId, final Model model) {
+		
+<span class="nc" id="L44">		model.addAttribute(&quot;userCredential&quot;, this.credentialService.findById(Integer.parseInt(userId)));</span>
+<span class="nc" id="L45">		return &quot;admins/employees/admin-employee-credentials&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/&quot;, &quot;/admin-employees-list&quot;})
+	public String displayAdminEmployeesList(final Model model) {
+		
+<span class="nc" id="L51">		model.addAttribute(&quot;employees&quot;, this.employeeService.findAll().getCollection());</span>
+<span class="nc" id="L52">		return &quot;admins/employees/admin-employees-list&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-employees-add&quot;, &quot;/add&quot;})
+	public String displayAdminEmployeesAdd(final Model model) {
+		
+<span class="nc" id="L58">		model.addAttribute(&quot;employee&quot;, new Employee());</span>
+<span class="nc" id="L59">		model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L60">		model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L61">		return &quot;admins/employees/admin-employees-add&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-employees-add&quot;})
+	public String handleAdminEmployeesAdd(@ModelAttribute(&quot;employee&quot;) @Valid final Employee employee, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L67" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L68">			model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L69">			model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L70">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again !&quot;);</span>
+<span class="nc" id="L71">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+		}
+		
+<span class="nc" id="L74">		this.employeeService.save(employee);</span>
+<span class="nc" id="L75">		logger.info(&quot;Employee with employeeId : {} has been saved successfully&quot;, employee.getEmployeeId());</span>
+		
+<span class="nc" id="L77">		model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L78">		model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L79">		model.addAttribute(&quot;msg&quot;, &quot;This employee has been created successfully&quot;);</span>
+<span class="nc" id="L80">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L82">		return &quot;admins/employees/admin-employees-add&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-employees-edit&quot;, &quot;/edit&quot;})
+	public String displayAdminEmployeesEdit(@RequestParam(&quot;employeeId&quot;) final String employeeId, final Model model) {
+		
+<span class="nc" id="L88">		model.addAttribute(&quot;employee&quot;, this.employeeService.findById(Integer.parseInt(employeeId)));</span>
+<span class="nc" id="L89">		model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L90">		model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L91">		return &quot;admins/employees/admin-employees-edit&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/admin-employees-edit&quot;})
+	public String handleAdminEmployeesEdit(@ModelAttribute(&quot;employee&quot;) @Valid final Employee employee, final BindingResult error, final Model model) {
+		
+<span class="nc bnc" id="L97" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L98">			model.addAttribute(&quot;employee&quot;, this.employeeService.findById(employee.getEmployeeId()));</span>
+<span class="nc" id="L99">			model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L100">			model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L101">			return &quot;admins/employees/admin-employees-edit&quot;;</span>
+		}
+		
+<span class="nc" id="L104">		this.employeeService.update(employee);</span>
+<span class="nc" id="L105">		logger.info(&quot;Employee with employeeId : {} has been updated successfully&quot;, employee.getEmployeeId());</span>
+		
+<span class="nc" id="L107">		model.addAttribute(&quot;listManager&quot;, this.employeeService.findAllManagers());</span>
+<span class="nc" id="L108">		model.addAttribute(&quot;roles&quot;, AccountEnum.values());</span>
+<span class="nc" id="L109">		model.addAttribute(&quot;msg&quot;, &quot;This employee has been updated successfully&quot;);</span>
+<span class="nc" id="L110">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L112">		return &quot;admins/employees/admin-employees-edit&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-employees-isactive&quot;, &quot;/isactive&quot;})
+	public String handleAdminEmployeesInActive(@RequestParam(&quot;employeeId&quot;) final String employeeId) {
+		
+<span class="nc" id="L118">		final Credential credential = this.employeeService.findById(Integer.parseInt(employeeId)).getCredential();</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">		credential.setEnabled(!credential.getEnabled());</span>
+		
+<span class="nc" id="L121">		this.credentialService.save(credential);</span>
+<span class="nc" id="L122">		logger.info(&quot;Employee with employeeId : {} has been enabled/disabled successfully&quot;, credential.getEmployee().getEmployeeId());</span>
+		
+<span class="nc" id="L124">		return &quot;redirect:/admins/employees/admin-employees-list&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/admin-employees-delete&quot;, &quot;/delete&quot;})
+	public String handleAdminEmployeesDelete(@RequestParam(&quot;employeeId&quot;) final String employeeId) {
+		
+<span class="nc" id="L130">		this.employeeService.deleteById(Integer.parseInt(employeeId));</span>
+<span class="nc" id="L131">		logger.info(&quot;Employee with employeeId : {} has been removed successfully&quot;, employeeId);</span>
+		
+<span class="nc" id="L133">		return &quot;redirect:/admins/employees/admin-employees-list&quot;;</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

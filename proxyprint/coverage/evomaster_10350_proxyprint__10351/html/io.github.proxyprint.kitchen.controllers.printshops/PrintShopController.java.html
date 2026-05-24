@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrintShopController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.printshops</a> &gt; <span class="el_source">PrintShopController.java</span></div><h1>PrintShopController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Pivotal Software, Inc..
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.controllers.printshops;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+import com.paypal.base.rest.PayPalRESTException;
+import io.github.proxyprint.kitchen.controllers.printshops.pricetable.CoversTable;
+import io.github.proxyprint.kitchen.controllers.printshops.pricetable.PapersTable;
+import io.github.proxyprint.kitchen.controllers.printshops.pricetable.RingsTable;
+import io.github.proxyprint.kitchen.models.Admin;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.Document;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.DocumentSpec;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest.Status;
+import io.github.proxyprint.kitchen.models.notifications.Notification;
+import io.github.proxyprint.kitchen.models.printshops.Employee;
+import io.github.proxyprint.kitchen.models.printshops.Manager;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.BindingItem;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.CoverItem;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.Item;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.RangePaperItem;
+import io.github.proxyprint.kitchen.models.repositories.*;
+import io.github.proxyprint.kitchen.utils.DistanceCalculator;
+import io.github.proxyprint.kitchen.utils.NotificationManager;
+import io.github.proxyprint.kitchen.utils.PayPalWrapper;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
+
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.TreeMap;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * @author josesousa
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L65">public class PrintShopController {</span>
+
+    @Autowired
+    private PrintShopDAO printshops;
+    @Autowired
+    private PrintRequestDAO printrequests;
+    @Autowired
+    private EmployeeDAO employees;
+    @Autowired
+    private ConsumerDAO consumers;
+    @Autowired
+    private ManagerDAO managers;
+    @Autowired
+    private AdminDAO admin;
+    @Autowired
+    private NotificationManager notificationManager;
+
+
+    @Autowired
+    private UserDAO users;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns a list of printshops.&quot;, notes = &quot;This method returns a list of the nearest printshops.&quot;)
+    @RequestMapping(value = &quot;/printshops/nearest&quot;, method = RequestMethod.GET)
+    public String getNearestPrintShops(WebRequest request) {
+<span class="fc" id="L91">        String lat = request.getParameter(&quot;latitude&quot;);</span>
+<span class="fc" id="L92">        String lon = request.getParameter(&quot;longitude&quot;);</span>
+
+<span class="fc" id="L94">        JsonObject response = new JsonObject();</span>
+
+<span class="fc bfc" id="L96" title="All 4 branches covered.">        if (lat != null &amp;&amp; lon != null) {</span>
+<span class="fc" id="L97">            Double latitude = Double.parseDouble(lat);</span>
+<span class="nc" id="L98">            Double longitude = Double.parseDouble(lon);</span>
+<span class="nc" id="L99">            System.out.format(&quot;Latitude: %s Longitude: %s\n&quot;, latitude, longitude);</span>
+
+<span class="nc" id="L101">            TreeMap&lt;Double, PrintShop&gt; pshops = new TreeMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            for (PrintShop p : printshops.findAll()) {</span>
+<span class="nc" id="L104">                double distance = DistanceCalculator.distance(latitude, longitude, p.getLatitude(), p.getLongitude());</span>
+<span class="nc" id="L105">                pshops.put(distance, p);</span>
+<span class="nc" id="L106">            }</span>
+<span class="nc" id="L107">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L108">            response.add(&quot;printshops&quot;, GSON.toJsonTree((pshops)));</span>
+<span class="nc" id="L109">        } else {</span>
+<span class="fc" id="L110">            response.addProperty(&quot;success&quot;, false);</span>
+        }
+<span class="fc" id="L112">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a pricetable&quot;, notes = &quot;This method returns a pricetable of a specific printshop.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_USER&quot;})
+    @RequestMapping(value = &quot;/printshops/{id}/pricetable&quot;, method = RequestMethod.GET)
+    public String getPrintShopPriceTable(@PathVariable(value = &quot;id&quot;) long id) {
+<span class="fc" id="L119">        PrintShop pshop = printshops.findOne(id);</span>
+<span class="fc" id="L120">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L122">        PapersTable papersTable = new PapersTable();</span>
+<span class="fc" id="L123">        RingsTable ringsTable = new RingsTable();</span>
+<span class="fc" id="L124">        CoversTable coversTable = new CoversTable();</span>
+
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (pshop == null) {</span>
+<span class="fc" id="L127">            response.addProperty(&quot;success&quot;, false);</span>
+        } else {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            for (String key : pshop.getPriceTable().keySet()) {</span>
+<span class="nc" id="L130">                String type = Item.checkItemType(key);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">                if (type.equals(Item.PAPER)) {</span>
+<span class="nc" id="L132">                    RangePaperItem rpi = (RangePaperItem) pshop.loadPriceItem(key);</span>
+<span class="nc" id="L133">                    papersTable.addRangePaperItem(rpi, pshop);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">                } else if (type.equals(Item.RingType.BINDING.toString())) {</span>
+<span class="nc" id="L135">                    BindingItem bi = (BindingItem) pshop.loadPriceItem(key);</span>
+<span class="nc" id="L136">                    ringsTable.addBindingItem(bi, pshop.getPrice(bi));</span>
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">                } else if (type.equals(Item.COVER)) {</span>
+<span class="nc" id="L139">                    CoverItem ci = (CoverItem) pshop.loadPriceItem(key);</span>
+<span class="nc" id="L140">                    coversTable.addCoverItem(ci, pshop.getPrice(ci));</span>
+                }
+<span class="nc" id="L142">            }</span>
+
+<span class="nc" id="L144">            response.add(&quot;printcopy&quot;, GSON.toJsonTree(papersTable.getFinalTable()));</span>
+<span class="nc" id="L145">            response.add(&quot;rings&quot;, GSON.toJsonTree(ringsTable.getItems()));</span>
+<span class="nc" id="L146">            response.addProperty(&quot;stapling&quot;, ringsTable.getStaplingPrice());</span>
+<span class="nc" id="L147">            response.add(&quot;covers&quot;, GSON.toJsonTree(coversTable.getItems()));</span>
+<span class="nc" id="L148">            response.addProperty(&quot;success&quot;, true);</span>
+        }
+
+<span class="fc" id="L151">        return GSON.toJson(response);</span>
+    }
+
+
+    /*-------------------------
+        PrintRequests
+    -------------------------*/
+    @ApiOperation(value = &quot;Returns the new status.&quot;, notes = &quot;Returns the new status of the corresponding print request.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/requests/{id}&quot;, method = RequestMethod.POST)
+    public String changeStatusPrintShopRequests(@PathVariable(value = &quot;id&quot;) long id, Principal principal) throws PayPalRESTException {
+<span class="fc" id="L162">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L163">        Employee e = employees.findByUsername(principal.getName());</span>
+<span class="fc" id="L164">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L167">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L168">            return GSON.toJson(response);</span>
+        }
+
+        String not;
+<span class="fc" id="L172">        PrintRequest printRequest = printrequests.findByIdInAndPrintshop(id, printshop);</span>
+
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        if (printRequest == null) {</span>
+<span class="fc" id="L175">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L176">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc" id="L179">        Consumer consumer = printRequest.getConsumer();</span>
+<span class="nc" id="L180">        String user = consumer.getUsername();</span>
+
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        if (printRequest.getStatus() == Status.PENDING) {</span>
+<span class="nc" id="L183">            printRequest.setStatus(Status.IN_PROGRESS);</span>
+<span class="nc" id="L184">            printRequest.setEmpAttended(principal.getName());</span>
+<span class="nc" id="L185">            response.addProperty(&quot;newStatus&quot;, Status.IN_PROGRESS.toString());</span>
+<span class="nc" id="L186">            not = &quot;O pedido número &quot; + printRequest.getId() + &quot; está a ser processado!&quot;;</span>
+<span class="nc" id="L187">            notificationManager.sendNotification(user, new Notification(not));</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        } else if (printRequest.getStatus() == Status.IN_PROGRESS) {</span>
+<span class="nc" id="L189">            printRequest.setFinishedTimestamp(new Date());</span>
+
+<span class="nc" id="L191">            response.addProperty(&quot;newStatus&quot;, Status.FINISHED.toString());</span>
+<span class="nc" id="L192">            not = &quot;O pedido número &quot; + printRequest.getId() +</span>
+                    &quot; está completo! Pode deslocar-se á reprografia para proceder ao levantamento.&quot;;
+
+            // Send email to user
+            /*MailBox m = new MailBox();
+            m.sendEmailFinishedPrintRequest(consumer, printRequest.getId(), printshop.getName());*/
+
+<span class="nc" id="L199">            notificationManager.sendNotification(user, new Notification(not));</span>
+<span class="nc" id="L200">            printRequest.setStatus(Status.FINISHED);</span>
+
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        } else if (printRequest.getStatus() == Status.FINISHED) {</span>
+
+<span class="nc bnc" id="L204" title="All 2 branches missed.">            if(printRequest.getPaymentType().equals(PrintRequest.PAYPAL_PAYMENT)) {</span>
+<span class="nc" id="L205">                PayPalWrapper pp = new PayPalWrapper();</span>
+<span class="nc" id="L206">                Manager manager = managers.findByPrintShop(printshop);</span>
+<span class="nc" id="L207">                boolean payPalRes = pp.payShareToPrintShop(printRequest, manager, printshop);</span>
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">                if (payPalRes) {</span>
+<span class="nc" id="L210">                    printRequest.setStatus(Status.LIFTED);</span>
+<span class="nc" id="L211">                    printRequest.setDeliveredTimestamp(new Date());</span>
+<span class="nc" id="L212">                    printRequest.setEmpDelivered(principal.getName());</span>
+
+<span class="nc" id="L214">                    response.addProperty(&quot;newStatus&quot;, Status.LIFTED.toString());</span>
+                } else {
+<span class="nc" id="L216">                    response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L217">                    return GSON.toJson(response);</span>
+                }
+<span class="nc" id="L219">            } else {</span>
+<span class="nc" id="L220">                Admin master = admin.findAll().iterator().next();</span>
+<span class="nc" id="L221">                double pshopShare = (printRequest.getCost() * 0.9);</span>
+<span class="nc" id="L222">                master.getBalance().subtractDoubleQuantity(pshopShare);</span>
+<span class="nc" id="L223">                printshop.getBalance().addDoubleQuantity(pshopShare);</span>
+
+                // Save
+<span class="nc" id="L226">                admin.save(master);</span>
+<span class="nc" id="L227">                printshops.save(printshop);</span>
+
+<span class="nc" id="L229">                printRequest.setStatus(Status.LIFTED);</span>
+<span class="nc" id="L230">                printRequest.setDeliveredTimestamp(new Date());</span>
+<span class="nc" id="L231">                printRequest.setEmpDelivered(principal.getName());</span>
+
+<span class="nc" id="L233">                response.addProperty(&quot;newStatus&quot;, Status.LIFTED.toString());</span>
+<span class="nc" id="L234">            }</span>
+        } else {
+<span class="nc" id="L236">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L237">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc" id="L240">        printrequests.save(printRequest);</span>
+<span class="nc" id="L241">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L242">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a request.&quot;, notes = &quot;Returns the corresponding request from a printshop.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/requests/{id}&quot;, method = RequestMethod.GET)
+    public String getPrintShopRequest(@PathVariable(value = &quot;id&quot;) long id, Principal principal) {
+
+<span class="fc" id="L250">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L251">        Employee e = employees.findByUsername(principal.getName());</span>
+<span class="fc" id="L252">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L254" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L255">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L256">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L259">        PrintRequest printRequest = printrequests.findByIdInAndPrintshop(id, printshop);</span>
+
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        if (printRequest == null) {</span>
+<span class="fc" id="L262">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L263">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        for (Document d : printRequest.getDocuments()) {</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">            for (DocumentSpec s : d.getSpecs()) {</span>
+<span class="nc" id="L268">                s.setSpecsToString();</span>
+<span class="nc" id="L269">            }</span>
+<span class="nc" id="L270">        }</span>
+<span class="nc" id="L271">        response.add(&quot;printrequest&quot;, GSON.toJsonTree(printRequest));</span>
+
+<span class="nc" id="L273">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L274">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns pending requests.&quot;, notes = &quot;Returns the pending and in progress requests from a printshop.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/requests&quot;, method = RequestMethod.GET)
+    public String getPrintShopRequests(Principal principal) {
+<span class="fc" id="L281">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L282">        Employee e = employees.findByUsername(principal.getName());</span>
+<span class="fc" id="L283">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L285" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L286">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L287">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L290">        List&lt;Status&gt; status = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L291">        status.add(Status.PENDING);</span>
+<span class="fc" id="L292">        status.add(Status.IN_PROGRESS);</span>
+
+<span class="fc" id="L294">        List&lt;PrintRequest&gt; printRequestsList = printrequests.findByStatusInAndPrintshop(status, printshop);</span>
+<span class="fc" id="L295">        Type listOfPRequests = new TypeToken&lt;List&lt;PrintShop&gt;&gt;() {</span>
+<span class="fc" id="L296">        }.getType();</span>
+
+<span class="fc" id="L298">        response.add(&quot;printrequest&quot;, GSON.toJsonTree(printRequestsList, listOfPRequests));</span>
+<span class="fc" id="L299">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L300">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns the history of requests.&quot;, notes = &quot;Returns the history of requests from a printshop.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/history&quot;, method = RequestMethod.GET)
+    public String getPrintShopHistoryRequests(Principal principal) {
+<span class="fc" id="L307">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L309">        Employee e = employees.findByUsername(principal.getName());</span>
+
+<span class="fc" id="L311">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L314">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L315">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L318">        List&lt;Status&gt; status = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L319">        status.add(Status.LIFTED);</span>
+
+<span class="fc" id="L321">        List&lt;PrintRequest&gt; printRequestsList = printrequests.findByStatusInAndPrintshop(status, printshop);</span>
+<span class="fc" id="L322">        Type listOfPRequests = new TypeToken&lt;List&lt;PrintShop&gt;&gt;() {</span>
+<span class="fc" id="L323">        }.getType();</span>
+
+<span class="fc" id="L325">        response.add(&quot;historyrequests&quot;, GSON.toJsonTree(printRequestsList, listOfPRequests));</span>
+<span class="fc" id="L326">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L327">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns satisfied requests.&quot;, notes = &quot;Returns the satisfied requests from a printshop.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/satisfied&quot;, method = RequestMethod.GET)
+    public String getPrintShopSatisfiedRequests(Principal principal) {
+<span class="fc" id="L334">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L336">        Employee e = employees.findByUsername(principal.getName());</span>
+
+<span class="fc" id="L338">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L341">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L342">            return GSON.toJson(response);</span>
+        }
+
+<span class="fc" id="L345">        List&lt;Status&gt; status = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L346">        status.add(Status.FINISHED);</span>
+
+<span class="fc" id="L348">        List&lt;PrintRequest&gt; printRequestsList = printrequests.findByStatusInAndPrintshop(status, printshop);</span>
+<span class="fc" id="L349">        Type listOfPRequests = new TypeToken&lt;List&lt;PrintShop&gt;&gt;() {</span>
+<span class="fc" id="L350">        }.getType();</span>
+
+<span class="fc" id="L352">        response.add(&quot;satisfiedrequests&quot;, GSON.toJsonTree(printRequestsList, listOfPRequests));</span>
+<span class="fc" id="L353">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L354">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows a employee to cancel a print resquest.&quot;)
+    @Secured({&quot;ROLE_MANAGER&quot;, &quot;ROLE_EMPLOYEE&quot;})
+    @RequestMapping(value = &quot;/printshops/requests/cancel/{id}&quot;, method = RequestMethod.POST)
+    public String cancelPrintShopRequests(@PathVariable(value = &quot;id&quot;) long id, Principal principal, @RequestBody String motive)
+            throws IOException {
+
+<span class="fc" id="L363">        JsonObject response = new JsonObject();</span>
+<span class="fc" id="L364">        Employee e = employees.findByUsername(principal.getName());</span>
+<span class="fc" id="L365">        PrintShop printshop = e.getPrintShop();</span>
+
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">        if (printshop == null) {</span>
+<span class="nc" id="L368">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="nc" id="L369">            return GSON.toJson(response);</span>
+        }
+
+        String not;
+<span class="fc" id="L373">        PrintRequest printRequest = printrequests.findByIdInAndPrintshop(id, printshop);</span>
+
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">        if (printRequest == null) {</span>
+<span class="fc" id="L376">            response.addProperty(&quot;success&quot;, false);</span>
+<span class="fc" id="L377">            return GSON.toJson(response);</span>
+        }
+
+<span class="nc" id="L380">        Consumer user = printRequest.getConsumer();</span>
+
+<span class="nc bnc" id="L382" title="All 2 branches missed.">        if (printRequest.getStatus() == Status.PENDING) {</span>
+
+<span class="nc" id="L384">            long requestid = printRequest.getId();</span>
+
+<span class="nc" id="L386">            printshop.getPrintRequests().remove(printRequest);</span>
+<span class="nc" id="L387">            printshops.save(printshop);</span>
+
+<span class="nc" id="L389">            user.getPrintRequests().remove(printRequest);</span>
+<span class="nc" id="L390">            consumers.save(user);</span>
+
+            // Send email
+            /*MailBox mb = new MailBox();
+            mb.sendEmailCancelledPrintRequest(printRequest, user, motive);*/
+
+            // Notification
+<span class="nc" id="L397">            not = &quot;O pedido número &quot; + requestid + &quot; foi cancelado! Motivo: &quot; + motive;</span>
+<span class="nc" id="L398">            notificationManager.sendNotification(user.getUsername(), new Notification(not));</span>
+
+<span class="nc" id="L400">            response.addProperty(&quot;success&quot;, true);</span>
+<span class="nc" id="L401">        } else {</span>
+<span class="nc" id="L402">            response.addProperty(&quot;success&quot;, false);</span>
+        }
+
+<span class="nc" id="L405">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a printshop&quot;, notes = &quot;This method returns the printshop info&quot;)
+    @RequestMapping(value = &quot;/printshops/{id}&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;String&gt; getPrintShop(@PathVariable(&quot;id&quot;) long id) {
+<span class="fc" id="L411">        PrintShop pShop = this.printshops.findOne(id);</span>
+
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">        if (pShop == null) {</span>
+<span class="fc" id="L414">            return new ResponseEntity(HttpStatus.NOT_FOUND);</span>
+        }
+
+<span class="nc" id="L417">        return new ResponseEntity(GSON.toJson(pShop), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns a printshop&quot;, notes = &quot;This method returns a list of printshop with info from each one.&quot;)
+    @RequestMapping(value = &quot;/printshops&quot;, method = RequestMethod.GET)
+    public ResponseEntity&lt;String&gt; getPrintShops() {
+<span class="fc" id="L423">        Iterable&lt;PrintShop&gt; printShops = this.printshops.findAll();</span>
+
+<span class="fc" id="L425">        return new ResponseEntity(this.GSON.toJson(printShops), HttpStatus.OK);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

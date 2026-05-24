@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">SearchRequest.java</span></div><h1>SearchRequest.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import javax.ws.rs.QueryParam;
+
+<span class="fc" id="L5">public class SearchRequest {</span>
+
+    @QueryParam(&quot;part&quot;)
+    private String part;
+    @QueryParam(&quot;forContentOwner&quot;)
+    private Boolean forContentOwner;
+    @QueryParam(&quot;forDeveloper&quot;)
+    private Boolean forDeveloper;
+    @QueryParam(&quot;forMine&quot;)
+    private Boolean forMine;
+    @QueryParam(&quot;relatedToVideoId&quot;)
+    private String relatedToVideoId;
+    @QueryParam(&quot;channelId&quot;)
+    private String channelId;
+    @QueryParam(&quot;channelType&quot;)
+    private String channelType;
+    @QueryParam(&quot;eventType&quot;)
+    private String eventType;
+    @QueryParam(&quot;location&quot;)
+    private String location;
+    @QueryParam(&quot;locationRadius&quot;)
+    private String locationRadius;
+    @QueryParam(&quot;maxResults&quot;)
+    private Integer maxResults;
+    @QueryParam(&quot;onBehalfOfContentOwner&quot;)
+    private String onBehalfOfContentOwner;
+    @QueryParam(&quot;order&quot;)
+    private String order;
+    @QueryParam(&quot;pageToken&quot;)
+    private String pageToken;
+    @QueryParam(&quot;publishedAfter&quot;)
+    private String publishedAfterStr;
+    @QueryParam(&quot;publishedBefore&quot;)
+    private String publishedBeforeStr;
+    @QueryParam(&quot;q&quot;)
+    private String q;
+    @QueryParam(&quot;relevanceLanguage&quot;)
+    private String relevanceLanguage;
+    @QueryParam(&quot;regionCode&quot;)
+    private String regionCode;
+    @QueryParam(&quot;safeSearch&quot;)
+    private String safeSearch;
+    @QueryParam(&quot;topicId&quot;)
+    private String topicId;
+    @QueryParam(&quot;type&quot;)
+    private String type;
+    @QueryParam(&quot;videoCaption&quot;)
+    private String videoCaption;
+    @QueryParam(&quot;videoCategoryId&quot;)
+    private String videoCategoryId;
+    @QueryParam(&quot;videoDefinition&quot;)
+    private String videoDefinition;
+    @QueryParam(&quot;videoDimension&quot;)
+    private String videoDimension;
+    @QueryParam(&quot;videoDuration&quot;)
+    private String videoDuration;
+    @QueryParam(&quot;videoEmbeddable&quot;)
+    private String videoEmbeddable;
+    @QueryParam(&quot;videoLicense&quot;)
+    private String videoLicense;
+    @QueryParam(&quot;videoSyndicated&quot;)
+    private String videoSyndicated;
+    @QueryParam(&quot;videoType&quot;)
+    private String videoType;
+
+    public String getPart() {
+<span class="fc" id="L71">        return part;</span>
+    }
+
+    public void setPart(String part) {
+<span class="nc" id="L75">        this.part = part;</span>
+<span class="nc" id="L76">    }</span>
+
+    public Boolean getForContentOwner() {
+<span class="fc" id="L79">        return forContentOwner;</span>
+    }
+
+    public void setForContentOwner(Boolean forContentOwner) {
+<span class="nc" id="L83">        this.forContentOwner = forContentOwner;</span>
+<span class="nc" id="L84">    }</span>
+
+    public Boolean getForDeveloper() {
+<span class="fc" id="L87">        return forDeveloper;</span>
+    }
+
+    public void setForDeveloper(Boolean forDeveloper) {
+<span class="nc" id="L91">        this.forDeveloper = forDeveloper;</span>
+<span class="nc" id="L92">    }</span>
+
+    public Boolean getForMine() {
+<span class="fc" id="L95">        return forMine;</span>
+    }
+
+    public void setForMine(Boolean forMine) {
+<span class="nc" id="L99">        this.forMine = forMine;</span>
+<span class="nc" id="L100">    }</span>
+
+    public String getRelatedToVideoId() {
+<span class="fc" id="L103">        return relatedToVideoId;</span>
+    }
+
+    public void setRelatedToVideoId(String relatedToVideoId) {
+<span class="nc" id="L107">        this.relatedToVideoId = relatedToVideoId;</span>
+<span class="nc" id="L108">    }</span>
+
+    public String getChannelId() {
+<span class="nc" id="L111">        return channelId;</span>
+    }
+
+    public void setChannelId(String channelId) {
+<span class="nc" id="L115">        this.channelId = channelId;</span>
+<span class="nc" id="L116">    }</span>
+
+    public String getChannelType() {
+<span class="fc" id="L119">        return channelType;</span>
+    }
+
+    public void setChannelType(String channelType) {
+<span class="nc" id="L123">        this.channelType = channelType;</span>
+<span class="nc" id="L124">    }</span>
+
+    public String getEventType() {
+<span class="fc" id="L127">        return eventType;</span>
+    }
+
+    public void setEventType(String eventType) {
+<span class="nc" id="L131">        this.eventType = eventType;</span>
+<span class="nc" id="L132">    }</span>
+
+    public String getLocation() {
+<span class="fc" id="L135">        return location;</span>
+    }
+
+    public void setLocation(String location) {
+<span class="nc" id="L139">        this.location = location;</span>
+<span class="nc" id="L140">    }</span>
+
+    public String getLocationRadius() {
+<span class="fc" id="L143">        return locationRadius;</span>
+    }
+
+    public void setLocationRadius(String locationRadius) {
+<span class="nc" id="L147">        this.locationRadius = locationRadius;</span>
+<span class="nc" id="L148">    }</span>
+
+    public Integer getMaxResults() {
+<span class="nc" id="L151">        return maxResults;</span>
+    }
+
+    public void setMaxResults(Integer maxResults) {
+<span class="nc" id="L155">        this.maxResults = maxResults;</span>
+<span class="nc" id="L156">    }</span>
+
+    public String getOnBehalfOfContentOwner() {
+<span class="fc" id="L159">        return onBehalfOfContentOwner;</span>
+    }
+
+    public void setOnBehalfOfContentOwner(String onBehalfOfContentOwner) {
+<span class="nc" id="L163">        this.onBehalfOfContentOwner = onBehalfOfContentOwner;</span>
+<span class="nc" id="L164">    }</span>
+
+    public String getOrder() {
+<span class="nc" id="L167">        return order;</span>
+    }
+
+    public void setOrder(String order) {
+<span class="nc" id="L171">        this.order = order;</span>
+<span class="nc" id="L172">    }</span>
+
+    public String getPageToken() {
+<span class="nc" id="L175">        return pageToken;</span>
+    }
+
+    public void setPageToken(String pageToken) {
+<span class="nc" id="L179">        this.pageToken = pageToken;</span>
+<span class="nc" id="L180">    }</span>
+
+    public String getPublishedAfterStr() {
+<span class="nc" id="L183">        return publishedAfterStr;</span>
+    }
+
+    public void setPublishedAfterStr(String publishedAfterStr) {
+<span class="nc" id="L187">        this.publishedAfterStr = publishedAfterStr;</span>
+<span class="nc" id="L188">    }</span>
+
+    public String getPublishedBeforeStr() {
+<span class="nc" id="L191">        return publishedBeforeStr;</span>
+    }
+
+    public void setPublishedBeforeStr(String publishedBeforeStr) {
+<span class="nc" id="L195">        this.publishedBeforeStr = publishedBeforeStr;</span>
+<span class="nc" id="L196">    }</span>
+
+    public String getQ() {
+<span class="nc" id="L199">        return q;</span>
+    }
+
+    public void setQ(String q) {
+<span class="nc" id="L203">        this.q = q;</span>
+<span class="nc" id="L204">    }</span>
+
+    public String getRelevanceLanguage() {
+<span class="nc" id="L207">        return relevanceLanguage;</span>
+    }
+
+    public void setRelevanceLanguage(String relevanceLanguage) {
+<span class="nc" id="L211">        this.relevanceLanguage = relevanceLanguage;</span>
+<span class="nc" id="L212">    }</span>
+
+    public String getRegionCode() {
+<span class="nc" id="L215">        return regionCode;</span>
+    }
+
+    public void setRegionCode(String regionCode) {
+<span class="nc" id="L219">        this.regionCode = regionCode;</span>
+<span class="nc" id="L220">    }</span>
+
+    public String getSafeSearch() {
+<span class="nc" id="L223">        return safeSearch;</span>
+    }
+
+    public void setSafeSearch(String safeSearch) {
+<span class="nc" id="L227">        this.safeSearch = safeSearch;</span>
+<span class="nc" id="L228">    }</span>
+
+    public String getTopicId() {
+<span class="nc" id="L231">        return topicId;</span>
+    }
+
+    public void setTopicId(String topicId) {
+<span class="nc" id="L235">        this.topicId = topicId;</span>
+<span class="nc" id="L236">    }</span>
+
+    public String getType() {
+<span class="fc" id="L239">        return type;</span>
+    }
+
+    public void setType(String type) {
+<span class="nc" id="L243">        this.type = type;</span>
+<span class="nc" id="L244">    }</span>
+
+    public String getVideoCaption() {
+<span class="fc" id="L247">        return videoCaption;</span>
+    }
+
+    public void setVideoCaption(String videoCaption) {
+<span class="nc" id="L251">        this.videoCaption = videoCaption;</span>
+<span class="nc" id="L252">    }</span>
+
+    public String getVideoCategoryId() {
+<span class="fc" id="L255">        return videoCategoryId;</span>
+    }
+
+    public void setVideoCategoryId(String videoCategoryId) {
+<span class="nc" id="L259">        this.videoCategoryId = videoCategoryId;</span>
+<span class="nc" id="L260">    }</span>
+
+    public String getVideoDefinition() {
+<span class="fc" id="L263">        return videoDefinition;</span>
+    }
+
+    public void setVideoDefinition(String videoDefinition) {
+<span class="nc" id="L267">        this.videoDefinition = videoDefinition;</span>
+<span class="nc" id="L268">    }</span>
+
+    public String getVideoDimension() {
+<span class="fc" id="L271">        return videoDimension;</span>
+    }
+
+    public void setVideoDimension(String videoDimension) {
+<span class="nc" id="L275">        this.videoDimension = videoDimension;</span>
+<span class="nc" id="L276">    }</span>
+
+    public String getVideoDuration() {
+<span class="nc" id="L279">        return videoDuration;</span>
+    }
+
+    public void setVideoDuration(String videoDuration) {
+<span class="nc" id="L283">        this.videoDuration = videoDuration;</span>
+<span class="nc" id="L284">    }</span>
+
+    public String getVideoEmbeddable() {
+<span class="nc" id="L287">        return videoEmbeddable;</span>
+    }
+
+    public void setVideoEmbeddable(String videoEmbeddable) {
+<span class="nc" id="L291">        this.videoEmbeddable = videoEmbeddable;</span>
+<span class="nc" id="L292">    }</span>
+
+    public String getVideoLicense() {
+<span class="nc" id="L295">        return videoLicense;</span>
+    }
+
+    public void setVideoLicense(String videoLicense) {
+<span class="nc" id="L299">        this.videoLicense = videoLicense;</span>
+<span class="nc" id="L300">    }</span>
+
+    public String getVideoSyndicated() {
+<span class="nc" id="L303">        return videoSyndicated;</span>
+    }
+
+    public void setVideoSyndicated(String videoSyndicated) {
+<span class="nc" id="L307">        this.videoSyndicated = videoSyndicated;</span>
+<span class="nc" id="L308">    }</span>
+
+    public String getVideoType() {
+<span class="nc" id="L311">        return videoType;</span>
+    }
+
+    public void setVideoType(String videoType) {
+<span class="nc" id="L315">        this.videoType = videoType;</span>
+<span class="nc" id="L316">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Assignment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.model.entity</a> &gt; <span class="el_source">Assignment.java</span></div><h1>Assignment.java</h1><pre class="source lang-java linenums">package com.pfa.app.model.entity;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonFormat.Shape;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import com.pfa.app.model.id.AssignmentId;
+
+@Entity
+@Table(name = &quot;assignments&quot;)
+@IdClass(AssignmentId.class)
+public final class Assignment implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	
+	@Id
+	@Column(name = &quot;employee_id&quot;)
+	private Integer employeeId;
+	
+	@Id
+	@Column(name = &quot;project_id&quot;)
+	private Integer projectId;
+	
+	@Id
+	@DateTimeFormat(pattern = &quot;dd-MM-yyyyHH:mm:ss&quot;)
+	@JsonFormat(shape = Shape.STRING, pattern = &quot;dd-MM-yyyyHH:mm:ss&quot;)
+	@JsonSerialize(using = LocalDateTimeSerializer.class)
+	@JsonDeserialize(using = LocalDateTimeDeserializer.class)
+	@Column(name = &quot;commit_date&quot;, unique = true, nullable = false)
+	private LocalDateTime commitDate; // = LocalDateTime.now();
+	
+	@Column(name = &quot;commit_emp_desc&quot;, length = 200)
+	private String commitEmpDesc;
+	
+	@Column(name = &quot;commit_mgr_desc&quot;, length = 200)
+	private String commitMgrDesc;
+	
+	// @Id
+	@ManyToOne(optional = false)
+	@JoinColumn(name = &quot;employee_id&quot;, nullable = false, insertable = false, updatable = false) // cause of the primary key in Employee entity must be NOT NULL
+	private Employee employee;
+	
+	// @Id
+	@ManyToOne(optional = false)
+	@JoinColumn(name = &quot;project_id&quot;, nullable = false, insertable = false, updatable = false) // cause of the primary key in Project entity must be NOT NULL
+	private Project project;
+	
+<span class="fc" id="L63">	public Assignment() {</span>
+		
+<span class="fc" id="L65">	}</span>
+	
+	@Override
+	public String toString() {
+<span class="fc" id="L69">		return &quot;Assignment [employeeId=&quot; + getEmployeeId() + &quot;, projectId=&quot; + getProjectId() + &quot;, commitDate=&quot; + commitDate</span>
+<span class="fc" id="L70">				+ &quot;, commitEmpDesc=&quot; + commitEmpDesc + &quot;, commitMgrDesc=&quot; + commitMgrDesc + &quot;, employeeId=&quot; + employee.getEmployeeId()</span>
+<span class="fc" id="L71">				+ &quot;, projectId=&quot; + project.getProjectId() + &quot;]&quot;;</span>
+	}
+	
+	public void setEmployeeId(final Integer employeeId) {
+<span class="fc" id="L75">		this.employeeId = employeeId;</span>
+<span class="fc" id="L76">	}</span>
+	
+	public void setProjectId(final Integer projectId) {
+<span class="fc" id="L79">		this.projectId = projectId;</span>
+<span class="fc" id="L80">	}</span>
+	
+	public LocalDateTime getCommitDate() {
+<span class="fc" id="L83">		return commitDate;</span>
+	}
+	
+	public void setCommitDate(final LocalDateTime commitDate) {
+<span class="fc" id="L87">		this.commitDate = commitDate;</span>
+<span class="fc" id="L88">	}</span>
+
+	public String getCommitEmpDesc() {
+<span class="fc" id="L91">		return commitEmpDesc;</span>
+	}
+
+	public void setCommitEmpDesc(final String commitEmpDesc) {
+<span class="fc" id="L95">		this.commitEmpDesc = commitEmpDesc;</span>
+<span class="fc" id="L96">	}</span>
+
+	public String getCommitMgrDesc() {
+<span class="fc" id="L99">		return commitMgrDesc;</span>
+	}
+
+	public void setCommitMgrDesc(final String commitMgrDesc) {
+<span class="fc" id="L103">		this.commitMgrDesc = commitMgrDesc;</span>
+<span class="fc" id="L104">	}</span>
+
+	public Employee getEmployee() {
+<span class="fc" id="L107">		return employee;</span>
+	}
+
+	public void setEmployee(final Employee employee) {
+<span class="fc" id="L111">		this.employee = employee;</span>
+<span class="fc" id="L112">	}</span>
+
+	public Project getProject() {
+<span class="fc" id="L115">		return project;</span>
+	}
+
+	public void setProject(final Project project) {
+<span class="fc" id="L119">		this.project = project;</span>
+<span class="fc" id="L120">	}</span>
+
+	public Integer getEmployeeId() {
+<span class="fc" id="L123">		return employeeId;</span>
+	}
+
+	public Integer getProjectId() {
+<span class="fc" id="L127">		return projectId;</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

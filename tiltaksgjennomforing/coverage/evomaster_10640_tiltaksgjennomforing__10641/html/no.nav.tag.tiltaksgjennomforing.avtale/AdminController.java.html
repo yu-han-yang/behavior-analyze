@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.security.token.support.core.api.ProtectedWithClaims;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.UtviklerTilgangProperties;
+import no.nav.tag.tiltaksgjennomforing.exceptions.RessursFinnesIkkeException;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+@ProtectedWithClaims(issuer = &quot;aad&quot;)
+@RestController
+@RequestMapping(&quot;/utvikler-admin/&quot;)
+<span class="fc" id="L24">@Slf4j</span>
+<span class="fc" id="L25">@RequiredArgsConstructor</span>
+public class AdminController {
+    private final AvtaleRepository avtaleRepository;
+    private final TilskuddPeriodeRepository tilskuddPeriodeRepository;
+    private final UtviklerTilgangProperties utviklerTilgangProperties;
+    private final TokenUtils tokenUtils;
+
+    private void sjekkTilgang() {
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        if (!tokenUtils.harAdGruppe(utviklerTilgangProperties.getGruppeTilgang())) {</span>
+<span class="nc" id="L34">            throw new HttpClientErrorException(HttpStatus.FORBIDDEN);</span>
+        }
+<span class="nc" id="L36">    }</span>
+
+    @PostMapping(&quot;reberegn&quot;)
+    public void reberegnLønnstilskudd(@RequestBody List&lt;UUID&gt; avtaleIder) {
+<span class="nc" id="L40">        sjekkTilgang();</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        for (UUID avtaleId : avtaleIder) {</span>
+<span class="nc" id="L42">            Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow();</span>
+<span class="nc" id="L43">            avtale.reberegnLønnstilskudd();</span>
+<span class="nc" id="L44">            avtaleRepository.save(avtale);</span>
+<span class="nc" id="L45">        }</span>
+<span class="nc" id="L46">    }</span>
+
+    @PostMapping(&quot;/reberegn-mangler-dato-for-redusert-prosent/{migreringsDato}&quot;)
+    @Transactional
+    public void reberegnVarigLønnstilskuddSomIkkeHarRedusertDato(@PathVariable @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate migreringsDato) {
+<span class="nc" id="L51">        sjekkTilgang();</span>
+<span class="nc" id="L52">        log.info(&quot;Starter jobb for å fikse manglende redusert prosent og redusert sum&quot;);</span>
+        // 1. Generer dato for redusert prosent og sumRedusert
+<span class="nc" id="L54">        List&lt;Avtale&gt; varigeLønnstilskudd = avtaleRepository.findAllByTiltakstypeAndGjeldendeInnhold_DatoForRedusertProsentNullAndGjeldendeInnhold_AvtaleInngåttNotNull(Tiltakstype.VARIG_LONNSTILSKUDD);</span>
+<span class="nc" id="L55">        log.info(&quot;Fant {} varige lønnstilskudd avtaler som mangler redusert prosent til fiksing.&quot;, varigeLønnstilskudd.size());</span>
+<span class="nc" id="L56">        AtomicInteger antallUnder67 = new AtomicInteger();</span>
+<span class="nc" id="L57">        varigeLønnstilskudd.forEach(avtale -&gt; {</span>
+<span class="nc" id="L58">            LocalDate startDato = avtale.getGjeldendeInnhold().getStartDato();</span>
+<span class="nc" id="L59">            LocalDate sluttDato = avtale.getGjeldendeInnhold().getSluttDato();</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            if (avtale.getGjeldendeInnhold().getLonnstilskuddProsent() &gt; 67</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">                    &amp;&amp; startDato.isBefore(sluttDato.minusMonths(12))</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                    &amp;&amp; avtale.getAnnullertTidspunkt() == null</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">                    &amp;&amp; avtale.getAvbruttGrunn() == null</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">                    &amp;&amp; avtale.getGjeldendeInnhold().getSumLonnstilskudd() != null) {</span>
+
+<span class="nc" id="L66">                avtale.reUtregnRedusert();</span>
+<span class="nc" id="L67">                avtale.nyeTilskuddsperioderEtterMigreringFraArena(migreringsDato, false);</span>
+<span class="nc" id="L68">                avtaleRepository.save(avtale);</span>
+<span class="nc" id="L69">                antallUnder67.getAndIncrement();</span>
+            }
+<span class="nc" id="L71">        });</span>
+<span class="nc" id="L72">        log.info(&quot;Ferdig kjørt reberegning av fiks for manglende redusert prosent og redusert sum på {} avtaler&quot;, antallUnder67);</span>
+<span class="nc" id="L73">    }</span>
+
+    @PostMapping(&quot;/reberegn-mangler-dato-for-redusert-prosent-dry-run/{migreringsDato}&quot;)
+    public void reberegnVarigLønnstilskuddSomIkkeHarRedusertDatoDryRun(@PathVariable @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate migreringsDato) {
+<span class="nc" id="L77">        sjekkTilgang();</span>
+<span class="nc" id="L78">        log.info(&quot;DRY-RUN: Starter DRY-RUN jobb for å fikse manglende redusert prosent og redusert sum&quot;);</span>
+        // 1. Generer dato for redusert prosent og sumRedusert
+<span class="nc" id="L80">        List&lt;Avtale&gt; varigeLønnstilskudd = avtaleRepository.findAllByTiltakstypeAndGjeldendeInnhold_DatoForRedusertProsentNullAndGjeldendeInnhold_AvtaleInngåttNotNull(Tiltakstype.VARIG_LONNSTILSKUDD);</span>
+<span class="nc" id="L81">        log.info(&quot;DRY-RUN: Fant {} varige lønnstilskudd avtaler som mangler redusert prosent til fiksing.&quot;, varigeLønnstilskudd.size());</span>
+<span class="nc" id="L82">        AtomicInteger antallUnder67 = new AtomicInteger();</span>
+<span class="nc" id="L83">        varigeLønnstilskudd.forEach(avtale -&gt; {</span>
+<span class="nc" id="L84">            LocalDate startDato = avtale.getGjeldendeInnhold().getStartDato();</span>
+<span class="nc" id="L85">            LocalDate sluttDato = avtale.getGjeldendeInnhold().getSluttDato();</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            if (avtale.getGjeldendeInnhold().getLonnstilskuddProsent() &gt; 67</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">                    &amp;&amp; startDato.isBefore(sluttDato.minusMonths(12))</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                    &amp;&amp; avtale.getAnnullertTidspunkt() == null</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                    &amp;&amp; avtale.getAvbruttGrunn() == null</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">                    &amp;&amp; avtale.getGjeldendeInnhold().getSumLonnstilskudd() != null) {</span>
+<span class="nc" id="L92">                antallUnder67.getAndIncrement();</span>
+            }
+<span class="nc" id="L94">        });</span>
+<span class="nc" id="L95">        log.info(&quot;DRY-RUN: Fant {} avtaler som vil bli kjørt fiksing av redusert sum og sats på&quot;, antallUnder67.get());</span>
+<span class="nc" id="L96">    }</span>
+
+    @PostMapping(&quot;/annuller-tilskuddsperiode/{tilskuddsperiodeId}&quot;)
+    @Transactional
+    public void annullerTilskuddsperiode(@PathVariable(&quot;tilskuddsperiodeId&quot;) UUID id) {
+<span class="nc" id="L101">        sjekkTilgang();</span>
+<span class="nc" id="L102">        log.info(&quot;Annullerer tilskuddsperiode {}&quot;, id);</span>
+<span class="nc" id="L103">        TilskuddPeriode tilskuddPeriode = tilskuddPeriodeRepository.findById(id).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L104">        Avtale avtale = tilskuddPeriode.getAvtale();</span>
+<span class="nc" id="L105">        avtale.annullerTilskuddsperiode(tilskuddPeriode);</span>
+<span class="nc" id="L106">        tilskuddPeriodeRepository.save(tilskuddPeriode);</span>
+<span class="nc" id="L107">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L108">    }</span>
+
+    @PostMapping(&quot;/annuller-og-resend-tilskuddsperiode/{tilskuddsperiodeId}&quot;)
+    @Transactional
+    public void annullerOgResendTilskuddsperiode(@PathVariable(&quot;tilskuddsperiodeId&quot;) UUID id) {
+<span class="nc" id="L113">        sjekkTilgang();</span>
+<span class="nc" id="L114">        log.info(&quot;Annullerer tilskuddsperiode {} og resender som godkjent&quot;, id);</span>
+<span class="nc" id="L115">        TilskuddPeriode tilskuddPeriode = tilskuddPeriodeRepository.findById(id).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L116">        Avtale avtale = tilskuddPeriode.getAvtale();</span>
+<span class="nc" id="L117">        avtale.annullerTilskuddsperiode(tilskuddPeriode);</span>
+<span class="nc" id="L118">        avtale.lagNyGodkjentTilskuddsperiodeFraAnnullertPeriode(tilskuddPeriode);</span>
+<span class="nc" id="L119">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L120">    }</span>
+
+    @PostMapping(&quot;/annuller-og-generer-tilskuddsperiode/{tilskuddsperiodeId}&quot;)
+    @Transactional
+    public void annullerOgGenererTilskuddsperiode(@PathVariable(&quot;tilskuddsperiodeId&quot;) UUID id) {
+<span class="nc" id="L125">        sjekkTilgang();</span>
+<span class="nc" id="L126">        log.info(&quot;Annullerer tilskuddsperiode {} og genererer ny ubehandlet&quot;, id);</span>
+<span class="nc" id="L127">        TilskuddPeriode tilskuddPeriode = tilskuddPeriodeRepository.findById(id).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L128">        Avtale avtale = tilskuddPeriode.getAvtale();</span>
+<span class="nc" id="L129">        avtale.annullerTilskuddsperiode(tilskuddPeriode);</span>
+<span class="nc" id="L130">        avtale.lagNyTilskuddsperiodeFraAnnullertPeriode(tilskuddPeriode);</span>
+<span class="nc" id="L131">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L132">    }</span>
+
+    @PostMapping(&quot;/annuller-og-generer-behandlet-i-arena-perioder/{avtaleId}/{dato}&quot;)
+    @Transactional
+    public void annullerOgGenererBehandletIArenaPerioder(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId, @PathVariable(&quot;dato&quot;) @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate dato) {
+<span class="nc" id="L137">        sjekkTilgang();</span>
+<span class="nc" id="L138">        log.info(&quot;Annullerer tilskuddsperioder med sluttdato før {} på avtale {} og lager nye med status behandlet i arena&quot;, dato, avtaleId);</span>
+<span class="nc" id="L139">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L140">        List&lt;TilskuddPeriode&gt; tilskuddsperioder = tilskuddPeriodeRepository.findAllByAvtaleAndSluttDatoBefore(avtale, dato);</span>
+<span class="nc" id="L141">        log.info(&quot;Fant {} tilskuddsperioder som skal annulleres og genereres på nytt med behandlet i arena status&quot;, tilskuddsperioder.size());</span>
+
+<span class="nc" id="L143">        tilskuddsperioder.stream().toList().forEach(tp -&gt; {</span>
+<span class="nc" id="L144">            avtale.annullerTilskuddsperiode(tp);</span>
+<span class="nc" id="L145">            avtale.lagNyBehandletIArenaTilskuddsperiodeFraAnnullertPeriode(tp);</span>
+<span class="nc" id="L146">        });</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        log.info(&quot;Avtale {} har nå {} perioder med status behandlet i arena&quot;, avtaleId, avtale.getTilskuddPeriode().stream().filter(tp -&gt; tp.getStatus() == TilskuddPeriodeStatus.BEHANDLET_I_ARENA).count());</span>
+<span class="nc" id="L149">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L150">    }</span>
+
+    @PostMapping(&quot;/lag-tilskuddsperioder-for-en-avtale/{avtaleId}/{migreringsDato}&quot;)
+    @Transactional
+    public void lagTilskuddsperioderPåEnAvtale(@PathVariable(&quot;avtaleId&quot;) UUID id, @PathVariable @DateTimeFormat(pattern = &quot;yyyy-MM-dd&quot;) LocalDate migreringsDato) {
+<span class="nc" id="L155">        sjekkTilgang();</span>
+<span class="nc" id="L156">        log.info(&quot;Lager tilskuddsperioder på en enkelt avtale {} fra dato {}&quot;, id, migreringsDato);</span>
+<span class="nc" id="L157">        Avtale avtale = avtaleRepository.findById(id)</span>
+<span class="nc" id="L158">                .orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L159">        avtale.nyeTilskuddsperioderEtterMigreringFraArena(migreringsDato, false);</span>
+<span class="nc" id="L160">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L161">    }</span>
+
+    @PostMapping(&quot;/reberegn-ubehandlede-tilskuddsperioder/{avtaleId}&quot;)
+    @Transactional
+    public void reberegnUbehandledeTilskuddsperioder(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L166">        sjekkTilgang();</span>
+<span class="nc" id="L167">        log.info(&quot;Reberegner ubehandlede tilskuddsperioder for avtale: {}&quot;, avtaleId);</span>
+<span class="nc" id="L168">        Avtale avtale = avtaleRepository.findById(avtaleId).orElseThrow(RessursFinnesIkkeException::new);</span>
+<span class="nc" id="L169">        avtale.reberegnUbehandledeTilskuddsperioder();</span>
+<span class="nc" id="L170">        avtaleRepository.save(avtale);</span>
+<span class="nc" id="L171">    }</span>
+
+    @PostMapping(&quot;/finn-avtaler-med-tilskuddsperioder-feil-datoer&quot;)
+    public void finnTilskuddsperioderMedFeilDatoer() {
+<span class="nc" id="L175">        sjekkTilgang();</span>
+<span class="nc" id="L176">        log.info(&quot;Finner avtaler som har tilskuddsperioder med mindre startdato enn en periode med lavere løpenummer&quot;);</span>
+<span class="nc" id="L177">        List&lt;Avtale&gt; midlertidige = avtaleRepository.findAllByTiltakstype(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        midlertidige.removeIf(a -&gt; a.getGjeldendeInnhold().getAvtaleInngått() == null);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        midlertidige.removeIf(a -&gt; a.getTilskuddPeriode().size() == 0);</span>
+
+<span class="nc" id="L181">        midlertidige.forEach(avtale -&gt; {</span>
+<span class="nc" id="L182">            avtale.getTilskuddPeriode().forEach(tp -&gt; {</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">                if (tp.getLøpenummer() &gt; 1) {</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">                    TilskuddPeriode forrigePeriode = avtale.getTilskuddPeriode().stream().filter(t -&gt; t.getLøpenummer() == tp.getLøpenummer() - 1).collect(Collectors.toList()).stream().findFirst().orElseThrow();</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                    if (tp.getStartDato().isBefore(forrigePeriode.getStartDato())) {</span>
+<span class="nc" id="L186">                        log.warn(&quot;Tilskuddsperiode med id {} har startDato før startDatoen til forrige løpenummer!&quot;, tp.getId());</span>
+                    }
+                }
+<span class="nc" id="L189">            });</span>
+<span class="nc" id="L190">        });</span>
+<span class="nc" id="L191">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

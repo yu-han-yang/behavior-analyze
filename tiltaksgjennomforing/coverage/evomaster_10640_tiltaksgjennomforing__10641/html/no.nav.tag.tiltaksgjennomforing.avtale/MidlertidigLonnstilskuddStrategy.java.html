@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MidlertidigLonnstilskuddStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">MidlertidigLonnstilskuddStrategy.java</span></div><h1>MidlertidigLonnstilskuddStrategy.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import no.nav.tag.tiltaksgjennomforing.enhet.Kvalifiseringsgruppe;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilLonnstilskuddsprosentException;
+
+import java.time.LocalDate;
+
+public class MidlertidigLonnstilskuddStrategy extends LonnstilskuddStrategy {
+
+    public MidlertidigLonnstilskuddStrategy(AvtaleInnhold avtaleInnhold) {
+<span class="nc" id="L11">        super(avtaleInnhold);</span>
+<span class="nc" id="L12">    }</span>
+
+    @Override
+    public void endreAvtaleInnholdMedKvalifiseringsgruppe(EndreAvtale endreAvtale, Kvalifiseringsgruppe kvalifiseringsgruppe) {
+<span class="nc bnc" id="L16" title="All 2 branches missed.">        if (kvalifiseringsgruppe != null) {</span>
+<span class="nc" id="L17">            settTilskuddsprosentSats(kvalifiseringsgruppe);</span>
+<span class="nc" id="L18">            this.endre(endreAvtale);</span>
+        } else {
+<span class="nc" id="L20">            sjekktilskuddsprosentSats(endreAvtale);</span>
+<span class="nc" id="L21">            super.endre(endreAvtale);</span>
+        }
+<span class="nc" id="L23">    }</span>
+
+    @Override
+    public void endre(EndreAvtale endreAvtale) {
+<span class="nc" id="L27">        sjekktilskuddsprosentSats(endreAvtale);</span>
+<span class="nc" id="L28">        super.endre(endreAvtale);</span>
+<span class="nc" id="L29">    }</span>
+
+    @Override
+    public void regnUtTotalLonnstilskudd() {
+<span class="nc" id="L33">        super.regnUtTotalLonnstilskudd();</span>
+<span class="nc" id="L34">        regnUtDatoOgSumRedusert();</span>
+<span class="nc" id="L35">    }</span>
+
+    private void sjekktilskuddsprosentSats(EndreAvtale endreAvtale) {
+<span class="nc bnc" id="L38" title="All 2 branches missed.">        if (endreAvtale.getLonnstilskuddProsent() != null &amp;&amp; (</span>
+<span class="nc bnc" id="L39" title="All 4 branches missed.">                endreAvtale.getLonnstilskuddProsent() != 40 &amp;&amp; endreAvtale.getLonnstilskuddProsent() != 60)) {</span>
+<span class="nc" id="L40">            throw new FeilLonnstilskuddsprosentException();</span>
+        }
+<span class="nc" id="L42">    }</span>
+
+    private void settTilskuddsprosentSats(Kvalifiseringsgruppe kvalifiseringsgruppe) {
+<span class="nc" id="L45">        final Integer sats = kvalifiseringsgruppe.finnLonntilskuddProsentsatsUtifraKvalifiseringsgruppe(40, 60);</span>
+<span class="nc" id="L46">        avtaleInnhold.setLonnstilskuddProsent(sats);</span>
+<span class="nc" id="L47">    }</span>
+
+    private void regnUtDatoOgSumRedusert() {
+<span class="nc" id="L50">        LocalDate datoForRedusertProsent = getDatoForRedusertProsent(avtaleInnhold.getStartDato(), avtaleInnhold.getSluttDato(), avtaleInnhold.getLonnstilskuddProsent());</span>
+<span class="nc" id="L51">        avtaleInnhold.setDatoForRedusertProsent(datoForRedusertProsent);</span>
+<span class="nc" id="L52">        Integer sumLønnstilskuddRedusert = regnUtRedusertLønnstilskudd();</span>
+<span class="nc" id="L53">        avtaleInnhold.setSumLønnstilskuddRedusert(sumLønnstilskuddRedusert);</span>
+<span class="nc" id="L54">    }</span>
+
+    private Integer regnUtRedusertLønnstilskudd() {
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if (avtaleInnhold.getDatoForRedusertProsent() != null &amp;&amp; avtaleInnhold.getLonnstilskuddProsent() != null) {</span>
+<span class="nc" id="L58">            return getSumLonnsTilskudd(avtaleInnhold.getSumLonnsutgifter(), avtaleInnhold.getLonnstilskuddProsent() - 10);</span>
+        } else {
+<span class="nc" id="L60">            return null;</span>
+        }
+    }
+
+    private LocalDate getDatoForRedusertProsent(LocalDate startDato, LocalDate sluttDato, Integer lonnstilskuddprosent) {
+<span class="nc bnc" id="L65" title="All 6 branches missed.">        if (startDato == null || sluttDato == null || lonnstilskuddprosent == null) {</span>
+<span class="nc" id="L66">            return null;</span>
+        }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (lonnstilskuddprosent == 40) {</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            if (startDato.plusMonths(6).minusDays(1).isBefore(sluttDato)) {</span>
+<span class="nc" id="L70">                return startDato.plusMonths(6);</span>
+            }
+
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        } else if (lonnstilskuddprosent == 60) {</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">            if (startDato.plusYears(1).minusDays(1).isBefore(sluttDato)) {</span>
+<span class="nc" id="L75">                return startDato.plusYears(1);</span>
+            }
+        }
+
+<span class="nc" id="L79">        return null;</span>
+    }
+
+    @Override
+    public void endreSluttDato(LocalDate nySluttDato) {
+<span class="nc" id="L84">        super.endreSluttDato(nySluttDato);</span>
+<span class="nc" id="L85">        regnUtDatoOgSumRedusert();</span>
+<span class="nc" id="L86">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

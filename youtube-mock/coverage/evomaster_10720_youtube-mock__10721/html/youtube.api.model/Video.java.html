@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Video.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.model</a> &gt; <span class="el_source">Video.java</span></div><h1>Video.java</h1><pre class="source lang-java linenums">package youtube.api.model;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * A video resource represents a YouTube video.
+ */
+public class Video implements Comparable&lt;Video&gt;{
+
+    private String id;
+
+    /**
+     * The snippet object contains basic details about the video, such as its title, description, and category.
+     */
+    private SearchResultSnippet snippet;
+
+    /**
+     * The type of the video. Possible values for this property are:
+     *
+     * &lt;ul&gt;
+     *     &lt;li&gt;episode&lt;/li&gt;
+     *     &lt;li&gt;movie&lt;/li&gt;
+     *     &lt;li&gt;other&lt;/li&gt;
+     * &lt;/ul&gt;
+     */
+    private String type;
+
+    /**
+     * The category of this video. It contains the id and the title of the category. These properties are relevant
+     * when using 'relatedToVideoId' filter or 'videoCategoryId' parameter in search list operation.
+     */
+    private VideoCategory category;
+
+    /**
+     * The language of the text in the video resource's snippet.title and snippet.description properties.
+     */
+    private String defaultLanguage;
+
+    private Duration contentDetailsDuration;
+
+    private VideoDimension contentDetailsDimension;
+
+    private VideoDefinition contentDetailsDefinition;
+
+    private Boolean contentDetailsCaption;
+
+    private List&lt;String&gt; contentDetailsRegionRestrictionAllowed;
+
+    private List&lt;String&gt; contentDetailsRegionRestrictionBlocked;
+
+    private Boolean embeddable;
+
+    private VideoLicense license;
+
+    /**
+     * A list of topic IDs that are relevant to the video.
+     *
+     * &lt;br&gt;&lt;br&gt;
+     *
+     * Important: Due to the deprecation of Freebase and the Freebase API, topic IDs started working differently as of
+     * February 27, 2017. At that time, YouTube started returning a small set of curated topic IDs.
+     *
+     * &lt;br&gt;&lt;br&gt;
+     *
+     * &lt;a href=&quot;https://developers.google.com/youtube/v3/docs/videos#topicDetails.relevantTopicIds[]&quot; role=&quot;button&quot;&gt;Link to documentation&lt;/a&gt;
+     */
+    private List&lt;String&gt; relevantTopicIds;
+
+    /**
+     * @deprecated Deprecated as of June 1, 2017
+     */
+    @Deprecated
+    private Double latitude;
+
+    /**
+     * @deprecated Deprecated as of June 1, 2017
+     */
+    @Deprecated
+    private Double longitude;
+
+    private Long viewCount;
+
+    private Long likeCount;
+
+    private Long dislikeCount;
+
+    /**
+     * A rating that YouTube uses to identify age-restricted content.
+     * Valid values for this property are:
+     *
+     * &lt;ul&gt;&lt;li&gt;ytAgeRestricted&lt;/li&gt;&lt;/ul&gt;
+     */
+    private String ytRating;
+
+    private Boolean hasLiveStreamingDetails;
+
+    private Long liveStreamingConcurrentViewers;
+
+    private Boolean forDeveloperVideo;
+
+    public Video(String id, SearchResultSnippet snippet, String type, VideoCategory category, String defaultLanguage, Duration contentDetailsDuration, VideoDimension contentDetailsDimension,
+                 VideoDefinition contentDetailsDefinition, Boolean contentDetailsCaption, List&lt;String&gt; contentDetailsRegionRestrictionAllowed, List&lt;String&gt; contentDetailsRegionRestrictionBlocked,
+                 Boolean embeddable, VideoLicense license, List&lt;String&gt; relevantTopicIds, Long viewCount, Long likeCount, Long dislikeCount, String ytRating, Boolean liveStreamingDetails,
+<span class="fc" id="L106">                 Long liveStreamingConcurrentViewers, Boolean forDeveloperVideo) {</span>
+<span class="fc" id="L107">        this.id = id;</span>
+<span class="fc" id="L108">        this.snippet = snippet;</span>
+<span class="fc" id="L109">        this.type = type;</span>
+<span class="fc" id="L110">        this.category = category;</span>
+<span class="fc" id="L111">        this.defaultLanguage = defaultLanguage;</span>
+<span class="fc" id="L112">        this.contentDetailsDuration = contentDetailsDuration;</span>
+<span class="fc" id="L113">        this.contentDetailsDimension = contentDetailsDimension;</span>
+<span class="fc" id="L114">        this.contentDetailsDefinition = contentDetailsDefinition;</span>
+<span class="fc" id="L115">        this.contentDetailsCaption = contentDetailsCaption;</span>
+<span class="fc" id="L116">        this.contentDetailsRegionRestrictionAllowed = contentDetailsRegionRestrictionAllowed;</span>
+<span class="fc" id="L117">        this.contentDetailsRegionRestrictionBlocked = contentDetailsRegionRestrictionBlocked;</span>
+<span class="fc" id="L118">        this.embeddable = embeddable;</span>
+<span class="fc" id="L119">        this.license = license;</span>
+<span class="fc" id="L120">        this.relevantTopicIds = relevantTopicIds;</span>
+<span class="fc" id="L121">        this.viewCount = viewCount;</span>
+<span class="fc" id="L122">        this.likeCount = likeCount;</span>
+<span class="fc" id="L123">        this.dislikeCount = dislikeCount;</span>
+<span class="fc" id="L124">        this.ytRating = ytRating;</span>
+<span class="fc" id="L125">        this.hasLiveStreamingDetails = liveStreamingDetails;</span>
+<span class="fc" id="L126">        this.liveStreamingConcurrentViewers = liveStreamingConcurrentViewers;</span>
+<span class="fc" id="L127">        this.forDeveloperVideo = forDeveloperVideo;</span>
+<span class="fc" id="L128">    }</span>
+
+    /**
+     * @deprecated
+     */
+    @Deprecated
+    public Video(String id, SearchResultSnippet snippet, String type, VideoCategory category, String defaultLanguage, Duration contentDetailsDuration, VideoDimension contentDetailsDimension,
+                 VideoDefinition contentDetailsDefinition, Boolean contentDetailsCaption, List&lt;String&gt; contentDetailsRegionRestrictionAllowed, List&lt;String&gt; contentDetailsRegionRestrictionBlocked,
+                 Boolean embeddable, VideoLicense license, List&lt;String&gt; relevantTopicIds, Double latitude, Double longitude, Long viewCount, Long likeCount, Long dislikeCount, String ytRating,
+                 Boolean liveStreamingDetails, Long liveStreamingConcurrentViewers, Boolean forDeveloperVideo) {
+<span class="fc" id="L138">        this(id, snippet, type, category, defaultLanguage, contentDetailsDuration, contentDetailsDimension, contentDetailsDefinition, contentDetailsCaption, contentDetailsRegionRestrictionAllowed,</span>
+                contentDetailsRegionRestrictionBlocked, embeddable, license, relevantTopicIds, viewCount, likeCount, dislikeCount, ytRating, liveStreamingDetails, liveStreamingConcurrentViewers,
+                forDeveloperVideo);
+<span class="fc" id="L141">        this.latitude = latitude;</span>
+<span class="fc" id="L142">        this.longitude = longitude;</span>
+<span class="fc" id="L143">    }</span>
+
+    public String getId() {
+<span class="nc" id="L146">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="nc" id="L150">        this.id = id;</span>
+<span class="nc" id="L151">    }</span>
+
+    public SearchResultSnippet getSnippet() {
+<span class="fc" id="L154">        return snippet;</span>
+    }
+
+    public void setSnippet(SearchResultSnippet snippet) {
+<span class="nc" id="L158">        this.snippet = snippet;</span>
+<span class="nc" id="L159">    }</span>
+
+    public String getType() {
+<span class="nc" id="L162">        return type;</span>
+    }
+
+    /**
+     * Set a type for the video. Possible values for this property are:
+     *
+     * &lt;ul&gt;
+     *     &lt;li&gt;episode&lt;/li&gt;
+     *     &lt;li&gt;movie&lt;/li&gt;
+     *     &lt;li&gt;other&lt;/li&gt;
+     * &lt;/ul&gt;
+     */
+    public void setType(String type) {
+<span class="nc" id="L175">        this.type = type;</span>
+<span class="nc" id="L176">    }</span>
+
+    public VideoCategory getCategory() {
+<span class="nc" id="L179">        return category;</span>
+    }
+
+    public void setCategory(VideoCategory category) {
+<span class="nc" id="L183">        this.category = category;</span>
+<span class="nc" id="L184">    }</span>
+
+    public String getDefaultLanguage() {
+<span class="nc" id="L187">        return defaultLanguage;</span>
+    }
+
+    public void setDefaultLanguage(String defaultLanguage) {
+<span class="nc" id="L191">        this.defaultLanguage = defaultLanguage;</span>
+<span class="nc" id="L192">    }</span>
+
+    public Duration getContentDetailsDuration() {
+<span class="nc" id="L195">        return contentDetailsDuration;</span>
+    }
+
+    public VideoDimension getContentDetailsDimension() {
+<span class="nc" id="L199">        return contentDetailsDimension;</span>
+    }
+
+    public VideoDefinition getContentDetailsDefinition() {
+<span class="nc" id="L203">        return contentDetailsDefinition;</span>
+    }
+
+    public Boolean getContentDetailsCaption() {
+<span class="nc" id="L207">        return contentDetailsCaption;</span>
+    }
+
+    public List&lt;String&gt; getContentDetailsRegionRestrictionAllowed() {
+<span class="nc" id="L211">        return contentDetailsRegionRestrictionAllowed;</span>
+    }
+
+    public List&lt;String&gt; getContentDetailsRegionRestrictionBlocked() {
+<span class="nc" id="L215">        return contentDetailsRegionRestrictionBlocked;</span>
+    }
+
+    public Boolean getEmbeddable() {
+<span class="nc" id="L219">        return embeddable;</span>
+    }
+
+    public VideoLicense getLicense() {
+<span class="nc" id="L223">        return license;</span>
+    }
+
+    public List&lt;String&gt; getRelevantTopicIds() {
+<span class="nc" id="L227">        return relevantTopicIds;</span>
+    }
+
+    public Double getLatitude() {
+<span class="nc" id="L231">        return latitude;</span>
+    }
+
+    public Double getLongitude() {
+<span class="nc" id="L235">        return longitude;</span>
+    }
+
+    public Long getViewCount() {
+<span class="nc" id="L239">        return viewCount;</span>
+    }
+
+    public Long getLikeCount() {
+<span class="nc" id="L243">        return likeCount;</span>
+    }
+
+    public Long getDislikeCount() {
+<span class="nc" id="L247">        return dislikeCount;</span>
+    }
+
+    public String getYtRating() {
+<span class="nc" id="L251">        return ytRating;</span>
+    }
+
+    public Boolean getHasLiveStreamingDetails() {
+<span class="nc" id="L255">        return hasLiveStreamingDetails;</span>
+    }
+
+    public Long getLiveStreamingConcurrentViewers() {
+<span class="nc" id="L259">        return liveStreamingConcurrentViewers;</span>
+    }
+
+    public Boolean getForDeveloperVideo() {
+<span class="nc" id="L263">        return forDeveloperVideo;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L268" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L269" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L270">        Video video = (Video) o;</span>
+<span class="nc" id="L271">        return id.equals(video.id);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L276">        return Objects.hash(id);</span>
+    }
+
+    @Override
+    public int compareTo(Video o) {
+<span class="nc" id="L281">        int res = this.getViewCount().compareTo(o.getViewCount());</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        if(res == 0) {</span>
+<span class="nc" id="L283">            res = this.getLikeCount().compareTo(o.getLikeCount());</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">            if(res == 0) {</span>
+<span class="nc" id="L285">                res = this.getDislikeCount().compareTo(o.getDislikeCount());</span>
+            }
+        }
+<span class="nc" id="L288">        return res;</span>
+    }
+
+<span class="fc" id="L291">    public enum VideoDimension {</span>
+<span class="fc" id="L292">        TWO_D(&quot;2d&quot;), THREE_D(&quot;3d&quot;);</span>
+
+        private String dimension;
+
+<span class="fc" id="L296">        VideoDimension(String dimension) {</span>
+<span class="fc" id="L297">            this.dimension = dimension;</span>
+<span class="fc" id="L298">        }</span>
+
+        public String getDimension() {
+<span class="nc" id="L301">            return dimension;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L306">            return getDimension();</span>
+        }
+    }
+
+<span class="fc" id="L310">    public enum VideoDefinition {</span>
+<span class="fc" id="L311">        HD(&quot;high&quot;), SD(&quot;standard&quot;);</span>
+
+        private String definition;
+
+<span class="fc" id="L315">        VideoDefinition(String definition) {</span>
+<span class="fc" id="L316">            this.definition = definition;</span>
+<span class="fc" id="L317">        }</span>
+
+        public String getDefinition() {
+<span class="nc" id="L320">            return definition;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L325">            return getDefinition();</span>
+        }
+    }
+
+<span class="fc" id="L329">    public enum VideoLicense {</span>
+<span class="fc" id="L330">        YOUTUBE(&quot;youtube&quot;), CREATIVE_COMMON(&quot;creativeCommon&quot;);</span>
+
+        private String license;
+
+<span class="fc" id="L334">        VideoLicense(String license) {</span>
+<span class="fc" id="L335">            this.license = license;</span>
+<span class="fc" id="L336">        }</span>
+
+        public String getLicense() {
+<span class="nc" id="L339">            return license;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L344">            return license;</span>
+        }
+    }
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

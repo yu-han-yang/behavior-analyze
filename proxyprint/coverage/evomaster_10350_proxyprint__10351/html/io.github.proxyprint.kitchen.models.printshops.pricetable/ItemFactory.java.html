@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ItemFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.models.printshops.pricetable</a> &gt; <span class="el_source">ItemFactory.java</span></div><h1>ItemFactory.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.models.printshops.pricetable;
+
+import io.github.proxyprint.kitchen.controllers.printshops.pricetable.PaperTableItem;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by daniel on 28-04-2016.
+ */
+public class ItemFactory {
+
+<span class="fc" id="L13">    public ItemFactory(){}</span>
+
+    /**
+     * Create a concrete instance of an item.
+     * @param item, String that represents the item specs as stored in the database
+     *              or as its received from front-end applications
+     * @return A concrete instance of the Item derived from the input String
+     * which is parsed along the function cut in pieces and feeded to the returned object.
+     */
+    public Item createItem(String item) {
+        String itemType;
+
+<span class="nc" id="L25">        String[] parts = item.split(&quot;,&quot;);</span>
+<span class="nc" id="L26">        itemType = parts[0];</span>
+
+<span class="nc bnc" id="L28" title="All 2 branches missed.">        if(itemType.equals(RangePaperItem.KEY_BASE)) {</span>
+            PaperItem.Colors colors;
+            PaperItem.Format format;
+            PaperItem.Sides sides;
+
+<span class="nc" id="L33">            colors = PaperItem.Colors.valueOf(parts[1]);</span>
+<span class="nc" id="L34">            format = PaperItem.Format.valueOf(parts[2]);</span>
+<span class="nc" id="L35">            sides = PaperItem.Sides.valueOf(parts[3]);</span>
+
+<span class="nc bnc" id="L37" title="All 6 branches missed.">            if(parts.length &gt; 4 &amp;&amp; parts[4]!=null &amp;&amp; parts[5]!=null) {</span>
+                int infLim, supLim;
+<span class="nc" id="L39">                infLim = Integer.parseInt(parts[4]);</span>
+<span class="nc" id="L40">                supLim = Integer.parseInt(parts[5]);</span>
+<span class="nc" id="L41">                return new RangePaperItem(format, sides, colors, infLim, supLim);</span>
+            } else {
+<span class="nc" id="L43">                return new PaperItem(format,sides,colors);</span>
+            }
+        }
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        else if(itemType.equals(BindingItem.KEY_BASE)) {</span>
+            BindingItem.RingType ringsType;
+
+<span class="nc" id="L49">            ringsType = BindingItem.RingType.valueOf(parts[1]);</span>
+<span class="nc bnc" id="L50" title="All 6 branches missed.">            if(parts.length &gt; 3 &amp;&amp; parts[2]!=null &amp;&amp; parts[3]!=null) {</span>
+                int infLim, supLim;
+<span class="nc" id="L52">                infLim = Integer.parseInt(parts[2]);</span>
+<span class="nc" id="L53">                supLim = Integer.parseInt(parts[3]);</span>
+<span class="nc" id="L54">                return new BindingItem(ringsType,infLim,supLim);</span>
+            } else {
+<span class="nc" id="L56">                return new BindingItem(ringsType,0,0);</span>
+            }
+
+        }
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        else if(itemType.equals(CoverItem.KEY_BASE)) {</span>
+            CoverItem.CoverType coverType;
+
+<span class="nc" id="L63">            coverType = CoverItem.CoverType.valueOf(parts[1]);</span>
+<span class="nc bnc" id="L64" title="All 4 branches missed.">            if(parts.length &gt; 2 &amp;&amp; parts[2]!=null) {</span>
+<span class="nc" id="L65">                PaperItem.Format format = PaperItem.Format.valueOf(parts[2]);</span>
+<span class="nc" id="L66">                return new CoverItem(coverType,format);</span>
+            } else {
+                // by default create an A4 cover
+<span class="nc" id="L69">                return new CoverItem(coverType,PaperItem.Format.A4);</span>
+            }
+        }
+
+<span class="nc" id="L73">        return null;</span>
+    }
+
+    /**
+     * Convert a PaperTableItem to its respective PriceItems
+     * @param pti, a new entry in the price table
+     * @return List&lt;RangePaperItem&gt;, List of price items which result from the conversion.
+     */
+    public List&lt;RangePaperItem&gt; fromPaperTableItemToPaperItems(PaperTableItem pti) {
+<span class="nc" id="L82">        List&lt;RangePaperItem&gt; res = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if(!pti.getPriceA4SIMPLEX().equals(PaperTableItem.DEFAULT)) {</span>
+<span class="nc" id="L85">            res.add(new RangePaperItem(PaperItem.Format.A4, PaperItem.Sides.SIMPLEX, PaperItem.Colors.valueOf(pti.getColors()), pti.getInfLim(), pti.getSupLim()));</span>
+        }
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        if(!pti.getPriceA4DUPLEX().equals(PaperTableItem.DEFAULT)) {</span>
+<span class="nc" id="L88">            res.add(new RangePaperItem(PaperItem.Format.A4, PaperItem.Sides.DUPLEX, PaperItem.Colors.valueOf(pti.getColors()), pti.getInfLim(), pti.getSupLim()));</span>
+        }
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if(!pti.getPriceA3SIMPLEX().equals(PaperTableItem.DEFAULT)) {</span>
+<span class="nc" id="L91">            res.add(new RangePaperItem(PaperItem.Format.A3, PaperItem.Sides.SIMPLEX, PaperItem.Colors.valueOf(pti.getColors()), pti.getInfLim(), pti.getSupLim()));</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if(!pti.getPriceA3DUPLEX().equals(PaperTableItem.DEFAULT)) {</span>
+<span class="nc" id="L94">            res.add(new RangePaperItem(PaperItem.Format.A3, PaperItem.Sides.DUPLEX, PaperItem.Colors.valueOf(pti.getColors()), pti.getInfLim(), pti.getSupLim()));</span>
+        }
+
+<span class="nc" id="L97">        return res;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

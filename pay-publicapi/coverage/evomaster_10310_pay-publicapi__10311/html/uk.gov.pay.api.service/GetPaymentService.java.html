@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GetPaymentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">GetPaymentService.java</span></div><h1>GetPaymentService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.GetChargeException;
+import uk.gov.pay.api.model.Charge;
+import uk.gov.pay.api.model.links.PaymentWithAllLinks;
+
+import javax.inject.Inject;
+import java.net.URI;
+
+public class GetPaymentService {
+
+    private final PublicApiUriGenerator publicApiUriGenerator;
+    private final ConnectorService connectorService;
+    private final LedgerService ledgerService;
+
+    @Inject
+    public GetPaymentService(PublicApiUriGenerator publicApiUriGenerator,
+<span class="fc" id="L19">                             ConnectorService connectorService, LedgerService ledgerService) {</span>
+<span class="fc" id="L20">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L21">        this.connectorService = connectorService;</span>
+<span class="fc" id="L22">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L23">    }</span>
+
+    public PaymentWithAllLinks getConnectorCharge(Account account, String paymentId) {
+<span class="nc" id="L26">        Charge charge = connectorService.getCharge(account, paymentId);</span>
+
+<span class="nc" id="L28">        return getPaymentWithAllLinks(charge);</span>
+    }
+    
+    public PaymentWithAllLinks getLedgerTransaction(Account account, String paymentId) {
+<span class="nc" id="L32">        Charge charge = ledgerService.getPaymentTransaction(account, paymentId);</span>
+        
+<span class="nc" id="L34">        return getPaymentWithAllLinks(charge);</span>
+    }
+
+    public PaymentWithAllLinks getPayment(Account account, String paymentId) {
+        try {
+<span class="nc" id="L39">            return getConnectorCharge(account, paymentId);</span>
+<span class="nc" id="L40">        } catch (GetChargeException ex) {</span>
+<span class="nc" id="L41">            return getLedgerTransaction(account, paymentId);</span>
+        }
+    }
+
+    private PaymentWithAllLinks getPaymentWithAllLinks(Charge chargeFromResponse) {
+<span class="nc" id="L46">        URI paymentURI = publicApiUriGenerator.getPaymentURI(chargeFromResponse.getChargeId());</span>
+
+<span class="nc" id="L48">        return PaymentWithAllLinks.getPaymentWithLinks(</span>
+                chargeFromResponse,
+                paymentURI,
+<span class="nc" id="L51">                publicApiUriGenerator.getPaymentEventsURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L52">                publicApiUriGenerator.getPaymentCancelURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L53">                publicApiUriGenerator.getPaymentRefundsURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L54">                publicApiUriGenerator.getPaymentCaptureURI(chargeFromResponse.getChargeId()),</span>
+<span class="nc" id="L55">                publicApiUriGenerator.getPaymentAuthorisationURI());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

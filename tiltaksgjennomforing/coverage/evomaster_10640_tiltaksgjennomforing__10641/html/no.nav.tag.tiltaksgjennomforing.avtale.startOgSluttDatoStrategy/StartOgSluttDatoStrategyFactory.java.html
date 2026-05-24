@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StartOgSluttDatoStrategyFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale.startOgSluttDatoStrategy</a> &gt; <span class="el_source">StartOgSluttDatoStrategyFactory.java</span></div><h1>StartOgSluttDatoStrategyFactory.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale.startOgSluttDatoStrategy;
+
+import lombok.experimental.UtilityClass;
+import no.nav.tag.tiltaksgjennomforing.avtale.Tiltakstype;
+import no.nav.tag.tiltaksgjennomforing.enhet.Kvalifiseringsgruppe;
+
+@UtilityClass
+<span class="nc" id="L8">public class StartOgSluttDatoStrategyFactory {</span>
+    public static StartOgSluttDatoStrategy create(Tiltakstype tiltakstype, Kvalifiseringsgruppe kvalifiseringsgruppe) {
+<span class="nc bnc" id="L10" title="All 7 branches missed.">        switch (tiltakstype) {</span>
+            case ARBEIDSTRENING:
+<span class="nc" id="L12">                return new ArbeidstreningStartOgSluttDatoStrategy();</span>
+            case MIDLERTIDIG_LONNSTILSKUDD:
+<span class="nc" id="L14">                return new MidlertidigLonnstilskuddStartOgSluttDatoStrategy(kvalifiseringsgruppe);</span>
+            case VARIG_LONNSTILSKUDD:
+<span class="nc" id="L16">                return new VarigLonnstilskuddStartOgSluttDatoStrategy();</span>
+            case MENTOR:
+<span class="nc" id="L18">                return new MentorStartOgSluttDatoStrategy(kvalifiseringsgruppe);</span>
+            case INKLUDERINGSTILSKUDD:
+<span class="nc" id="L20">                return new InkluderingstilskuddStartOgSluttDatoStrategy();</span>
+            case SOMMERJOBB:
+<span class="nc" id="L22">                return new SommerjobbStartOgSluttDatoStrategy();</span>
+        }
+<span class="nc" id="L24">        return new StartOgSluttDatoStrategy() {</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

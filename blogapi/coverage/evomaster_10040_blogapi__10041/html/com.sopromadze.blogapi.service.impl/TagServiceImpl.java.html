@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TagServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.service.impl</a> &gt; <span class="el_source">TagServiceImpl.java</span></div><h1>TagServiceImpl.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.service.impl;
+
+import com.sopromadze.blogapi.exception.ResourceNotFoundException;
+import com.sopromadze.blogapi.exception.UnauthorizedException;
+import com.sopromadze.blogapi.model.Tag;
+import com.sopromadze.blogapi.model.role.RoleName;
+import com.sopromadze.blogapi.payload.ApiResponse;
+import com.sopromadze.blogapi.payload.PagedResponse;
+import com.sopromadze.blogapi.repository.TagRepository;
+import com.sopromadze.blogapi.security.UserPrincipal;
+import com.sopromadze.blogapi.service.TagService;
+import com.sopromadze.blogapi.utils.AppUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+import java.util.List;
+
+@Service
+<span class="fc" id="L25">public class TagServiceImpl implements TagService {</span>
+
+	@Autowired
+	private TagRepository tagRepository;
+
+	@Override
+	public PagedResponse&lt;Tag&gt; getAllTags(int page, int size) {
+<span class="fc" id="L32">		AppUtils.validatePageNumberAndSize(page, size);</span>
+
+<span class="fc" id="L34">		Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, &quot;createdAt&quot;);</span>
+
+<span class="fc" id="L36">		Page&lt;Tag&gt; tags = tagRepository.findAll(pageable);</span>
+
+<span class="pc bpc" id="L38" title="1 of 2 branches missed.">		List&lt;Tag&gt; content = tags.getNumberOfElements() == 0 ? Collections.emptyList() : tags.getContent();</span>
+
+<span class="fc" id="L40">		return new PagedResponse&lt;&gt;(content, tags.getNumber(), tags.getSize(), tags.getTotalElements(), tags.getTotalPages(), tags.isLast());</span>
+	}
+
+	@Override
+	public Tag getTag(Long id) {
+<span class="nc" id="L45">		return tagRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Tag&quot;, &quot;id&quot;, id));</span>
+	}
+
+	@Override
+	public Tag addTag(Tag tag, UserPrincipal currentUser) {
+<span class="fc" id="L50">		return tagRepository.save(tag);</span>
+	}
+
+	@Override
+	public Tag updateTag(Long id, Tag newTag, UserPrincipal currentUser) {
+<span class="nc" id="L55">		Tag tag = tagRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Tag&quot;, &quot;id&quot;, id));</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">		if (tag.getCreatedBy().equals(currentUser.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L58">			tag.setName(newTag.getName());</span>
+<span class="nc" id="L59">			return tagRepository.save(tag);</span>
+		}
+<span class="nc" id="L61">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to edit this tag&quot;);</span>
+
+<span class="nc" id="L63">		throw new UnauthorizedException(apiResponse);</span>
+	}
+
+	@Override
+	public ApiResponse deleteTag(Long id, UserPrincipal currentUser) {
+<span class="nc" id="L68">		Tag tag = tagRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Tag&quot;, &quot;id&quot;, id));</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">		if (tag.getCreatedBy().equals(currentUser.getId()) || currentUser.getAuthorities()</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">				.contains(new SimpleGrantedAuthority(RoleName.ROLE_ADMIN.toString()))) {</span>
+<span class="nc" id="L71">			tagRepository.deleteById(id);</span>
+<span class="nc" id="L72">			return new ApiResponse(Boolean.TRUE, &quot;You successfully deleted tag&quot;);</span>
+		}
+
+<span class="nc" id="L75">		ApiResponse apiResponse = new ApiResponse(Boolean.FALSE, &quot;You don't have permission to delete this tag&quot;);</span>
+
+<span class="nc" id="L77">		throw new UnauthorizedException(apiResponse);</span>
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

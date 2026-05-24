@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultContactService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.cassiomolin.patch.service.impl</a> &gt; <span class="el_source">DefaultContactService.java</span></div><h1>DefaultContactService.java</h1><pre class="source lang-java linenums">package com.cassiomolin.patch.service.impl;
+
+import com.cassiomolin.patch.domain.Contact;
+import com.cassiomolin.patch.service.ContactService;
+import org.springframework.stereotype.Service;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Service
+<span class="fc" id="L15">public class DefaultContactService implements ContactService {</span>
+
+<span class="fc" id="L17">    private static final List&lt;Contact&gt; CONTACTS = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L19">    private static final AtomicLong ID_GENERATOR = new AtomicLong();</span>
+
+    @Override
+    public Contact createContact(Contact contact) {
+<span class="fc" id="L23">        contact.setId(ID_GENERATOR.incrementAndGet());</span>
+<span class="fc" id="L24">        contact.setCreatedDateTime(OffsetDateTime.now(ZoneOffset.UTC));</span>
+<span class="fc" id="L25">        contact.setLastModifiedDateTime(OffsetDateTime.now(ZoneOffset.UTC));</span>
+<span class="fc" id="L26">        CONTACTS.add(contact);</span>
+<span class="fc" id="L27">        return contact;</span>
+    }
+
+    @Override
+    public List&lt;Contact&gt; findContacts() {
+<span class="fc" id="L32">        return CONTACTS;</span>
+    }
+
+    @Override
+    public Optional&lt;Contact&gt; findContact(Long id) {
+<span class="fc" id="L37">        return CONTACTS.stream()</span>
+<span class="fc" id="L38">                .filter(contact -&gt; id.equals(contact.getId()))</span>
+<span class="fc" id="L39">                .findFirst();</span>
+    }
+
+    @Override
+    public void updateContact(Contact contact) {
+<span class="fc" id="L44">        contact.setLastModifiedDateTime(OffsetDateTime.now(ZoneOffset.UTC));</span>
+<span class="fc" id="L45">        CONTACTS.set(CONTACTS.indexOf(contact), contact);</span>
+<span class="fc" id="L46">    }</span>
+
+    @Override
+    public void deleteContact(Contact contact) {
+<span class="fc" id="L50">        CONTACTS.remove(contact);</span>
+<span class="fc" id="L51">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CardDetailsFromResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CardDetailsFromResponse.java</span></div><h1>CardDetailsFromResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Optional;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS;
+
+@JsonInclude(ALWAYS)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class CardDetailsFromResponse {
+
+    @JsonProperty(&quot;last_digits_card_number&quot;)
+    private final String lastDigitsCardNumber;
+
+    @JsonProperty(&quot;first_digits_card_number&quot;)
+    private final String firstDigitsCardNumber;
+
+    @JsonProperty(&quot;cardholder_name&quot;)
+    private final String cardHolderName;
+
+    @JsonProperty(&quot;expiry_date&quot;)
+    private final String expiryDate;
+
+    @JsonProperty(&quot;billing_address&quot;)
+    private final Address billingAddress;
+
+    @JsonProperty(&quot;card_brand&quot;)
+    private final String cardBrand;
+    
+    @JsonProperty(&quot;card_type&quot;)
+    private final String cardType;
+
+    public CardDetailsFromResponse(@JsonProperty(&quot;last_digits_card_number&quot;) String lastDigitsCardNumber,
+                                   @JsonProperty(&quot;first_digits_card_number&quot;) String firstDigitsCardNumber,
+                                   @JsonProperty(&quot;cardholder_name&quot;) String cardHolderName,
+                                   @JsonProperty(&quot;expiry_date&quot;) String expiryDate,
+                                   @JsonProperty(&quot;billing_address&quot;) Address billingAddress,
+                                   @JsonProperty(&quot;card_brand&quot;) String cardBrand,
+<span class="nc" id="L42">                                   @JsonProperty(&quot;card_type&quot;) String cardType) {</span>
+<span class="nc" id="L43">        this.lastDigitsCardNumber = lastDigitsCardNumber;</span>
+<span class="nc" id="L44">        this.firstDigitsCardNumber = firstDigitsCardNumber;</span>
+<span class="nc" id="L45">        this.cardHolderName = cardHolderName;</span>
+<span class="nc" id="L46">        this.expiryDate = expiryDate;</span>
+<span class="nc" id="L47">        this.billingAddress = billingAddress;</span>
+<span class="nc" id="L48">        this.cardBrand = cardBrand;</span>
+<span class="nc" id="L49">        this.cardType = cardType;</span>
+<span class="nc" id="L50">    }</span>
+
+    public String getLastDigitsCardNumber() {
+<span class="nc" id="L53">        return lastDigitsCardNumber;</span>
+    }
+
+    public String getFirstDigitsCardNumber() {
+<span class="nc" id="L57">        return firstDigitsCardNumber;</span>
+    }
+
+    public String getCardHolderName() {
+<span class="nc" id="L61">        return cardHolderName;</span>
+    }
+
+    public String getExpiryDate() {
+<span class="nc" id="L65">        return expiryDate;</span>
+    }
+
+    public Optional&lt;Address&gt; getBillingAddress() {
+<span class="nc" id="L69">        return Optional.ofNullable(billingAddress);</span>
+    }
+
+    public String getCardBrand() {
+<span class="nc" id="L73">        return cardBrand;</span>
+    }
+
+
+    public String getCardType() {
+<span class="nc" id="L78">        return cardType;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

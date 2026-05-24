@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestDeniedResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.resources</a> &gt; <span class="el_source">RequestDeniedResource.java</span></div><h1>RequestDeniedResource.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.resources;
+
+import com.codahale.metrics.annotation.Timed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Response;
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import static uk.gov.pay.api.model.RequestError.Code.REQUEST_DENIED_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+
+@Path(&quot;/&quot;)
+<span class="fc" id="L22">public class RequestDeniedResource {</span>
+
+<span class="fc" id="L24">    private static final Logger logger = LoggerFactory.getLogger(RequestDeniedResource.class);</span>
+
+    @GET
+    @Timed
+    @Path(&quot;request-denied&quot;)
+    @Produces(APPLICATION_JSON)
+    public Response requestDeniedGet(@HeaderParam(&quot;x-naxsi_sig&quot;) String naxsiViolatedRules) {
+<span class="nc" id="L31">        return requestDenied(naxsiViolatedRules);</span>
+    }
+
+    @POST
+    @Timed
+    @Path(&quot;request-denied&quot;)
+    @Produces(APPLICATION_JSON)
+    public Response requestDeniedPost(@HeaderParam(&quot;x-naxsi_sig&quot;) String naxsiViolatedRules) {
+<span class="nc" id="L39">        return requestDenied(naxsiViolatedRules);</span>
+    }
+
+    @PUT
+    @Timed
+    @Path(&quot;request-denied&quot;)
+    @Produces(APPLICATION_JSON)
+    public Response requestDeniedPut(@HeaderParam(&quot;x-naxsi_sig&quot;) String naxsiViolatedRules) {
+<span class="nc" id="L47">        return requestDenied(naxsiViolatedRules);</span>
+    }
+
+    @DELETE
+    @Timed
+    @Path(&quot;request-denied&quot;)
+    @Produces(APPLICATION_JSON)
+    public Response requestDeniedDelete(@HeaderParam(&quot;x-naxsi_sig&quot;) String naxsiViolatedRules) {
+<span class="nc" id="L55">        return requestDenied(naxsiViolatedRules);</span>
+    }
+
+    private Response requestDenied(@HeaderParam(&quot;x-naxsi_sig&quot;) String naxsiViolatedRules) {
+<span class="nc" id="L59">        logger.info(&quot;Naxsi rules violated - [ {} ]&quot;, naxsiViolatedRules);</span>
+<span class="nc" id="L60">        return Response.status(BAD_REQUEST).entity(aRequestError(REQUEST_DENIED_ERROR)).build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

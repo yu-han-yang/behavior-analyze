@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore.controller</a> &gt; <span class="el_source">UserController.java</span></div><h1>UserController.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2018 SmartBear Software
+ * &lt;p&gt;
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * &lt;p&gt;
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * &lt;p&gt;
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.swagger.petstore.controller;
+
+import io.swagger.oas.inflector.models.RequestContext;
+import io.swagger.oas.inflector.models.ResponseContext;
+import io.swagger.petstore.data.UserData;
+import io.swagger.petstore.model.User;
+import io.swagger.petstore.utils.Util;
+import org.apache.commons.lang3.RandomUtils;
+
+import javax.ws.rs.core.Response;
+import java.util.Date;
+
+@javax.annotation.Generated(value = &quot;class io.swagger.codegen.languages.JavaInflectorServerCodegen&quot;, date = &quot;2017-04-08T15:48:56.501Z&quot;)
+<span class="fc" id="L30">public class UserController {</span>
+
+<span class="fc" id="L32">    private static UserData userData = new UserData();</span>
+
+    public ResponseContext createUser(final RequestContext request, final User user) {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (user == null) {</span>
+<span class="nc" id="L36">            return new ResponseContext()</span>
+<span class="nc" id="L37">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L38">                    .entity(&quot;No User provided. Try again?&quot;);</span>
+        }
+
+<span class="nc" id="L41">        userData.addUser(user);</span>
+<span class="nc" id="L42">        return new ResponseContext()</span>
+<span class="nc" id="L43">                .contentType(Util.getMediaType(request))</span>
+<span class="nc" id="L44">                .entity(user);</span>
+    }
+
+    public ResponseContext createUser(final RequestContext request, final Long id, final String username,
+                                      final String firstName, final String lastName, final String email,
+                                      final String password, final String phone, final Integer userStatus) {
+<span class="fc" id="L50">        final User user = UserData.createUser(id, username, firstName, lastName, email, phone, userStatus);</span>
+<span class="nc" id="L51">        return createUser(request, user);</span>
+    }
+
+    public ResponseContext getUserByName(final RequestContext request, final String username) {
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">        if (username == null) {</span>
+<span class="nc" id="L56">            return new ResponseContext()</span>
+<span class="nc" id="L57">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L58">                    .entity(&quot;No username provided. Try again?&quot;);</span>
+        }
+
+<span class="fc" id="L61">        final User user = userData.findUserByName(username);</span>
+<span class="fc bfc" id="L62" title="All 2 branches covered.">        if (user == null) {</span>
+<span class="fc" id="L63">            return new ResponseContext().status(Response.Status.NOT_FOUND).entity(&quot;User not found&quot;);</span>
+        }
+
+<span class="fc" id="L66">        return new ResponseContext()</span>
+<span class="fc" id="L67">                .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L68">                .entity(user);</span>
+    }
+
+    public ResponseContext createUsersWithArrayInput(final RequestContext request, final User[] users) {
+<span class="nc bnc" id="L72" title="All 4 branches missed.">        if (users == null || users.length == 0) {</span>
+<span class="nc" id="L73">            return new ResponseContext()</span>
+<span class="nc" id="L74">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L75">                    .entity(&quot;No User provided. Try again?&quot;);</span>
+        }
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        for (final User user : users) {</span>
+<span class="nc" id="L79">            userData.addUser(user);</span>
+        }
+
+<span class="nc" id="L82">        return new ResponseContext()</span>
+<span class="nc" id="L83">                .contentType(Util.getMediaType(request))</span>
+<span class="nc" id="L84">                .entity(users);</span>
+    }
+
+    public ResponseContext createUsersWithListInput(final RequestContext request, final User[] users) {
+<span class="pc bpc" id="L88" title="1 of 4 branches missed.">        if (users == null || users.length == 0) {</span>
+<span class="fc" id="L89">            return new ResponseContext()</span>
+<span class="fc" id="L90">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="fc" id="L91">                    .entity(&quot;No User provided. Try again?&quot;);</span>
+        }
+
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        for (final User user : users) {</span>
+<span class="fc" id="L95">            userData.addUser(user);</span>
+        }
+
+<span class="nc" id="L98">        return new ResponseContext()</span>
+<span class="nc" id="L99">                .contentType(Util.getMediaType(request))</span>
+<span class="nc" id="L100">                .entity(users);</span>
+    }
+
+    public ResponseContext loginUser(final RequestContext request, final String username, final String password) {
+<span class="fc" id="L104">        Date date = new Date(System.currentTimeMillis() + 3600000);</span>
+<span class="fc" id="L105">        return new ResponseContext()</span>
+<span class="fc" id="L106">                .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L107">                .header(&quot;X-Rate-Limit&quot;, String.valueOf(5000))</span>
+<span class="fc" id="L108">                .header(&quot;X-Expires-After&quot;, date.toString())</span>
+<span class="fc" id="L109">                .entity(&quot;Logged in user session: &quot; + RandomUtils.nextLong());</span>
+    }
+
+    public ResponseContext logoutUser(final RequestContext request) {
+<span class="fc" id="L113">        return new ResponseContext()</span>
+<span class="fc" id="L114">                .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L115">                .entity(&quot;User logged out&quot;);</span>
+
+    }
+
+    public ResponseContext deleteUser(final RequestContext request, final String username) {
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        if (username == null) {</span>
+<span class="nc" id="L121">            return new ResponseContext()</span>
+<span class="nc" id="L122">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L123">                    .entity(&quot;No username provided. Try again?&quot;);</span>
+        }
+
+<span class="fc" id="L126">        userData.deleteUser(username);</span>
+
+<span class="fc" id="L128">        final User user = userData.findUserByName(username);</span>
+
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        if (null == user) {</span>
+<span class="fc" id="L131">            return new ResponseContext()</span>
+<span class="fc" id="L132">                    .contentType(Util.getMediaType(request))</span>
+<span class="fc" id="L133">                    .entity(user);</span>
+        } else {
+<span class="nc" id="L135">            return new ResponseContext().status(Response.Status.NOT_MODIFIED).entity(&quot;User couldn't be deleted.&quot;);</span>
+        }
+    }
+
+    public ResponseContext updateUser(final RequestContext request, final String username, final User user) {
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (username == null) {</span>
+<span class="nc" id="L141">            return new ResponseContext()</span>
+<span class="nc" id="L142">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L143">                    .entity(&quot;No Username provided. Try again?&quot;);</span>
+        }
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (user == null) {</span>
+<span class="nc" id="L147">            return new ResponseContext()</span>
+<span class="nc" id="L148">                    .status(Response.Status.BAD_REQUEST)</span>
+<span class="nc" id="L149">                    .entity(&quot;No User provided. Try again?&quot;);</span>
+        }
+
+<span class="nc" id="L152">        final User existingUser = userData.findUserByName(username);</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (existingUser == null) {</span>
+<span class="nc" id="L155">            return new ResponseContext().status(Response.Status.NOT_FOUND).entity(&quot;User not found&quot;);</span>
+        }
+
+<span class="nc" id="L158">        userData.deleteUser(existingUser.getUsername());</span>
+<span class="nc" id="L159">        userData.addUser(user);</span>
+
+<span class="nc" id="L161">        return new ResponseContext()</span>
+<span class="nc" id="L162">                .contentType(Util.getMediaType(request))</span>
+<span class="nc" id="L163">                .entity(user);</span>
+    }
+
+    public ResponseContext updateUser(final RequestContext request, final String updatedUser, final Long id, final String username,
+                                      final String firstName, final String lastName, final String email,
+                                      final String password, final String phone, final Integer userStatus) {
+<span class="nc" id="L169">        final User user = UserData.createUser(id, username, firstName, lastName, email, phone, userStatus);</span>
+<span class="nc" id="L170">        return updateUser(request, updatedUser, user);</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

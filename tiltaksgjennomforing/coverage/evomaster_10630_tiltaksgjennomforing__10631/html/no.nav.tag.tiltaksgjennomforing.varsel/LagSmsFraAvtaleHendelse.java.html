@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LagSmsFraAvtaleHendelse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel</a> &gt; <span class="el_source">LagSmsFraAvtaleHendelse.java</span></div><h1>LagSmsFraAvtaleHendelse.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel;
+
+import lombok.RequiredArgsConstructor;
+import no.nav.tag.tiltaksgjennomforing.avtale.*;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.*;
+import no.nav.tag.tiltaksgjennomforing.varsel.kafka.SmsProducer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="nc" id="L12">@RequiredArgsConstructor</span>
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.kafka.enabled&quot;)
+public class LagSmsFraAvtaleHendelse {
+    private final SmsRepository smsRepository;
+    private final SmsProducer smsProducer;
+
+<span class="nc" id="L18">    private static final BedriftNr NAV_ORGNR = new BedriftNr(&quot;889640782&quot;);</span>
+
+    @EventListener
+    public void avtaleDeltMedAvtalepart(AvtaleDeltMedAvtalepart event) {
+<span class="nc bnc" id="L22" title="All 4 branches missed.">        switch(event.getAvtalepart()){</span>
+<span class="nc" id="L23">            case ARBEIDSGIVER -&gt; lagreOgSendKafkaMelding(smsTilArbeidsgiver(event.getAvtale(), HendelseType.DELT_MED_ARBEIDSGIVER));</span>
+<span class="nc" id="L24">            case DELTAKER -&gt; lagreOgSendKafkaMelding(smsTilDeltaker(event.getAvtale(), HendelseType.DELT_MED_DELTAKER));</span>
+<span class="nc" id="L25">            case MENTOR -&gt; lagreOgSendKafkaMelding(smsTilMentor(event.getAvtale(), HendelseType.DELT_MED_MENTOR));</span>
+        }
+<span class="nc" id="L27">    }</span>
+    @EventListener
+    public void avtaleGodkjentAvDeltaker(GodkjentAvDeltaker event) {
+<span class="nc" id="L30">        var sms = smsTilVeileder(event.getAvtale(), HendelseType.GODKJENT_AV_DELTAKER);</span>
+<span class="nc" id="L31">        lagreOgSendKafkaMelding(sms);</span>
+<span class="nc" id="L32">    }</span>
+    @EventListener
+    public void avtaleGodkjentAvArbeidsgiver(GodkjentAvArbeidsgiver event) {
+<span class="nc" id="L35">        var sms = smsTilVeileder(event.getAvtale(), HendelseType.GODKJENT_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L36">        lagreOgSendKafkaMelding(sms);</span>
+<span class="nc" id="L37">    }</span>
+    @EventListener
+    public void avtaleInngått(AvtaleInngått event) {
+<span class="nc" id="L40">        var smsTilDeltaker = smsTilDeltaker(event.getAvtale(), HendelseType.AVTALE_INNGÅTT);</span>
+<span class="nc" id="L41">        var smsTilArbeidsgiver = smsTilArbeidsgiver(event.getAvtale(), HendelseType.AVTALE_INNGÅTT);</span>
+
+<span class="nc bnc" id="L43" title="All 2 branches missed.">        if(event.getAvtale().getTiltakstype() == Tiltakstype.MENTOR) {</span>
+<span class="nc" id="L44">            var smsTilMentor = smsTilMentor(event.getAvtale(), HendelseType.AVTALE_INNGÅTT);</span>
+<span class="nc" id="L45">            lagreOgSendKafkaMelding(smsTilMentor);</span>
+        }
+
+<span class="nc" id="L48">        lagreOgSendKafkaMelding(smsTilDeltaker);</span>
+<span class="nc" id="L49">        lagreOgSendKafkaMelding(smsTilArbeidsgiver);</span>
+
+<span class="nc" id="L51">    }</span>
+    @EventListener
+    public void godkjenningerOpphevetAvArbeidsgiver(GodkjenningerOpphevetAvArbeidsgiver event) {
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (event.getGamleVerdier().isGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L55">            var smsTilDeltaker = smsTilDeltaker(event.getAvtale(), HendelseType.GODKJENNINGER_OPPHEVET_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L56">            lagreOgSendKafkaMelding(smsTilDeltaker);</span>
+        }
+<span class="nc" id="L58">        var smsTilVeileder = smsTilVeileder(event.getAvtale(), HendelseType.OPPRETTET_AV_ARBEIDSGIVER);</span>
+<span class="nc" id="L59">        lagreOgSendKafkaMelding(smsTilVeileder);</span>
+<span class="nc" id="L60">    }</span>
+    @EventListener
+    public void godkjenningerOpphevetAvVeileder(GodkjenningerOpphevetAvVeileder event) {
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (event.getGamleVerdier().isGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L64">            var smsTilDeltaker = smsTilDeltaker(event.getAvtale(), HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER);</span>
+<span class="nc" id="L65">            lagreOgSendKafkaMelding(smsTilDeltaker);</span>
+        }
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (event.getGamleVerdier().isGodkjentAvArbeidsgiver()) {</span>
+<span class="nc" id="L68">            var smsTilArbeidsgiver = smsTilArbeidsgiver(event.getAvtale(), HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER);</span>
+<span class="nc" id="L69">            lagreOgSendKafkaMelding(smsTilArbeidsgiver);</span>
+        }
+<span class="nc" id="L71">    }</span>
+    @EventListener
+    public void refusjonKlar(RefusjonKlar event) {
+<span class="nc bnc" id="L74" title="All 8 branches missed.">        if(event.getAvtale().getTiltakstype() == Tiltakstype.SOMMERJOBB || event.getAvtale().getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.VARIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.MENTOR){</span>
+<span class="nc" id="L75">            String tiltakNavn = event.getAvtale().getTiltakstype().getBeskrivelse().toLowerCase();</span>
+<span class="nc" id="L76">            String smsTekst = String.format(&quot;Dere kan nå søke om refusjon for tilskudd til %s for avtale med nr: %s. Frist for å søke er %s. Søk om refusjon her: https://tiltak-refusjon.nav.no. Hilsen NAV.&quot;, tiltakNavn, event.getAvtale().getAvtaleNr(), event.getFristForGodkjenning());</span>
+<span class="nc" id="L77">            refusjonVarslingMedKontaktperson(event.getAvtale(), smsTekst, HendelseType.REFUSJON_KLAR);</span>
+        }
+<span class="nc" id="L79">    }</span>
+
+    @EventListener
+    public void refusjonKlarRevarsel(RefusjonKlarRevarsel event) {
+<span class="nc bnc" id="L83" title="All 8 branches missed.">        if(event.getAvtale().getTiltakstype() == Tiltakstype.SOMMERJOBB || event.getAvtale().getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.VARIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.MENTOR) {</span>
+<span class="nc" id="L84">            String tiltakNavn = event.getAvtale().getTiltakstype().getBeskrivelse().toLowerCase();</span>
+<span class="nc" id="L85">            String smsTekst = String.format(&quot;Fristen nærmer seg for å søke om refusjon for tilskudd til %s for avtale med nr: %s. Frist for å søke er %s. Søk om refusjon her: https://tiltak-refusjon.nav.no. Hilsen NAV.&quot;,tiltakNavn, event.getAvtale().getAvtaleNr(), event.getFristForGodkjenning());</span>
+<span class="nc" id="L86">            refusjonVarslingMedKontaktperson(event.getAvtale(), smsTekst, HendelseType.REFUSJON_KLAR_REVARSEL);</span>
+        }
+<span class="nc" id="L88">    }</span>
+
+    @EventListener
+    public void refusjonFristForlenget(RefusjonFristForlenget event) {
+<span class="nc bnc" id="L92" title="All 8 branches missed.">        if(event.getAvtale().getTiltakstype() == Tiltakstype.SOMMERJOBB || event.getAvtale().getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.VARIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.MENTOR) {</span>
+<span class="nc" id="L93">            String smsTekst = String.format(&quot;Fristen for å godkjenne refusjon for avtale med nr: %s har blitt forlenget. Du kan sjekke fristen og søke om refusjon her: https://tiltak-refusjon.nav.no. Hilsen NAV.&quot;, event.getAvtale().getAvtaleNr());</span>
+<span class="nc" id="L94">            refusjonVarslingMedKontaktperson(event.getAvtale(), smsTekst, HendelseType.REFUSJON_FRIST_FORLENGET);</span>
+        }
+<span class="nc" id="L96">    }</span>
+
+    @EventListener
+    public void refusjonKorrigert(RefusjonKorrigert event) {
+<span class="nc bnc" id="L100" title="All 8 branches missed.">        if(event.getAvtale().getTiltakstype() == Tiltakstype.SOMMERJOBB || event.getAvtale().getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.VARIG_LONNSTILSKUDD || event.getAvtale().getTiltakstype() == Tiltakstype.MENTOR) {</span>
+<span class="nc" id="L101">            String smsTekst = String.format(&quot;Tidligere innsendt refusjon på avtale med nr %d er korrigert. Se detaljer her: https://tiltak-refusjon.nav.no. Hilsen NAV.&quot;, event.getAvtale().getAvtaleNr());</span>
+<span class="nc" id="L102">            refusjonVarslingMedKontaktperson(event.getAvtale(), smsTekst, HendelseType.REFUSJON_KORRIGERT);</span>
+        }
+<span class="nc" id="L104">    }</span>
+
+    private void refusjonVarslingMedKontaktperson(Avtale avtale, String smsTekst, HendelseType hendelseType) {
+<span class="nc bnc" id="L107" title="All 4 branches missed.">        if (avtale.getGjeldendeInnhold().getRefusjonKontaktperson() != null &amp;&amp; avtale.getGjeldendeInnhold().getRefusjonKontaktperson().getRefusjonKontaktpersonTlf() != null) {</span>
+<span class="nc bnc" id="L108" title="All 4 branches missed.">            if (avtale.getGjeldendeInnhold().getRefusjonKontaktperson().getØnskerVarslingOmRefusjon() != null &amp;&amp; avtale.getGjeldendeInnhold().getRefusjonKontaktperson().getØnskerVarslingOmRefusjon()) {</span>
+<span class="nc" id="L109">                Sms smsTilArbeidsgiver = Sms.nyttVarsel(avtale.getGjeldendeInnhold().getArbeidsgiverTlf(), avtale.getBedriftNr(), smsTekst, hendelseType, avtale.getId());</span>
+<span class="nc" id="L110">                lagreOgSendKafkaMelding(smsTilArbeidsgiver);</span>
+            }
+<span class="nc" id="L112">            Sms smsTilKontaktpersonForRefusjon = Sms.nyttVarsel(avtale.getGjeldendeInnhold().getRefusjonKontaktperson().getRefusjonKontaktpersonTlf(), avtale.getBedriftNr(), smsTekst, hendelseType, avtale.getId());</span>
+<span class="nc" id="L113">            lagreOgSendKafkaMelding(smsTilKontaktpersonForRefusjon);</span>
+<span class="nc" id="L114">        } else {</span>
+<span class="nc" id="L115">            Sms sms = Sms.nyttVarsel(avtale.getGjeldendeInnhold().getArbeidsgiverTlf(), avtale.getBedriftNr(), smsTekst, hendelseType, avtale.getId());</span>
+<span class="nc" id="L116">            lagreOgSendKafkaMelding(sms);</span>
+        }
+<span class="nc" id="L118">    }</span>
+
+
+    private void lagreOgSendKafkaMelding(Sms sms) {
+<span class="nc" id="L122">        smsRepository.save(sms);</span>
+<span class="nc" id="L123">        smsProducer.sendSmsVarselMeldingTilKafka(sms);</span>
+<span class="nc" id="L124">    }</span>
+
+    private static Sms smsTilDeltaker(Avtale avtale, HendelseType hendelse) {
+<span class="nc" id="L127">        return Sms.nyttVarsel(avtale.getGjeldendeInnhold().getDeltakerTlf(), avtale.getDeltakerFnr(), &quot;Du har mottatt et nytt varsel på https://arbeidsgiver.nav.no/tiltaksgjennomforing&quot;, hendelse, avtale.getId());</span>
+    }
+
+    private static Sms smsTilMentor(Avtale avtale, HendelseType hendelse) {
+<span class="nc" id="L131">        return Sms.nyttVarsel(avtale.getGjeldendeInnhold().getMentorTlf(), avtale.getMentorFnr(), &quot;Du har mottatt et nytt varsel på https://arbeidsgiver.nav.no/tiltaksgjennomforing&quot;, hendelse, avtale.getId());</span>
+    }
+
+    private static Sms smsTilArbeidsgiver(Avtale avtale, HendelseType hendelse) {
+<span class="nc" id="L135">        return Sms.nyttVarsel(avtale.getGjeldendeInnhold().getArbeidsgiverTlf(), avtale.getBedriftNr(), &quot;Du har mottatt et nytt varsel på https://arbeidsgiver.nav.no/tiltaksgjennomforing&quot;, hendelse, avtale.getId());</span>
+    }
+
+    private static Sms smsTilVeileder(Avtale avtale, HendelseType hendelse) {
+<span class="nc" id="L139">        return Sms.nyttVarsel(avtale.getGjeldendeInnhold().getVeilederTlf(), NAV_ORGNR, &quot;Du har mottatt et nytt varsel på https://tiltaksgjennomforing.intern.nav.no/tiltaksgjennomforing&quot;, hendelse, avtale.getId());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

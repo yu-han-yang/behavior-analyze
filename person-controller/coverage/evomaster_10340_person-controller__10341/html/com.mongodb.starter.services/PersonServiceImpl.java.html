@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersonServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.mongodb.starter.services</a> &gt; <span class="el_source">PersonServiceImpl.java</span></div><h1>PersonServiceImpl.java</h1><pre class="source lang-java linenums">package com.mongodb.starter.services;
+
+import com.mongodb.starter.dtos.PersonDTO;
+import com.mongodb.starter.repositories.PersonRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class PersonServiceImpl implements PersonService {
+
+    private final PersonRepository personRepository;
+
+<span class="nc" id="L14">    public PersonServiceImpl(PersonRepository personRepository) {</span>
+<span class="nc" id="L15">        this.personRepository = personRepository;</span>
+<span class="nc" id="L16">    }</span>
+
+    @Override
+    public PersonDTO save(PersonDTO PersonDTO) {
+<span class="nc" id="L20">        return new PersonDTO(personRepository.save(PersonDTO.toPersonEntity()));</span>
+    }
+
+    @Override
+    public List&lt;PersonDTO&gt; saveAll(List&lt;PersonDTO&gt; personEntities) {
+<span class="nc" id="L25">        return personEntities.stream()</span>
+<span class="nc" id="L26">                             .map(PersonDTO::toPersonEntity)</span>
+<span class="nc" id="L27">                             .peek(personRepository::save)</span>
+<span class="nc" id="L28">                             .map(PersonDTO::new)</span>
+<span class="nc" id="L29">                             .toList();</span>
+    }
+
+    @Override
+    public List&lt;PersonDTO&gt; findAll() {
+<span class="nc" id="L34">        return personRepository.findAll().stream().map(PersonDTO::new).toList();</span>
+    }
+
+    @Override
+    public List&lt;PersonDTO&gt; findAll(List&lt;String&gt; ids) {
+<span class="nc" id="L39">        return personRepository.findAll(ids).stream().map(PersonDTO::new).toList();</span>
+    }
+
+    @Override
+    public PersonDTO findOne(String id) {
+<span class="nc" id="L44">        return new PersonDTO(personRepository.findOne(id));</span>
+    }
+
+    @Override
+    public long count() {
+<span class="nc" id="L49">        return personRepository.count();</span>
+    }
+
+    @Override
+    public long delete(String id) {
+<span class="nc" id="L54">        return personRepository.delete(id);</span>
+    }
+
+    @Override
+    public long delete(List&lt;String&gt; ids) {
+<span class="nc" id="L59">        return personRepository.delete(ids);</span>
+    }
+
+    @Override
+    public long deleteAll() {
+<span class="nc" id="L64">        return personRepository.deleteAll();</span>
+    }
+
+    @Override
+    public PersonDTO update(PersonDTO PersonDTO) {
+<span class="nc" id="L69">        return new PersonDTO(personRepository.update(PersonDTO.toPersonEntity()));</span>
+    }
+
+    @Override
+    public long update(List&lt;PersonDTO&gt; personEntities) {
+<span class="nc" id="L74">        return personRepository.update(personEntities.stream().map(PersonDTO::toPersonEntity).toList());</span>
+    }
+
+    @Override
+    public double getAverageAge() {
+<span class="nc" id="L79">        return personRepository.getAverageAge();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

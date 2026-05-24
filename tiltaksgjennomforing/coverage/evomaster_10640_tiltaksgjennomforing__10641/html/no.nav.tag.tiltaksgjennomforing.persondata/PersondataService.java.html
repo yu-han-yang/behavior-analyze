@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PersondataService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.persondata</a> &gt; <span class="el_source">PersondataService.java</span></div><h1>PersondataService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.persondata;
+
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.Fnr;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.cache.EhCacheConfig;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.sts.STSClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+
+<span class="fc" id="L23">@Slf4j</span>
+@Service
+<span class="fc" id="L25">@RequiredArgsConstructor</span>
+public class PersondataService {
+    private final RestTemplate restTemplate;
+    private final STSClient stsClient;
+    private final PersondataProperties persondataProperties;
+
+    @Value(&quot;classpath:pdl/hentPerson.adressebeskyttelse.graphql&quot;)
+    private Resource adressebeskyttelseQueryResource;
+
+    @Value(&quot;classpath:pdl/hentPersondata.graphql&quot;)
+    private Resource persondataQueryResource;
+
+    @Value(&quot;classpath:pdl/hentIdenter.graphql&quot;)
+    private Resource identerQueryResource;
+
+<span class="nc" id="L40">    @SneakyThrows</span>
+    private static String resourceAsString(Resource adressebeskyttelseQuery) {
+<span class="nc" id="L42">        String filinnhold = StreamUtils.copyToString(adressebeskyttelseQuery.getInputStream(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L43">        return filinnhold.replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+    }
+
+    protected Adressebeskyttelse hentAdressebeskyttelse(Fnr fnr) {
+<span class="nc" id="L47">        PdlRequest pdlRequest = new PdlRequest(resourceAsString(adressebeskyttelseQueryResource), new Variables(fnr.asString()));</span>
+<span class="nc" id="L48">        return hentAdressebeskyttelseFraPdlRespons(utførKallTilPdl(pdlRequest));</span>
+    }
+
+    private HttpEntity&lt;String&gt; createRequestEntity(PdlRequest pdlRequest) {
+<span class="nc" id="L52">        String stsToken = stsClient.hentSTSToken().getAccessToken();</span>
+<span class="nc" id="L53">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L54">        headers.setBearerAuth(stsToken);</span>
+<span class="nc" id="L55">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L56">        headers.set(&quot;Tema&quot;, &quot;GEN&quot;);</span>
+<span class="nc" id="L57">        headers.set(&quot;Nav-Consumer-Token&quot;, &quot;Bearer &quot; + stsToken);</span>
+<span class="nc" id="L58">        return new HttpEntity(pdlRequest, headers);</span>
+    }
+
+    private static Adressebeskyttelse hentAdressebeskyttelseFraPdlRespons(PdlRespons pdlRespons) {
+        try {
+<span class="nc" id="L63">            return pdlRespons.getData().getHentPerson().getAdressebeskyttelse()[0];</span>
+<span class="nc" id="L64">        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L65">            return Adressebeskyttelse.INGEN_BESKYTTELSE;</span>
+        }
+    }
+
+    public static Navn hentNavnFraPdlRespons(PdlRespons pdlRespons) {
+        try {
+<span class="nc" id="L71">            return pdlRespons.getData().getHentPerson().getNavn()[0];</span>
+<span class="nc" id="L72">        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L73">            return Navn.TOMT_NAVN;</span>
+        }
+    }
+
+    private static String hentAktørIdFraPdlRespons(PdlRespons pdlRespons) {
+        try {
+<span class="nc" id="L79">            return pdlRespons.getData().getHentIdenter().getIdenter()[0].getIdent();</span>
+<span class="nc" id="L80">        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L81">            return &quot;&quot;;</span>
+        }
+    }
+
+    public static Optional&lt;String&gt; hentGeoLokasjonFraPdlRespons(PdlRespons pdlRespons) {
+        try {
+<span class="nc" id="L87">            return Optional.of(pdlRespons.getData().getHentGeografiskTilknytning().getGeoTilknytning());</span>
+<span class="nc" id="L88">        } catch (NullPointerException | ArrayIndexOutOfBoundsException e) {</span>
+<span class="nc" id="L89">            return Optional.empty();</span>
+        }
+    }
+
+    private PdlRespons utførKallTilPdl(PdlRequest pdlRequest) {
+        try {
+<span class="nc" id="L95">            return restTemplate.postForObject(persondataProperties.getUri(), createRequestEntity(pdlRequest), PdlRespons.class);</span>
+<span class="nc" id="L96">        } catch (RestClientException exception) {</span>
+<span class="nc" id="L97">            log.error(&quot;Feil fra PDL med request-url: &quot; + persondataProperties.getUri(), exception);</span>
+<span class="nc" id="L98">            throw exception;</span>
+        }
+    }
+
+    public String hentAktørId(Fnr fnr) {
+<span class="nc" id="L103">        PdlRequest pdlRequest = new PdlRequest(resourceAsString(identerQueryResource), new Variables(fnr.asString()));</span>
+<span class="nc" id="L104">        return hentAktørIdFraPdlRespons(utførKallTilPdl(pdlRequest));</span>
+    }
+
+    public boolean erKode6Eller7(Fnr fnr) {
+<span class="nc" id="L108">        String gradering = hentAdressebeskyttelse(fnr).getGradering();</span>
+<span class="nc bnc" id="L109" title="All 6 branches missed.">        return &quot;FORTROLIG&quot;.equals(gradering) || &quot;STRENGT_FORTROLIG&quot;.equals(gradering) || &quot;STRENGT_FORTROLIG_UTLAND&quot;.equals(gradering);</span>
+    }
+
+    public boolean erKode6(PdlRespons pdlRespons) {
+        try {
+<span class="nc" id="L114">            String gradering = hentAdressebeskyttelseFraPdlRespons(pdlRespons).getGradering();</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">            return &quot;STRENGT_FORTROLIG&quot;.equals(gradering) || &quot;STRENGT_FORTROLIG_UTLAND&quot;.equals(gradering);</span>
+<span class="nc" id="L116">        } catch (NullPointerException e) {</span>
+<span class="nc" id="L117">            return false;</span>
+        }
+    }
+
+    public boolean erKode6(Fnr fnr) {
+<span class="nc" id="L122">        String gradering = hentAdressebeskyttelse(fnr).getGradering();</span>
+<span class="nc bnc" id="L123" title="All 4 branches missed.">        return &quot;STRENGT_FORTROLIG&quot;.equals(gradering) || &quot;STRENGT_FORTROLIG_UTLAND&quot;.equals(gradering);</span>
+    }
+
+    @Cacheable(EhCacheConfig.PDL_CACHE)
+    public PdlRespons hentPersondataFraPdl(Fnr fnr) {
+<span class="nc" id="L128">        PdlRequest pdlRequest = new PdlRequest(resourceAsString(persondataQueryResource), new Variables(fnr.asString()));</span>
+<span class="nc" id="L129">        return utførKallTilPdl(pdlRequest);</span>
+    }
+
+    public PdlRespons hentPersondata(Fnr fnr) {
+<span class="nc" id="L133">        PdlRequest pdlRequest = new PdlRequest(resourceAsString(persondataQueryResource), new Variables(fnr.asString()));</span>
+<span class="nc" id="L134">        return utførKallTilPdl(pdlRequest);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleHendelseService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.datadeling</a> &gt; <span class="el_source">AvtaleHendelseService.java</span></div><h1>AvtaleHendelseService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.datadeling;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtale;
+import no.nav.tag.tiltaksgjennomforing.avtale.AvtaleRepository;
+import no.nav.tag.tiltaksgjennomforing.avtale.HendelseType;
+import no.nav.tag.tiltaksgjennomforing.avtale.Identifikator;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+<span class="fc" id="L20">@Slf4j</span>
+<span class="fc" id="L21">@RequiredArgsConstructor</span>
+@Service
+public class AvtaleHendelseService {
+
+    private final AvtaleRepository avtaleRepository;
+    private final AvtaleMeldingEntitetRepository avtaleMeldingEntitetRepository;
+
+    private final ObjectMapper objectMapper;
+
+    public void sendAvtaleHendelseMeldingPåEnAvtale(Avtale avtale) {
+<span class="nc" id="L31">        lagMelding(avtale);</span>
+<span class="nc" id="L32">        log.info(&quot;Send melding om avtale {}&quot;, avtale.getId());</span>
+<span class="nc" id="L33">    }</span>
+
+    @Async
+    public void sendAvtaleHendelseMeldingPåAlleAvtaler() {
+<span class="nc" id="L37">        AtomicInteger antallSendt = new AtomicInteger();</span>
+
+<span class="nc" id="L39">        log.info(&quot;Henter ALLE avtaler for å lage patchehendelsemeldinger&quot;);</span>
+<span class="nc" id="L40">        List&lt;Avtale&gt; alleAvtaler = avtaleRepository.findAll(); // /o\ \o/</span>
+<span class="nc" id="L41">        log.info(&quot;Alle avtaler er hentet, totalt {} antall avtaler, looper og sender hendelsemeldinger&quot;, alleAvtaler.size());</span>
+
+<span class="nc" id="L43">        alleAvtaler.forEach(avtale -&gt; {</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">            if(skalSendes(avtale)) {</span>
+<span class="nc" id="L45">                lagMelding(avtale);</span>
+<span class="nc" id="L46">                antallSendt.getAndIncrement();</span>
+            }
+<span class="nc bnc" id="L48" title="All 2 branches missed.">            if(antallSendt.get() % 100 == 0) {</span>
+<span class="nc" id="L49">                log.info(&quot;Gått igjennom {} antall avtaler&quot;, antallSendt.get());</span>
+            }
+<span class="nc" id="L51">        });</span>
+<span class="nc" id="L52">        log.info(&quot;Sendt totalt {} antall hendelsemeldinger&quot;, antallSendt.get());</span>
+<span class="nc" id="L53">    }</span>
+
+    @Async
+    public void sendAvtaleHendelseMeldingPåAlleAvtalerDRYRun() {
+<span class="nc" id="L57">        AtomicInteger antallSendt = new AtomicInteger();</span>
+
+<span class="nc" id="L59">        log.info(&quot;DRY RUN - Henter ALLE avtaler for å lage patchehendelsemeldinger&quot;);</span>
+<span class="nc" id="L60">        List&lt;Avtale&gt; alleAvtaler = avtaleRepository.findAll(); // /o\ \o/</span>
+<span class="nc" id="L61">        log.info(&quot;DRY RUN - Alle avtaler er hentet, det ble hele {} avtaler. looper og sender hendelsemeldinger&quot;, alleAvtaler.size());</span>
+
+<span class="nc" id="L63">        alleAvtaler.forEach(avtale -&gt; {</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if(skalSendes(avtale)) {</span>
+<span class="nc" id="L65">                lagMeldingDRYRun(avtale);</span>
+<span class="nc" id="L66">                antallSendt.getAndIncrement();</span>
+            }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            if(antallSendt.get() % 100 == 0) {</span>
+<span class="nc" id="L69">                log.info(&quot;Gått igjennom {} antall avtaler&quot;, antallSendt.get());</span>
+            }
+<span class="nc" id="L71">        });</span>
+<span class="nc" id="L72">        log.info(&quot;DRY RUN - Sendt totalt {} antall hendelsemeldinger&quot;, antallSendt.get());</span>
+<span class="nc" id="L73">    }</span>
+
+    // Skal alt sendes egentlig?
+    private boolean skalSendes(Avtale avtale) {
+<span class="nc" id="L77">        return true;</span>
+    }
+
+    private void lagMelding(Avtale avtale) {
+<span class="nc" id="L81">        var melding = AvtaleMelding.create(avtale, avtale.getGjeldendeInnhold(), new Identifikator(&quot;tiltaksgjennomforing-api&quot;), AvtaleHendelseUtførtAvRolle.SYSTEM, HendelseType.STATUSENDRING);</span>
+<span class="nc" id="L82">        UUID meldingId = UUID.randomUUID();</span>
+<span class="nc" id="L83">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+        try {
+<span class="nc" id="L85">            String meldingSomString = objectMapper.writeValueAsString(melding);</span>
+<span class="nc" id="L86">            AvtaleMeldingEntitet entitet = new AvtaleMeldingEntitet(meldingId, avtale.getId(), tidspunkt, HendelseType.STATUSENDRING, avtale.statusSomEnum(), meldingSomString);</span>
+<span class="nc" id="L87">            avtaleMeldingEntitetRepository.save(entitet);</span>
+<span class="nc" id="L88">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L89">            log.error(&quot;Feil ved parsing av AvtaleHendelseMelding til json for avtale med id: {}&quot;, avtale.getId());</span>
+<span class="nc" id="L90">        }</span>
+<span class="nc" id="L91">    }</span>
+
+    private void lagMeldingDRYRun(Avtale avtale) {
+<span class="nc" id="L94">        var melding = AvtaleMelding.create(avtale, avtale.getGjeldendeInnhold(), new Identifikator(&quot;system&quot;), AvtaleHendelseUtførtAvRolle.SYSTEM, HendelseType.STATUSENDRING);</span>
+        try {
+<span class="nc" id="L96">            String meldingSomString = objectMapper.writeValueAsString(melding);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if(meldingSomString == null ) {</span>
+<span class="nc" id="L98">                log.info(&quot;Melding ble ikke generert&quot;);</span>
+            }
+<span class="nc" id="L100">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L101">            log.error(&quot;Feil ved parsing av AvtaleHendelseMelding til json for avtale med id: {}&quot;, avtale.getId());</span>
+<span class="nc" id="L102">        }</span>
+<span class="nc" id="L103">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

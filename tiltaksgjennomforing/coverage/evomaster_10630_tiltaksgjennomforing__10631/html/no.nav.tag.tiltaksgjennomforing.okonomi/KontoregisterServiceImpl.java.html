@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KontoregisterServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.okonomi</a> &gt; <span class="el_source">KontoregisterServiceImpl.java</span></div><h1>KontoregisterServiceImpl.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.okonomi;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.exceptions.KontoregisterFantIkkeBedriftFeilException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.KontoregisterFeilException;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.CorrelationIdSupplier;
+import no.nav.tag.tiltaksgjennomforing.utils.ConditionalOnPropertyNotEmpty;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+@Component
+<span class="nc" id="L24">@Slf4j</span>
+@ConditionalOnPropertyNotEmpty(&quot;tiltaksgjennomforing.kontoregister.realClient&quot;)
+public class KontoregisterServiceImpl implements KontoregisterService{
+
+    private final KontoregisterProperties kontoregisterProperties;
+    private final RestTemplate restTemplate;
+
+<span class="nc" id="L31">    public KontoregisterServiceImpl(KontoregisterProperties kontoregisterProperties, @Qualifier(&quot;azure&quot;) RestTemplate restTemplate) {</span>
+<span class="nc" id="L32">        this.kontoregisterProperties = kontoregisterProperties;</span>
+<span class="nc" id="L33">        this.restTemplate = restTemplate;</span>
+<span class="nc" id="L34">    }</span>
+
+    public String hentKontonummer(String bedriftNr)  {
+        try {
+<span class="nc" id="L38">            ResponseEntity&lt;KontoregisterResponse&gt; response = restTemplate.exchange(new URI(String.format(&quot;%s/%s&quot;, kontoregisterProperties.getUri(),bedriftNr)),HttpMethod.GET,lagRequest(),  KontoregisterResponse.class);</span>
+<span class="nc" id="L39">            return response.getBody().getKontonr();</span>
+
+<span class="nc" id="L41">        } catch (RestClientException | URISyntaxException  exception) {</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">            if(exception instanceof HttpClientErrorException){</span>
+<span class="nc" id="L43">                HttpClientErrorException hcee = (HttpClientErrorException)exception;</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">                if(hcee.getStatusCode() == NOT_FOUND) {</span>
+<span class="nc" id="L45">                    throw new KontoregisterFantIkkeBedriftFeilException();</span>
+                }
+
+            }
+<span class="nc" id="L49">            log.error(String.format(&quot;Feil fra kontoregister med request-url: %s/%s&quot;, kontoregisterProperties.getUri(),bedriftNr), exception);</span>
+<span class="nc" id="L50">            throw new KontoregisterFeilException();</span>
+        }
+    }
+
+    private HttpEntity lagRequest(){
+<span class="nc" id="L55">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L56">        headers.set(&quot;Nav-consumer-Id&quot;, kontoregisterProperties.getConsumerId());</span>
+<span class="nc" id="L57">        headers.set(&quot;Nav-Call-Id&quot;, CorrelationIdSupplier.get());</span>
+<span class="nc" id="L58">        headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L59">        return new HttpEntity(headers);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

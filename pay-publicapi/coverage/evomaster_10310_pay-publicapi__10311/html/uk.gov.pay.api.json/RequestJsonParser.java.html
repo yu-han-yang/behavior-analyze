@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestJsonParser.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.json</a> &gt; <span class="el_source">RequestJsonParser.java</span></div><h1>RequestJsonParser.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.json;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
+import uk.gov.pay.api.agreement.model.CreateAgreementRequest;
+import uk.gov.pay.api.exception.BadRequestException;
+import uk.gov.pay.api.exception.PaymentValidationException;
+import uk.gov.pay.api.model.CreateAgreementRequestBuilder;
+import uk.gov.pay.api.model.CreateCardPaymentRequest;
+import uk.gov.pay.api.model.CreateCardPaymentRequestBuilder;
+import uk.gov.pay.api.model.CreatePaymentRefundRequest;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.pay.api.model.RequestError.Code;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.Source;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.http.HttpStatus.SC_UNPROCESSABLE_ENTITY;
+import static uk.gov.pay.api.agreement.model.CreateAgreementRequest.USER_IDENTIFIER_FIELD;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.AGREEMENT_ID_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.AMOUNT_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.AUTHORISATION_MODE;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.DELAYED_CAPTURE_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.DESCRIPTION_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.EMAIL_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.INTERNAL;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.LANGUAGE_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.METADATA;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.MOTO_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_ADDRESS_CITY_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_ADDRESS_COUNTRY_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_ADDRESS_LINE1_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_ADDRESS_LINE2_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_ADDRESS_POSTCODE_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_BILLING_ADDRESS_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_CARDHOLDER_DETAILS_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.PREFILLED_CARDHOLDER_NAME_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.REFERENCE_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.RETURN_URL_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.SET_UP_AGREEMENT_FIELD_NAME;
+import static uk.gov.pay.api.model.CreateCardPaymentRequest.SOURCE_FIELD_NAME;
+import static uk.gov.pay.api.model.CreatePaymentRefundRequest.REFUND_AMOUNT_AVAILABLE;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_AGREEMENT_MISSING_FIELD_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_AGREEMENT_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_MISSING_FIELD_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_MISSING_FIELD_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+import static uk.gov.service.payments.commons.model.Source.CARD_AGENT_INITIATED_MOTO;
+import static uk.gov.service.payments.commons.model.Source.CARD_API;
+import static uk.gov.service.payments.commons.model.Source.CARD_PAYMENT_LINK;
+
+<span class="nc" id="L69">class RequestJsonParser {</span>
+
+<span class="nc" id="L71">    private static final Set&lt;Source&gt; ALLOWED_SOURCES = EnumSet.of(CARD_PAYMENT_LINK, CARD_AGENT_INITIATED_MOTO);</span>
+<span class="nc" id="L72">    public static final Set&lt;AuthorisationMode&gt; ALLOWED_AUTHORISATION_MODES = EnumSet.of(AuthorisationMode.WEB, AuthorisationMode.MOTO_API, AuthorisationMode.AGREEMENT);</span>
+
+<span class="nc" id="L74">    private static ObjectMapper objectMapper = new ObjectMapper();</span>
+<span class="nc" id="L75">    private static final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();</span>
+
+    static CreatePaymentRefundRequest parseRefundRequest(JsonNode rootNode) {
+<span class="nc" id="L78">        Integer amount = validateAndGetAmount(rootNode, CREATE_PAYMENT_REFUND_VALIDATION_ERROR, CREATE_PAYMENT_REFUND_MISSING_FIELD_ERROR);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">        Integer refundAmountAvailable = rootNode.get(REFUND_AMOUNT_AVAILABLE) == null ? null : rootNode.get(REFUND_AMOUNT_AVAILABLE).asInt();</span>
+<span class="nc" id="L80">        return new CreatePaymentRefundRequest(amount, refundAmountAvailable);</span>
+    }
+
+    static CreateCardPaymentRequest parsePaymentRequest(JsonNode paymentRequest) {
+
+<span class="nc" id="L85">        var builder = CreateCardPaymentRequestBuilder.builder()</span>
+<span class="nc" id="L86">                .amount(validateAndGetAmount(paymentRequest, CREATE_PAYMENT_VALIDATION_ERROR, CREATE_PAYMENT_MISSING_FIELD_ERROR))</span>
+<span class="nc" id="L87">                .reference(validateAndGetPaymentReference(paymentRequest))</span>
+<span class="nc" id="L88">                .description(validateAndGetPaymentDescription(paymentRequest));</span>
+
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (paymentRequest.has(RETURN_URL_FIELD_NAME)) {</span>
+<span class="nc" id="L91">            String returnUrl = validateSkipNullValueAndGetString(paymentRequest.get(RETURN_URL_FIELD_NAME),</span>
+<span class="nc" id="L92">                    aRequestError(RETURN_URL_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be a valid URL format&quot;));</span>
+<span class="nc" id="L93">            builder.returnUrl(returnUrl);</span>
+        }
+        
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (paymentRequest.has(MOTO_FIELD_NAME)) {</span>
+<span class="nc" id="L97">            builder.moto(validateAndGetMoto(paymentRequest));</span>
+        }
+
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if(paymentRequest.has(SET_UP_AGREEMENT_FIELD_NAME)) {</span>
+<span class="nc" id="L101">            builder.setUpAgreement(validateAndGetSetUpAgreement(paymentRequest));</span>
+        }
+
+<span class="nc" id="L104">        AuthorisationMode authorisationMode = null;</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        if (paymentRequest.has(AUTHORISATION_MODE)) {</span>
+<span class="nc" id="L106">            authorisationMode = validateAndGetAuthorisationMode(paymentRequest);</span>
+<span class="nc" id="L107">            builder.authorisationMode(authorisationMode);</span>
+        }
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (paymentRequest.has(AGREEMENT_ID_FIELD_NAME)) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            if (AuthorisationMode.AGREEMENT == authorisationMode) {</span>
+<span class="nc" id="L112">                builder.agreementId(validateAndGetString(</span>
+<span class="nc" id="L113">                        paymentRequest.get(AGREEMENT_ID_FIELD_NAME),</span>
+<span class="nc" id="L114">                        aRequestError(AGREEMENT_ID_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be a valid string format&quot;),</span>
+<span class="nc" id="L115">                        aRequestError(AGREEMENT_ID_FIELD_NAME, CREATE_PAYMENT_MISSING_FIELD_ERROR)));</span>
+            } else {
+<span class="nc" id="L117">                throw new BadRequestException(aRequestError(CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR, AGREEMENT_ID_FIELD_NAME));</span>
+            }
+        }
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (paymentRequest.has(LANGUAGE_FIELD_NAME)) {</span>
+<span class="nc" id="L122">            builder.language(validateAndGetLanguage(paymentRequest));</span>
+        }
+
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (paymentRequest.has(DELAYED_CAPTURE_FIELD_NAME)) {</span>
+<span class="nc" id="L126">            builder.delayedCapture(validateAndGetDelayedCapture(paymentRequest));</span>
+        }
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (paymentRequest.has(EMAIL_FIELD_NAME)) {</span>
+<span class="nc" id="L130">            String email = validateSkipNullValueAndGetString(paymentRequest.get(EMAIL_FIELD_NAME),</span>
+<span class="nc" id="L131">                    aRequestError(EMAIL_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L132">            builder.email(email);</span>
+        }
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (paymentRequest.has(PREFILLED_CARDHOLDER_DETAILS_FIELD_NAME)) {</span>
+<span class="nc" id="L136">            JsonNode prefilledNode = paymentRequest.get(PREFILLED_CARDHOLDER_DETAILS_FIELD_NAME);</span>
+<span class="nc" id="L137">            validatePrefilledCardholderDetails(prefilledNode, builder);</span>
+        }
+
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (paymentRequest.has(METADATA)) {</span>
+<span class="nc" id="L141">            builder.metadata(validateAndGetMetadata(paymentRequest));</span>
+        }
+
+<span class="nc" id="L144">        builder.source(validateAndGetSource(paymentRequest));</span>
+
+<span class="nc" id="L146">        return builder.build();</span>
+    }
+
+    static CreateAgreementRequest parseAgreementRequest(JsonNode agreementRequest) {
+<span class="nc" id="L150">        var builder = CreateAgreementRequestBuilder.builder()</span>
+<span class="nc" id="L151">                .reference(validateAndGetAgreementReference(agreementRequest))</span>
+<span class="nc" id="L152">                .description(validateAndGetAgreementDescription(agreementRequest));</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (agreementRequest.has(USER_IDENTIFIER_FIELD)) {</span>
+<span class="nc" id="L155">            String userIdentifier = validateSkipNullValueAndGetString(agreementRequest.get(USER_IDENTIFIER_FIELD),</span>
+<span class="nc" id="L156">                    aRequestError(USER_IDENTIFIER_FIELD, CREATE_AGREEMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L157">            builder.userIdentifier(userIdentifier);</span>
+        }
+
+<span class="nc" id="L160">        return builder.build();</span>
+    }
+    
+    private static SupportedLanguage validateAndGetLanguage(JsonNode paymentRequest) {
+<span class="nc" id="L164">        String errorMessage = &quot;Must be \&quot;en\&quot; or \&quot;cy\&quot;&quot;;</span>
+<span class="nc" id="L165">        RequestError requestError = aRequestError(LANGUAGE_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, errorMessage);</span>
+<span class="nc" id="L166">        String language = validateAndGetString(paymentRequest.get(LANGUAGE_FIELD_NAME), requestError, requestError);</span>
+        try {
+<span class="nc" id="L168">            return SupportedLanguage.fromIso639AlphaTwoCode(language);</span>
+<span class="nc" id="L169">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L170">            throw new WebApplicationException(Response.status(SC_UNPROCESSABLE_ENTITY).entity(requestError).build());</span>
+        }
+    }
+
+    private static AuthorisationMode validateAndGetAuthorisationMode(JsonNode paymentRequest) {
+<span class="nc" id="L175">        String errorMessage = &quot;Must be one of &quot; + ALLOWED_AUTHORISATION_MODES.stream()</span>
+<span class="nc" id="L176">                .map(AuthorisationMode::getName)</span>
+<span class="nc" id="L177">                .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L178">        RequestError requestError = aRequestError(AUTHORISATION_MODE, CREATE_PAYMENT_VALIDATION_ERROR, errorMessage);</span>
+<span class="nc" id="L179">        String value = validateAndGetString(paymentRequest.get(AUTHORISATION_MODE), requestError, requestError);</span>
+
+        try {
+<span class="nc" id="L182">            AuthorisationMode authorisationMode = AuthorisationMode.of(value);</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            if (ALLOWED_AUTHORISATION_MODES.contains(authorisationMode)) {</span>
+<span class="nc" id="L184">                return authorisationMode;</span>
+            } else {
+<span class="nc" id="L186">                throw new PaymentValidationException(requestError);</span>
+            }
+<span class="nc" id="L188">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L189">            throw new PaymentValidationException(requestError);</span>
+        }
+    }
+
+    private static String validateAndGetPaymentDescription(JsonNode paymentRequest) {
+<span class="nc" id="L194">        return validateAndGetDescription(paymentRequest, CREATE_PAYMENT_VALIDATION_ERROR, CREATE_PAYMENT_MISSING_FIELD_ERROR);</span>
+    }
+
+    private static String validateAndGetAgreementDescription(JsonNode paymentRequest) {
+<span class="nc" id="L198">        return validateAndGetDescription(paymentRequest, CREATE_AGREEMENT_VALIDATION_ERROR, CREATE_AGREEMENT_MISSING_FIELD_ERROR);</span>
+    }
+
+    private static String validateAndGetDescription(JsonNode request, RequestError.Code validationError, RequestError.Code missingFieldError) {
+<span class="nc" id="L202">        return validateAndGetString(</span>
+<span class="nc" id="L203">                request.get(DESCRIPTION_FIELD_NAME),</span>
+<span class="nc" id="L204">                aRequestError(DESCRIPTION_FIELD_NAME, validationError, &quot;Must be a valid string format&quot;),</span>
+<span class="nc" id="L205">                aRequestError(DESCRIPTION_FIELD_NAME, missingFieldError));</span>
+    }
+
+    private static String validateAndGetPaymentReference(JsonNode paymentRequest) {
+<span class="nc" id="L209">        return validateAndGetReference(paymentRequest, CREATE_PAYMENT_VALIDATION_ERROR, CREATE_PAYMENT_MISSING_FIELD_ERROR);</span>
+    }
+
+    private static String validateAndGetAgreementReference(JsonNode agreementRequest) {
+<span class="nc" id="L213">        return validateAndGetReference(agreementRequest, CREATE_AGREEMENT_VALIDATION_ERROR, CREATE_AGREEMENT_MISSING_FIELD_ERROR);</span>
+    }
+
+    private static String validateAndGetReference(JsonNode request, RequestError.Code validationError, RequestError.Code missingFieldError) {
+<span class="nc" id="L217">        return validateAndGetString(</span>
+<span class="nc" id="L218">                request.get(REFERENCE_FIELD_NAME),</span>
+<span class="nc" id="L219">                aRequestError(REFERENCE_FIELD_NAME, validationError, &quot;Must be a valid string format&quot;),</span>
+<span class="nc" id="L220">                aRequestError(REFERENCE_FIELD_NAME, missingFieldError));</span>
+    }
+
+    private static String validateAndGetString(JsonNode jsonNode, RequestError validationError, RequestError missingError) {
+<span class="nc" id="L224">        String value = validateAndGetValue(jsonNode, validationError, missingError, JsonNode::isTextual, JsonNode::asText);</span>
+<span class="nc" id="L225">        check(isNotBlank(value), missingError);</span>
+<span class="nc" id="L226">        return value;</span>
+    }
+
+    private static Boolean validateAndGetDelayedCapture(JsonNode paymentRequest) {
+<span class="nc" id="L230">        return validateAndGetValue(</span>
+<span class="nc" id="L231">                paymentRequest.get(DELAYED_CAPTURE_FIELD_NAME),</span>
+<span class="nc" id="L232">                aRequestError(DELAYED_CAPTURE_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be true or false&quot;),</span>
+<span class="nc" id="L233">                aRequestError(DELAYED_CAPTURE_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be true or false&quot;),</span>
+                JsonNode::isBoolean,
+                JsonNode::booleanValue);
+    }
+
+    private static Boolean validateAndGetMoto(JsonNode paymentRequest) {
+<span class="nc" id="L239">        return validateAndGetValue(</span>
+<span class="nc" id="L240">                paymentRequest.get(MOTO_FIELD_NAME),</span>
+<span class="nc" id="L241">                aRequestError(MOTO_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be true or false&quot;),</span>
+<span class="nc" id="L242">                aRequestError(MOTO_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Must be true or false&quot;),</span>
+                JsonNode::isBoolean,
+                JsonNode::booleanValue);
+    }
+
+    private static String validateAndGetSetUpAgreement(JsonNode paymentRequest) {
+<span class="nc" id="L248">        return paymentRequest.get(SET_UP_AGREEMENT_FIELD_NAME).textValue();</span>
+    }
+
+    private static Integer validateAndGetAmount(JsonNode paymentRequest, Code validationError, Code missingError) {
+<span class="nc" id="L252">        return validateAndGetValue(</span>
+<span class="nc" id="L253">                paymentRequest.get(AMOUNT_FIELD_NAME),</span>
+<span class="nc" id="L254">                aRequestError(AMOUNT_FIELD_NAME, validationError, &quot;Must be a valid numeric format&quot;),</span>
+<span class="nc" id="L255">                aRequestError(AMOUNT_FIELD_NAME, missingError),</span>
+                JsonNode::isInt,
+                JsonNode::intValue);
+    }
+
+    private static ExternalMetadata validateAndGetMetadata(JsonNode paymentRequest) {
+        Map&lt;String, Object&gt; metadataMap;
+        try {
+<span class="nc" id="L263">            metadataMap = objectMapper.convertValue(paymentRequest.get(&quot;metadata&quot;), Map.class);</span>
+<span class="nc" id="L264">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L265">            RequestError requestError = aRequestError(METADATA, CREATE_PAYMENT_VALIDATION_ERROR,</span>
+                    &quot;Must be an object of JSON key-value pairs&quot;);
+<span class="nc" id="L267">            throw new WebApplicationException(Response.status(SC_UNPROCESSABLE_ENTITY).entity(requestError).build());</span>
+<span class="nc" id="L268">        }</span>
+
+<span class="nc bnc" id="L270" title="All 2 branches missed.">        if (metadataMap == null) {</span>
+<span class="nc" id="L271">            RequestError requestError = aRequestError(METADATA, CREATE_PAYMENT_VALIDATION_ERROR,</span>
+                    &quot;Value must not be null&quot;);
+<span class="nc" id="L273">            throw new WebApplicationException(Response.status(SC_UNPROCESSABLE_ENTITY).entity(requestError).build());</span>
+        }
+
+<span class="nc" id="L276">        ExternalMetadata metadata = new ExternalMetadata(metadataMap);</span>
+<span class="nc" id="L277">        Set&lt;ConstraintViolation&lt;ExternalMetadata&gt;&gt; violations = validator.validate(metadata);</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        if (violations.size() &gt; 0) {</span>
+<span class="nc" id="L279">            String message = violations.stream()</span>
+<span class="nc" id="L280">                    .map(ConstraintViolation::getMessage)</span>
+<span class="nc" id="L281">                    .map(msg -&gt; msg.replace(&quot;Field [metadata] &quot;, &quot;&quot;))</span>
+<span class="nc" id="L282">                    .map(StringUtils::capitalize)</span>
+<span class="nc" id="L283">                    .collect(Collectors.joining(&quot;. &quot;));</span>
+<span class="nc" id="L284">            RequestError requestError = aRequestError(METADATA, CREATE_PAYMENT_VALIDATION_ERROR, message);</span>
+<span class="nc" id="L285">            throw new WebApplicationException(Response.status(SC_UNPROCESSABLE_ENTITY).entity(requestError).build());</span>
+        }
+<span class="nc" id="L287">        return metadata;</span>
+    }
+
+    private static void validatePrefilledCardholderDetails(JsonNode prefilledNode, CreateCardPaymentRequestBuilder builder) {
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (prefilledNode.has(PREFILLED_CARDHOLDER_NAME_FIELD_NAME)) {</span>
+<span class="nc" id="L292">            String cardHolderName = validateSkipNullValueAndGetString(prefilledNode.get(PREFILLED_CARDHOLDER_NAME_FIELD_NAME),</span>
+<span class="nc" id="L293">                    aRequestError(PREFILLED_CARDHOLDER_NAME_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L294">            builder.cardholderName(cardHolderName);</span>
+        }
+<span class="nc bnc" id="L296" title="All 2 branches missed.">        if (prefilledNode.has(PREFILLED_BILLING_ADDRESS_FIELD_NAME)) {</span>
+<span class="nc" id="L297">            JsonNode addressNode = prefilledNode.get(PREFILLED_BILLING_ADDRESS_FIELD_NAME);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">            if (addressNode.has(PREFILLED_ADDRESS_LINE1_FIELD_NAME)) {</span>
+<span class="nc" id="L299">                String addressLine1 = validateSkipNullValueAndGetString(addressNode.get(PREFILLED_ADDRESS_LINE1_FIELD_NAME),</span>
+<span class="nc" id="L300">                        aRequestError(PREFILLED_ADDRESS_LINE1_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L301">                builder.addressLine1(addressLine1);</span>
+            }
+<span class="nc bnc" id="L303" title="All 2 branches missed.">            if (addressNode.has(PREFILLED_ADDRESS_LINE2_FIELD_NAME)) {</span>
+<span class="nc" id="L304">                String addressLine1 = validateSkipNullValueAndGetString(addressNode.get(PREFILLED_ADDRESS_LINE2_FIELD_NAME),</span>
+<span class="nc" id="L305">                        aRequestError(PREFILLED_ADDRESS_LINE2_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L306">                builder.addressLine2(addressLine1);</span>
+            }
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            if (addressNode.has(PREFILLED_ADDRESS_CITY_FIELD_NAME)) {</span>
+<span class="nc" id="L309">                String addressCity = validateSkipNullValueAndGetString(addressNode.get(PREFILLED_ADDRESS_CITY_FIELD_NAME),</span>
+<span class="nc" id="L310">                        aRequestError(PREFILLED_ADDRESS_CITY_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L311">                builder.city(addressCity);</span>
+            }
+<span class="nc bnc" id="L313" title="All 2 branches missed.">            if (addressNode.has(PREFILLED_ADDRESS_POSTCODE_FIELD_NAME)) {</span>
+<span class="nc" id="L314">                String addressPostcode = validateSkipNullValueAndGetString(addressNode.get(PREFILLED_ADDRESS_POSTCODE_FIELD_NAME),</span>
+<span class="nc" id="L315">                        aRequestError(PREFILLED_ADDRESS_POSTCODE_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L316">                builder.postcode(addressPostcode);</span>
+            }
+<span class="nc bnc" id="L318" title="All 2 branches missed.">            if (addressNode.has(PREFILLED_ADDRESS_COUNTRY_FIELD_NAME)) {</span>
+<span class="nc" id="L319">                String countryCode = validateSkipNullValueAndGetString(addressNode.get(PREFILLED_ADDRESS_COUNTRY_FIELD_NAME),</span>
+<span class="nc" id="L320">                        aRequestError(PREFILLED_ADDRESS_COUNTRY_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, &quot;Field must be a string&quot;));</span>
+<span class="nc" id="L321">                builder.country(countryCode);</span>
+            }
+        }
+<span class="nc" id="L324">    }</span>
+
+    private static Source validateAndGetSource(JsonNode paymentRequest) {
+<span class="nc bnc" id="L327" title="All 2 branches missed.">        if (paymentRequest.has(INTERNAL)) {</span>
+<span class="nc" id="L328">            JsonNode internalNode = paymentRequest.get(INTERNAL);</span>
+
+<span class="nc bnc" id="L330" title="All 2 branches missed.">            if (internalNode.has(SOURCE_FIELD_NAME)) {</span>
+<span class="nc" id="L331">                String errorMessage = &quot;Accepted values are only CARD_PAYMENT_LINK, CARD_AGENT_INITIATED_MOTO&quot;;</span>
+<span class="nc" id="L332">                RequestError requestError = aRequestError(SOURCE_FIELD_NAME, CREATE_PAYMENT_VALIDATION_ERROR, errorMessage);</span>
+<span class="nc" id="L333">                String sourceString = validateSkipNullValueAndGetString(internalNode.get(SOURCE_FIELD_NAME), requestError);</span>
+
+                try {
+<span class="nc" id="L336">                    Source source = Source.valueOf(sourceString);</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">                    if (ALLOWED_SOURCES.contains(source)) {</span>
+<span class="nc" id="L338">                        return source;</span>
+                    }
+<span class="nc" id="L340">                    throw new BadRequestException(requestError);</span>
+<span class="nc" id="L341">                } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L342">                    throw new WebApplicationException(Response.status(SC_UNPROCESSABLE_ENTITY).entity(requestError).build());</span>
+                }
+            }
+        }
+
+<span class="nc" id="L347">        return CARD_API;</span>
+    }
+
+    private static &lt;T&gt; T validateAndGetValue(JsonNode jsonNode,
+                                             RequestError validationError,
+                                             RequestError missingError,
+                                             Function&lt;JsonNode, Boolean&gt; isExpectedType,
+                                             Function&lt;JsonNode, T&gt; valueFromJsonNode) {
+<span class="nc bnc" id="L355" title="All 4 branches missed.">        if (jsonNode != null &amp;&amp; !jsonNode.isNull()) {</span>
+<span class="nc" id="L356">            check(isExpectedType.apply(jsonNode), validationError);</span>
+<span class="nc" id="L357">            return valueFromJsonNode.apply(jsonNode);</span>
+        }
+<span class="nc" id="L359">        throw new BadRequestException(missingError);</span>
+    }
+
+    private static String validateSkipNullValueAndGetString(JsonNode jsonNode, RequestError validationError) {
+<span class="nc" id="L363">        return validateSkipNullAndGetValue(jsonNode, validationError, JsonNode::isTextual, JsonNode::asText);</span>
+    }
+
+    private static &lt;T&gt; T validateSkipNullAndGetValue(JsonNode jsonNode,
+                                                     RequestError validationError,
+                                                     Function&lt;JsonNode, Boolean&gt; isExpectedType,
+                                                     Function&lt;JsonNode, T&gt; valueFromJsonNode) {
+<span class="nc bnc" id="L370" title="All 4 branches missed.">        if (jsonNode == null || jsonNode.isNull()) {</span>
+<span class="nc" id="L371">            return null;</span>
+        }
+<span class="nc" id="L373">        check(isExpectedType.apply(jsonNode), validationError);</span>
+<span class="nc" id="L374">        return valueFromJsonNode.apply(jsonNode);</span>
+    }
+
+    private static void check(boolean condition, RequestError error) {
+<span class="nc bnc" id="L378" title="All 2 branches missed.">        if (!condition) {</span>
+<span class="nc" id="L379">            throw new BadRequestException(error);</span>
+        }
+<span class="nc" id="L381">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TokenUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.autorisasjon</a> &gt; <span class="el_source">TokenUtils.java</span></div><h1>TokenUtils.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.autorisasjon;
+
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import no.nav.security.token.support.core.context.TokenValidationContext;
+import no.nav.security.token.support.core.context.TokenValidationContextHolder;
+import no.nav.security.token.support.core.jwt.JwtTokenClaims;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils.Issuer.*;
+
+@Component
+<span class="fc" id="L17">@RequiredArgsConstructor</span>
+public class TokenUtils {
+    private static final String ACR = &quot;acr&quot;;
+    private static final String LEVEL4 = &quot;Level4&quot;;
+
+    public UUID hentAzureOid() {
+<span class="nc" id="L23">        return hentClaim(ISSUER_AAD, &quot;oid&quot;).map(UUID::fromString).orElse(null);</span>
+    }
+
+<span class="fc" id="L26">    public enum Issuer {</span>
+<span class="fc" id="L27">        ISSUER_AAD(&quot;aad&quot;),</span>
+<span class="fc" id="L28">        ISSUER_SYSTEM(&quot;system&quot;),</span>
+<span class="fc" id="L29">        ISSUER_TOKENX(&quot;tokenx&quot;);</span>
+
+        final String issuerName;
+
+<span class="fc" id="L33">        Issuer(String issuerName) {</span>
+<span class="fc" id="L34">            this.issuerName = issuerName;</span>
+<span class="fc" id="L35">        }</span>
+    }
+
+<span class="pc bnc" id="L38" title="All 20 branches missed.">    @Value</span>
+    public static class BrukerOgIssuer {
+<span class="fc" id="L40">        Issuer issuer;</span>
+<span class="fc" id="L41">        String brukerIdent;</span>
+    }
+
+    private final TokenValidationContextHolder contextHolder;
+
+    public Optional&lt;BrukerOgIssuer&gt; hentBrukerOgIssuer() {
+<span class="fc" id="L47">        return hentClaim(ISSUER_SYSTEM, &quot;sub&quot;).map(sub -&gt; new BrukerOgIssuer(ISSUER_SYSTEM, sub))</span>
+<span class="fc" id="L48">            .or(() -&gt; hentClaim(ISSUER_AAD, &quot;NAVident&quot;).map(sub -&gt; new BrukerOgIssuer(ISSUER_AAD, sub)))</span>
+<span class="fc" id="L49">            .or(() -&gt; hentClaim(ISSUER_TOKENX, &quot;pid&quot;).map(it -&gt; new BrukerOgIssuer(ISSUER_TOKENX, it)));</span>
+    }
+
+    public boolean harAdGruppe(UUID gruppeAD) {
+<span class="fc" id="L53">        Optional&lt;List&lt;String&gt;&gt; groupsClaim = hentClaims(ISSUER_AAD, &quot;groups&quot;);</span>
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">        if (!groupsClaim.isPresent()) {</span>
+<span class="nc" id="L55">            return false;</span>
+        }
+<span class="fc" id="L57">        return groupsClaim.get().contains(gruppeAD.toString());</span>
+    }
+
+    public boolean harAdRolle(String rolle) {
+<span class="nc" id="L61">        Optional&lt;List&lt;String&gt;&gt; roller = hentClaims(ISSUER_AAD, &quot;roles&quot;);</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (!roller.isPresent()) {</span>
+<span class="nc" id="L63">            return false;</span>
+        }
+<span class="nc" id="L65">        return roller.get().contains(rolle.toString());</span>
+    }
+
+    private Optional&lt;List&lt;String&gt;&gt; hentClaims(Issuer issuer, String claim) {
+<span class="fc" id="L69">        return hentClaimSet(issuer).filter(jwtClaimsSet -&gt; innloggingsNivaOK(issuer, jwtClaimsSet))</span>
+<span class="fc" id="L70">                .map(jwtClaimsSet -&gt; (List&lt;String&gt;) jwtClaimsSet.get(claim));</span>
+    }
+
+    private Optional&lt;String&gt; hentClaim(Issuer issuer, String claim) {
+<span class="fc" id="L74">        return hentClaimSet(issuer)</span>
+<span class="fc" id="L75">                .filter(jwtClaimsSet -&gt; innloggingsNivaOK(issuer, jwtClaimsSet))</span>
+<span class="fc" id="L76">                .map(jwtClaimsSet -&gt; jwtClaimsSet.get(claim))</span>
+<span class="fc" id="L77">                .map(String::valueOf);</span>
+    }
+
+    private boolean innloggingsNivaOK(Issuer issuer, JwtTokenClaims jwtClaimsSet) {
+
+<span class="fc bfc" id="L82" title="All 4 branches covered.">        return issuer != ISSUER_TOKENX || LEVEL4.equals(jwtClaimsSet.get(ACR));</span>
+    }
+
+    private Optional&lt;JwtTokenClaims&gt; hentClaimSet(Issuer issuer) {
+        TokenValidationContext tokenValidationContext;
+        try {
+<span class="fc" id="L88">            tokenValidationContext = contextHolder.getTokenValidationContext();</span>
+<span class="nc" id="L89">        } catch (IllegalStateException e) {</span>
+            // Er ikke i kontekst av en request
+<span class="nc" id="L91">            return Optional.empty();</span>
+<span class="fc" id="L92">        }</span>
+<span class="fc" id="L93">        JwtTokenClaims claims = tokenValidationContext.getClaims(issuer.issuerName);</span>
+<span class="fc" id="L94">        return Optional.ofNullable(claims);</span>
+
+    }
+
+    public String hentTokenx() {
+<span class="nc" id="L99">        return contextHolder.getTokenValidationContext().getJwtToken(ISSUER_TOKENX.issuerName).getTokenAsString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

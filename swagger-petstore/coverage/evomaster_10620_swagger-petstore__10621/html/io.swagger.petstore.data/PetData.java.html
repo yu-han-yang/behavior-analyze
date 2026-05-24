@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PetData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.swagger.petstore.data</a> &gt; <span class="el_source">PetData.java</span></div><h1>PetData.java</h1><pre class="source lang-java linenums">/**
+ * Copyright 2018 SmartBear Software
+ * &lt;p&gt;
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * &lt;p&gt;
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * &lt;p&gt;
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.swagger.petstore.data;
+
+import io.swagger.petstore.model.Category;
+import io.swagger.petstore.model.Pet;
+import io.swagger.petstore.model.Tag;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+<span class="fc" id="L27">public class PetData {</span>
+<span class="fc" id="L28">    private static List&lt;Pet&gt; pets = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L29">    private static List&lt;Category&gt; categories = new ArrayList&lt;&gt;();</span>
+
+    static {
+<span class="fc" id="L32">        categories.add(createCategory(1, &quot;Dogs&quot;));</span>
+<span class="fc" id="L33">        categories.add(createCategory(2, &quot;Cats&quot;));</span>
+<span class="fc" id="L34">        categories.add(createCategory(3, &quot;Rabbits&quot;));</span>
+<span class="fc" id="L35">        categories.add(createCategory(4, &quot;Lions&quot;));</span>
+
+<span class="fc" id="L37">        pets.add(createPet(1, categories.get(1), &quot;Cat 1&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag1&quot;, &quot;tag2&quot;}, &quot;available&quot;));
+<span class="fc" id="L39">        pets.add(createPet(2, categories.get(1), &quot;Cat 2&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag2&quot;, &quot;tag3&quot;}, &quot;available&quot;));
+<span class="fc" id="L41">        pets.add(createPet(3, categories.get(1), &quot;Cat 3&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag3&quot;, &quot;tag4&quot;}, &quot;pending&quot;));
+
+<span class="fc" id="L44">        pets.add(createPet(4, categories.get(0), &quot;Dog 1&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag1&quot;, &quot;tag2&quot;}, &quot;available&quot;));
+<span class="fc" id="L46">        pets.add(createPet(5, categories.get(0), &quot;Dog 2&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag2&quot;, &quot;tag3&quot;}, &quot;sold&quot;));
+<span class="fc" id="L48">        pets.add(createPet(6, categories.get(0), &quot;Dog 3&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag3&quot;, &quot;tag4&quot;}, &quot;pending&quot;));
+
+<span class="fc" id="L51">        pets.add(createPet(7, categories.get(3), &quot;Lion 1&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag1&quot;, &quot;tag2&quot;}, &quot;available&quot;));
+<span class="fc" id="L53">        pets.add(createPet(8, categories.get(3), &quot;Lion 2&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag2&quot;, &quot;tag3&quot;}, &quot;available&quot;));
+<span class="fc" id="L55">        pets.add(createPet(9, categories.get(3), &quot;Lion 3&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag3&quot;, &quot;tag4&quot;}, &quot;available&quot;));
+
+<span class="fc" id="L58">        pets.add(createPet(10, categories.get(2), &quot;Rabbit 1&quot;, new String[]{</span>
+                &quot;url1&quot;, &quot;url2&quot;}, new String[]{&quot;tag3&quot;, &quot;tag4&quot;}, &quot;available&quot;));
+<span class="fc" id="L60">    }</span>
+
+    public Pet getPetById(final long petId) {
+<span class="fc bfc" id="L63" title="All 2 branches covered.">        for (final Pet pet : pets) {</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            if (pet.getId() == petId) {</span>
+<span class="fc" id="L65">                return pet;</span>
+            }
+<span class="fc" id="L67">        }</span>
+<span class="fc" id="L68">        return null;</span>
+    }
+
+    public List&lt;Pet&gt; findPetByStatus(final String status) {
+<span class="fc" id="L72">        final String[] statues = status.split(&quot;,&quot;);</span>
+<span class="fc" id="L73">        final List&lt;Pet&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        for (final Pet pet : pets) {</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">            for (final String s : statues) {</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">                if (s.equals(pet.getStatus())) {</span>
+<span class="fc" id="L77">                    result.add(pet);</span>
+                }
+            }
+<span class="fc" id="L80">        }</span>
+<span class="fc" id="L81">        return result;</span>
+    }
+
+    public List&lt;Pet&gt; findPetByTags(final List&lt;String&gt; tags) {
+<span class="fc" id="L85">        final List&lt;Pet&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        for (final Pet pet : pets) {</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (null != pet.getTags()) {</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">                for (final Tag tag : pet.getTags()) {</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                    for (final String tagListString : tags) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                        if (tagListString.equals(tag.getName())) {</span>
+<span class="fc" id="L91">                            result.add(pet);</span>
+                        }
+<span class="fc" id="L93">                    }</span>
+<span class="fc" id="L94">                }</span>
+            }
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        return result;</span>
+    }
+
+    public void addPet(final Pet pet) {
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (pets.size() &gt; 0) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">            for (int i = pets.size() - 1; i &gt;= 0; i--) {</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">                if (pets.get(i).getId() == pet.getId()) {</span>
+<span class="fc" id="L104">                    pets.remove(i);</span>
+                }
+            }
+        }
+<span class="fc" id="L108">        pets.add(pet);</span>
+<span class="fc" id="L109">    }</span>
+
+    public void deletePetById(final Long petId) {
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        pets.removeIf(pet -&gt; pet.getId() == petId);</span>
+<span class="fc" id="L113">    }</span>
+
+    public static Pet createPet(final Long id, final Category cat, final String name,
+                            final List&lt;String&gt; urls, final List&lt;Tag&gt; tags, final String status) {
+<span class="fc" id="L117">        final Pet pet = new Pet();</span>
+<span class="fc" id="L118">        pet.setId(id);</span>
+<span class="fc" id="L119">        pet.setCategory(cat);</span>
+<span class="fc" id="L120">        pet.setName(name);</span>
+<span class="fc" id="L121">        pet.setPhotoUrls(urls);</span>
+<span class="fc" id="L122">        pet.setTags(tags);</span>
+<span class="fc" id="L123">        pet.setStatus(status);</span>
+<span class="fc" id="L124">        return pet;</span>
+    }
+
+    private static Pet createPet(final long id, final Category cat, final String name, final String[] urls,
+                                 final String[] tags, final String status) {
+<span class="fc" id="L129">        final Pet pet = new Pet();</span>
+<span class="fc" id="L130">        pet.setId(id);</span>
+<span class="fc" id="L131">        pet.setCategory(cat);</span>
+<span class="fc" id="L132">        pet.setName(name);</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        if (null != urls) {</span>
+<span class="fc" id="L134">            final List&lt;String&gt; urlObjs = new ArrayList&lt;&gt;(Arrays.asList(urls));</span>
+<span class="fc" id="L135">            pet.setPhotoUrls(urlObjs);</span>
+        }
+<span class="fc" id="L137">        final List&lt;Tag&gt; tagObjs = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L138">        int i = 0;</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">        if (null != tags) {</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">            for (final String tagString : tags) {</span>
+<span class="fc" id="L141">                i = i + 1;</span>
+<span class="fc" id="L142">                final Tag tag = new Tag();</span>
+<span class="fc" id="L143">                tag.setId(i);</span>
+<span class="fc" id="L144">                tag.setName(tagString);</span>
+<span class="fc" id="L145">                tagObjs.add(tag);</span>
+            }
+        }
+<span class="fc" id="L148">        pet.setTags(tagObjs);</span>
+<span class="fc" id="L149">        pet.setStatus(status);</span>
+<span class="fc" id="L150">        return pet;</span>
+    }
+
+    private static Category createCategory(final long id, final String name) {
+<span class="fc" id="L154">        final Category category = new Category();</span>
+<span class="fc" id="L155">        category.setId(id);</span>
+<span class="fc" id="L156">        category.setName(name);</span>
+<span class="fc" id="L157">        return category;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

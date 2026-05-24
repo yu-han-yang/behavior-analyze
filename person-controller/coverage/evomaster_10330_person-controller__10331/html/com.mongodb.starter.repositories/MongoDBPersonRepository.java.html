@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MongoDBPersonRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.mongodb.starter.repositories</a> &gt; <span class="el_source">MongoDBPersonRepository.java</span></div><h1>MongoDBPersonRepository.java</h1><pre class="source lang-java linenums">package com.mongodb.starter.repositories;
+
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadPreference;
+import com.mongodb.TransactionOptions;
+import com.mongodb.WriteConcern;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.FindOneAndReplaceOptions;
+import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.starter.dtos.AverageAgeDTO;
+import com.mongodb.starter.models.PersonEntity;
+import jakarta.annotation.PostConstruct;
+import org.bson.BsonDocument;
+import org.bson.BsonNull;
+import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
+import org.springframework.stereotype.Repository;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.mongodb.client.model.Accumulators.avg;
+import static com.mongodb.client.model.Aggregates.group;
+import static com.mongodb.client.model.Aggregates.project;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.in;
+import static com.mongodb.client.model.Projections.excludeId;
+import static com.mongodb.client.model.ReturnDocument.AFTER;
+
+@Repository
+public class MongoDBPersonRepository implements PersonRepository {
+
+<span class="nc" id="L35">    private static final TransactionOptions txnOptions = TransactionOptions.builder()</span>
+<span class="nc" id="L36">                                                                           .readPreference(ReadPreference.primary())</span>
+<span class="nc" id="L37">                                                                           .readConcern(ReadConcern.MAJORITY)</span>
+<span class="nc" id="L38">                                                                           .writeConcern(WriteConcern.MAJORITY)</span>
+<span class="nc" id="L39">                                                                           .build();</span>
+    private final MongoClient client;
+    private MongoCollection&lt;PersonEntity&gt; personCollection;
+
+<span class="nc" id="L43">    public MongoDBPersonRepository(MongoClient mongoClient) {</span>
+<span class="nc" id="L44">        this.client = mongoClient;</span>
+<span class="nc" id="L45">    }</span>
+
+    @PostConstruct
+    void init() {
+<span class="nc" id="L49">        personCollection = client.getDatabase(&quot;test&quot;).getCollection(&quot;persons&quot;, PersonEntity.class);</span>
+<span class="nc" id="L50">    }</span>
+
+    @Override
+    public PersonEntity save(PersonEntity personEntity) {
+<span class="nc" id="L54">        personEntity.setId(new ObjectId());</span>
+<span class="nc" id="L55">        personCollection.insertOne(personEntity);</span>
+<span class="nc" id="L56">        return personEntity;</span>
+    }
+
+    @Override
+    public List&lt;PersonEntity&gt; saveAll(List&lt;PersonEntity&gt; personEntities) {
+<span class="nc" id="L61">        try (ClientSession clientSession = client.startSession()) {</span>
+<span class="nc" id="L62">            return clientSession.withTransaction(() -&gt; {</span>
+<span class="nc" id="L63">                personEntities.forEach(p -&gt; p.setId(new ObjectId()));</span>
+<span class="nc" id="L64">                personCollection.insertMany(clientSession, personEntities);</span>
+<span class="nc" id="L65">                return personEntities;</span>
+            }, txnOptions);
+        }
+    }
+
+    @Override
+    public List&lt;PersonEntity&gt; findAll() {
+<span class="nc" id="L72">        return personCollection.find().into(new ArrayList&lt;&gt;());</span>
+    }
+
+    @Override
+    public List&lt;PersonEntity&gt; findAll(List&lt;String&gt; ids) {
+<span class="nc" id="L77">        return personCollection.find(in(&quot;_id&quot;, mapToObjectIds(ids))).into(new ArrayList&lt;&gt;());</span>
+    }
+
+    @Override
+    public PersonEntity findOne(String id) {
+<span class="nc" id="L82">        return personCollection.find(eq(&quot;_id&quot;, new ObjectId(id))).first();</span>
+    }
+
+    @Override
+    public long count() {
+<span class="nc" id="L87">        return personCollection.countDocuments();</span>
+    }
+
+    @Override
+    public long delete(String id) {
+<span class="nc" id="L92">        return personCollection.deleteOne(eq(&quot;_id&quot;, new ObjectId(id))).getDeletedCount();</span>
+    }
+
+    @Override
+    public long delete(List&lt;String&gt; ids) {
+<span class="nc" id="L97">        try (ClientSession clientSession = client.startSession()) {</span>
+<span class="nc" id="L98">            return clientSession.withTransaction(</span>
+<span class="nc" id="L99">                    () -&gt; personCollection.deleteMany(clientSession, in(&quot;_id&quot;, mapToObjectIds(ids))).getDeletedCount(),</span>
+                    txnOptions);
+        }
+    }
+
+    @Override
+    public long deleteAll() {
+<span class="nc" id="L106">        try (ClientSession clientSession = client.startSession()) {</span>
+<span class="nc" id="L107">            return clientSession.withTransaction(</span>
+<span class="nc" id="L108">                    () -&gt; personCollection.deleteMany(clientSession, new BsonDocument()).getDeletedCount(), txnOptions);</span>
+        }
+    }
+
+    @Override
+    public PersonEntity update(PersonEntity personEntity) {
+<span class="nc" id="L114">        FindOneAndReplaceOptions options = new FindOneAndReplaceOptions().returnDocument(AFTER);</span>
+<span class="nc" id="L115">        return personCollection.findOneAndReplace(eq(&quot;_id&quot;, personEntity.getId()), personEntity, options);</span>
+    }
+
+    @Override
+    public long update(List&lt;PersonEntity&gt; personEntities) {
+<span class="nc" id="L120">        List&lt;ReplaceOneModel&lt;PersonEntity&gt;&gt; writes = personEntities.stream()</span>
+<span class="nc" id="L121">                                                                   .map(p -&gt; new ReplaceOneModel&lt;&gt;(eq(&quot;_id&quot;, p.getId()),</span>
+                                                                                                   p))
+<span class="nc" id="L123">                                                                   .toList();</span>
+<span class="nc" id="L124">        try (ClientSession clientSession = client.startSession()) {</span>
+<span class="nc" id="L125">            return clientSession.withTransaction(</span>
+<span class="nc" id="L126">                    () -&gt; personCollection.bulkWrite(clientSession, writes).getModifiedCount(), txnOptions);</span>
+        }
+    }
+
+    @Override
+    public double getAverageAge() {
+<span class="nc" id="L132">        List&lt;Bson&gt; pipeline = List.of(group(new BsonNull(), avg(&quot;averageAge&quot;, &quot;$age&quot;)), project(excludeId()));</span>
+<span class="nc" id="L133">        return personCollection.aggregate(pipeline, AverageAgeDTO.class).first().averageAge();</span>
+    }
+
+    private List&lt;ObjectId&gt; mapToObjectIds(List&lt;String&gt; ids) {
+<span class="nc" id="L137">        return ids.stream().map(ObjectId::new).toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

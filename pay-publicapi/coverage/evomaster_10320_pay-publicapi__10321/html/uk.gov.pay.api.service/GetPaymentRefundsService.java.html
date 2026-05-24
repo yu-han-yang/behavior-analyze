@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GetPaymentRefundsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.service</a> &gt; <span class="el_source">GetPaymentRefundsService.java</span></div><h1>GetPaymentRefundsService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.service;
+
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.model.RefundResponse;
+import uk.gov.pay.api.model.RefundsFromConnector;
+import uk.gov.pay.api.model.RefundsResponse;
+import uk.gov.pay.api.model.ledger.RefundsFromLedger;
+
+import javax.inject.Inject;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class GetPaymentRefundsService {
+
+    private final ConnectorService connectorService;
+    private final LedgerService ledgerService;
+    private PublicApiUriGenerator publicApiUriGenerator;
+
+    @Inject
+    public GetPaymentRefundsService(ConnectorService connectorService,
+                                    LedgerService ledgerService,
+<span class="fc" id="L22">                                    PublicApiUriGenerator publicApiUriGenerator) {</span>
+<span class="fc" id="L23">        this.connectorService = connectorService;</span>
+<span class="fc" id="L24">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L25">        this.publicApiUriGenerator = publicApiUriGenerator;</span>
+<span class="fc" id="L26">    }</span>
+
+    public RefundsResponse getConnectorPaymentRefunds(Account account, String paymentId) {
+<span class="nc" id="L29">        RefundsFromConnector refundsFromConnector = connectorService.getPaymentRefunds(account.getAccountId(), paymentId);</span>
+<span class="nc" id="L30">        List&lt;RefundResponse&gt; refundResponses = processRefunds(paymentId, refundsFromConnector);</span>
+        
+<span class="nc" id="L32">        return getRefundsResponse(paymentId, refundResponses);</span>
+    }
+
+    public RefundsResponse getLedgerTransactionTransactions(Account account, String paymentId) {
+<span class="nc" id="L36">        RefundsFromLedger refundsFromLedger = ledgerService.getPaymentRefunds(account.getAccountId(), paymentId);</span>
+<span class="nc" id="L37">        List&lt;RefundResponse&gt; refundResponses = processRefunds(paymentId, refundsFromLedger);</span>
+        
+<span class="nc" id="L39">        return getRefundsResponse(paymentId, refundResponses);</span>
+    }
+
+    private List&lt;RefundResponse&gt; processRefunds(String paymentId, RefundsFromLedger refundsFromLedger) {
+<span class="nc" id="L43">        return refundsFromLedger.getTransactions()</span>
+<span class="nc" id="L44">                .stream()</span>
+<span class="nc" id="L45">                .map(refundTransactionFromLedger -&gt;</span>
+<span class="nc" id="L46">                        RefundResponse.from(refundTransactionFromLedger,</span>
+<span class="nc" id="L47">                                publicApiUriGenerator.getRefundsURI(paymentId,</span>
+<span class="nc" id="L48">                                        refundTransactionFromLedger.getTransactionId()),</span>
+<span class="nc" id="L49">                                publicApiUriGenerator.getPaymentURI(paymentId)</span>
+                        )
+                )
+<span class="nc" id="L52">                .collect(Collectors.toList());</span>
+    }
+
+    private List&lt;RefundResponse&gt; processRefunds(String paymentId, RefundsFromConnector refundsFromConnector) {
+<span class="nc" id="L56">        return refundsFromConnector</span>
+<span class="nc" id="L57">                .getEmbedded()</span>
+<span class="nc" id="L58">                .getRefunds()</span>
+<span class="nc" id="L59">                .stream()</span>
+<span class="nc" id="L60">                .map(refundFromConnector -&gt;</span>
+<span class="nc" id="L61">                        RefundResponse.from(refundFromConnector,</span>
+<span class="nc" id="L62">                                publicApiUriGenerator.getRefundsURI(paymentId,</span>
+<span class="nc" id="L63">                                        refundFromConnector.getRefundId()),</span>
+<span class="nc" id="L64">                                publicApiUriGenerator.getPaymentURI(paymentId)</span>
+                        )
+                )
+<span class="nc" id="L67">                .collect(Collectors.toList());</span>
+    }
+
+    private RefundsResponse getRefundsResponse(String paymentId, List&lt;RefundResponse&gt; refunds) {
+<span class="nc" id="L71">        return RefundsResponse.from(paymentId, refunds,</span>
+<span class="nc" id="L72">                publicApiUriGenerator.getPaymentRefundsURI(paymentId).toString(),</span>
+<span class="nc" id="L73">                publicApiUriGenerator.getPaymentURI(paymentId).toString()</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

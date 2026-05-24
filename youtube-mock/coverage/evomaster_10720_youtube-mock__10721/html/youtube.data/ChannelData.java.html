@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChannelData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.data</a> &gt; <span class="el_source">ChannelData.java</span></div><h1>ChannelData.java</h1><pre class="source lang-java linenums">package youtube.data;
+
+import youtube.api.model.Channel;
+import youtube.api.model.SearchResultSnippet;
+import youtube.api.model.Thumbnail;
+import youtube.api.model.ThumbnailDetails;
+import youtube.api.util.RepositoryUtils;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+<span class="nc" id="L13">public class ChannelData {</span>
+
+    public static List&lt;Channel&gt; getChannelData() throws ParseException {
+<span class="fc" id="L16">        List&lt;Channel&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L18">        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss'Z'&quot;);</span>
+<span class="fc" id="L19">        dateFormat.setTimeZone(TimeZone.getTimeZone(&quot;UTC&quot;));</span>
+
+        //##### Channel 1 #####
+
+<span class="fc" id="L23">        SearchResultSnippet snippetC1 = new SearchResultSnippet();</span>
+<span class="fc" id="L24">        snippetC1.setChannelId(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+<span class="fc" id="L25">        snippetC1.setChannelTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L26">        snippetC1.setTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L27">        snippetC1.setDescription(&quot;Welcome to my channel.&quot;);</span>
+<span class="fc" id="L28">        snippetC1.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.LIVE);</span>
+<span class="fc" id="L29">        snippetC1.setPublishedAt(dateFormat.parse(&quot;2020-03-28T10:35:00Z&quot;));</span>
+<span class="fc" id="L30">        snippetC1.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L32">        Channel c1 = new Channel(&quot;UCxwvutsrqponmlkjihgfedc&quot;, snippetC1, &quot;other&quot;, &quot;en&quot;, Arrays.asList(&quot;/m/01k8wb&quot;, &quot;/m/05qt0&quot;, &quot;/m/02jjt&quot;, &quot;/m/0bzvm2&quot;), 6502L,</span>
+<span class="fc" id="L33">                2L, &quot;contentOwner1&quot;);</span>
+
+        //##### Channel 2 #####
+
+<span class="fc" id="L37">        SearchResultSnippet snippetC2 = new SearchResultSnippet();</span>
+<span class="fc" id="L38">        snippetC2.setChannelId(&quot;UC0DZmkupLYwc0yDsfocLh0A&quot;);</span>
+<span class="fc" id="L39">        snippetC2.setChannelTitle(&quot;Jelly&quot;);</span>
+<span class="fc" id="L40">        snippetC2.setTitle(&quot;Jelly&quot;);</span>
+<span class="fc" id="L41">        snippetC2.setDescription(&quot;Hi there, welcome to my channel! My name is Jelly and I'm a child friendly Youtuber! Make sure to SUBSCRIBE for daily videos on various games! And ofcourse endless funny moments! \uD83D\uDE02&quot;);</span>
+<span class="fc" id="L42">        snippetC2.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L43">        snippetC2.setPublishedAt(dateFormat.parse(&quot;2014-05-27T13:19:08Z&quot;));</span>
+<span class="fc" id="L44">        snippetC2.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L46">        Channel c2 = new Channel(&quot;UC0DZmkupLYwc0yDsfocLh0A&quot;, snippetC2, &quot;other&quot;, &quot;en&quot;, null, 8449503561L, 4084L,</span>
+                &quot;contentOwnerJelly&quot;);
+
+        //##### Channel 3 #####
+
+<span class="fc" id="L51">        SearchResultSnippet snippetC3 = new SearchResultSnippet();</span>
+<span class="fc" id="L52">        snippetC3.setChannelId(&quot;UCRpjHHu8ivVWs73uxHlWwFA&quot;);</span>
+<span class="fc" id="L53">        snippetC3.setChannelTitle(&quot;Eurovision Song Contest&quot;);</span>
+<span class="fc" id="L54">        snippetC3.setTitle(&quot;Eurovision Song Contest&quot;);</span>
+<span class="fc" id="L55">        snippetC3.setDescription(&quot;Welcome to the official Eurovision Song Contest channel on YouTube!&quot;);</span>
+<span class="fc" id="L56">        snippetC3.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L57">        snippetC3.setPublishedAt(dateFormat.parse(&quot;2006-03-05T11:56:13Z&quot;));</span>
+<span class="fc" id="L58">        snippetC3.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L60">        Channel c3 = new Channel(&quot;UCRpjHHu8ivVWs73uxHlWwFA&quot;, snippetC3, &quot;other&quot;, &quot;en&quot;, Arrays.asList(&quot;/m/04rlf&quot;, &quot;/m/064t9&quot;), 4364109572L,</span>
+<span class="fc" id="L61">                5493L, &quot;contentOwnerESC&quot;);</span>
+
+        //##### Channel 4 #####
+
+<span class="fc" id="L65">        SearchResultSnippet snippetC4 = new SearchResultSnippet();</span>
+<span class="fc" id="L66">        snippetC4.setChannelId(&quot;UCGGhM6XCSJFQ6DTRffnKRIw&quot;);</span>
+<span class="fc" id="L67">        snippetC4.setChannelTitle(&quot;Muse&quot;);</span>
+<span class="fc" id="L68">        snippetC4.setTitle(&quot;Muse&quot;);</span>
+<span class="fc" id="L69">        snippetC4.setDescription(&quot;Origin of Muse out now.  The deluxe box set features 113 tracks in total, with more than 40 unreleased.&quot;);</span>
+<span class="fc" id="L70">        snippetC4.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L71">        snippetC4.setPublishedAt(dateFormat.parse(&quot;2006-09-28T14:47:54Z&quot;));</span>
+<span class="fc" id="L72">        snippetC4.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L74">        Channel c4 = new Channel(&quot;UCGGhM6XCSJFQ6DTRffnKRIw&quot;, snippetC4, &quot;other&quot;, &quot;en&quot;, Arrays.asList(&quot;/m/04rlf&quot;, &quot;/m/06by7&quot;, &quot;/m/064t9&quot;), 1796433197L,</span>
+<span class="fc" id="L75">                162L, &quot;contentOwnerMuse&quot;);</span>
+
+        //##### Channel 5 #####
+
+<span class="fc" id="L79">        SearchResultSnippet snippetC5 = new SearchResultSnippet();</span>
+<span class="fc" id="L80">        snippetC5.setChannelId(&quot;UCeB7JZwcar2fVoK2w2f9OwA&quot;);</span>
+<span class="fc" id="L81">        snippetC5.setChannelTitle(&quot;Real Betis Balompié&quot;);</span>
+<span class="fc" id="L82">        snippetC5.setTitle(&quot;Real Betis Balompié&quot;);</span>
+<span class="fc" id="L83">        snippetC5.setDescription(&quot;Canal de YouTube oficial del Real Betis Balompié. Visualiza nuestras últimas novedades con RBB Play.\\n--\\nReal Betis Balompié Official YouTube Channel. Watch the latest content with RBB Play.&quot;);</span>
+<span class="fc" id="L84">        snippetC5.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L85">        snippetC5.setPublishedAt(dateFormat.parse(&quot;2011-05-19T13:15:47Z&quot;));</span>
+<span class="fc" id="L86">        snippetC5.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L88">        Channel c5 = new Channel(&quot;UCeB7JZwcar2fVoK2w2f9OwA&quot;, snippetC5, &quot;other&quot;, &quot;es&quot;, Arrays.asList(&quot;/m/02vx4&quot;, &quot;/m/06ntj&quot;), 118320090L,</span>
+<span class="fc" id="L89">                2385L, &quot;contentOwnerRBB&quot;);</span>
+
+        //##### Channel 6 #####
+
+<span class="fc" id="L93">        SearchResultSnippet snippetC6 = new SearchResultSnippet();</span>
+<span class="fc" id="L94">        snippetC6.setChannelId(&quot;UCpAyEKkMwTiq8FQ_Jqr4Ckg&quot;);</span>
+<span class="fc" id="L95">        snippetC6.setChannelTitle(&quot;Alex Gasan&quot;);</span>
+<span class="fc" id="L96">        snippetC6.setTitle(&quot;Alex Gasan&quot;);</span>
+<span class="fc" id="L97">        snippetC6.setDescription(&quot;&quot;);</span>
+<span class="fc" id="L98">        snippetC6.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L99">        snippetC6.setPublishedAt(dateFormat.parse(&quot;2010-10-02T10:43:45Z&quot;));</span>
+<span class="fc" id="L100">        snippetC6.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L102">        Channel c6 = new Channel(&quot;UCpAyEKkMwTiq8FQ_Jqr4Ckg&quot;, snippetC6, &quot;other&quot;, &quot;es&quot;, Arrays.asList(&quot;/m/0410tth&quot;, &quot;/m/06ntj&quot;, &quot;/m/019_rr&quot;, &quot;/m/07yv9&quot;, &quot;/m/0bzvm2&quot;, &quot;/m/01sjng&quot;),</span>
+<span class="fc" id="L103">                265225L, 400L, &quot;contentOwnerAG&quot;);</span>
+
+        //##### Channel 7 #####
+
+<span class="fc" id="L107">        SearchResultSnippet snippetC7 = new SearchResultSnippet();</span>
+<span class="fc" id="L108">        snippetC7.setChannelId(&quot;UCbdSYaPD-lr1kW27UJuk8Pw&quot;);</span>
+<span class="fc" id="L109">        snippetC7.setChannelTitle(&quot;QuantumFracture&quot;);</span>
+<span class="fc" id="L110">        snippetC7.setTitle(&quot;QuantumFracture&quot;);</span>
+<span class="fc" id="L111">        snippetC7.setDescription(&quot;¡Ciencia! ¡y con animaciones! El lado más loco (y real) del Universo... cada jueves.\nEscríbeme: contacto@quantumfracture.es\nSíguenos en Twitter: https://twitter.com/QuantumFracture\ny en Facebook: https://www.facebook.com/QuantumFracture&quot;);</span>
+<span class="fc" id="L112">        snippetC7.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L113">        snippetC7.setPublishedAt(dateFormat.parse(&quot;2012-08-22T14:53:42Z&quot;));</span>
+<span class="fc" id="L114">        snippetC7.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L116">        Channel c7 = new Channel(&quot;UCbdSYaPD-lr1kW27UJuk8Pw&quot;, snippetC7, &quot;other&quot;, &quot;es&quot;, Collections.singletonList(&quot;/m/01k8wb&quot;), 133103115L, 146L,</span>
+                &quot;contentOwnerQF&quot;);
+
+        //##### Channel 8 #####
+
+<span class="fc" id="L121">        SearchResultSnippet snippetC8 = new SearchResultSnippet();</span>
+<span class="fc" id="L122">        snippetC8.setChannelId(&quot;UCnGjxxnmYTUxRl85hrjtEBg&quot;);</span>
+<span class="fc" id="L123">        snippetC8.setChannelTitle(&quot;DonOmarVEVO&quot;);</span>
+<span class="fc" id="L124">        snippetC8.setTitle(&quot;DonOmarVEVO&quot;);</span>
+<span class="fc" id="L125">        snippetC8.setDescription(&quot;Don Omar en Vevo – Videoclips oficiales, Lyric videos, Sesiones en vivo, Entrevistas y muchos más...&quot;);</span>
+<span class="fc" id="L126">        snippetC8.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L127">        snippetC8.setPublishedAt(dateFormat.parse(&quot;2009-05-12T05:27:47Z&quot;));</span>
+<span class="fc" id="L128">        snippetC8.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L130">        Channel c8 = new Channel(&quot;UCnGjxxnmYTUxRl85hrjtEBg&quot;, snippetC8, &quot;other&quot;, &quot;es&quot;, Arrays.asList(&quot;/m/04rlf&quot;, &quot;/m/0g293&quot;), 4168214989L, 48L,</span>
+                &quot;contentOwnerDonOmar&quot;);
+
+        //##### Channel 9 #####
+
+<span class="fc" id="L135">        SearchResultSnippet snippetC9 = new SearchResultSnippet();</span>
+<span class="fc" id="L136">        snippetC9.setChannelId(&quot;UC2b0o80VP4cbfPE_v8LQEOA&quot;);</span>
+<span class="fc" id="L137">        snippetC9.setChannelTitle(&quot;Movie Juice&quot;);</span>
+<span class="fc" id="L138">        snippetC9.setTitle(&quot;Movie Juice&quot;);</span>
+<span class="fc" id="L139">        snippetC9.setDescription(&quot;Movie Juice and Premiere are your wrap up of movie and celebrity news from the hottest red carpets here and around the globe plus awesome celebrity star bios and movie trailers.&quot;);</span>
+<span class="fc" id="L140">        snippetC9.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L141">        snippetC9.setPublishedAt(dateFormat.parse(&quot;2010-10-22T06:31:53Z&quot;));</span>
+<span class="fc" id="L142">        snippetC9.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L144">        Channel c9 = new Channel(&quot;UC2b0o80VP4cbfPE_v8LQEOA&quot;, snippetC9, &quot;show&quot;, &quot;en&quot;, Arrays.asList( &quot;/m/02vxn&quot;, &quot;/m/02jjt&quot;), 14355388L, 796L,</span>
+                &quot;contentOwnerMJ&quot;);
+
+        //##### Channel 10 #####
+
+<span class="fc" id="L149">        SearchResultSnippet snippetC10 = new SearchResultSnippet();</span>
+<span class="fc" id="L150">        snippetC10.setChannelId(&quot;UCK8sQmJBp8GCxrOtXWBpyEA&quot;);</span>
+<span class="fc" id="L151">        snippetC10.setChannelTitle(&quot;Google&quot;);</span>
+<span class="fc" id="L152">        snippetC10.setTitle(&quot;Google&quot;);</span>
+<span class="fc" id="L153">        snippetC10.setDescription(&quot;Experience the world of Google on our official YouTube channel. Watch videos about our products,  technology, company happenings and more. Subscribe to get updates from all your favorite Google products and teams.&quot;);</span>
+<span class="fc" id="L154">        snippetC10.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L155">        snippetC10.setPublishedAt(dateFormat.parse(&quot;2005-09-18T22:37:10Z&quot;));</span>
+<span class="fc" id="L156">        snippetC10.setThumbnails(generateThumbnailDetails());</span>
+
+<span class="fc" id="L158">        Channel c10 = new Channel(&quot;UCK8sQmJBp8GCxrOtXWBpyEA&quot;, snippetC10, &quot;other&quot;, &quot;en&quot;, null, 2659013380L, 2319L,</span>
+                &quot;contentOwnerGoogle&quot;);
+
+
+<span class="fc" id="L162">        result.add(c1);</span>
+<span class="fc" id="L163">        result.add(c2);</span>
+<span class="fc" id="L164">        result.add(c3);</span>
+<span class="fc" id="L165">        result.add(c4);</span>
+<span class="fc" id="L166">        result.add(c5);</span>
+<span class="fc" id="L167">        result.add(c6);</span>
+<span class="fc" id="L168">        result.add(c7);</span>
+<span class="fc" id="L169">        result.add(c8);</span>
+<span class="fc" id="L170">        result.add(c9);</span>
+<span class="fc" id="L171">        result.add(c10);</span>
+
+<span class="fc" id="L173">        return result;</span>
+    }
+
+    private static ThumbnailDetails generateThumbnailDetails() {
+<span class="fc" id="L177">        ThumbnailDetails details = new ThumbnailDetails();</span>
+<span class="fc" id="L178">        String urlFirstPart = &quot;https://yt3.ggpht.com/&quot; + RepositoryUtils.generateEtag().substring(0,12);</span>
+<span class="fc" id="L179">        String urlSecondPart = &quot;/AAAAAAAAAAI/AAAAAAAAAAA/&quot; + RepositoryUtils.generateEtag().substring(0,11);</span>
+<span class="fc" id="L180">        Thumbnail defaultThumbnail = new Thumbnail();</span>
+<span class="fc" id="L181">        defaultThumbnail.setUrl(urlFirstPart + urlSecondPart + &quot;/s88-c-k-no-mo-rj-c0xffffff/photo.jpg&quot;);</span>
+<span class="fc" id="L182">        Thumbnail medium = new Thumbnail();</span>
+<span class="fc" id="L183">        medium.setUrl(urlFirstPart + urlSecondPart + &quot;/s240-c-k-no-mo-rj-c0xffffff/photo.jpg&quot;);</span>
+<span class="fc" id="L184">        Thumbnail high = new Thumbnail();</span>
+<span class="fc" id="L185">        high.setUrl(urlFirstPart + urlSecondPart + &quot;/s800-c-k-no-mo-rj-c0xffffff/photo.jpg&quot;);</span>
+<span class="fc" id="L186">        details.setDefaultThumbnail(defaultThumbnail);</span>
+<span class="fc" id="L187">        details.setMedium(medium);</span>
+<span class="fc" id="L188">        details.setHigh(high);</span>
+<span class="fc" id="L189">        return details;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

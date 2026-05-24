@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InnloggingService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.autorisasjon</a> &gt; <span class="el_source">InnloggingService.java</span></div><h1>InnloggingService.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.autorisasjon;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.model.AltinnReportee;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils.BrukerOgIssuer;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils.Issuer;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.abac.TilgangskontrollService;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.altinntilgangsstyring.AltinnTilgangsstyringService;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.altinntilgangsstyring.ArbeidsgiverTokenStrategyFactory;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.altinntilgangsstyring.HentArbeidsgiverToken;
+import no.nav.tag.tiltaksgjennomforing.avtale.Arbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalepart;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalerolle;
+import no.nav.tag.tiltaksgjennomforing.avtale.BedriftNr;
+import no.nav.tag.tiltaksgjennomforing.avtale.Beslutter;
+import no.nav.tag.tiltaksgjennomforing.avtale.Deltaker;
+import no.nav.tag.tiltaksgjennomforing.avtale.Fnr;
+import no.nav.tag.tiltaksgjennomforing.avtale.Mentor;
+import no.nav.tag.tiltaksgjennomforing.avtale.NavIdent;
+import no.nav.tag.tiltaksgjennomforing.avtale.Tiltakstype;
+import no.nav.tag.tiltaksgjennomforing.avtale.Veileder;
+import no.nav.tag.tiltaksgjennomforing.enhet.Norg2Client;
+import no.nav.tag.tiltaksgjennomforing.enhet.VeilarbArenaClient;
+import no.nav.tag.tiltaksgjennomforing.exceptions.Feilkode;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilkodeException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.TilgangskontrollException;
+import no.nav.tag.tiltaksgjennomforing.featuretoggles.enhet.AxsysService;
+import no.nav.tag.tiltaksgjennomforing.featuretoggles.enhet.NavEnhet;
+import no.nav.tag.tiltaksgjennomforing.persondata.PersondataService;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="fc" id="L38">@RequiredArgsConstructor</span>
+<span class="fc" id="L39">@Slf4j</span>
+public class InnloggingService {
+    private final SystembrukerProperties systembrukerProperties;
+    private final BeslutterAdGruppeProperties beslutterAdGruppeProperties;
+    private final TokenUtils tokenUtils;
+    private final AltinnTilgangsstyringService altinnTilgangsstyringService;
+    private final TilgangskontrollService tilgangskontrollService;
+    private final PersondataService persondataService;
+    private final Norg2Client norg2Client;
+    private final AxsysService axsysService;
+    private final SlettemerkeProperties slettemerkeProperties;
+    private final VeilarbArenaClient veilarbArenaClient;
+    private final ArbeidsgiverTokenStrategyFactory arbeidsgiverTokenStrategyFactory;
+
+    public Avtalepart hentAvtalepart(Avtalerolle avtalerolle) {
+<span class="fc" id="L54">        BrukerOgIssuer brukerOgIssuer = tokenUtils.hentBrukerOgIssuer().orElseThrow(() -&gt; new TilgangskontrollException(&quot;Bruker er ikke innlogget.&quot;));</span>
+<span class="fc" id="L55">        Issuer issuer = brukerOgIssuer.getIssuer();</span>
+
+<span class="pc bpc" id="L57" title="2 of 6 branches missed.">        if (issuer == Issuer.ISSUER_TOKENX &amp;&amp; (avtalerolle == Avtalerolle.DELTAKER || avtalerolle == Avtalerolle.MENTOR)) {</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">            if(avtalerolle == Avtalerolle.DELTAKER) return new Deltaker(new Fnr(brukerOgIssuer.getBrukerIdent()));</span>
+<span class="nc" id="L59">            else return new Mentor(new Fnr(brukerOgIssuer.getBrukerIdent()));</span>
+<span class="fc bfc" id="L60" title="All 4 branches covered.">        }else if (issuer == Issuer.ISSUER_TOKENX &amp;&amp; avtalerolle == Avtalerolle.ARBEIDSGIVER) {</span>
+<span class="fc" id="L61">            HentArbeidsgiverToken hentArbeidsgiverToken = arbeidsgiverTokenStrategyFactory.create(issuer);</span>
+
+<span class="fc" id="L63">            Set&lt;AltinnReportee&gt; altinnOrganisasjoner = altinnTilgangsstyringService</span>
+<span class="nc" id="L64">                    .hentAltinnOrganisasjoner(new Fnr(brukerOgIssuer.getBrukerIdent()), hentArbeidsgiverToken);</span>
+<span class="nc" id="L65">            Map&lt;BedriftNr, Collection&lt;Tiltakstype&gt;&gt; tilganger = altinnTilgangsstyringService.hentTilganger(new Fnr(brukerOgIssuer.getBrukerIdent()), hentArbeidsgiverToken);</span>
+<span class="nc" id="L66">            return new Arbeidsgiver(new Fnr(brukerOgIssuer.getBrukerIdent()), altinnOrganisasjoner, tilganger, persondataService, norg2Client);</span>
+<span class="fc bfc" id="L67" title="All 4 branches covered.">        } else if (issuer == Issuer.ISSUER_AAD &amp;&amp; avtalerolle == Avtalerolle.VEILEDER) {</span>
+<span class="fc" id="L68">            NavIdent navIdent = new NavIdent(brukerOgIssuer.getBrukerIdent());</span>
+<span class="nc" id="L69">            Set&lt;NavEnhet&gt; navEnheter = hentNavEnheter(navIdent);</span>
+<span class="nc" id="L70">            boolean harAdGruppeForBeslutter = tokenUtils.harAdGruppe(beslutterAdGruppeProperties.getId());</span>
+<span class="nc" id="L71">            return new Veileder(navIdent, tokenUtils.hentAzureOid(), tilgangskontrollService, persondataService, norg2Client, navEnheter, slettemerkeProperties, harAdGruppeForBeslutter, veilarbArenaClient);</span>
+<span class="fc bfc" id="L72" title="All 4 branches covered.">        } else if (issuer == Issuer.ISSUER_AAD &amp;&amp; avtalerolle == Avtalerolle.BESLUTTER) {</span>
+<span class="fc" id="L73">            boolean harAdGruppeForBeslutter = tokenUtils.harAdGruppe(beslutterAdGruppeProperties.getId());</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            if (harAdGruppeForBeslutter) {</span>
+<span class="nc" id="L75">                var navIdent = new NavIdent(brukerOgIssuer.getBrukerIdent());</span>
+<span class="nc" id="L76">                var navEnheter = hentNavEnheter(navIdent);</span>
+<span class="nc" id="L77">                return new Beslutter(navIdent, tokenUtils.hentAzureOid(), navEnheter, tilgangskontrollService, norg2Client);</span>
+            } else {
+<span class="fc" id="L79">                throw new FeilkodeException(Feilkode.MANGLER_AD_GRUPPE_BESLUTTER);</span>
+            }
+        } else {
+<span class="fc" id="L82">            log.warn(&quot;Ugyldig kombinasjon av issuer={} og rolle={}&quot;, issuer, avtalerolle);</span>
+<span class="fc" id="L83">            throw new FeilkodeException(Feilkode.UGYLDIG_KOMBINASJON_AV_ISSUER_OG_ROLLE);</span>
+        }
+    }
+
+    private Set&lt;NavEnhet&gt; hentNavEnheter(NavIdent navIdent) {
+<span class="nc" id="L88">        return new HashSet&lt;&gt;(axsysService.hentEnheterNavAnsattHarTilgangTil(navIdent));</span>
+    }
+
+    public Veileder hentVeileder() {
+<span class="nc" id="L92">        return (Veileder) hentAvtalepart(Avtalerolle.VEILEDER);</span>
+    }
+
+    public Arbeidsgiver hentArbeidsgiver() {
+<span class="nc" id="L96">        return (Arbeidsgiver) hentAvtalepart(Avtalerolle.ARBEIDSGIVER);</span>
+    }
+
+    public InnloggetBruker hentInnloggetBruker(Avtalerolle avtalerolle) {
+<span class="nc" id="L100">        return hentAvtalepart(avtalerolle).innloggetBruker();</span>
+    }
+
+    public InnloggetVeileder hentInnloggetVeileder() {
+        try {
+<span class="nc" id="L105">            return (InnloggetVeileder) hentInnloggetBruker(Avtalerolle.VEILEDER);</span>
+<span class="nc" id="L106">        } catch (ClassCastException e) {</span>
+<span class="nc" id="L107">            throw new TilgangskontrollException(&quot;Innlogget bruker er ikke veileder.&quot;);</span>
+        }
+    }
+
+    public void validerSystembruker() {
+<span class="fc" id="L112">        tokenUtils.hentBrukerOgIssuer()</span>
+<span class="pc bpc" id="L113" title="2 of 4 branches missed.">                .filter(t -&gt; (Issuer.ISSUER_SYSTEM == t.getIssuer() &amp;&amp; systembrukerProperties.getId().equals(t.getBrukerIdent())))</span>
+<span class="pc" id="L114">                .orElseThrow(() -&gt; new TilgangskontrollException(&quot;Systemet har ikke tilgang til tjenesten&quot;));</span>
+<span class="nc" id="L115">    }</span>
+
+    public Beslutter hentBeslutter() {
+<span class="nc" id="L118">        return (Beslutter) hentAvtalepart(Avtalerolle.BESLUTTER);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotifikasjonHendelseLytter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon</a> &gt; <span class="el_source">NotifikasjonHendelseLytter.java</span></div><h1>NotifikasjonHendelseLytter.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon;
+
+import lombok.RequiredArgsConstructor;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtale;
+import no.nav.tag.tiltaksgjennomforing.avtale.HendelseType;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.*;
+import no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response.MutationStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="nc" id="L13">@RequiredArgsConstructor</span>
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.notifikasjoner.enabled&quot;)
+public class NotifikasjonHendelseLytter {
+
+    private final ArbeidsgiverNotifikasjonRepository arbeidsgiverNotifikasjonRepository;
+    private final NotifikasjonService notifikasjonService;
+    private final NotifikasjonParser parser;
+
+    private void opprettOgSendNyBeskjed(Avtale avtale, HendelseType hendelseType, NotifikasjonTekst tekst) {
+<span class="nc" id="L22">        final ArbeidsgiverNotifikasjon notifikasjon = ArbeidsgiverNotifikasjon.nyHendelse(avtale,</span>
+                hendelseType, notifikasjonService, parser);
+<span class="nc" id="L24">        arbeidsgiverNotifikasjonRepository.save(notifikasjon);</span>
+<span class="nc" id="L25">        notifikasjonService.opprettNyBeskjed(notifikasjon,</span>
+<span class="nc" id="L26">                NotifikasjonMerkelapp.getMerkelapp(avtale.getTiltakstype().getBeskrivelse()),</span>
+                tekst);
+<span class="nc" id="L28">    }</span>
+
+    @EventListener
+    public void avtaleOpprettet(AvtaleOpprettetAvVeileder event) {
+<span class="nc" id="L32">        final ArbeidsgiverNotifikasjon notifikasjon = ArbeidsgiverNotifikasjon.nyHendelse(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, notifikasjonService, parser);
+<span class="nc" id="L34">        arbeidsgiverNotifikasjonRepository.save(notifikasjon);</span>
+<span class="nc" id="L35">        notifikasjonService.opprettOppgave(notifikasjon,</span>
+<span class="nc" id="L36">                NotifikasjonMerkelapp.getMerkelapp(event.getAvtale().getTiltakstype().getBeskrivelse()),</span>
+                NotifikasjonTekst.TILTAK_AVTALE_OPPRETTET);
+<span class="nc" id="L38">    }</span>
+
+    @EventListener
+    public void godkjenningerOpphevetAvVeileder(GodkjenningerOpphevetAvVeileder event) {
+<span class="nc" id="L42">        final ArbeidsgiverNotifikasjon notifikasjon = ArbeidsgiverNotifikasjon.nyHendelse(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, notifikasjonService, parser);
+<span class="nc" id="L44">        arbeidsgiverNotifikasjonRepository.save(notifikasjon);</span>
+<span class="nc" id="L45">        notifikasjonService.opprettOppgave(notifikasjon,</span>
+<span class="nc" id="L46">                NotifikasjonMerkelapp.getMerkelapp(event.getAvtale().getTiltakstype().getBeskrivelse()),</span>
+                NotifikasjonTekst.TILTAK_GODKJENNINGER_OPPHEVET_AV_VEILEDER);
+<span class="nc" id="L48">    }</span>
+
+    @EventListener
+    public void avtaleKlarForRefusjon(RefusjonKlar event) {
+<span class="nc" id="L52">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.REFUSJON_KLAR,</span>
+                NotifikasjonTekst.TILTAK_AVTALE_KLAR_REFUSJON);
+<span class="nc" id="L54">    }</span>
+
+    @EventListener
+    public void godkjentAvArbeidsgiver(GodkjentAvArbeidsgiver event) {
+<span class="nc" id="L58">        notifikasjonService.oppgaveUtfoert(</span>
+<span class="nc" id="L59">                event.getAvtale(), HendelseType.OPPRETTET,</span>
+                MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L61">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L63">    }</span>
+
+    @EventListener
+    public void godkjentAvVeileder(GodkjentAvVeileder event) {
+<span class="nc" id="L67">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L69">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L71">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAv(GodkjentPaVegneAvDeltaker event) {
+<span class="nc" id="L75">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L77">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L79">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvArbeidsgiver(GodkjentPaVegneAvArbeidsgiver event) {
+<span class="nc" id="L83">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L85">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L87">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvDeltakerOgArbeidsgiver(GodkjentPaVegneAvDeltakerOgArbeidsgiver event) {
+<span class="nc" id="L91">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L93">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L95">    }</span>
+
+    @EventListener
+    public void avtaleInngått(AvtaleInngått event) {
+<span class="nc" id="L99">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.OPPRETTET, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L101">        notifikasjonService.oppgaveUtfoert(event.getAvtale(),</span>
+                HendelseType.GODKJENNINGER_OPPHEVET_AV_VEILEDER, MutationStatus.NY_OPPGAVE_VELLYKKET, HendelseType.AVTALE_INNGÅTT);
+<span class="nc" id="L103">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.AVTALE_INNGÅTT, NotifikasjonTekst.TILTAK_AVTALE_INNGATT);</span>
+<span class="nc" id="L104">    }</span>
+
+    @EventListener
+    public void sletteNotifikasjon(AvtaleSlettemerket event) {
+<span class="nc" id="L108">        notifikasjonService.softDeleteNotifikasjoner(event.getAvtale());</span>
+<span class="nc" id="L109">    }</span>
+
+    @EventListener
+    public void avtaleAnnullert(AnnullertAvVeileder event) {
+<span class="nc" id="L113">        notifikasjonService.softDeleteNotifikasjoner(event.getAvtale());</span>
+<span class="nc" id="L114">    }</span>
+
+    @EventListener
+    public void målEndret(MålEndret event) {
+<span class="nc" id="L118">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.MÅL_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_MÅL_ENDRET);
+<span class="nc" id="L120">    }</span>
+
+    @EventListener
+    public void inkluderingstilskuddEndret(InkluderingstilskuddEndret event) {
+<span class="nc" id="L124">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.INKLUDERINGSTILSKUDD_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_INKLUDERINGSTILSKUDD_ENDRET);
+<span class="nc" id="L126">    }</span>
+
+    @EventListener
+    public void omMentorEndret(OmMentorEndret event) {
+<span class="nc" id="L130">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.OM_MENTOR_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_OM_MENTOR_ENDRET);
+<span class="nc" id="L132">    }</span>
+
+    @EventListener
+    public void endreStillingbeskrivelse(StillingsbeskrivelseEndret event) {
+<span class="nc" id="L136">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.STILLINGSBESKRIVELSE_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_STILLINGSBESKRIVELSE_ENDRET);
+<span class="nc" id="L138">    }</span>
+
+    @EventListener
+    public void endreOppfølgingOgTilretteleggingInformasjon(OppfølgingOgTilretteleggingEndret event) {
+<span class="nc" id="L142">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.OPPFØLGING_OG_TILRETTELEGGING_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_OPPFØLGING_OG_TILRETTELEGGING_ENDRET);
+<span class="nc" id="L144">    }</span>
+
+    @EventListener
+    public void endreKontaktInformasjon(KontaktinformasjonEndret event) {
+<span class="nc" id="L148">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.KONTAKTINFORMASJON_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_KONTAKTINFORMASJON_ENDRET);
+<span class="nc" id="L150">    }</span>
+
+    @EventListener
+    public void endreTilskuddsberegning(TilskuddsberegningEndret event) {
+<span class="nc" id="L154">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.TILSKUDDSBEREGNING_ENDRET,</span>
+                NotifikasjonTekst.TILTAK_TILSKUDDSBEREGNING_ENDRET);
+<span class="nc" id="L156">    }</span>
+
+    @EventListener
+    public void forkortAvtale(AvtaleForkortet event) {
+<span class="nc" id="L160">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.AVTALE_FORKORTET,</span>
+                NotifikasjonTekst.TILTAK_AVTALE_FORKORTET);
+<span class="nc" id="L162">    }</span>
+
+    @EventListener
+    public void forlengAvtale(AvtaleForlenget event) {
+<span class="nc" id="L166">        opprettOgSendNyBeskjed(event.getAvtale(), HendelseType.AVTALE_FORLENGET,</span>
+                NotifikasjonTekst.TILTAK_AVTALE_FORLENGET);
+<span class="nc" id="L168">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

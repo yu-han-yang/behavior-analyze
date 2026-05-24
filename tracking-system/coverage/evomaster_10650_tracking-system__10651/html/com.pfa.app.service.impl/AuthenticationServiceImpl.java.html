@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthenticationServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.service.impl</a> &gt; <span class="el_source">AuthenticationServiceImpl.java</span></div><h1>AuthenticationServiceImpl.java</h1><pre class="source lang-java linenums">package com.pfa.app.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.stereotype.Service;
+
+import com.pfa.app.model.dto.AuthenticationRequest;
+import com.pfa.app.model.dto.AuthenticationResponse;
+import com.pfa.app.service.AuthenticationService;
+import com.pfa.app.service.CredentialService;
+
+@Service
+public class AuthenticationServiceImpl implements AuthenticationService {
+	
+	private final AuthenticationManager authenticationManager;
+	private final CredentialService credentialService;
+	
+	@Autowired
+<span class="fc" id="L21">	public AuthenticationServiceImpl(final AuthenticationManager authenticationManager, final CredentialService credentialService) {</span>
+<span class="fc" id="L22">		this.authenticationManager = authenticationManager;</span>
+<span class="fc" id="L23">		this.credentialService = credentialService;</span>
+<span class="fc" id="L24">	}</span>
+	
+	@Override
+	public AuthenticationResponse authenticate(final AuthenticationRequest authenticationRequest) throws BadCredentialsException {
+<span class="nc" id="L28">		this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword()));</span>
+<span class="nc" id="L29">		return new AuthenticationResponse(authenticationRequest.getUsername(), this.credentialService.findByUsername(authenticationRequest.getUsername()).getEnabled());</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotifikasjonTekst.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon</a> &gt; <span class="el_source">NotifikasjonTekst.java</span></div><h1>NotifikasjonTekst.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon;
+
+<span class="nc" id="L3">public enum NotifikasjonTekst {</span>
+<span class="nc" id="L4">    TILTAK_AVTALE_OPPRETTET(&quot;Ny avtale om arbeidstiltak opprettet. Åpne avtale og fyll ut innholdet.&quot;),</span>
+<span class="nc" id="L5">    TILTAK_AVTALE_INNGATT(&quot;Avtale om arbeidstiltak godkjent.&quot;),</span>
+<span class="nc" id="L6">    TILTAK_AVTALE_KLAR_REFUSJON(&quot;Du kan nå søke om refusjon.&quot;),</span>
+<span class="nc" id="L7">    TILTAK_STILLINGSBESKRIVELSE_ENDRET(&quot;Stillingsbeskrivelse i avtale endret av veileder.&quot;),</span>
+<span class="nc" id="L8">    TILTAK_MÅL_ENDRET(&quot;Mål i avtale endret av veileder.&quot;),</span>
+<span class="nc" id="L9">    TILTAK_INKLUDERINGSTILSKUDD_ENDRET(&quot;Inkluderingstilskudd i avtalen endret av veileder.&quot;),</span>
+<span class="nc" id="L10">    TILTAK_OM_MENTOR_ENDRET(&quot;Om mentor i avtale endret av veileder.&quot;),</span>
+<span class="nc" id="L11">    TILTAK_OPPFØLGING_OG_TILRETTELEGGING_ENDRET(&quot;Oppfølging og tilrettelegging i avtale endret av veileder.&quot;),</span>
+<span class="nc" id="L12">    TILTAK_AVTALE_FORKORTET(&quot;Avtale forkortet.&quot;),</span>
+<span class="nc" id="L13">    TILTAK_AVTALE_FORLENGET(&quot;Avtale forlenget av veileder.&quot;),</span>
+<span class="nc" id="L14">    TILTAK_TILSKUDDSBEREGNING_ENDRET(&quot;Tilskuddsberegning i avtale endret av veileder.&quot;),</span>
+<span class="nc" id="L15">    TILTAK_GODKJENNINGER_OPPHEVET_AV_VEILEDER(&quot;Avtalen må godkjennes på nytt.&quot;),</span>
+<span class="nc" id="L16">    TILTAK_KONTAKTINFORMASJON_ENDRET(&quot;Kontaktinformasjon i avtale endret av veileder.&quot;);</span>
+
+    private final String tekst;
+
+<span class="nc" id="L20">    NotifikasjonTekst(String tekst) {</span>
+<span class="nc" id="L21">        this.tekst = tekst;</span>
+<span class="nc" id="L22">    }</span>
+
+    public String getTekst() {
+<span class="nc" id="L25">        return tekst;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

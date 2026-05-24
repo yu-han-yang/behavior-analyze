@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrintRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.models.consumer.printrequest</a> &gt; <span class="el_source">PrintRequest.java</span></div><h1>PrintRequest.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.models.consumer.printrequest;
+
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.BudgetCalculator;
+import io.github.proxyprint.kitchen.utils.gson.Exclude;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.*;
+
+/**
+ * Created by MGonc on 28/04/16.
+ */
+@Entity
+@Table(name = &quot;print_requests&quot;)
+public class PrintRequest implements Serializable {
+
+<span class="fc" id="L21">    public static String PAYPAL_COMPLETED_PAYMENT = &quot;Completed&quot;;</span>
+<span class="fc" id="L22">    public static String PROXY_PAYMENT = &quot;PROXYPRINT_PAYMENT&quot;;</span>
+<span class="fc" id="L23">    public static String PAYPAL_PAYMENT = &quot;PAYPAL_PAYMENT&quot;;</span>
+
+<span class="fc" id="L25">    public enum Status {</span>
+<span class="fc" id="L26">        NOT_PAYED, PENDING, IN_PROGRESS, FINISHED, LIFTED</span>
+    }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(nullable = true, name = &quot;cost&quot;)
+    private double cost;
+
+    @Column(nullable = true, name = &quot;arrival&quot;)
+    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    private Date arrivalTimestamp;
+
+    @Column(nullable = true, name = &quot;finished&quot;)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date finishedTimestamp;
+
+    @Column(nullable = true, name = &quot;delivered&quot;)
+    @Temporal(javax.persistence.TemporalType.TIMESTAMP)
+    private Date deliveredTimestamp;
+
+    @Column(nullable = true, name = &quot;empattended&quot;)
+    private String empAttended;
+
+    @Column(nullable = true, name = &quot;empdelivered&quot;)
+    private String empDelivered;
+
+    @Column(nullable = true, name = &quot;status&quot;)
+    @Enumerated(EnumType.STRING)
+    private Status status;
+    @Column(nullable = true, name = &quot;paypal_sale_id&quot;)
+    private String payPalSaleID;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @Exclude
+    private PrintShop printshop;
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    private Consumer consumer;
+
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = &quot;print_request_id&quot;)
+    private Set&lt;Document&gt; documents;
+
+    @Column(nullable = true, name = &quot;payment_type&quot;)
+    private String paymentType;
+
+<span class="fc" id="L73">    public PrintRequest() {</span>
+<span class="fc" id="L74">        this.documents = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L75">        this.status = Status.NOT_PAYED;</span>
+<span class="fc" id="L76">        this.paymentType = PROXY_PAYMENT;</span>
+<span class="fc" id="L77">    }</span>
+
+<span class="fc" id="L79">    public PrintRequest(double cost, Date arrivalTimestamp, Consumer consumer, Status status) {</span>
+<span class="fc" id="L80">        this.cost = cost;</span>
+<span class="fc" id="L81">        this.arrivalTimestamp = arrivalTimestamp;</span>
+<span class="fc" id="L82">        this.consumer = consumer;</span>
+<span class="fc" id="L83">        this.status = status;</span>
+<span class="fc" id="L84">        this.documents = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L85">        this.paymentType = PROXY_PAYMENT;</span>
+<span class="fc" id="L86">    }</span>
+
+    public long getId() {
+<span class="fc" id="L89">        return id;</span>
+    }
+
+    public double getCost() {
+<span class="fc" id="L93">        return cost;</span>
+    }
+
+    public Date getArrivalTimestamp() {
+<span class="nc" id="L97">        return arrivalTimestamp;</span>
+    }
+
+    public Date getDeliveredTimestamp() {
+<span class="nc" id="L101">        return deliveredTimestamp;</span>
+    }
+
+    public String getEmpAttended() {
+<span class="nc" id="L105">        return empAttended;</span>
+    }
+
+    public Date getFinishedTimestamp() {
+<span class="nc" id="L109">        return finishedTimestamp;</span>
+    }
+
+    public String getEmpDelivered() {
+<span class="nc" id="L113">        return empDelivered;</span>
+    }
+
+    public Consumer getConsumer() {
+<span class="nc" id="L117">        return consumer;</span>
+    }
+
+    public Status getStatus() {
+<span class="fc" id="L121">        return status;</span>
+    }
+
+    public void setCost(double cost) {
+<span class="nc" id="L125">        this.cost = cost;</span>
+<span class="nc" id="L126">    }</span>
+
+    public void setArrivalTimestamp(Date arrivalTimestamp) {
+<span class="nc" id="L129">        this.arrivalTimestamp = arrivalTimestamp;</span>
+<span class="nc" id="L130">    }</span>
+
+    public void setFinishedTimestamp(Date finishedTimestamp) {
+<span class="fc" id="L133">        this.finishedTimestamp = finishedTimestamp;</span>
+<span class="fc" id="L134">    }</span>
+
+    public void setEmpAttended(String empAttended) {
+<span class="fc" id="L137">        this.empAttended = empAttended;</span>
+<span class="fc" id="L138">    }</span>
+
+    public void setDeliveredTimestamp(Date deliveredTimestamp) {
+<span class="fc" id="L141">        this.deliveredTimestamp = deliveredTimestamp;</span>
+<span class="fc" id="L142">    }</span>
+
+    public void setEmpDelivered(String empDelivered) {
+<span class="fc" id="L145">        this.empDelivered = empDelivered;</span>
+<span class="fc" id="L146">    }</span>
+
+    public void setStatus(Status status) {
+<span class="nc" id="L149">        this.status = status;</span>
+<span class="nc" id="L150">    }</span>
+
+    public void setConsumer(Consumer consumer) {
+<span class="nc" id="L153">        this.consumer = consumer;</span>
+<span class="nc" id="L154">    }</span>
+
+    public PrintShop getPrintshop() {
+<span class="fc" id="L157">        return printshop;</span>
+    }
+
+    public Set&lt;Document&gt; getDocuments() {
+<span class="nc" id="L161">        return documents;</span>
+    }
+
+    public void setDocuments(Set&lt;Document&gt; documents) {
+<span class="nc" id="L165">        this.documents = documents;</span>
+<span class="nc" id="L166">    }</span>
+
+    public void addDocument(Document doc) {
+<span class="nc" id="L169">        this.documents.add(doc);</span>
+<span class="nc" id="L170">    }</span>
+
+    public boolean isPayed() {
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        return !(this.status.equals(Status.NOT_PAYED));</span>
+    }
+
+    public String getPayPalSaleID() {
+<span class="nc" id="L177">        return payPalSaleID;</span>
+    }
+
+    public void setPayPalSaleID(String payPalSaleID) {
+<span class="nc" id="L181">        this.payPalSaleID = payPalSaleID;</span>
+<span class="nc" id="L182">    }</span>
+
+    public String getPaymentType() {
+<span class="nc" id="L185">        return paymentType;</span>
+    }
+
+    public void setPaymentType(String paymentType) {
+<span class="nc" id="L189">        this.paymentType = paymentType;</span>
+<span class="nc" id="L190">    }</span>
+
+    /**
+     * Calculate budgets for a given list of printshops.
+     *
+     * @param pshops printshops to calculate the budget.
+     * @return A map containing the printshopID associated with the calculated
+     * budget
+     */
+    public Map&lt;Long, String&gt; calcBudgetsForPrintShops(List&lt;PrintShop&gt; pshops) {
+<span class="nc" id="L200">        Map&lt;Long, String&gt; budgets = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L202">        Set&lt;Document&gt; prDocs = this.getDocuments();</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        for (PrintShop printShop : pshops) {</span>
+<span class="nc" id="L204">            BudgetCalculator budgetCalculator = new BudgetCalculator(printShop);</span>
+<span class="nc" id="L205">            float totalCost = 0; // In the future we may specifie the budget by file its easy!</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">            for (Document document : prDocs) {</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">                for (DocumentSpec documentSpec : document.getSpecs()) {</span>
+<span class="nc" id="L208">                    float specCost = 0;</span>
+<span class="nc bnc" id="L209" title="All 4 branches missed.">                    if (documentSpec.getFirstPage() != 0 &amp;&amp; documentSpec.getLastPage() != 0) {</span>
+                        // Partial calculation
+<span class="nc" id="L211">                        specCost = budgetCalculator.calculatePrice(documentSpec.getFirstPage(), documentSpec.getLastPage(), documentSpec.getPrintingSchema());</span>
+                    } else {
+                        // Total calculation
+<span class="nc" id="L214">                        System.out.println(document.getTotalPages());</span>
+<span class="nc" id="L215">                        specCost = budgetCalculator.calculatePrice(1, document.getTotalPages(), documentSpec.getPrintingSchema());</span>
+                    }
+<span class="nc bnc" id="L217" title="All 2 branches missed.">                    if (specCost != -1) {</span>
+<span class="nc" id="L218">                        totalCost += specCost;</span>
+                    } else {
+<span class="nc" id="L220">                        budgets.put(printShop.getId(), &quot;Esta reprografia não pode satisfazer o pedido.&quot;);</span>
+                    }
+<span class="nc" id="L222">                }</span>
+<span class="nc" id="L223">            }</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">            if (totalCost &gt; 0) {</span>
+<span class="nc" id="L225">                NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);</span>
+<span class="nc" id="L226">                DecimalFormat df = (DecimalFormat) nf;</span>
+<span class="nc" id="L227">                df.setMaximumFractionDigits(2);</span>
+<span class="nc" id="L228">                budgets.put(printShop.getId(), String.valueOf(df.format(totalCost))); // add to budgets</span>
+            }
+<span class="nc" id="L230">        }</span>
+
+<span class="nc" id="L232">        return budgets;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

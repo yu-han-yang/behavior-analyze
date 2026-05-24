@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PublicApi.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.app</a> &gt; <span class="el_source">PublicApi.java</span></div><h1>PublicApi.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.app;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import io.dropwizard.Application;
+import io.dropwizard.assets.AssetsBundle;
+import io.dropwizard.auth.AuthDynamicFeature;
+import io.dropwizard.auth.AuthValueFactoryProvider;
+import io.dropwizard.auth.CachingAuthenticator;
+import io.dropwizard.auth.oauth.OAuthCredentialAuthFilter;
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
+import io.dropwizard.configuration.SubstitutingSourceProvider;
+import io.dropwizard.jersey.setup.JerseyEnvironment;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.dropwizard.DropwizardExports;
+import io.prometheus.client.exporter.MetricsServlet;
+import org.eclipse.jetty.server.AbstractNetworkConnector;
+import org.eclipse.jetty.server.Server;
+import org.glassfish.jersey.CommonProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.agreement.resource.AgreementsApiResource;
+import uk.gov.pay.api.app.config.PublicApiConfig;
+import uk.gov.pay.api.app.config.PublicApiModule;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.auth.AccountAuthenticator;
+import uk.gov.pay.api.exception.mapper.AgreementValidationExceptionMapper;
+import uk.gov.pay.api.exception.mapper.AuthorisationRequestExceptionMapper;
+import uk.gov.pay.api.exception.mapper.BadRefundsRequestExceptionMapper;
+import uk.gov.pay.api.exception.mapper.BadRequestExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CancelAgreementExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CancelChargeExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CaptureChargeExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CreateAgreementExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CreateChargeExceptionMapper;
+import uk.gov.pay.api.exception.mapper.CreateRefundExceptionMapper;
+import uk.gov.pay.api.exception.mapper.DisputeValidationExceptionMapper;
+import uk.gov.pay.api.exception.mapper.GetAgreementExceptionMapper;
+import uk.gov.pay.api.exception.mapper.GetChargeExceptionMapper;
+import uk.gov.pay.api.exception.mapper.GetEventsExceptionMapper;
+import uk.gov.pay.api.exception.mapper.GetRefundExceptionMapper;
+import uk.gov.pay.api.exception.mapper.GetRefundsExceptionMapper;
+import uk.gov.pay.api.exception.mapper.InternalServerExceptionMapper;
+import uk.gov.pay.api.exception.mapper.JsonProcessingExceptionMapper;
+import uk.gov.pay.api.exception.mapper.PaymentValidationExceptionMapper;
+import uk.gov.pay.api.exception.mapper.RefundsValidationExceptionMapper;
+import uk.gov.pay.api.exception.mapper.SearchAgreementsExceptionMapper;
+import uk.gov.pay.api.exception.mapper.SearchChargesExceptionMapper;
+import uk.gov.pay.api.exception.mapper.SearchDisputesExceptionMapper;
+import uk.gov.pay.api.exception.mapper.SearchRefundsExceptionMapper;
+import uk.gov.pay.api.exception.mapper.ViolationExceptionMapper;
+import uk.gov.pay.api.filter.AuthorizationValidationFilter;
+import uk.gov.pay.api.filter.ClearMdcValuesFilter;
+import uk.gov.pay.api.filter.LoggingMDCRequestFilter;
+import uk.gov.pay.api.filter.RateLimiterFilter;
+import uk.gov.pay.api.healthcheck.Ping;
+import uk.gov.pay.api.ledger.resource.TransactionsResource;
+import uk.gov.pay.api.managed.RedisClientManager;
+import uk.gov.pay.api.resources.AuthorisationResource;
+import uk.gov.pay.api.resources.HealthCheckResource;
+import uk.gov.pay.api.resources.PaymentRefundsResource;
+import uk.gov.pay.api.resources.PaymentsResource;
+import uk.gov.pay.api.resources.RequestDeniedResource;
+import uk.gov.pay.api.resources.SearchDisputesResource;
+import uk.gov.pay.api.resources.SearchRefundsResource;
+import uk.gov.pay.api.resources.SecuritytxtResource;
+import uk.gov.pay.api.resources.telephone.TelephonePaymentNotificationResource;
+import uk.gov.pay.api.validation.InjectingValidationFeature;
+import uk.gov.service.payments.logging.GovUkPayDropwizardRequestJsonLogLayoutFactory;
+import uk.gov.service.payments.logging.LoggingFilter;
+import uk.gov.service.payments.logging.LogstashConsoleAppenderFactory;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.servlet.FilterRegistration;
+
+import static java.util.EnumSet.of;
+import static javax.servlet.DispatcherType.REQUEST;
+
+<span class="fc" id="L81">public class PublicApi extends Application&lt;PublicApiConfig&gt; {</span>
+
+<span class="fc" id="L83">    private static final Logger logger = LoggerFactory.getLogger(PublicApi.class);</span>
+
+    private static final String SERVICE_METRICS_NODE = &quot;publicapi&quot;;
+
+    /**
+     * Added to check the status of the SUT, since there is no API
+     * available to access this information.
+     */
+    private Server jettyServer;
+
+    public int getJettyPort() {
+<span class="nc" id="L94">        return ((AbstractNetworkConnector)jettyServer.getConnectors()[0]).getLocalPort();</span>
+    }
+
+    public Server getJettyServer() {
+<span class="nc" id="L98">        return jettyServer;</span>
+    }
+
+    @Override
+    public void initialize(Bootstrap&lt;PublicApiConfig&gt; bootstrap) {
+        // Added to server Swagger JSON as static file
+<span class="fc" id="L104">        bootstrap.addBundle(new AssetsBundle(&quot;/assets/&quot;, &quot;/assets/&quot;));</span>
+
+<span class="fc" id="L106">        bootstrap.setConfigurationSourceProvider(</span>
+                new SubstitutingSourceProvider(
+<span class="fc" id="L108">                        bootstrap.getConfigurationSourceProvider(),</span>
+                        new EnvironmentVariableSubstitutor(false)
+                )
+        );
+<span class="fc" id="L112">        bootstrap.getObjectMapper().getSubtypeResolver().registerSubtypes(LogstashConsoleAppenderFactory.class);</span>
+<span class="fc" id="L113">        bootstrap.getObjectMapper().getSubtypeResolver().registerSubtypes(GovUkPayDropwizardRequestJsonLogLayoutFactory.class);</span>
+<span class="fc" id="L114">    }</span>
+
+    @Override
+    public void run(PublicApiConfig configuration, Environment environment) {
+<span class="fc" id="L118">        initialiseSSLSocketFactory();</span>
+
+<span class="fc" id="L120">        final Injector injector = Guice.createInjector(new PublicApiModule(configuration, environment));</span>
+
+<span class="fc" id="L122">        environment.healthChecks().register(&quot;ping&quot;, new Ping());</span>
+
+<span class="fc" id="L124">        environment.jersey().register(injector.getInstance(HealthCheckResource.class));</span>
+<span class="fc" id="L125">        environment.jersey().register(injector.getInstance(PaymentsResource.class));</span>
+<span class="fc" id="L126">        environment.jersey().register(injector.getInstance(AgreementsApiResource.class));</span>
+<span class="fc" id="L127">        environment.jersey().register(injector.getInstance(PaymentRefundsResource.class));</span>
+<span class="fc" id="L128">        environment.jersey().register(injector.getInstance(RequestDeniedResource.class));</span>
+<span class="fc" id="L129">        environment.jersey().register(injector.getInstance(SearchRefundsResource.class));</span>
+<span class="fc" id="L130">        environment.jersey().register(injector.getInstance(TransactionsResource.class));</span>
+<span class="fc" id="L131">        environment.jersey().register(injector.getInstance(TelephonePaymentNotificationResource.class));</span>
+<span class="fc" id="L132">        environment.jersey().register(new InjectingValidationFeature(injector));</span>
+<span class="fc" id="L133">        environment.jersey().register(injector.getInstance(SecuritytxtResource.class));</span>
+<span class="fc" id="L134">        environment.jersey().register(injector.getInstance(AuthorisationResource.class));</span>
+<span class="fc" id="L135">        environment.jersey().register(injector.getInstance(SearchDisputesResource.class));</span>
+
+<span class="fc" id="L137">        environment.jersey().register(injector.getInstance(RateLimiterFilter.class));</span>
+<span class="fc" id="L138">        environment.jersey().register(injector.getInstance(LoggingMDCRequestFilter.class));</span>
+
+<span class="fc" id="L140">        environment.servlets().addFilter(&quot;ClearMdcValuesFilter&quot;, injector.getInstance(ClearMdcValuesFilter.class))</span>
+<span class="fc" id="L141">                .addMappingForUrlPatterns(of(REQUEST), true, &quot;/v1/*&quot;);</span>
+
+<span class="fc" id="L143">        environment.servlets().addFilter(&quot;LoggingFilter&quot;, injector.getInstance(LoggingFilter.class))</span>
+<span class="fc" id="L144">                .addMappingForUrlPatterns(of(REQUEST), true, &quot;/v1/*&quot;);</span>
+
+<span class="fc" id="L146">        FilterRegistration.Dynamic authorizationValidationFilter = environment.servlets().addFilter(&quot;AuthorizationValidationFilter&quot;, injector.getInstance(AuthorizationValidationFilter.class));</span>
+<span class="fc" id="L147">        authorizationValidationFilter.setInitParameter(&quot;excludedUrls&quot;, &quot;/v1/auth&quot;);</span>
+<span class="fc" id="L148">        authorizationValidationFilter.addMappingForUrlPatterns(of(REQUEST), true, &quot;/v1/*&quot;);</span>
+
+        /*
+           Turn off 'FilteringJacksonJaxbJsonProvider' which overrides dropwizard JacksonMessageBodyProvider.
+           Fails on Integration tests if not disabled.
+               - https://github.com/dropwizard/dropwizard/issues/1341
+        */
+<span class="fc" id="L155">        environment.jersey().property(CommonProperties.FEATURE_AUTO_DISCOVERY_DISABLE, Boolean.TRUE);</span>
+
+<span class="fc" id="L157">        CachingAuthenticator&lt;String, Account&gt; cachingAuthenticator = new CachingAuthenticator&lt;&gt;(</span>
+<span class="fc" id="L158">                environment.metrics(),</span>
+<span class="fc" id="L159">                injector.getInstance(AccountAuthenticator.class),</span>
+<span class="fc" id="L160">                configuration.getAuthenticationCachePolicy());</span>
+
+<span class="fc" id="L162">        environment.jersey().register(new AuthDynamicFeature(</span>
+                new OAuthCredentialAuthFilter.Builder&lt;Account&gt;()
+<span class="fc" id="L164">                        .setAuthenticator(cachingAuthenticator)</span>
+<span class="fc" id="L165">                        .setPrefix(&quot;Bearer&quot;)</span>
+<span class="fc" id="L166">                        .buildAuthFilter()));</span>
+<span class="fc" id="L167">        environment.jersey().register(new AuthValueFactoryProvider.Binder&lt;&gt;(Account.class));</span>
+
+<span class="fc" id="L169">        attachExceptionMappersTo(environment.jersey());</span>
+
+<span class="fc" id="L171">        CollectorRegistry collectorRegistry = CollectorRegistry.defaultRegistry;</span>
+<span class="fc" id="L172">        collectorRegistry.register(new DropwizardExports(environment.metrics()));</span>
+<span class="fc" id="L173">        environment.admin().addServlet(&quot;prometheusMetrics&quot;, new MetricsServlet(collectorRegistry)).addMapping(&quot;/metrics&quot;);</span>
+
+<span class="fc" id="L175">        environment.lifecycle().manage(injector.getInstance(RedisClientManager.class));</span>
+
+<span class="fc" id="L177">        environment.lifecycle().addServerLifecycleListener(server -&gt; jettyServer = server);</span>
+<span class="fc" id="L178">    }</span>
+
+    /**
+     * Adding a call to initialise SSL socket factory at startup until we find a resolution for the following jersey client bug (JERSEY-3124).
+     *
+     * @see &lt;a href=&quot;https://jersey.github.io/release-notes/2.24.html&quot;&gt;https://jersey.github.io/release-notes/2.24.html&lt;/a&gt;
+     */
+    private void initialiseSSLSocketFactory() {
+<span class="fc" id="L186">        HttpsURLConnection.getDefaultSSLSocketFactory();</span>
+<span class="fc" id="L187">    }</span>
+
+    private void attachExceptionMappersTo(JerseyEnvironment jersey) {
+<span class="fc" id="L190">        jersey.register(ViolationExceptionMapper.class);</span>
+<span class="fc" id="L191">        jersey.register(CreateChargeExceptionMapper.class);</span>
+<span class="fc" id="L192">        jersey.register(GetChargeExceptionMapper.class);</span>
+<span class="fc" id="L193">        jersey.register(GetEventsExceptionMapper.class);</span>
+<span class="fc" id="L194">        jersey.register(SearchChargesExceptionMapper.class);</span>
+<span class="fc" id="L195">        jersey.register(SearchRefundsExceptionMapper.class);</span>
+<span class="fc" id="L196">        jersey.register(CancelChargeExceptionMapper.class);</span>
+<span class="fc" id="L197">        jersey.register(PaymentValidationExceptionMapper.class);</span>
+<span class="fc" id="L198">        jersey.register(CreateAgreementExceptionMapper.class);</span>
+<span class="fc" id="L199">        jersey.register(SearchAgreementsExceptionMapper.class);</span>
+<span class="fc" id="L200">        jersey.register(GetAgreementExceptionMapper.class);</span>
+<span class="fc" id="L201">        jersey.register(CancelAgreementExceptionMapper.class);</span>
+<span class="fc" id="L202">        jersey.register(AgreementValidationExceptionMapper.class);</span>
+<span class="fc" id="L203">        jersey.register(RefundsValidationExceptionMapper.class);</span>
+<span class="fc" id="L204">        jersey.register(BadRefundsRequestExceptionMapper.class);</span>
+<span class="fc" id="L205">        jersey.register(BadRequestExceptionMapper.class);</span>
+<span class="fc" id="L206">        jersey.register(CreateRefundExceptionMapper.class);</span>
+<span class="fc" id="L207">        jersey.register(GetRefundExceptionMapper.class);</span>
+<span class="fc" id="L208">        jersey.register(GetRefundsExceptionMapper.class);</span>
+<span class="fc" id="L209">        jersey.register(CaptureChargeExceptionMapper.class);</span>
+<span class="fc" id="L210">        jersey.register(JsonProcessingExceptionMapper.class);</span>
+<span class="fc" id="L211">        jersey.register(AuthorisationRequestExceptionMapper.class);</span>
+<span class="fc" id="L212">        jersey.register(InternalServerExceptionMapper.class);</span>
+<span class="fc" id="L213">        jersey.register(DisputeValidationExceptionMapper.class);</span>
+<span class="fc" id="L214">        jersey.register(SearchDisputesExceptionMapper.class);</span>
+<span class="fc" id="L215">    }</span>
+
+    public static void main(String[] args) throws Exception {
+<span class="fc" id="L218">        new PublicApi().run(args);</span>
+<span class="fc" id="L219">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

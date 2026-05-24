@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateCardPaymentRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CreateCardPaymentRequest.java</span></div><h1>CreateCardPaymentRequest.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.hibernate.validator.constraints.Length;
+import uk.gov.pay.api.utils.JsonStringBuilder;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Size;
+import java.util.Optional;
+import java.util.StringJoiner;
+
+@Schema(description = &quot;The create payment request body&quot;)
+public class CreateCardPaymentRequest {
+
+    public static final int EMAIL_MAX_LENGTH = 254;
+    public static final String AMOUNT_FIELD_NAME = &quot;amount&quot;;
+    public static final String REFERENCE_FIELD_NAME = &quot;reference&quot;;
+    public static final String DESCRIPTION_FIELD_NAME = &quot;description&quot;;
+    public static final String LANGUAGE_FIELD_NAME = &quot;language&quot;;
+    public static final String EMAIL_FIELD_NAME = &quot;email&quot;;
+    public static final int REFERENCE_MAX_LENGTH = 255;
+    public static final int AMOUNT_MAX_VALUE = 10000000;
+    public static final int AMOUNT_MIN_VALUE = 0;
+    public static final int DESCRIPTION_MAX_LENGTH = 255;
+    public static final String RETURN_URL_FIELD_NAME = &quot;return_url&quot;;
+    public static final int URL_MAX_LENGTH = 2000;
+    public static final String PREFILLED_CARDHOLDER_DETAILS_FIELD_NAME = &quot;prefilled_cardholder_details&quot;;
+    public static final String PREFILLED_CARDHOLDER_NAME_FIELD_NAME = &quot;cardholder_name&quot;;
+    public static final String PREFILLED_BILLING_ADDRESS_FIELD_NAME = &quot;billing_address&quot;;
+    public static final String PREFILLED_ADDRESS_LINE1_FIELD_NAME = &quot;line1&quot;;
+    public static final String PREFILLED_ADDRESS_LINE2_FIELD_NAME = &quot;line2&quot;;
+    public static final String PREFILLED_ADDRESS_CITY_FIELD_NAME = &quot;city&quot;;
+    public static final String PREFILLED_ADDRESS_POSTCODE_FIELD_NAME = &quot;postcode&quot;;
+    public static final String PREFILLED_ADDRESS_COUNTRY_FIELD_NAME = &quot;country&quot;;
+    public static final String DELAYED_CAPTURE_FIELD_NAME = &quot;delayed_capture&quot;;
+    public static final String MOTO_FIELD_NAME = &quot;moto&quot;;
+    public static final String SET_UP_AGREEMENT_FIELD_NAME = &quot;set_up_agreement&quot;;
+    public static final String AGREEMENT_ID_FIELD_NAME = &quot;agreement_id&quot;;
+    public static final String SOURCE_FIELD_NAME = &quot;source&quot;;
+    public static final String METADATA = &quot;metadata&quot;;
+    public static final String INTERNAL = &quot;internal&quot;;
+    public static final String AUTHORISATION_MODE = &quot;authorisation_mode&quot;;
+    private static final String PREFILLED_CARDHOLDER_DETAILS = &quot;prefilled_cardholder_details&quot;;
+    private static final String BILLING_ADDRESS = &quot;billing_address&quot;;
+    
+    // Even though the minimum is 0, this is only allowed for accounts this is enabled for and is a hidden feature
+    // so the validation error message will always state that the minimum is 1 for consistency.
+    @JsonProperty(&quot;amount&quot;)
+    @Min(value = AMOUNT_MIN_VALUE, message = &quot;Must be greater than or equal to 1&quot;)
+    @Max(value = AMOUNT_MAX_VALUE, message = &quot;Must be less than or equal to {value}&quot;)
+    private int amount;
+
+    @JsonProperty(&quot;reference&quot;)
+    @Size(max = REFERENCE_MAX_LENGTH, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String reference;
+
+    @JsonProperty(&quot;description&quot;)
+    @Size(max = DESCRIPTION_MAX_LENGTH, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String description;
+
+    @JsonProperty(&quot;language&quot;)
+    private SupportedLanguage language;
+
+    @JsonProperty(&quot;email&quot;)
+    @Length(max = EMAIL_MAX_LENGTH, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    private String email;
+    
+    @Size(max = URL_MAX_LENGTH, message = &quot;Must be less than or equal to {max} characters length&quot;)
+    @JsonProperty(&quot;return_url&quot;)
+    private final String returnUrl;
+
+    private final Boolean delayedCapture;
+    
+    private final Boolean moto;
+
+    @Schema(name = &quot;metadata&quot;, example = &quot;{\&quot;property1\&quot;: \&quot;value1\&quot;, \&quot;property2\&quot;: \&quot;value2\&quot;}\&quot;&quot;)
+    private final ExternalMetadata metadata;
+    
+    private final Internal internal;
+    
+    @JsonProperty(&quot;set_up_agreement&quot;)
+    @Size(min=26, max=26, message = &quot;Field [set_up_agreement] length must be 26&quot;)
+    private String setUpAgreement;
+
+    @JsonProperty(&quot;agreement_id&quot;)
+    @Size(min=26, max=26, message = &quot;Field [agreement_id] length must be 26&quot;)
+    private String agreementId;
+
+    @Valid
+    private final PrefilledCardholderDetails prefilledCardholderDetails;
+
+    private final AuthorisationMode authorisationMode;
+    
+<span class="nc" id="L100">    public CreateCardPaymentRequest(CreateCardPaymentRequestBuilder builder) {</span>
+<span class="nc" id="L101">        this.amount = builder.getAmount();</span>
+<span class="nc" id="L102">        this.reference = builder.getReference();</span>
+<span class="nc" id="L103">        this.description = builder.getDescription();</span>
+<span class="nc" id="L104">        this.language = builder.getLanguage();</span>
+<span class="nc" id="L105">        this.email = builder.getEmail();</span>
+<span class="nc" id="L106">        this.returnUrl = builder.getReturnUrl();</span>
+<span class="nc" id="L107">        this.delayedCapture = builder.getDelayedCapture();</span>
+<span class="nc" id="L108">        this.moto = builder.isMoto();</span>
+<span class="nc" id="L109">        this.metadata = builder.getMetadata();</span>
+<span class="nc" id="L110">        this.prefilledCardholderDetails = builder.getPrefilledCardholderDetails();</span>
+<span class="nc" id="L111">        this.internal = builder.getInternal();</span>
+<span class="nc" id="L112">        this.setUpAgreement = builder.getSetUpAgreement();</span>
+<span class="nc" id="L113">        this.authorisationMode = builder.getAuthorisationMode();</span>
+<span class="nc" id="L114">        this.agreementId = builder.getAgreementId();</span>
+<span class="nc" id="L115">    }</span>
+    
+    @Schema(description = &quot;Sets the amount the user will pay, in pence.&quot;, required = true, minimum = &quot;1&quot;, maximum = &quot;10000000&quot;, example = &quot;12000&quot;)
+    public int getAmount() {
+<span class="nc" id="L119">        return amount;</span>
+    }
+
+    @Schema(description = &quot;Associate a reference with this payment. &quot; +
+            &quot;`reference` is not unique - multiple payments can have identical `reference` values.&quot;,
+            required = true, example = &quot;12345&quot;)
+    public String getReference() {
+<span class="nc" id="L126">        return reference;</span>
+    }
+
+    @Schema(description = &quot;A human-readable description of the payment you’re creating. &quot; +
+            &quot;Paying users see this description on the payment pages. &quot; +
+            &quot;Service staff see the description in the GOV.UK Pay admin tool&quot;, 
+            required = true, example = &quot;New passport application&quot;)
+    public String getDescription() {
+<span class="nc" id="L134">        return description;</span>
+    }
+
+    @Schema(description = &quot;[Sets the language of the user’s payment page]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/optional_features/welsh_language) &quot; +
+            &quot;with an ISO-6391 Alpha-2 code of a supported language.&quot;, example = &quot;en&quot;)
+    @JsonProperty(LANGUAGE_FIELD_NAME)
+    public Optional&lt;SupportedLanguage&gt; getLanguage() {
+<span class="nc" id="L142">        return Optional.ofNullable(language);</span>
+    }
+
+    @Schema(name = &quot;email&quot;, example = &quot;Joe.Bogs@example.org&quot;, description = &quot;email&quot;)
+    @JsonProperty(EMAIL_FIELD_NAME)
+    public Optional&lt;String&gt; getEmail() {
+<span class="nc" id="L148">        return Optional.ofNullable(email);</span>
+    }
+    
+    @Schema(description = &quot;The URL [the paying user is directed to after their payment journey on GOV.UK Pay ends]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/making_payments/#choose-the-return-url-and-match-your-users-to-payments).&quot;,
+            required = true, example = &quot;https://service-name.gov.uk/transactions/12345&quot;)
+    public String getReturnUrl() {
+<span class="nc" id="L155">        return returnUrl;</span>
+    }
+
+    @Schema(description = &quot;prefilled_cardholder_details&quot;)
+    @JsonProperty(CreateCardPaymentRequest.PREFILLED_CARDHOLDER_DETAILS_FIELD_NAME)
+    public Optional&lt;PrefilledCardholderDetails&gt; getPrefilledCardholderDetails() {
+<span class="nc" id="L161">        return Optional.ofNullable(prefilledCardholderDetails);</span>
+    }
+
+    @Schema(description = &quot;You can use this parameter to &quot; +
+            &quot;[delay taking a payment from the paying user’s bank account]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/delayed_capture/#delay-taking-a-payment). &quot; +
+            &quot;For example, you might want to do your own anti-fraud checks on payments, &quot; +
+            &quot;or check that users are eligible for your service. Defaults to `false`.&quot;, 
+            example = &quot;false&quot;)
+    @JsonProperty(DELAYED_CAPTURE_FIELD_NAME)
+    public Optional&lt;Boolean&gt; getDelayedCapture() {
+<span class="nc" id="L172">        return Optional.ofNullable(delayedCapture);</span>
+    }
+
+    @JsonProperty(MOTO_FIELD_NAME)
+    @Schema(description = &quot;You can use this parameter to &quot; +
+            &quot;[designate a payment as a Mail Order / Telephone Order (MOTO) payment]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/moto_payments).&quot;, example = &quot;false&quot;)
+    public Optional&lt;Boolean&gt; getMoto() {
+<span class="nc" id="L180">        return Optional.ofNullable(moto);</span>
+    }
+
+    @JsonProperty(&quot;metadata&quot;)
+    @Schema(description = &quot;Additional metadata - up to 10 name/value pairs - on the payment. &quot; +
+            &quot;Each key must be between 1 and 30 characters long. &quot; +
+            &quot;The value, if a string, must be no greater than 50 characters long. &quot; +
+            &quot;Other permissible value types: boolean, number.&quot;,
+            example = &quot;{\&quot;ledger_code\&quot;:\&quot;123\&quot;, \&quot;reconciled\&quot;: true}&quot;)
+    public Optional&lt;ExternalMetadata&gt; getMetadata() {
+<span class="nc" id="L190">        return Optional.ofNullable(metadata);</span>
+    }
+
+    @JsonProperty(&quot;internal&quot;)
+    @Schema(hidden = true)
+    public Optional&lt;Internal&gt; getInternal() {
+<span class="nc" id="L196">        return Optional.ofNullable(internal);</span>
+    }
+
+    @JsonProperty(&quot;set_up_agreement&quot;)
+    @Schema(description = &quot;Use this parameter to set up an existing agreement for recurring payments. &quot; +
+            &quot;The `set_up_agreement` value you send must be a valid `agreement_id`.&quot;, 
+            required = false, example = &quot;abcefghjklmnopqr1234567890&quot;)
+    public Optional&lt;String&gt; getSetUpAgreement() {
+<span class="nc" id="L204">        return Optional.ofNullable(setUpAgreement);</span>
+    }
+
+    @JsonProperty(&quot;agreement_id&quot;)
+    @Schema(description = &quot;The unique ID GOV.UK Pay automatically associated with a recurring payments agreement. &quot; +
+            &quot;Including `agreement_id` in your request tells the API to take this payment using the card details that are associated with this agreement. &quot; +
+            &quot;`agreement_id` must match an active agreement ID. &quot; +
+            &quot;You must set `authorisation_mode` to `agreement` for the API to accept `agreement_id`.&quot;, 
+            required = false, example = &quot;abcefghjklmnopqr1234567890&quot;)
+    public Optional&lt;String&gt; getAgreementId() {
+<span class="nc" id="L214">        return Optional.ofNullable(agreementId);</span>
+    }
+
+    @JsonProperty(&quot;authorisation_mode&quot;)
+    @Schema(description = &quot;Sets how you intend to authorise the payment. Defaults to `web`. &quot; +
+            &quot;Payments created with `web` mode follow the [standard GOV.UK Pay payment journey](https://docs.payments.service.gov.uk/payment_flow/). &quot; +
+            &quot;Paying users visit the `next_url` in the response to complete their payment. &quot; +
+            &quot;Payments created with `agreement` mode are authorised with an agreement for recurring payments. &quot; +
+            &quot;If you create an `agreement` payment, you must also send an active `agreement_id`. &quot; +
+            &quot;You must not send `return_url`, `email`, or `prefilled_cardholder_details` or your request will fail. &quot; +
+            &quot;Payments created with `moto_api` mode return an `auth_url_post` object and a `one_time_token`. &quot; +
+            &quot;You can use `auth_url_post` and `one_time_token` to send the paying user’s card details through the API and complete the payment. &quot; +
+            &quot;If you create a `moto_api` payment, do not send a `return_url` in your request.&quot;,
+            type = &quot;String&quot;, allowableValues = {&quot;web&quot;, &quot;agreement&quot;, &quot;moto_api&quot;})
+    public Optional&lt;AuthorisationMode&gt; getAuthorisationMode() {
+<span class="nc" id="L229">        return Optional.ofNullable(authorisationMode);</span>
+    }
+
+    public String toConnectorPayload() {
+<span class="nc" id="L233">        JsonStringBuilder request = new JsonStringBuilder()</span>
+<span class="nc" id="L234">                .add(&quot;amount&quot;, this.getAmount())</span>
+<span class="nc" id="L235">                .add(&quot;reference&quot;, this.getReference())</span>
+<span class="nc" id="L236">                .add(&quot;description&quot;, this.getDescription())</span>
+<span class="nc" id="L237">                .add(&quot;return_url&quot;, this.getReturnUrl());</span>
+<span class="nc" id="L238">        getLanguage().ifPresent(language -&gt; request.add(&quot;language&quot;, language.toString()));</span>
+<span class="nc" id="L239">        getDelayedCapture().ifPresent(delayedCapture -&gt; request.add(&quot;delayed_capture&quot;, delayedCapture));</span>
+<span class="nc" id="L240">        getMoto().ifPresent(moto -&gt; request.add(&quot;moto&quot;, moto));</span>
+<span class="nc" id="L241">        getMetadata().ifPresent(metadata -&gt; request.add(&quot;metadata&quot;, metadata.getMetadata()));</span>
+<span class="nc" id="L242">        getEmail().ifPresent(email -&gt; request.add(&quot;email&quot;, email));</span>
+<span class="nc" id="L243">        getInternal().flatMap(Internal::getSource).ifPresent(source -&gt; request.add(&quot;source&quot;, source));</span>
+<span class="nc" id="L244">        getAuthorisationMode().ifPresent(authorisationMode -&gt; request.add(&quot;authorisation_mode&quot;, authorisationMode.getName()));</span>
+<span class="nc" id="L245">        getAgreementId().ifPresent(agreementId -&gt; request.add(&quot;agreement_id&quot;, agreementId));</span>
+<span class="nc" id="L246">        getSetUpAgreement().ifPresent(setUpAgreement -&gt; {</span>
+<span class="nc" id="L247">            request.add(&quot;agreement_id&quot;, setUpAgreement);</span>
+<span class="nc" id="L248">            request.add(&quot;save_payment_instrument_to_agreement&quot;, true);</span>
+<span class="nc" id="L249">        });</span>
+
+<span class="nc" id="L251">        getPrefilledCardholderDetails().ifPresent(prefilledDetails -&gt; {</span>
+<span class="nc" id="L252">            prefilledDetails.getCardholderName().ifPresent(name -&gt; request.addToMap(PREFILLED_CARDHOLDER_DETAILS, &quot;cardholder_name&quot;, name));</span>
+<span class="nc" id="L253">            prefilledDetails.getBillingAddress().ifPresent(address -&gt; {</span>
+<span class="nc" id="L254">                request.addToNestedMap(&quot;line1&quot;, address.getLine1(), PREFILLED_CARDHOLDER_DETAILS, BILLING_ADDRESS);</span>
+<span class="nc" id="L255">                request.addToNestedMap(&quot;line2&quot;, address.getLine2(), PREFILLED_CARDHOLDER_DETAILS, BILLING_ADDRESS);</span>
+<span class="nc" id="L256">                request.addToNestedMap(&quot;postcode&quot;, address.getPostcode(), PREFILLED_CARDHOLDER_DETAILS, BILLING_ADDRESS);</span>
+<span class="nc" id="L257">                request.addToNestedMap(&quot;city&quot;, address.getCity(), PREFILLED_CARDHOLDER_DETAILS, BILLING_ADDRESS);</span>
+<span class="nc" id="L258">                request.addToNestedMap(&quot;country&quot;, address.getCountry(), PREFILLED_CARDHOLDER_DETAILS, BILLING_ADDRESS);</span>
+<span class="nc" id="L259">            });</span>
+<span class="nc" id="L260">        });</span>
+
+<span class="nc" id="L262">        return request.build();</span>
+    }
+
+    /**
+     * This looks JSONesque but is not identical to the received request
+     */
+    @Override
+    public String toString() {
+        // Don't include:
+        // description - some services include PII
+        // reference - can come from user input for payment links, in the past they have mistakenly entered card numbers
+<span class="nc" id="L273">        StringJoiner joiner = new StringJoiner(&quot;, &quot;, &quot;{&quot;, &quot;}&quot;);</span>
+<span class="nc" id="L274">        joiner.add(&quot;amount: &quot; + getAmount());</span>
+<span class="nc" id="L275">        joiner.add(&quot;return_url: &quot; + returnUrl);</span>
+<span class="nc" id="L276">        getInternal().flatMap(Internal::getSource).ifPresent(source -&gt; joiner.add(&quot;source: &quot; + source));</span>
+<span class="nc" id="L277">        getLanguage().ifPresent(value -&gt; joiner.add(&quot;language: &quot; + value));</span>
+<span class="nc" id="L278">        getDelayedCapture().ifPresent(value -&gt; joiner.add(&quot;delayed_capture: &quot; + value));</span>
+<span class="nc" id="L279">        getMoto().ifPresent(value -&gt; joiner.add(&quot;moto: &quot; + value));</span>
+<span class="nc" id="L280">        getMetadata().ifPresent(value -&gt; joiner.add(&quot;metadata: &quot; + value));</span>
+<span class="nc" id="L281">        getAuthorisationMode().ifPresent(authorisationMode -&gt; joiner.add(&quot;authorisation_mode: &quot; + authorisationMode));</span>
+<span class="nc" id="L282">        getSetUpAgreement().ifPresent(setUpAgreement -&gt; joiner.add(&quot;set_up_agreement: &quot; + setUpAgreement));</span>
+<span class="nc" id="L283">        getAgreementId().ifPresent(agreementId -&gt; joiner.add(&quot;agreement_id: &quot; + agreementId));</span>
+
+<span class="nc" id="L285">        return joiner.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

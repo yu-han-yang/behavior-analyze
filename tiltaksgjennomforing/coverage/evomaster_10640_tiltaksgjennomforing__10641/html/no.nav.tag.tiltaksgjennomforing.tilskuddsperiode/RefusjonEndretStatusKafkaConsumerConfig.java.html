@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RefusjonEndretStatusKafkaConsumerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.tilskuddsperiode</a> &gt; <span class="el_source">RefusjonEndretStatusKafkaConsumerConfig.java</span></div><h1>RefusjonEndretStatusKafkaConsumerConfig.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.tilskuddsperiode;
+
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.kafka.enabled&quot;)
+@Configuration
+@EnableKafka
+<span class="nc" id="L23">public class RefusjonEndretStatusKafkaConsumerConfig {</span>
+
+    @Value(&quot;${no.nav.gcp.kafka.aiven.bootstrap-servers}&quot;)
+    private String gcpBootstrapServers;
+    @Value(&quot;${no.nav.gcp.kafka.aiven.truststore-path}&quot;)
+    private String sslTruststoreLocationEnvKey;
+    @Value(&quot;${no.nav.gcp.kafka.aiven.truststore-password}&quot;)
+    private String sslTruststorePasswordEnvKey;
+    @Value(&quot;${no.nav.gcp.kafka.aiven.keystore-path}&quot;)
+    private String sslKeystoreLocationEnvKey;
+    @Value(&quot;${no.nav.gcp.kafka.aiven.keystore-password}&quot;)
+    private String sslKeystorePasswordEnvKey;
+    @Value(&quot;${no.nav.gcp.kafka.aiven.security-protocol}&quot;)
+    private String securityProtocol;
+
+    public ConsumerFactory&lt;String, RefusjonEndretStatusMelding&gt; refusjonConsumerFactory() {
+<span class="nc" id="L39">        Map&lt;String, Object&gt; props = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L40">        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, gcpBootstrapServers);</span>
+<span class="nc" id="L41">        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, securityProtocol);</span>
+<span class="nc" id="L42">        props.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, &quot;&quot;);</span>
+<span class="nc" id="L43">        props.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, &quot;jks&quot;);</span>
+<span class="nc" id="L44">        props.put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, &quot;PKCS12&quot;);</span>
+<span class="nc" id="L45">        props.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslTruststoreLocationEnvKey);</span>
+<span class="nc" id="L46">        props.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, sslTruststorePasswordEnvKey);</span>
+<span class="nc" id="L47">        props.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslKeystoreLocationEnvKey);</span>
+<span class="nc" id="L48">        props.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, sslKeystorePasswordEnvKey);</span>
+<span class="nc" id="L49">        props.put(ConsumerConfig.GROUP_ID_CONFIG, &quot;tiltaksgjennomforing-api&quot;);</span>
+<span class="nc" id="L50">        props.put(JsonDeserializer.TRUSTED_PACKAGES, &quot;*&quot;);</span>
+<span class="nc" id="L51">        return new DefaultKafkaConsumerFactory&lt;&gt;(props,</span>
+                new StringDeserializer(),
+                new JsonDeserializer&lt;&gt;(RefusjonEndretStatusMelding.class, false));
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory&lt;String, RefusjonEndretStatusMelding&gt; refusjonEndretStatusContainerFactory() {
+<span class="nc" id="L58">        var factory = new ConcurrentKafkaListenerContainerFactory&lt;String, RefusjonEndretStatusMelding&gt;();</span>
+<span class="nc" id="L59">        factory.setConsumerFactory(refusjonConsumerFactory());</span>
+<span class="nc" id="L60">        return factory;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

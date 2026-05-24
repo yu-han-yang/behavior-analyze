@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Company.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.model.user</a> &gt; <span class="el_source">Company.java</span></div><h1>Company.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.model.user;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.sopromadze.blogapi.model.audit.UserDateAudit;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import java.time.Instant;
+
+<span class="nc bnc" id="L18" title="All 48 branches missed.">@EqualsAndHashCode(callSuper = true)</span>
+@Entity
+<span class="nc" id="L20">@Data</span>
+<span class="fc" id="L21">@NoArgsConstructor</span>
+@Table(name = &quot;company&quot;)
+public class Company extends UserDateAudit {
+	private static final long serialVersionUID = 1L;
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	@Column(name = &quot;name&quot;)
+<span class="nc" id="L31">	private String name;</span>
+
+	@Column(name = &quot;catch_phrase&quot;)
+<span class="nc" id="L34">	private String catchPhrase;</span>
+
+	@Column(name = &quot;bs&quot;)
+<span class="nc" id="L37">	private String bs;</span>
+
+	@OneToOne(mappedBy = &quot;company&quot;)
+<span class="nc" id="L40">	private User user;</span>
+
+
+<span class="nc" id="L43">	public Company(String name, String catchPhrase, String bs) {</span>
+<span class="nc" id="L44">		this.name = name;</span>
+<span class="nc" id="L45">		this.catchPhrase = catchPhrase;</span>
+<span class="nc" id="L46">		this.bs = bs;</span>
+<span class="nc" id="L47">	}</span>
+
+	@JsonIgnore
+	public Long getId() {
+<span class="nc" id="L51">		return id;</span>
+	}
+
+	public void setId(Long id) {
+<span class="nc" id="L55">		this.id = id;</span>
+<span class="nc" id="L56">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Long getCreatedBy() {
+<span class="nc" id="L61">		return super.getCreatedBy();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setCreatedBy(Long createdBy) {
+<span class="nc" id="L67">		super.setCreatedBy(createdBy);</span>
+<span class="nc" id="L68">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Long getUpdatedBy() {
+<span class="nc" id="L73">		return super.getUpdatedBy();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setUpdatedBy(Long updatedBy) {
+<span class="nc" id="L79">		super.setUpdatedBy(updatedBy);</span>
+<span class="nc" id="L80">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Instant getCreatedAt() {
+<span class="nc" id="L85">		return super.getCreatedAt();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setCreatedAt(Instant createdAt) {
+<span class="nc" id="L91">		super.setCreatedAt(createdAt);</span>
+<span class="nc" id="L92">	}</span>
+
+	@JsonIgnore
+	@Override
+	public Instant getUpdatedAt() {
+<span class="nc" id="L97">		return super.getUpdatedAt();</span>
+	}
+
+	@JsonIgnore
+	@Override
+	public void setUpdatedAt(Instant updatedAt) {
+<span class="nc" id="L103">		super.setUpdatedAt(updatedAt);</span>
+<span class="nc" id="L104">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

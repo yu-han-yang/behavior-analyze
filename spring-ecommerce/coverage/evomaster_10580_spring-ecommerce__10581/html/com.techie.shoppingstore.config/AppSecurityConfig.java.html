@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AppSecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.techie.shoppingstore.config</a> &gt; <span class="el_source">AppSecurityConfig.java</span></div><h1>AppSecurityConfig.java</h1><pre class="source lang-java linenums">package com.techie.shoppingstore.config;
+
+import com.techie.shoppingstore.repository.UserRepository;
+import com.techie.shoppingstore.service.JWTAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.BeanIds;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@EnableWebSecurity
+<span class="fc" id="L22">public class AppSecurityConfig extends WebSecurityConfigurerAdapter {</span>
+
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private UserDetailsService userDetailsService;
+    @Autowired
+    private UnauthorizedEntryPoint unauthorizedEntryPoint;
+    @Autowired
+    private CustomAccessDeniedHandler customAccessDeniedHandler;
+
+    @Bean
+    public JWTAuthenticationFilter jwtAuthenticationFilter() {
+<span class="fc" id="L35">        return new JWTAuthenticationFilter();</span>
+    }
+
+    @Bean(BeanIds.AUTHENTICATION_MANAGER)
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+<span class="fc" id="L41">        return super.authenticationManagerBean();</span>
+    }
+
+    @Override
+    public void configure(WebSecurity web) {
+<span class="fc" id="L46">        web.ignoring()</span>
+<span class="fc" id="L47">                .antMatchers(HttpMethod.OPTIONS, &quot;/**&quot;);</span>
+<span class="fc" id="L48">    }</span>
+
+    @Override
+    public void configure(HttpSecurity httpSecurity) throws Exception {
+<span class="fc" id="L52">        httpSecurity</span>
+<span class="fc" id="L53">                .cors()</span>
+<span class="fc" id="L54">                .and()</span>
+<span class="fc" id="L55">                .csrf()</span>
+<span class="fc" id="L56">                .disable()</span>
+<span class="fc" id="L57">                .exceptionHandling()</span>
+<span class="fc" id="L58">                .authenticationEntryPoint(unauthorizedEntryPoint)</span>
+<span class="fc" id="L59">                .and()</span>
+<span class="fc" id="L60">                .sessionManagement()</span>
+<span class="fc" id="L61">                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)</span>
+<span class="fc" id="L62">                .and()</span>
+<span class="fc" id="L63">                .authorizeRequests()</span>
+<span class="fc" id="L64">                .antMatchers(&quot;/api/auth/**&quot;)</span>
+<span class="fc" id="L65">                .permitAll()</span>
+<span class="fc" id="L66">                .antMatchers(&quot;/api/store/catalog/**&quot;,</span>
+//                        MODIFIED
+                        &quot;/v2/api-docs/**&quot;)
+<span class="fc" id="L69">                .permitAll()</span>
+<span class="fc" id="L70">                .anyRequest().authenticated();</span>
+
+
+        // Add our custom JWT security filter
+<span class="fc" id="L74">        httpSecurity.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);</span>
+<span class="fc" id="L75">    }</span>
+
+    @Autowired
+    public void configureGlobal(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
+<span class="fc" id="L79">        authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(encoder());</span>
+<span class="fc" id="L80">    }</span>
+
+    @Bean
+    PasswordEncoder encoder() {
+<span class="fc" id="L84">        return new BCryptPasswordEncoder(12);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

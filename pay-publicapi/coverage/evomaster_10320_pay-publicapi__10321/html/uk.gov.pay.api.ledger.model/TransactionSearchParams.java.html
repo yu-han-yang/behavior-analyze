@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TransactionSearchParams.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.ledger.model</a> &gt; <span class="el_source">TransactionSearchParams.java</span></div><h1>TransactionSearchParams.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.ledger.model;
+
+import javax.ws.rs.QueryParam;
+import java.util.HashMap;
+import java.util.Map;
+
+import static uk.gov.pay.api.common.SearchConstants.CARDHOLDER_NAME_KEY;
+import static uk.gov.pay.api.common.SearchConstants.CARD_BRAND_KEY;
+import static uk.gov.pay.api.common.SearchConstants.DISPLAY_SIZE;
+import static uk.gov.pay.api.common.SearchConstants.EMAIL_KEY;
+import static uk.gov.pay.api.common.SearchConstants.FIRST_DIGITS_CARD_NUMBER_KEY;
+import static uk.gov.pay.api.common.SearchConstants.FROM_DATE_KEY;
+import static uk.gov.pay.api.common.SearchConstants.FROM_SETTLED_DATE;
+import static uk.gov.pay.api.common.SearchConstants.GATEWAY_ACCOUNT_ID;
+import static uk.gov.pay.api.common.SearchConstants.LAST_DIGITS_CARD_NUMBER_KEY;
+import static uk.gov.pay.api.common.SearchConstants.PAGE;
+import static uk.gov.pay.api.common.SearchConstants.REFERENCE_KEY;
+import static uk.gov.pay.api.common.SearchConstants.STATE_KEY;
+import static uk.gov.pay.api.common.SearchConstants.TO_DATE_KEY;
+import static uk.gov.pay.api.common.SearchConstants.TO_SETTLED_DATE;
+
+<span class="nc" id="L22">public class TransactionSearchParams {</span>
+
+    private String accountId;
+    @QueryParam(&quot;reference&quot;)
+    private String reference;
+    @QueryParam(&quot;email&quot;)
+    private String email;
+    @QueryParam(&quot;state&quot;)
+    private String state;
+    @QueryParam(&quot;card_brand&quot;)
+    private String cardBrand;
+    @QueryParam(&quot;from_date&quot;)
+    private String fromDate;
+    @QueryParam(&quot;to_date&quot;)
+    private String toDate;
+    @QueryParam(&quot;page&quot;)
+    private String pageNumber;
+    @QueryParam(&quot;display_size&quot;)
+    private String displaySize;
+    @QueryParam(&quot;cardholder_name&quot;)
+    private String cardHolderName;
+    @QueryParam(&quot;first_digits_card_number&quot;)
+    private String firstDigitsCardNumber;
+    @QueryParam(&quot;last_digits_card_number&quot;)
+    private String lastDigitsCardNumber;
+    @QueryParam(&quot;from_settled_date&quot;)
+    private String fromSettledDate;
+    @QueryParam(&quot;to_settled_date&quot;)
+    private String toSettledDate;
+
+    public void setAccountId(String accountId) {
+<span class="nc" id="L53">        this.accountId = accountId;</span>
+<span class="nc" id="L54">    }</span>
+
+    public String getReference() {
+<span class="nc" id="L57">        return reference;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L61">        return email;</span>
+    }
+
+    public String getState() {
+<span class="nc" id="L65">        return state;</span>
+    }
+
+    public String getCardBrand() {
+<span class="nc" id="L69">        return cardBrand;</span>
+    }
+
+    public String getFromDate() {
+<span class="nc" id="L73">        return fromDate;</span>
+    }
+
+    public String getToDate() {
+<span class="nc" id="L77">        return toDate;</span>
+    }
+
+    public String getPageNumber() {
+<span class="nc" id="L81">        return pageNumber;</span>
+    }
+
+    public String getDisplaySize() {
+<span class="nc" id="L85">        return displaySize;</span>
+    }
+
+    public String getCardHolderName() {
+<span class="nc" id="L89">        return cardHolderName;</span>
+    }
+
+    public String getFirstDigitsCardNumber() {
+<span class="nc" id="L93">        return firstDigitsCardNumber;</span>
+    }
+
+    public String getLastDigitsCardNumber() {
+<span class="nc" id="L97">        return lastDigitsCardNumber;</span>
+    }
+
+    public String getFromSettledDate() {
+<span class="nc" id="L101">        return fromSettledDate;</span>
+    }
+
+    public String getToSettledDate() {
+<span class="nc" id="L105">        return toSettledDate;</span>
+    }
+
+    public Map&lt;String, String&gt; getQueryMap() {
+<span class="nc" id="L109">        Map&lt;String, String&gt; queryParams = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L110">        queryParams.put(GATEWAY_ACCOUNT_ID, accountId);</span>
+<span class="nc" id="L111">        queryParams.put(REFERENCE_KEY, reference);</span>
+<span class="nc" id="L112">        queryParams.put(EMAIL_KEY, email);</span>
+<span class="nc" id="L113">        queryParams.put(STATE_KEY, state);</span>
+<span class="nc" id="L114">        queryParams.put(CARD_BRAND_KEY, cardBrand);</span>
+<span class="nc" id="L115">        queryParams.put(CARDHOLDER_NAME_KEY, cardHolderName);</span>
+<span class="nc" id="L116">        queryParams.put(FIRST_DIGITS_CARD_NUMBER_KEY, firstDigitsCardNumber);</span>
+<span class="nc" id="L117">        queryParams.put(LAST_DIGITS_CARD_NUMBER_KEY, lastDigitsCardNumber);</span>
+<span class="nc" id="L118">        queryParams.put(FROM_DATE_KEY, fromDate);</span>
+<span class="nc" id="L119">        queryParams.put(TO_DATE_KEY, toDate);</span>
+<span class="nc" id="L120">        queryParams.put(PAGE, pageNumber);</span>
+<span class="nc" id="L121">        queryParams.put(DISPLAY_SIZE, displaySize);</span>
+<span class="nc" id="L122">        queryParams.put(FROM_SETTLED_DATE, fromSettledDate);</span>
+<span class="nc" id="L123">        queryParams.put(TO_SETTLED_DATE, toSettledDate);</span>
+
+<span class="nc" id="L125">        return queryParams;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

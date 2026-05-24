@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MutationStatus.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response</a> &gt; <span class="el_source">MutationStatus.java</span></div><h1>MutationStatus.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon.response;
+
+<span class="nc" id="L3">public enum MutationStatus {</span>
+<span class="nc" id="L4">    NY_OPPGAVE_VELLYKKET(&quot;NyOppgaveVellykket&quot;),</span>
+<span class="nc" id="L5">    NY_BESKJED_VELLYKKET(&quot;NyBeskjedVellykket&quot;),</span>
+<span class="nc" id="L6">    OPPGAVE_UTFOERT_VELLYKKET(&quot;OppgaveUtfoertVellykket&quot;),</span>
+<span class="nc" id="L7">    SOFT_DELETE_NOTIFIKASJON_VELLYKKET(&quot;SoftDeleteNotifikasjonVellykket&quot;),</span>
+<span class="nc" id="L8">    HARD_DELETE_NOTIFIKASJON_VELLYKKET(&quot;HardDeleteNotifikasjonVellykket&quot;),</span>
+<span class="nc" id="L9">    NOTIFIKASJON_FINNES_IKKE(&quot;NotifikasjonFinnesIkke&quot;),</span>
+<span class="nc" id="L10">    DUPLIKAT_ID_OG_MERKELAPP(&quot;DuplikatEksternIdOgMerkelapp&quot;),</span>
+<span class="nc" id="L11">    UGYLDIG_MOTTAKER(&quot;UgyldigMottaker&quot;),</span>
+<span class="nc" id="L12">    UKJENT_PRODUSENT(&quot;UkjentProdusent&quot;),</span>
+<span class="nc" id="L13">    UGYLDIG_MERKELAPP(&quot;UgyldigMerkelapp&quot;);</span>
+
+    private final String status;
+
+<span class="nc" id="L17">    MutationStatus(String status) {</span>
+<span class="nc" id="L18">        this.status = status;</span>
+<span class="nc" id="L19">    }</span>
+
+    public String getStatus() {
+<span class="nc" id="L22">        return status;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PayPalWrapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.utils</a> &gt; <span class="el_source">PayPalWrapper.java</span></div><h1>PayPalWrapper.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.utils;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.paypal.api.payments.*;
+import com.paypal.base.rest.APIContext;
+import com.paypal.base.rest.OAuthTokenCredential;
+import com.paypal.base.rest.PayPalRESTException;
+import com.paypal.core.LoggingManager;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.Manager;
+import io.github.proxyprint.kitchen.models.printshops.PrintShop;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+/**
+ * Created by daniel on 24-05-2016.
+ */
+public class PayPalWrapper {
+
+<span class="nc" id="L26">    public static String PAYPAL_COMPLETED_PAYMENT = &quot;Completed&quot;;</span>
+
+    @Autowired
+    private Gson GSON;
+
+    // Generate access token in this construct
+<span class="nc" id="L32">    public PayPalWrapper() {</span>
+<span class="nc" id="L33">    }</span>
+
+    public String generatePayPalAccessToken() throws PayPalRESTException {
+<span class="nc" id="L36">        JsonObject response = new JsonObject();</span>
+
+        // Load configurations
+<span class="nc" id="L39">        String[] tmp = this.getClass().getResource(&quot;/paypal.properties&quot;).toString().split(&quot;:&quot;);</span>
+<span class="nc" id="L40">	LoggingManager.info(this.getClass(), (String)tmp[1]);</span>
+<span class="nc" id="L41">        OAuthTokenCredential tokenCredential = Payment.initConfig(new File(tmp[1]));</span>
+
+        // Create access token
+<span class="nc" id="L44">        String accessToken = tokenCredential.getAccessToken();</span>
+
+<span class="nc" id="L46">        return accessToken;</span>
+    }
+
+    /**
+     * Pay to a printshop its share of a print request.
+     *
+     * @param prequest the print request.
+     * @param manager  the manager of the printshop.
+     * @param pshop    the prinshop where the prequest was sent.
+     * @return true/false pending on paypal operation success/insuccess.
+     * @throws PayPalRESTException
+     */
+    public boolean payShareToPrintShop(PrintRequest prequest, Manager manager, PrintShop pshop) throws PayPalRESTException {
+<span class="nc bnc" id="L59" title="All 6 branches missed.">        if (prequest != null &amp;&amp; manager != null &amp;&amp; pshop != null) {</span>
+<span class="nc" id="L60">            Payout payout = new Payout();</span>
+<span class="nc" id="L61">            PayoutBatch batch = null;</span>
+
+            // Get an access token
+<span class="nc" id="L64">            String accessToken = generatePayPalAccessToken();</span>
+<span class="nc" id="L65">            PayoutSenderBatchHeader senderBatchHeader = new PayoutSenderBatchHeader();</span>
+
+            // Batch
+<span class="nc" id="L68">            Random random = new Random();</span>
+<span class="nc" id="L69">            String batchId = prequest.getArrivalTimestamp().toString();</span>
+<span class="nc" id="L70">            String emailSubject = &quot;ProxyPrint - Pagamento relativo ao pedido &quot;;</span>
+            // UNMARK getFinishedTimestamp() on full integration
+<span class="nc" id="L72">            emailSubject += prequest.getArrivalTimestamp().toString() + &quot;::&quot; /*+ prequest.getFinishedTimestamp()*/ + &quot; .&quot;;</span>
+<span class="nc" id="L73">            senderBatchHeader.setSenderBatchId(batchId).setEmailSubject(emailSubject);</span>
+
+            // Currency (90% of the print request value)
+<span class="nc" id="L76">            double amountValue = prequest.getCost() * PrintShop.PRINTSHOPS_PERCENTILS_REVENUE;</span>
+<span class="nc" id="L77">            Currency amount = new Currency();</span>
+<span class="nc" id="L78">            amount.setValue(String.format(&quot;%.2f&quot;, amountValue)).setCurrency(&quot;EUR&quot;);</span>
+
+            // Sender Item
+<span class="nc" id="L81">            String senderItemID = prequest.getFinishedTimestamp().toString();</span>
+<span class="nc" id="L82">            PayoutItem senderItem = new PayoutItem();</span>
+<span class="nc" id="L83">            senderItem.setRecipientType(&quot;Email&quot;)</span>
+<span class="nc" id="L84">                    .setNote(&quot;Obrigado por usar o ProxyPrint!&quot;)</span>
+<span class="nc" id="L85">                    .setReceiver(manager.getEmail())</span>
+<span class="nc" id="L86">                    .setSenderItemId(senderItemID).setAmount(amount);</span>
+
+<span class="nc" id="L88">            List&lt;PayoutItem&gt; items = new ArrayList&lt;PayoutItem&gt;();</span>
+<span class="nc" id="L89">            items.add(senderItem);</span>
+
+<span class="nc" id="L91">            payout.setSenderBatchHeader(senderBatchHeader).setItems(items);</span>
+
+<span class="nc" id="L93">            APIContext apiContext = new APIContext(accessToken);</span>
+<span class="nc" id="L94">            batch = payout.createSynchronous(apiContext);</span>
+
+<span class="nc" id="L96">            LoggingManager.info(this.getClass(), &quot;Payout Batch Processed with ID: &quot; + batch.getBatchHeader().getPayoutBatchId());</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (batch != null) {</span>
+<span class="nc" id="L99">                return true;</span>
+            }
+        }
+<span class="nc" id="L102">        return false;</span>
+    }
+
+    /**
+     * Not working yet.
+     * @param c the consumer which cancelled a print request.
+     * @param pr the printrequest that the above consumer cancelled.
+     * @return true/false uppon success or failure
+     * @throws PayPalRESTException
+     */
+    public boolean refundConsumerCancelledPrintRequest(Consumer c, PrintRequest pr) throws PayPalRESTException {
+<span class="nc bnc" id="L113" title="All 6 branches missed.">        if (c != null &amp; pr != null) {</span>
+<span class="nc" id="L114">            String accessToken = generatePayPalAccessToken();</span>
+<span class="nc" id="L115">            Sale sale = Sale.get(accessToken, /*pr.getPayPalSaleID()*/&quot;1KR725617U497772K&quot;);</span>
+
+<span class="nc" id="L117">            Amount amount = new Amount();</span>
+<span class="nc" id="L118">            amount.setTotal(&quot;2.21&quot;);</span>
+<span class="nc" id="L119">            amount.setCurrency(&quot;EUR&quot;);</span>
+
+<span class="nc" id="L121">            Refund refund = new Refund();</span>
+<span class="nc" id="L122">            refund.setAmount(amount);</span>
+
+<span class="nc" id="L124">            Refund newRefund = sale.refund(accessToken, refund);</span>
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">            if(newRefund!=null) {</span>
+<span class="nc" id="L127">                LoggingManager.info(this.getClass(), &quot;Refund successfull &quot;+c.getEmail()+&quot;::&quot;+newRefund.toString());</span>
+<span class="nc" id="L128">                return true;</span>
+            }
+        }
+
+<span class="nc" id="L132">        return false;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

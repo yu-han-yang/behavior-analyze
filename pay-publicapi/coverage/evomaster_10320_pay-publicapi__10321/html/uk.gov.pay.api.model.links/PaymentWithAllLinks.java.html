@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentWithAllLinks.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.links</a> &gt; <span class="el_source">PaymentWithAllLinks.java</span></div><h1>PaymentWithAllLinks.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.links;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import uk.gov.pay.api.model.AuthorisationSummary;
+import uk.gov.pay.api.model.CardDetails;
+import uk.gov.pay.api.model.CardPayment;
+import uk.gov.pay.api.model.Charge;
+import uk.gov.pay.api.model.PaymentConnectorResponseLink;
+import uk.gov.pay.api.model.PaymentSettlementSummary;
+import uk.gov.pay.api.model.PaymentState;
+import uk.gov.pay.api.model.RefundSummary;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import java.net.URI;
+import java.util.List;
+
+public class PaymentWithAllLinks extends CardPayment {
+
+<span class="nc" id="L21">    @JsonProperty(CardPayment.LINKS_JSON_ATTRIBUTE)</span>
+    private PaymentLinks links = new PaymentLinks();
+
+    public PaymentLinks getLinks() {
+<span class="nc" id="L25">        return links;</span>
+    }
+
+    private PaymentWithAllLinks(String chargeId, long amount, PaymentState state, String returnUrl, String description,
+                               String reference, String email, String paymentProvider, String createdDate, SupportedLanguage language,
+                               boolean delayedCapture, boolean moto, RefundSummary refundSummary, PaymentSettlementSummary settlementSummary, CardDetails cardDetails,
+                               List&lt;PaymentConnectorResponseLink&gt; paymentConnectorResponseLinks, URI selfLink, URI paymentEventsUri, URI paymentCancelUri,
+                               URI paymentRefundsUri, URI paymentCaptureUri, URI paymentAuthorisationUri,  Long corporateCardSurcharge, Long totalAmount, String providerId, ExternalMetadata metadata,
+                               Long fee, Long netAmount, AuthorisationSummary authorisationSummary, String agreementId, AuthorisationMode authorisationMode) {
+<span class="nc" id="L34">        super(chargeId, amount, state, returnUrl, description, reference, email, paymentProvider, createdDate,</span>
+                refundSummary, settlementSummary, cardDetails, language, delayedCapture, moto, corporateCardSurcharge, totalAmount,
+                providerId, metadata, fee, netAmount, authorisationSummary, agreementId, authorisationMode);
+<span class="nc" id="L37">        this.links.addSelf(selfLink.toString());</span>
+<span class="nc" id="L38">        this.links.addKnownLinksValueOf(paymentConnectorResponseLinks, paymentAuthorisationUri);</span>
+<span class="nc" id="L39">        this.links.addEvents(paymentEventsUri.toString());</span>
+<span class="nc" id="L40">        this.links.addRefunds(paymentRefundsUri.toString());</span>
+
+<span class="nc bnc" id="L42" title="All 4 branches missed.">        if (!state.isFinished() &amp;&amp; authorisationMode != AuthorisationMode.AGREEMENT) {</span>
+<span class="nc" id="L43">            this.links.addCancel(paymentCancelUri.toString());</span>
+        }
+
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (paymentConnectorResponseLinks.stream().anyMatch(link -&gt; &quot;capture&quot;.equals(link.getRel()))) {</span>
+<span class="nc" id="L47">            this.links.addCapture(paymentCaptureUri.toString());</span>
+        }
+<span class="nc" id="L49">    }</span>
+
+    public static PaymentWithAllLinks valueOf(Charge paymentConnector,
+                                              URI selfLink,
+                                              URI paymentEventsUri,
+                                              URI paymentCancelUri,
+                                              URI paymentRefundsUri,
+                                              URI paymentsCaptureUri,
+                                              URI paymentAuthorisationUri) {
+<span class="nc" id="L58">        return new PaymentWithAllLinksBuilder()</span>
+<span class="nc" id="L59">                .withChargeId(paymentConnector.getChargeId())</span>
+<span class="nc" id="L60">                .withAmount(paymentConnector.getAmount())</span>
+<span class="nc" id="L61">                .withState(paymentConnector.getState())</span>
+<span class="nc" id="L62">                .withReturnUrl(paymentConnector.getReturnUrl())</span>
+<span class="nc" id="L63">                .withDescription(paymentConnector.getDescription())</span>
+<span class="nc" id="L64">                .withReference(paymentConnector.getReference())</span>
+<span class="nc" id="L65">                .withEmail(paymentConnector.getEmail())</span>
+<span class="nc" id="L66">                .withPaymentProvider(paymentConnector.getPaymentProvider())</span>
+<span class="nc" id="L67">                .withCreatedDate(paymentConnector.getCreatedDate())</span>
+<span class="nc" id="L68">                .withLanguage(paymentConnector.getLanguage())</span>
+<span class="nc" id="L69">                .withDelayedCapture(paymentConnector.getDelayedCapture())</span>
+<span class="nc" id="L70">                .withMoto(paymentConnector.isMoto())</span>
+<span class="nc" id="L71">                .withRefundSummary(paymentConnector.getRefundSummary())</span>
+<span class="nc" id="L72">                .withSettlementSummary(paymentConnector.getSettlementSummary())</span>
+<span class="nc" id="L73">                .withCardDetails(paymentConnector.getCardDetails())</span>
+<span class="nc" id="L74">                .withPaymentConnectorResponseLinks(paymentConnector.getLinks())</span>
+<span class="nc" id="L75">                .withSelfLink(selfLink)</span>
+<span class="nc" id="L76">                .withPaymentEventsUri(paymentEventsUri)</span>
+<span class="nc" id="L77">                .withPaymentCancelUri(paymentCancelUri)</span>
+<span class="nc" id="L78">                .withPaymentRefundsUri(paymentRefundsUri)</span>
+<span class="nc" id="L79">                .withPaymentCaptureUri(paymentsCaptureUri)</span>
+<span class="nc" id="L80">                .withPaymentAuthorisationUri(paymentAuthorisationUri)</span>
+<span class="nc" id="L81">                .withCorporateCardSurcharge(paymentConnector.getCorporateCardSurcharge())</span>
+<span class="nc" id="L82">                .withTotalAmount(paymentConnector.getTotalAmount())</span>
+<span class="nc" id="L83">                .withProviderId(paymentConnector.getGatewayTransactionId())</span>
+<span class="nc" id="L84">                .withMetadata(paymentConnector.getMetadata().orElse(null))</span>
+<span class="nc" id="L85">                .withFee(paymentConnector.getFee())</span>
+<span class="nc" id="L86">                .withNetAmount(paymentConnector.getNetAmount())</span>
+<span class="nc" id="L87">                .withAuthorisationSummary(paymentConnector.getAuthorisationSummary())</span>
+<span class="nc" id="L88">                .withAgreementId(paymentConnector.getAgreementId())</span>
+<span class="nc" id="L89">                .withAuthorisationMode(paymentConnector.getAuthorisationMode())</span>
+<span class="nc" id="L90">                .build();</span>
+    }
+
+    public static PaymentWithAllLinks getPaymentWithLinks(
+            Charge paymentConnector,
+            URI selfLink,
+            URI paymentEventsUri,
+            URI paymentCancelUri,
+            URI paymentRefundsUri,
+            URI paymentsCaptureUri,
+            URI paymentAuthorisationUri) {
+        
+<span class="nc" id="L102">        return PaymentWithAllLinks.valueOf(paymentConnector, selfLink, paymentEventsUri, paymentCancelUri, paymentRefundsUri, paymentsCaptureUri, paymentAuthorisationUri);</span>
+    }
+    
+<span class="nc" id="L105">    public static class PaymentWithAllLinksBuilder {</span>
+        private String chargeId;
+        private long amount;
+        private PaymentState state;
+        private String returnUrl;
+        private String description;
+        private String reference;
+        private String email;
+        private String paymentProvider;
+        private String createdDate;
+        private SupportedLanguage language;
+        private boolean delayedCapture;
+        private boolean moto;
+        private RefundSummary refundSummary;
+        private PaymentSettlementSummary settlementSummary;
+        private CardDetails cardDetails;
+        private List&lt;PaymentConnectorResponseLink&gt; paymentConnectorResponseLinks;
+        private URI selfLink;
+        private URI paymentEventsUri;
+        private URI paymentCancelUri;
+        private URI paymentRefundsUri;
+        private URI paymentCaptureUri;
+        private URI paymentAuthorisationUri;
+        private Long corporateCardSurcharge;
+        private Long totalAmount;
+        private String providerId;
+        private ExternalMetadata metadata;
+        private Long fee;
+        private Long netAmount;
+        private AuthorisationSummary authorisationSummary;
+        private String agreementId;
+        private AuthorisationMode authorisationMode;
+
+        public PaymentWithAllLinksBuilder withChargeId(String chargeId) {
+<span class="nc" id="L139">            this.chargeId = chargeId;</span>
+<span class="nc" id="L140">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withAmount(long amount) {
+<span class="nc" id="L144">            this.amount = amount;</span>
+<span class="nc" id="L145">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withState(PaymentState state) {
+<span class="nc" id="L149">            this.state = state;</span>
+<span class="nc" id="L150">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withReturnUrl(String returnUrl) {
+<span class="nc" id="L154">            this.returnUrl = returnUrl;</span>
+<span class="nc" id="L155">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withDescription(String description) {
+<span class="nc" id="L159">            this.description = description;</span>
+<span class="nc" id="L160">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withReference(String reference) {
+<span class="nc" id="L164">            this.reference = reference;</span>
+<span class="nc" id="L165">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withEmail(String email) {
+<span class="nc" id="L169">            this.email = email;</span>
+<span class="nc" id="L170">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentProvider(String paymentProvider) {
+<span class="nc" id="L174">            this.paymentProvider = paymentProvider;</span>
+<span class="nc" id="L175">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withCreatedDate(String createdDate) {
+<span class="nc" id="L179">            this.createdDate = createdDate;</span>
+<span class="nc" id="L180">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withLanguage(SupportedLanguage language) {
+<span class="nc" id="L184">            this.language = language;</span>
+<span class="nc" id="L185">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withDelayedCapture(boolean delayedCapture) {
+<span class="nc" id="L189">            this.delayedCapture = delayedCapture;</span>
+<span class="nc" id="L190">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withMoto(boolean moto) {
+<span class="nc" id="L194">            this.moto = moto;</span>
+<span class="nc" id="L195">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withRefundSummary(RefundSummary refundSummary) {
+<span class="nc" id="L199">            this.refundSummary = refundSummary;</span>
+<span class="nc" id="L200">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withSettlementSummary(PaymentSettlementSummary settlementSummary) {
+<span class="nc" id="L204">            this.settlementSummary = settlementSummary;</span>
+<span class="nc" id="L205">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withCardDetails(CardDetails cardDetails) {
+<span class="nc" id="L209">            this.cardDetails = cardDetails;</span>
+<span class="nc" id="L210">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentConnectorResponseLinks(List&lt;PaymentConnectorResponseLink&gt; paymentConnectorResponseLinks) {
+<span class="nc" id="L214">            this.paymentConnectorResponseLinks = paymentConnectorResponseLinks;</span>
+<span class="nc" id="L215">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withSelfLink(URI selfLink) {
+<span class="nc" id="L219">            this.selfLink = selfLink;</span>
+<span class="nc" id="L220">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentEventsUri(URI paymentEventsUri) {
+<span class="nc" id="L224">            this.paymentEventsUri = paymentEventsUri;</span>
+<span class="nc" id="L225">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentCancelUri(URI paymentCancelUri) {
+<span class="nc" id="L229">            this.paymentCancelUri = paymentCancelUri;</span>
+<span class="nc" id="L230">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentRefundsUri(URI paymentRefundsUri) {
+<span class="nc" id="L234">            this.paymentRefundsUri = paymentRefundsUri;</span>
+<span class="nc" id="L235">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentCaptureUri(URI paymentCaptureUri) {
+<span class="nc" id="L239">            this.paymentCaptureUri = paymentCaptureUri;</span>
+<span class="nc" id="L240">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withPaymentAuthorisationUri(URI paymentAuthorisationUri) {
+<span class="nc" id="L244">            this.paymentAuthorisationUri = paymentAuthorisationUri;</span>
+<span class="nc" id="L245">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withCorporateCardSurcharge(Long corporateCardSurcharge) {
+<span class="nc" id="L249">            this.corporateCardSurcharge = corporateCardSurcharge;</span>
+<span class="nc" id="L250">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withTotalAmount(Long totalAmount) {
+<span class="nc" id="L254">            this.totalAmount = totalAmount;</span>
+<span class="nc" id="L255">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withProviderId(String providerId) {
+<span class="nc" id="L259">            this.providerId = providerId;</span>
+<span class="nc" id="L260">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withMetadata(ExternalMetadata metadata) {
+<span class="nc" id="L264">            this.metadata = metadata;</span>
+<span class="nc" id="L265">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withFee(Long fee) {
+<span class="nc" id="L269">            this.fee = fee;</span>
+<span class="nc" id="L270">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withNetAmount(Long netAmount) {
+<span class="nc" id="L274">            this.netAmount = netAmount;</span>
+<span class="nc" id="L275">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withAuthorisationSummary(AuthorisationSummary authorisationSummary) {
+<span class="nc" id="L279">            this.authorisationSummary = authorisationSummary;</span>
+<span class="nc" id="L280">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withAgreementId(String agreementId) {
+<span class="nc" id="L284">            this.agreementId = agreementId;</span>
+<span class="nc" id="L285">            return this;</span>
+        }
+
+        public PaymentWithAllLinksBuilder withAuthorisationMode(AuthorisationMode authorisationMode) {
+<span class="nc" id="L289">            this.authorisationMode = authorisationMode;</span>
+<span class="nc" id="L290">            return this;</span>
+        }
+
+        public PaymentWithAllLinks build() {
+<span class="nc" id="L294">            return new PaymentWithAllLinks(chargeId, amount, state, returnUrl, description, reference, email, </span>
+                    paymentProvider, createdDate, language, delayedCapture, moto, refundSummary, settlementSummary, 
+                    cardDetails, paymentConnectorResponseLinks, selfLink, paymentEventsUri, paymentCancelUri, 
+                    paymentRefundsUri, paymentCaptureUri, paymentAuthorisationUri, corporateCardSurcharge, totalAmount, 
+                    providerId, metadata, fee, netAmount, authorisationSummary, agreementId, authorisationMode);
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

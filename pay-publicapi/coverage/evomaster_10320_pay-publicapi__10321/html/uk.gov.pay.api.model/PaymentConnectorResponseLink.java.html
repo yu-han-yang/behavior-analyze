@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaymentConnectorResponseLink.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">PaymentConnectorResponseLink.java</span></div><h1>PaymentConnectorResponseLink.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.util.Map;
+import java.util.Objects;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class PaymentConnectorResponseLink {
+
+    private String rel;
+    private String href;
+    private String method;
+    private String type;
+    private Map&lt;String, Object&gt; params;
+
+    // required for Jackson
+    private PaymentConnectorResponseLink() {
+    }
+
+    public PaymentConnectorResponseLink(String rel,
+                                        String href,
+                                        String method,
+                                        String type,
+<span class="nc" id="L25">                                        Map&lt;String, Object&gt; params) {</span>
+<span class="nc" id="L26">        this.rel = rel;</span>
+<span class="nc" id="L27">        this.href = href;</span>
+<span class="nc" id="L28">        this.method = method;</span>
+<span class="nc" id="L29">        this.type = type;</span>
+<span class="nc" id="L30">        this.params = params;</span>
+<span class="nc" id="L31">    }</span>
+
+    public String getRel() {
+<span class="nc" id="L34">        return rel;</span>
+    }
+
+    public String getHref() {
+<span class="nc" id="L38">        return href;</span>
+    }
+
+    public String getMethod() {
+<span class="nc" id="L42">        return method;</span>
+    }
+
+    public String getType() {
+<span class="nc" id="L46">        return type;</span>
+    }
+
+    public Map&lt;String, Object&gt; getParams() {
+<span class="nc" id="L50">        return params;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L57">        PaymentConnectorResponseLink that = (PaymentConnectorResponseLink) o;</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        return Objects.equals(rel, that.rel) &amp;&amp;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">                Objects.equals(href, that.href) &amp;&amp;</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">                Objects.equals(method, that.method) &amp;&amp;</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">                Objects.equals(type, that.type) &amp;&amp;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                Objects.equals(params, that.params);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L67">        return Objects.hash(rel, href, method, type, params);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

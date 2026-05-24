@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateCardPaymentRequestBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">CreateCardPaymentRequestBuilder.java</span></div><h1>CreateCardPaymentRequestBuilder.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.Source;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+<span class="nc" id="L8">public class CreateCardPaymentRequestBuilder {</span>
+    private ExternalMetadata metadata;
+    private int amount;
+    private String returnUrl;
+    private String reference;
+    private String description;
+    private SupportedLanguage language;
+    private Boolean delayedCapture;
+    private Boolean moto;
+    private String email;
+    private String cardholderName;
+    private String addressLine1;
+    private String addressLine2;
+    private String city;
+    private String postcode;
+    private String country;
+    private PrefilledCardholderDetails prefilledCardholderDetails;
+    private Source source;
+    private Internal internal;
+    private String setUpAgreement;
+    private AuthorisationMode authorisationMode;
+    private String agreementId;
+
+    public static CreateCardPaymentRequestBuilder builder() {
+<span class="nc" id="L32">        return new CreateCardPaymentRequestBuilder();</span>
+    }
+
+    public CreateCardPaymentRequest build() {
+<span class="nc" id="L36">        return new CreateCardPaymentRequest(this);</span>
+    }
+    
+    public CreateCardPaymentRequestBuilder amount(int amount) {
+<span class="nc" id="L40">        this.amount = amount;</span>
+<span class="nc" id="L41">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder returnUrl(String returnUrl) {
+<span class="nc" id="L45">        this.returnUrl = returnUrl;</span>
+<span class="nc" id="L46">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder reference(String reference) {
+<span class="nc" id="L50">        this.reference = reference;</span>
+<span class="nc" id="L51">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder description(String description) {
+<span class="nc" id="L55">        this.description = description;</span>
+<span class="nc" id="L56">        return this;</span>
+    }
+    
+    public CreateCardPaymentRequestBuilder language(SupportedLanguage language) {
+<span class="nc" id="L60">        this.language = language;</span>
+<span class="nc" id="L61">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder delayedCapture(Boolean delayedCapture) {
+<span class="nc" id="L65">        this.delayedCapture = delayedCapture;</span>
+<span class="nc" id="L66">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder moto(Boolean moto) {
+<span class="nc" id="L70">        this.moto = moto;</span>
+<span class="nc" id="L71">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder metadata(ExternalMetadata metadata) {
+<span class="nc" id="L75">        this.metadata = metadata;</span>
+<span class="nc" id="L76">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder email(String email) {
+<span class="nc" id="L80">        this.email = email;</span>
+<span class="nc" id="L81">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder cardholderName(String cardHolderName) {
+<span class="nc" id="L85">        this.cardholderName = cardHolderName;</span>
+<span class="nc" id="L86">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder addressLine1(String addressLine1) {
+<span class="nc" id="L90">        this.addressLine1 = addressLine1;</span>
+<span class="nc" id="L91">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder addressLine2(String addressLine2) {
+<span class="nc" id="L95">        this.addressLine2 = addressLine2;</span>
+<span class="nc" id="L96">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder city(String city) {
+<span class="nc" id="L100">        this.city = city;</span>
+<span class="nc" id="L101">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder postcode(String postcode) {
+<span class="nc" id="L105">        this.postcode = postcode;</span>
+<span class="nc" id="L106">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder country(String country) {
+<span class="nc" id="L110">        this.country = country;</span>
+<span class="nc" id="L111">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder source(Source source) {
+<span class="nc" id="L115">        this.source = source;</span>
+<span class="nc" id="L116">        return this;</span>
+    }
+    
+    public CreateCardPaymentRequestBuilder authorisationMode(AuthorisationMode authorisationMode) {
+<span class="nc" id="L120">        this.authorisationMode = authorisationMode;</span>
+<span class="nc" id="L121">        return this;</span>
+    }
+
+    public CreateCardPaymentRequestBuilder agreementId(String agreementId) {
+<span class="nc" id="L125">        this.agreementId = agreementId;</span>
+<span class="nc" id="L126">        return this;</span>
+    }
+
+    public PrefilledCardholderDetails getPrefilledCardholderDetails() {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (cardholderName != null) {</span>
+<span class="nc" id="L131">            this.prefilledCardholderDetails = new PrefilledCardholderDetails();</span>
+<span class="nc" id="L132">            this.prefilledCardholderDetails.setCardholderName(cardholderName);</span>
+        }
+<span class="nc bnc" id="L134" title="All 10 branches missed.">        if (addressLine1 != null || addressLine2 != null ||</span>
+                postcode != null || city != null || country != null) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">            if (this.prefilledCardholderDetails == null) {</span>
+<span class="nc" id="L137">                this.prefilledCardholderDetails = new PrefilledCardholderDetails();</span>
+            }
+<span class="nc" id="L139">            this.prefilledCardholderDetails.setAddress(addressLine1, addressLine2, postcode, city, country);</span>
+        }
+<span class="nc" id="L141">        return prefilledCardholderDetails;</span>
+    }
+
+    public ExternalMetadata getMetadata() {
+<span class="nc" id="L145">        return metadata;</span>
+    }
+
+    public Boolean isMoto() {
+<span class="nc" id="L149">        return moto;</span>
+    }
+
+    public int getAmount() {
+<span class="nc" id="L153">        return amount;</span>
+    }
+
+    public String getReturnUrl() {
+<span class="nc" id="L157">        return returnUrl;</span>
+    }
+
+    public String getReference() {
+<span class="nc" id="L161">        return reference;</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L165">        return description;</span>
+    }
+    
+    public SupportedLanguage getLanguage() {
+<span class="nc" id="L169">        return language;</span>
+    }
+
+    public Boolean getDelayedCapture() {
+<span class="nc" id="L173">        return delayedCapture;</span>
+    }
+    
+    public String getEmail() {
+<span class="nc" id="L177">        return email;</span>
+    }
+
+    public String getCardholderName() {
+<span class="nc" id="L181">        return cardholderName;</span>
+    }
+
+    public String getAddressLine1() {
+<span class="nc" id="L185">        return addressLine1;</span>
+    }
+
+    public String getAddressLine2() {
+<span class="nc" id="L189">        return addressLine2;</span>
+    }
+
+    public String getCity() {
+<span class="nc" id="L193">        return city;</span>
+    }
+
+    public String getPostcode() {
+<span class="nc" id="L197">        return postcode;</span>
+    }
+
+    public String getCountry() {
+<span class="nc" id="L201">        return country;</span>
+    }
+
+    public Internal getInternal() {
+<span class="nc bnc" id="L205" title="All 2 branches missed.">        if (source != null) {</span>
+<span class="nc" id="L206">            this.internal = new Internal();</span>
+<span class="nc" id="L207">            this.internal.setSource(source);</span>
+        }
+
+<span class="nc" id="L210">        return internal;</span>
+    }
+
+    public void setUpAgreement(String setUpAgreement) {
+<span class="nc" id="L214">        this.setUpAgreement = setUpAgreement;</span>
+    
+<span class="nc" id="L216">    }</span>
+
+    public AuthorisationMode getAuthorisationMode() {
+<span class="nc" id="L219">        return authorisationMode;</span>
+    }
+
+    public String getSetUpAgreement() {
+<span class="nc" id="L223">        return setUpAgreement;</span>
+    }
+
+    public String getAgreementId() {
+<span class="nc" id="L227">        return agreementId;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

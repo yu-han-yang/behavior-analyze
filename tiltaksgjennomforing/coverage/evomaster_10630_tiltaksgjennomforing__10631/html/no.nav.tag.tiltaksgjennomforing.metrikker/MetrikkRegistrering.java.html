@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetrikkRegistrering.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.metrikker</a> &gt; <span class="el_source">MetrikkRegistrering.java</span></div><h1>MetrikkRegistrering.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.metrikker;
+
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtalerolle;
+import no.nav.tag.tiltaksgjennomforing.avtale.Tiltakstype;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleDeltMedAvtalepart;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleEndret;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleInngått;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleLåstOpp;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleNyVeileder;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleOpprettetAvArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleOpprettetAvVeileder;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.AvtaleSlettemerket;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjenningerOpphevetAvArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjenningerOpphevetAvVeileder;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentAvArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentAvDeltaker;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentAvVeileder;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentPaVegneAvArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentPaVegneAvDeltaker;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.GodkjentPaVegneAvDeltakerOgArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.SignertAvMentor;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.TilskuddsperiodeAvslått;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.TilskuddsperiodeGodkjent;
+import no.nav.tag.tiltaksgjennomforing.varsel.events.SmsSendt;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Component
+<span class="fc" id="L33">@Slf4j</span>
+<span class="fc" id="L34">@RequiredArgsConstructor</span>
+public class MetrikkRegistrering {
+    private final MeterRegistry meterRegistry;
+
+    @EventListener
+    public void smsSendt(SmsSendt event) {
+<span class="nc" id="L40">        Counter.builder(&quot;tiltaksgjennomforing.smsvarsel.sendt&quot;).register(meterRegistry).increment();</span>
+<span class="nc" id="L41">    }</span>
+
+    @EventListener
+    public void avtaleOpprettet(AvtaleOpprettetAvVeileder event) {
+<span class="nc" id="L45">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L46">        log.info(&quot;Avtale opprettet av veileder, avtaleId={} ident={}, tiltakstype={}&quot;, event.getAvtale().getId(), event.getUtfortAv(), tiltakstype);</span>
+<span class="nc" id="L47">        counter(&quot;avtale.opprettet&quot;, Avtalerolle.VEILEDER, tiltakstype).increment();</span>
+<span class="nc" id="L48">    }</span>
+
+    @EventListener
+    public void avtaleOpprettetAvArbeidsgiver(AvtaleOpprettetAvArbeidsgiver event) {
+<span class="nc" id="L52">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L53">        log.info(&quot;Avtale opprettet av arbeidsgiver, avtaleId={}, tiltakstype={}&quot;, event.getAvtale().getId(), tiltakstype);</span>
+<span class="nc" id="L54">        counter(&quot;avtale.opprettet&quot;, Avtalerolle.ARBEIDSGIVER, tiltakstype).increment();</span>
+<span class="nc" id="L55">    }</span>
+
+    @EventListener
+    public void avtaleEndret(AvtaleEndret event) {
+<span class="nc" id="L59">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L60">        log.info(&quot;Avtale endret, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), event.getUtfortAvRolle(), tiltakstype);</span>
+<span class="nc" id="L61">        counter(&quot;avtale.endret&quot;, event.getUtfortAvRolle(), tiltakstype).increment();</span>
+<span class="nc" id="L62">    }</span>
+
+    @EventListener
+    public void godkjenningerOpphevet(GodkjenningerOpphevetAvVeileder event) {
+<span class="nc" id="L66">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L67">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L68">        log.info(&quot;Avtalens godkjenninger opphevet, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L69">        counter(&quot;avtale.godkjenning.opphevet&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L70">    }</span>
+
+    @EventListener
+    public void godkjenningerOpphevet(GodkjenningerOpphevetAvArbeidsgiver event) {
+<span class="nc" id="L74">        Avtalerolle rolle = Avtalerolle.ARBEIDSGIVER;</span>
+<span class="nc" id="L75">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L76">        log.info(&quot;Avtalens godkjenninger opphevet, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L77">        counter(&quot;avtale.godkjenning.opphevet&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L78">    }</span>
+
+    @EventListener
+    public void godkjentAvDeltaker(GodkjentAvDeltaker event) {
+<span class="nc" id="L82">        Avtalerolle rolle = Avtalerolle.DELTAKER;</span>
+<span class="nc" id="L83">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L84">        log.info(&quot;Avtale godkjent, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L85">        counter(&quot;avtale.godkjenning.godkjent&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L86">    }</span>
+
+    @EventListener
+    public void godkjentAvMentor(SignertAvMentor event) {
+<span class="nc" id="L90">        Avtalerolle rolle = Avtalerolle.MENTOR;</span>
+<span class="nc" id="L91">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L92">        log.info(&quot;Mentor har signert taushetserklæring, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L93">        counter(&quot;avtale.godkjenning.godkjent&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L94">    }</span>
+
+    @EventListener
+    public void godkjentAvArbeidsgiver(GodkjentAvArbeidsgiver event) {
+<span class="nc" id="L98">        Avtalerolle rolle = Avtalerolle.ARBEIDSGIVER;</span>
+<span class="nc" id="L99">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L100">        log.info(&quot;Avtale godkjent, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L101">        counter(&quot;avtale.godkjenning.godkjent&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L102">    }</span>
+
+    @EventListener
+    public void godkjentAvVeileder(GodkjentAvVeileder event) {
+<span class="nc" id="L106">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L107">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L108">        log.info(&quot;Avtale godkjent, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L109">        counter(&quot;avtale.godkjenning.godkjent&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L110">    }</span>
+
+    @EventListener
+    public void avtaleInngått(AvtaleInngått event) {
+<span class="nc" id="L114">        Avtalerolle rolle = event.getUtførtAvRolle();</span>
+<span class="nc" id="L115">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L116">        log.info(&quot;Avtale inngått, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L117">        counter(&quot;avtale.godkjenning.inngaatt&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L118">    }</span>
+
+    @EventListener
+    public void tilskuddsperiodeGodkjent(TilskuddsperiodeGodkjent event) {
+<span class="nc" id="L122">        Avtalerolle rolle = Avtalerolle.BESLUTTER;</span>
+<span class="nc" id="L123">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L124">        log.info(&quot;Tilskuddsperiode godkjent, avtaleId={}, tilskuddsperiodeId={}, løpenummer={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), event.getTilskuddsperiode().getId(), event.getTilskuddsperiode().getLøpenummer(), rolle, tiltakstype);</span>
+<span class="nc" id="L125">        counter(&quot;avtale.tilskuddsperiode.godkjent&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L126">    }</span>
+
+    @EventListener
+    public void tilskuddsperiodeAvslått(TilskuddsperiodeAvslått event) {
+<span class="nc" id="L130">        Avtalerolle rolle = Avtalerolle.BESLUTTER;</span>
+<span class="nc" id="L131">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L132">        log.info(&quot;Tilskuddsperiode avslått, avtaleId={}, tilskuddsperiodeId={}, løpenummer={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), event.getTilskuddsperiode().getId(), event.getTilskuddsperiode().getLøpenummer(), rolle, tiltakstype);</span>
+<span class="nc" id="L133">        counter(&quot;avtale.tilskuddsperiode.avslaatt&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L134">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAv(GodkjentPaVegneAvDeltaker event) {
+<span class="nc" id="L138">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L139">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L140">        log.info(&quot;Avtale godkjent på vegne av deltaker, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L141">        counter(&quot;avtale.godkjenning.godkjentPaVegneAv&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L142">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvArbeidsgiver(GodkjentPaVegneAvArbeidsgiver event) {
+<span class="nc" id="L146">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L147">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L148">        log.info(&quot;Avtale godkjent på vegne av arbeidsgiver, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L149">        counter(&quot;avtale.godkjenning.godkjentPaVegneAvArbeidsgiver&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L150">    }</span>
+
+    @EventListener
+    public void godkjentPaVegneAvDeltakerOgArbeidsgiver(GodkjentPaVegneAvDeltakerOgArbeidsgiver event) {
+<span class="nc" id="L154">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L155">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L156">        log.info(&quot;Avtale godkjent på vegne av deltaker og arbeidsgiver, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L157">        counter(&quot;avtale.godkjenning.godkjentPaVegneAvDeltakerOgArbeidsgiver&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L158">    }</span>
+
+    @EventListener
+    public void avtaleLåstOpp(AvtaleLåstOpp event) {
+<span class="nc" id="L162">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L163">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L164">        log.info(&quot;Avtale låst opp, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L165">        counter(&quot;avtale.laastOpp&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L166">    }</span>
+
+    @EventListener
+    public void avtaleDeltMedAvtalepart(AvtaleDeltMedAvtalepart event) {
+<span class="nc" id="L170">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L171">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc" id="L172">        log.info(&quot;Avtale delt med {}, avtaleId={}, avtalepart={}, tiltakstype={}&quot;, event.getAvtalepart(), event.getAvtale().getId(), rolle, tiltakstype);</span>
+<span class="nc" id="L173">        counter(&quot;avtale.deltMedAvtalepart&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L174">    }</span>
+
+    @EventListener
+    public void avtaleNyVeileder(AvtaleNyVeileder event) {
+<span class="nc" id="L178">        Avtalerolle rolle = Avtalerolle.VEILEDER;</span>
+<span class="nc" id="L179">        Tiltakstype tiltakstype = event.getAvtale().getTiltakstype();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (event.getTidligereVeileder() == null) {</span>
+<span class="nc" id="L181">            log.info(&quot;Avtale tildelt veileder: avtaleId={}, veileder={}&quot;, event.getAvtale().getId(), event.getAvtale().getVeilederNavIdent().asString());</span>
+        } else {
+<span class="nc" id="L183">            log.info(&quot;Avtale byttet veileder: avtaleId={}, tidligere veileder={}, ny veileder={}&quot;, event.getAvtale().getId(), event.getTidligereVeileder().asString(), event.getAvtale().getVeilederNavIdent().asString());</span>
+        }
+<span class="nc" id="L185">        counter(&quot;avtale.endretVEileder&quot;, rolle, tiltakstype).increment();</span>
+<span class="nc" id="L186">    }</span>
+    @EventListener
+    public void avtaleSlettemerket(AvtaleSlettemerket event) {
+<span class="nc" id="L189">        log.info(&quot;Avtale slettemerket, utfortAv={}, avtaleId={}&quot;, event.getUtfortAv().asString(), event.getAvtale().getId());</span>
+<span class="nc" id="L190">    }</span>
+
+    private Counter counter(String navn, Avtalerolle avtalerolle, Tiltakstype tiltakstype) {
+<span class="nc" id="L193">        var builder = Counter.builder(&quot;tiltaksgjennomforing.&quot; + navn)</span>
+<span class="nc" id="L194">                .tag(&quot;tiltak&quot;, tiltakstype.name())</span>
+<span class="nc" id="L195">                .tag(&quot;avtalepart&quot;, avtalerolle.name());</span>
+<span class="nc" id="L196">        return builder.register(meterRegistry);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

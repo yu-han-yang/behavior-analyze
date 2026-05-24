@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DisputeForSearchResult.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.search.dispute</a> &gt; <span class="el_source">DisputeForSearchResult.java</span></div><h1>DisputeForSearchResult.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.search.dispute;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import uk.gov.pay.api.model.ledger.DisputeSettlementSummary;
+import uk.gov.pay.api.model.ledger.DisputeTransactionFromLedger;
+import uk.gov.pay.api.model.links.DisputeLinksForSearch;
+
+import java.net.URI;
+
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+import static uk.gov.pay.api.model.CardPayment.LINKS_JSON_ATTRIBUTE;
+
+@Schema(name = &quot;DisputeDetailForSearch&quot;)
+public class DisputeForSearchResult {
+    private Long amount;
+    @JsonProperty(&quot;created_date&quot;)
+    private String createdDate;
+    @JsonProperty(&quot;dispute_id&quot;)
+    private String disputeId;
+    @JsonProperty(&quot;evidence_due_date&quot;)
+    private String evidenceDueDate;
+    private Long fee;
+    @JsonProperty(&quot;net_amount&quot;)
+    private Long netAmount;
+    @JsonProperty(&quot;payment_id&quot;)
+    private String paymentId;
+    private String reason;
+    @JsonProperty(&quot;settlement_summary&quot;)
+    private DisputeSettlementSummary settlementSummary;
+    private String status;
+<span class="nc" id="L32">    @JsonProperty(LINKS_JSON_ATTRIBUTE)</span>
+    private DisputeLinksForSearch links = new DisputeLinksForSearch();
+
+    public DisputeForSearchResult(Long amount, String createdDate, String disputeId, String evidenceDueDate,
+                                  Long fee, Long netAmount, String paymentId, String reason,
+<span class="nc" id="L37">                                  DisputeSettlementSummary settlementSummary, String status, URI paymentURI) {</span>
+<span class="nc" id="L38">        this.amount = amount;</span>
+<span class="nc" id="L39">        this.createdDate = createdDate;</span>
+<span class="nc" id="L40">        this.disputeId = disputeId;</span>
+<span class="nc" id="L41">        this.evidenceDueDate = evidenceDueDate;</span>
+<span class="nc" id="L42">        this.fee = fee;</span>
+<span class="nc" id="L43">        this.netAmount = netAmount;</span>
+<span class="nc" id="L44">        this.paymentId = paymentId;</span>
+<span class="nc" id="L45">        this.reason = reason;</span>
+<span class="nc" id="L46">        this.settlementSummary = settlementSummary;</span>
+<span class="nc" id="L47">        this.status = status;</span>
+<span class="nc" id="L48">        this.links.addPayment(paymentURI.toString());</span>
+<span class="nc" id="L49">    }</span>
+
+    public static DisputeForSearchResult valueOf(DisputeTransactionFromLedger fromLedger, URI paymentUri) {
+<span class="nc" id="L52">        return new DisputeForSearchResult(fromLedger.getAmount(), fromLedger.getCreatedDate(), fromLedger.getTransactionId(),</span>
+<span class="nc" id="L53">                fromLedger.getEvidenceDueDate(), fromLedger.getFee(), fromLedger.getNetAmount(), fromLedger.getParentTransactionId(),</span>
+<span class="nc" id="L54">                fromLedger.getReason(), fromLedger.getSettlementSummary(), fromLedger.getState().getStatus(),</span>
+                paymentUri);
+    }
+
+    @Schema(example = &quot;1200&quot;, description = &quot;The disputed amount in pence.&quot;, accessMode = READ_ONLY)
+    public Long getAmount() {
+<span class="nc" id="L60">        return amount;</span>
+    }
+
+    @Schema(example = &quot;2022-07-28T16:43:00.000Z&quot;, description = &quot;The date and time the user's bank told GOV.UK Pay about this dispute.&quot;, accessMode = READ_ONLY)
+    public String getCreatedDate() {
+<span class="nc" id="L65">        return createdDate;</span>
+    }
+
+    @Schema(example = &quot;hu20sqlact5260q2nanm0q8u93&quot;, description = &quot;The unique ID GOV.UK Pay automatically associated with this dispute when the paying user disputed the payment.&quot;, accessMode = READ_ONLY)
+    public String getDisputeId() {
+<span class="nc" id="L70">        return disputeId;</span>
+    }
+
+    @Schema(example = &quot;2022-07-28T16:43:00.000Z&quot;, description = &quot;The deadline for submitting your supporting evidence. This value uses Coordinated Universal Time (UTC) and ISO 8601 format&quot;, accessMode = READ_ONLY)
+    public String getEvidenceDueDate() {
+<span class="nc" id="L75">        return evidenceDueDate;</span>
+    }
+
+    @Schema(example = &quot;1200&quot;, description = &quot;The payment service provider’s dispute fee, in pence.&quot;, accessMode = READ_ONLY)
+    public Long getFee() {
+<span class="nc" id="L80">        return fee;</span>
+    }
+
+    @Schema(example = &quot;-2400&quot;, description = &quot;The amount, in pence, your payment service provider will take for a lost dispute. 'net_amount' is deducted from your payout after you lose the dispute. For example, a 'net_amount' of '-1500' means your PSP will take £15.00 from your next payout into your bank account. 'net_amount' is always a negative value. 'net_amount' only appears if you lose the dispute.&quot;, accessMode = READ_ONLY)
+    public Long getNetAmount() {
+<span class="nc" id="L85">        return netAmount;</span>
+    }
+
+    @Schema(example = &quot;hu20sqlact5260q2nanm0q8u93&quot;, description = &quot;The unique ID GOV.UK Pay automatically associated with this payment when you created it.&quot;, accessMode = READ_ONLY)
+    public String getPaymentId() {
+<span class="nc" id="L90">        return paymentId;</span>
+    }
+
+    @Schema(example = &quot;fraudulent&quot;, description = &quot;The reason the paying user gave for disputing this payment. Possible values are: 'credit_not_processed', 'duplicate', 'fraudulent', 'general', 'product_not_received', 'product_unacceptable', 'unrecognised', 'subscription_cancelled', &gt;'other'&quot;, accessMode = READ_ONLY)
+    public String getReason() {
+<span class="nc" id="L95">        return reason;</span>
+    }
+
+    public DisputeSettlementSummary getSettlementSummary() {
+<span class="nc" id="L99">        return settlementSummary;</span>
+    }
+
+    @Schema(example = &quot;under_review&quot;, description = &quot;The current status of the dispute. Possible values are: 'needs_response', 'won', 'lost', 'under_review'&quot;, accessMode = READ_ONLY)
+    public String getStatus() {
+<span class="nc" id="L104">        return status;</span>
+    }
+
+    @Schema(description = &quot;Contains an API method and endpoint to get information about this payment. A 'GET' request ('method') to this endpoint ('href') returns information about this payment.&quot;)
+    public DisputeLinksForSearch getLinks() {
+<span class="nc" id="L109">        return links;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

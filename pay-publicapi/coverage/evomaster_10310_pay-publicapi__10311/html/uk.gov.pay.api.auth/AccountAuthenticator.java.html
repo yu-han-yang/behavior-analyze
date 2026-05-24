@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AccountAuthenticator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.auth</a> &gt; <span class="el_source">AccountAuthenticator.java</span></div><h1>AccountAuthenticator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.auth;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import io.dropwizard.auth.Authenticator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.app.config.PublicApiConfig;
+import uk.gov.pay.api.model.publicauth.AuthResponse;
+import uk.gov.service.payments.commons.model.ErrorIdentifier;
+
+import javax.inject.Inject;
+import javax.ws.rs.ServiceUnavailableException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.Optional;
+
+import static java.lang.String.format;
+import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION;
+import static javax.ws.rs.core.Response.Status.OK;
+import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+public class AccountAuthenticator implements Authenticator&lt;String, Account&gt; {
+<span class="fc" id="L25">    private static Logger logger = LoggerFactory.getLogger(AccountAuthenticator.class);</span>
+
+    private final Client client;
+    private final String publicAuthUrl;
+
+    @Inject
+<span class="fc" id="L31">    public AccountAuthenticator(Client client, PublicApiConfig configuration) {</span>
+<span class="fc" id="L32">        this.client = client;</span>
+<span class="fc" id="L33">        this.publicAuthUrl = configuration.getPublicAuthUrl();</span>
+<span class="fc" id="L34">    }</span>
+
+    @Override
+    public Optional&lt;Account&gt; authenticate(String bearerToken) {
+
+<span class="fc" id="L39">        Response response = client.target(publicAuthUrl).request()</span>
+<span class="fc" id="L40">                .header(AUTHORIZATION, &quot;Bearer &quot; + bearerToken)</span>
+<span class="fc" id="L41">                .accept(MediaType.APPLICATION_JSON)</span>
+<span class="nc" id="L42">                .get();</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (response.getStatus() == OK.getStatusCode()) {</span>
+<span class="nc" id="L45">            AuthResponse authResponse = response.readEntity(AuthResponse.class);</span>
+<span class="nc" id="L46">            logger.info(format(&quot;Successfully authenticated using API key with token_link %s&quot;, authResponse.getTokenLink()),</span>
+<span class="nc" id="L47">                    kv(&quot;token_link&quot;, authResponse.getTokenLink()));</span>
+<span class="nc" id="L48">            return Optional.of(new Account(authResponse.getAccountId(), authResponse.getTokenType(), authResponse.getTokenLink()));</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        } else if (response.getStatus() == UNAUTHORIZED.getStatusCode()) {</span>
+<span class="nc" id="L50">            JsonNode unauthorisedResponse = response.readEntity(JsonNode.class);</span>
+<span class="nc" id="L51">            ErrorIdentifier errorIdentifier = ErrorIdentifier.valueOf(unauthorisedResponse.get(&quot;error_identifier&quot;).asText());</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (errorIdentifier == ErrorIdentifier.AUTH_TOKEN_REVOKED) {</span>
+<span class="nc" id="L53">                String tokenLink = unauthorisedResponse.get(&quot;token_link&quot;).asText();</span>
+<span class="nc" id="L54">                logger.warn(format(&quot;Attempt to authenticate using revoked API key with token_link %s&quot;, tokenLink), kv(&quot;token_link&quot;, tokenLink));</span>
+<span class="nc" id="L55">            } else {</span>
+<span class="nc" id="L56">                logger.warn(&quot;Attempt to authenticate using invalid API key with valid checksum&quot;);</span>
+            }
+<span class="nc" id="L58">            response.close();</span>
+<span class="nc" id="L59">            return Optional.empty();</span>
+        } else {
+<span class="nc" id="L61">            response.close();</span>
+<span class="nc" id="L62">            logger.warn(&quot;Unexpected status code &quot; + response.getStatus() + &quot; from auth.&quot;);</span>
+<span class="nc" id="L63">            throw new ServiceUnavailableException();</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

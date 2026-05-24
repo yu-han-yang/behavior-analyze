@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Link.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.links</a> &gt; <span class="el_source">Link.java</span></div><h1>Link.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.links;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.Objects;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include;
+import static io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY;
+
+@Schema(name = &quot;Link&quot;, description = &quot;A link related to a payment&quot;)
+@JsonInclude(Include.NON_NULL)
+public class Link {
+
+    @JsonProperty(value = &quot;href&quot;)
+    @Schema(example = &quot;https://an.example.link/from/payment/platform&quot;, 
+            description = &quot;A URL that lets you perform additional actions to this payment &quot; +
+                    &quot;when combined with the associated `method`.&quot;,
+            accessMode = READ_ONLY)
+    private String href;
+    @JsonProperty(value = &quot;method&quot;)
+    @Schema(example = &quot;GET&quot;, 
+            description = &quot;An API method that lets you perform additional actions to this payment&quot; +
+                    &quot;when combined with the associated `href`.&quot;,
+            accessMode = READ_ONLY)
+    private String method;
+
+<span class="nc" id="L29">    public Link(String href, String method) {</span>
+<span class="nc" id="L30">        this.href = href;</span>
+<span class="nc" id="L31">        this.method = method;</span>
+<span class="nc" id="L32">    }</span>
+
+<span class="nc" id="L34">    public Link(String href) {</span>
+<span class="nc" id="L35">        this.href = href;</span>
+<span class="nc" id="L36">    }</span>
+
+<span class="nc" id="L38">    public Link() {}</span>
+
+    public String getHref() {
+<span class="nc" id="L41">        return href;</span>
+    }
+
+    public String getMethod() {
+<span class="nc" id="L45">        return method;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L50">        return &quot;Link{&quot; +</span>
+                &quot;href='&quot; + href + '\'' +
+                &quot;, method='&quot; + method + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L60">        Link link = (Link) o;</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        return Objects.equals(href, link.href) &amp;&amp;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                Objects.equals(method, link.method);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L67">        return Objects.hash(href, method);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

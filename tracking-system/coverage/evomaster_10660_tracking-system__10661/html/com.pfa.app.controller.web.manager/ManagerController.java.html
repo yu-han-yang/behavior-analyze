@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ManagerController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.controller.web.manager</a> &gt; <span class="el_source">ManagerController.java</span></div><h1>ManagerController.java</h1><pre class="source lang-java linenums">package com.pfa.app.controller.web.manager;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.pfa.app.constant.StatusEnum;
+import com.pfa.app.model.dto.AssignEmployeesDto;
+import com.pfa.app.model.dto.EmployeeAssignedProjectDto;
+import com.pfa.app.model.dto.ManagerProjectData;
+import com.pfa.app.model.dto.ProjectCommit;
+import com.pfa.app.model.dto.ProjectDTO;
+import com.pfa.app.model.dto.SearchProjectsDto;
+import com.pfa.app.model.entity.Assignment;
+import com.pfa.app.model.entity.Credential;
+import com.pfa.app.model.entity.Employee;
+import com.pfa.app.model.entity.Project;
+import com.pfa.app.service.AssignmentService;
+import com.pfa.app.service.CredentialService;
+import com.pfa.app.service.EmployeeService;
+import com.pfa.app.service.ProjectService;
+import com.pfa.app.util.email.EmailUtil;
+import com.pfa.app.util.sms.Sms;
+import com.pfa.app.util.sms.SmsUtil;
+
+@Controller
+@RequestMapping(value = {&quot;/managers&quot;})
+public class ManagerController {
+	
+	private final EmployeeService employeeService;
+	private final CredentialService credentialService;
+	private final AssignmentService assignmentService;
+	private final ProjectService projectService;
+	private final EmailUtil emailUtil;
+	private final SmsUtil smsUtil;
+<span class="fc" id="L52">	private static final Logger logger = LoggerFactory.getLogger(ManagerController.class);</span>
+	
+	static {
+<span class="fc" id="L55">		logger.info(&quot;************ entering &quot; + ManagerController.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L56">	}</span>
+	
+	/**
+	 * Inject dependencies
+	 * @param employeeService
+	 * @param credentialService
+	 * @param assignmentService
+	 * @param projectService
+	 */
+	@Autowired
+<span class="fc" id="L66">	public ManagerController(final EmployeeService employeeService, final CredentialService credentialService, final AssignmentService assignmentService, final ProjectService projectService, final EmailUtil emailUtil, final SmsUtil smsUtil) {</span>
+<span class="fc" id="L67">		this.employeeService = employeeService;</span>
+<span class="fc" id="L68">		this.credentialService = credentialService;</span>
+<span class="fc" id="L69">		this.assignmentService = assignmentService;</span>
+<span class="fc" id="L70">		this.projectService = projectService;</span>
+<span class="fc" id="L71">		this.emailUtil = emailUtil;</span>
+<span class="fc" id="L72">		this.smsUtil = smsUtil;</span>
+<span class="fc" id="L73">	}</span>
+	
+	/**
+	 * display manager-index view
+	 * @param authentication
+	 * @param model
+	 * @return manager-index view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;&quot;, &quot;/&quot;, &quot;/manager-index&quot;})
+	public String displayManagerIndex(final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L84">		final Credential credential = this.credentialService.findByUsername(authentication.getName());</span>
+<span class="nc" id="L85">		final List&lt;ManagerProjectData&gt; managerProjectDatas = this.projectService.findByEmployeeId(credential.getEmployee().getEmployeeId());</span>
+		
+<span class="nc" id="L87">		model.addAttribute(&quot;fname&quot;, credential.getEmployee().getFirstName().toUpperCase().charAt(0) + credential.getEmployee().getFirstName().toLowerCase().substring(1));</span>
+<span class="nc" id="L88">		model.addAttribute(&quot;lname&quot;, credential.getEmployee().getLastName().toUpperCase().charAt(0) + credential.getEmployee().getLastName().toLowerCase().substring(1));</span>
+<span class="nc" id="L89">		model.addAttribute(&quot;managerProjectDatas&quot;, managerProjectDatas);</span>
+		
+<span class="nc" id="L91">		return &quot;managers/manager-index&quot;;</span>
+	}
+	
+	/**
+	 * display manager-info view
+	 * @param authentication
+	 * @param model
+	 * @return manager-info view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-info&quot;})
+	public String displayManagerInfo(final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L103">		final Employee manager = this.employeeService.findById(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId());</span>
+<span class="nc" id="L104">		model.addAttribute(&quot;m&quot;, manager);</span>
+		
+<span class="nc" id="L106">		return &quot;managers/manager-info&quot;;</span>
+	}
+	
+	/**
+	 * display manager-team view
+	 * @param authentication
+	 * @param model
+	 * @return manager-team view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-team&quot;})
+	public String displayManagerTeam(final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L118">		final Credential credential = this.credentialService.findByUsername(authentication.getName());</span>
+<span class="nc" id="L119">		final List&lt;Employee&gt; team = this.employeeService.findByDepartmentId(credential.getEmployee().getDepartment().getDepartmentId());</span>
+		
+<span class="nc" id="L121">		model.addAttribute(&quot;team&quot;, team);</span>
+		
+<span class="nc" id="L123">		return &quot;managers/manager-team&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/manager-assigned-projects&quot;})
+	public String displayManagerAssignedProjects(@RequestParam(&quot;employeeId&quot;) final String employeeId, final Model model) {
+		
+		
+		
+<span class="nc" id="L131">		return &quot;managers/manager-assigned-projects&quot;;</span>
+	}
+	
+	/**
+	 * display manager-add-project view
+	 * @param authentication
+	 * @param model
+	 * @return manager-add-project view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-add-project&quot;})
+	public String displayManagerAddProject(final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L143">		final List&lt;Employee&gt; managerSubEmployees = this.employeeService.findByManagerId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId());</span>
+		
+<span class="nc" id="L145">		model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L146">		model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L147">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L148">		model.addAttribute(&quot;project&quot;, new Project());</span>
+		
+<span class="nc" id="L150">		return &quot;managers/manager-add-project&quot;;</span>
+	}
+	
+	/**
+	 * handle manager-add-project view:
+	 * by adding new project with assigning at least one employee 
+	 * @param projectDTO
+	 * @param error
+	 * @param authentication
+	 * @param model
+	 * @return manager-add-project view (using default view resolver)
+	 */
+	@PostMapping(value = {&quot;/manager-add-project&quot;})
+	public String handleManagerAddProject(@ModelAttribute(&quot;project&quot;) @Valid final ProjectDTO projectDTO, final BindingResult error, final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L165">		final List&lt;Employee&gt; managerSubEmployees = this.employeeService.findByManagerId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId());</span>
+		
+		// to check of binding variables
+<span class="nc bnc" id="L168" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L169">			logger.error(&quot;----------ERROR Binding object----------&quot;);</span>
+<span class="nc" id="L170">			System.err.println(error);</span>
+<span class="nc" id="L171">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L172">			model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L173">			model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L174">			model.addAttribute(&quot;msg&quot;, &quot;Something went wrong !! &quot;);</span>
+<span class="nc" id="L175">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L176">			return &quot;managers/manager-add-project&quot;;</span>
+		}
+		
+		// to check the selection of one employee at least
+<span class="nc bnc" id="L180" title="All 2 branches missed.">		if (projectDTO.getAssignedEmployees() == null) {</span>
+<span class="nc" id="L181">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L182">			model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L183">			model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L184">			model.addAttribute(&quot;msg&quot;, &quot;Please you have to assign one employee at least to create the project&quot;);</span>
+<span class="nc" id="L185">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L186">			return &quot;managers/manager-add-project&quot;; </span>
+		}
+		
+<span class="nc" id="L189">		final LocalDate startDate = LocalDate.parse(projectDTO.getStartDate());</span>
+<span class="nc" id="L190">		final LocalDate endDate = LocalDate.parse(projectDTO.getEndDate());</span>
+		
+		// to check if the end date is after the start date
+<span class="nc bnc" id="L193" title="All 2 branches missed.">		if (startDate.isAfter(endDate)) {</span>
+<span class="nc" id="L194">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L195">			model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L196">			model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L197">			model.addAttribute(&quot;msg&quot;, &quot;EndDate is before StartDate! please check again...&quot;);</span>
+<span class="nc" id="L198">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L199">			return &quot;managers/manager-add-project&quot;;</span>
+		}
+		
+		// successful output msg
+<span class="nc" id="L203">		final String msg = &quot;Username : &quot; + authentication.getName() + &quot; \n project [&quot; + projectDTO.getTitle() + &quot;] created successfully&quot;;</span>
+<span class="nc" id="L204">		final String msgUtil = &quot; : You've been assigned to a new project called =&gt; &quot;;</span>
+		
+		// persist a new project in DB
+<span class="nc" id="L207">		final Project project = this.projectService.save(projectDTO);</span>
+<span class="nc" id="L208">		logger.info(msg);</span>
+		
+		// print the list of the assigned employees' ids
+<span class="nc" id="L211">		System.err.println(projectDTO.getAssignedEmployees());</span>
+		
+		// assign checked employees to the already created project
+<span class="nc" id="L214">		final Assignment assignment = new Assignment();</span>
+<span class="nc" id="L215">		projectDTO.getAssignedEmployees().forEach((employeeId) -&gt; {</span>
+<span class="nc" id="L216">			assignment.setEmployeeId(Integer.parseInt(employeeId));</span>
+<span class="nc" id="L217">			assignment.setProjectId(project.getProjectId());</span>
+			// assignment.setCommitDate(LocalDateTime.now());
+<span class="nc" id="L219">			assignment.setCommitMgrDesc(&quot;init&quot;); // 'init' to tell this is the assignment</span>
+<span class="nc" id="L220">			final Employee employee = this.employeeService.findById(Integer.parseInt(employeeId));</span>
+<span class="nc" id="L221">			assignment.setEmployee(employee);</span>
+<span class="nc" id="L222">			assignment.setProject(project);</span>
+			
+<span class="nc" id="L224">			this.assignmentService.save(assignment);</span>
+<span class="nc" id="L225">			logger.info(&quot;employeeId : {} is assigned to this project with projectId : {}&quot;, employeeId, project.getProjectId());</span>
+			
+<span class="nc" id="L227">			this.emailUtil.sendEmail(employee.getEmail(), &quot;Project-Tracker-Sys&quot;, employee.getFirstName() + &quot; &quot; + employee.getLastName() + msgUtil + project.getTitle());</span>
+<span class="nc" id="L228">			logger.info(&quot;MAIL successfully sent to {}&quot;, employee.getEmail());</span>
+			
+<span class="nc" id="L230">			this.smsUtil.sendSms(new Sms(employee.getPhone(), employee.getFirstName() + &quot; &quot; + employee.getLastName() + msgUtil + project.getTitle()));</span>
+<span class="nc" id="L231">			logger.info(&quot;SMS successfully sent to {}&quot;, employee.getPhone());</span>
+<span class="nc" id="L232">		});</span>
+		
+<span class="nc" id="L234">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L235">		model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L236">		model.addAttribute(&quot;msg&quot;, msg);</span>
+<span class="nc" id="L237">		model.addAttribute(&quot;assignMsg&quot;, &quot;employees assigned successfully to this project&quot;);</span>
+<span class="nc" id="L238">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L240">		return &quot;managers/manager-add-project&quot;;</span>
+	}
+	
+	/**
+	 * display manager-show-commits view
+	 * @param projectId
+	 * @param model
+	 * @return manager-show-commits view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-show-commits&quot;})
+	public String displayManagerShowCommits(@RequestParam(&quot;projectId&quot;) final String projectId, final Model model) {
+		
+<span class="nc" id="L252">		final List&lt;ProjectCommit&gt; allProjectCommits = this.assignmentService.findByProjectId(Integer.parseInt(projectId));</span>
+<span class="nc" id="L253">		final Project project = this.projectService.findById(Integer.parseInt(projectId));</span>
+		
+<span class="nc" id="L255">		model.addAttribute(&quot;commits&quot;, allProjectCommits);</span>
+<span class="nc" id="L256">		model.addAttribute(&quot;project&quot;, project);</span>
+		
+<span class="nc" id="L258">		return &quot;managers/manager-show-commits&quot;;</span>
+	}
+	
+	@GetMapping(value = {&quot;/manager-search-commits&quot;})
+	public String displayManagerSearchCommits(final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L264">		final SearchProjectsDto searchProjectsDto = new SearchProjectsDto();</span>
+<span class="nc" id="L265">		searchProjectsDto.setDataProjects(this.projectService.findByEmployeeId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId()));</span>
+		
+<span class="nc" id="L267">		model.addAttribute(&quot;searchProjectsDto&quot;, searchProjectsDto);</span>
+		
+<span class="nc" id="L269">		return &quot;managers/manager-search-commits&quot;;</span>
+	}
+	
+	@PostMapping(value = {&quot;/manager-search-commits&quot;})
+	public String handleManagerSearchCommits(@ModelAttribute(&quot;searchProjectsDto&quot;) @Valid final SearchProjectsDto searchProjectsDto, final BindingResult error, final Authentication authentication, final Model model) {
+		
+<span class="nc bnc" id="L275" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L276">			searchProjectsDto.setDataProjects(this.projectService.findByEmployeeId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId()));</span>
+<span class="nc" id="L277">			model.addAttribute(&quot;searchProjectsDto&quot;, searchProjectsDto);</span>
+<span class="nc" id="L278">			model.addAttribute(&quot;msg&quot;, &quot;Problem happened here, please check again...&quot;);</span>
+<span class="nc" id="L279">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L280">			return &quot;managers/manager-search-commits&quot;;</span>
+		}
+		
+<span class="nc" id="L283">		final LocalDate commitDateFrom = LocalDate.parse(searchProjectsDto.getCommitDateFrom());</span>
+<span class="nc" id="L284">		final LocalDate commitDateTo = LocalDate.parse(searchProjectsDto.getCommitDateTo());</span>
+		
+<span class="nc bnc" id="L286" title="All 2 branches missed.">		if (commitDateFrom.isAfter(commitDateTo)) {</span>
+<span class="nc" id="L287">			searchProjectsDto.setDataProjects(this.projectService.findByEmployeeId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId()));</span>
+<span class="nc" id="L288">			model.addAttribute(&quot;searchProjectsDto&quot;, searchProjectsDto);</span>
+<span class="nc" id="L289">			model.addAttribute(&quot;msg&quot;, &quot;commitDateFrom must be before commitDateTo...&quot;);</span>
+<span class="nc" id="L290">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L291">			return &quot;managers/manager-search-commits&quot;;</span>
+		}
+		
+<span class="nc" id="L294">		System.err.println(searchProjectsDto);</span>
+		
+<span class="nc" id="L296">		final List&lt;ProjectCommit&gt; commits = this.assignmentService.findByProjectIdAndCommitDateFromAndCommitDateTo(searchProjectsDto);</span>
+		
+<span class="nc" id="L298">		model.addAttribute(&quot;project&quot;, this.projectService.findById(Integer.parseInt(searchProjectsDto.getProjectId())));</span>
+<span class="nc" id="L299">		model.addAttribute(&quot;commits&quot;, commits);</span>
+		
+<span class="nc" id="L301">		return &quot;managers/manager-show-commits&quot;;</span>
+	}
+	
+	/**
+	 * display manager-describe-commit view
+	 * a specific commit by its composite ids
+	 * @param employeeId
+	 * @param projectId
+	 * @param commitDate
+	 * @param authentication
+	 * @param model
+	 * @return manager-describe-commit view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-describe-commit&quot;})
+	public String displayManagerDescribeCommit(@RequestParam(&quot;employeeId&quot;) final String employeeId, @RequestParam(&quot;projectId&quot;) final String projectId, @RequestParam(&quot;commitDate&quot;) @DateTimeFormat(pattern = &quot;yyyy-MM-ddTHH:mm:ss&quot;) final String commitDate, final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L317">		final ProjectCommit projectCommit = this.assignmentService.findByEmployeeIdAndProjectIdAndCommitDate(Integer.parseInt(employeeId), Integer.parseInt(projectId), LocalDateTime.parse(commitDate));</span>
+<span class="nc" id="L318">		final Project project = this.projectService.findById(Integer.parseInt(projectId));</span>
+		
+<span class="nc" id="L320">		model.addAttribute(&quot;c&quot;, projectCommit);</span>
+<span class="nc" id="L321">		model.addAttribute(&quot;project&quot;, project);</span>
+		
+<span class="nc" id="L323">		return &quot;managers/manager-describe-commit&quot;;</span>
+	}
+	
+	/**
+	 * handle manager-describe-commit:
+	 * adding new comment by current manager to the existing commit created by employee
+	 * @param employeeId
+	 * @param projectId
+	 * @param commitDate
+	 * @param commitEmpDesc
+	 * @param commitMgrDesc
+	 * @param model
+	 * @return manager-describe-commit view (using default view resolver)
+	 */
+	@PostMapping(value = {&quot;/manager-describe-commit&quot;})
+	public String handleManagerDescribeCommit(@RequestParam(&quot;employeeId&quot;) final String employeeId, @RequestParam(&quot;projectId&quot;) final String projectId, @RequestParam(&quot;commitDate&quot;) final String commitDate, @RequestParam(&quot;commitEmpDesc&quot;) final String commitEmpDesc, @RequestParam(&quot;commitMgrDesc&quot;) final String commitMgrDesc, final Model model) {
+		
+<span class="nc bnc" id="L340" title="All 2 branches missed.">		if (commitMgrDesc.isBlank()) {</span>
+			
+<span class="nc" id="L342">			final ProjectCommit projectCommit = this.assignmentService.findByEmployeeIdAndProjectIdAndCommitDate(Integer.parseInt(employeeId), Integer.parseInt(projectId), LocalDateTime.parse(commitDate));</span>
+<span class="nc" id="L343">			final Project project = this.projectService.findById(Integer.parseInt(projectId));</span>
+			
+<span class="nc" id="L345">			model.addAttribute(&quot;c&quot;, projectCommit);</span>
+<span class="nc" id="L346">			model.addAttribute(&quot;project&quot;, project);</span>
+<span class="nc" id="L347">			model.addAttribute(&quot;msg&quot;, &quot;Fill up the Manager description field !!&quot;);</span>
+<span class="nc" id="L348">			model.addAttribute(&quot;msgColour&quot;, &quot;warning&quot;);</span>
+			
+<span class="nc" id="L350">			return &quot;managers/manager-describe-commit&quot;;</span>
+		}
+		
+<span class="nc" id="L353">		final Assignment assignment = new Assignment();</span>
+<span class="nc" id="L354">		assignment.setEmployeeId(Integer.parseInt(employeeId));</span>
+<span class="nc" id="L355">		assignment.setProjectId(Integer.parseInt(projectId));</span>
+<span class="nc" id="L356">		assignment.setCommitDate(LocalDateTime.parse(commitDate));</span>
+<span class="nc" id="L357">		assignment.setCommitEmpDesc(commitEmpDesc);</span>
+<span class="nc" id="L358">		assignment.setCommitMgrDesc(commitMgrDesc);</span>
+<span class="nc" id="L359">		assignment.setEmployee(this.employeeService.findById(Integer.parseInt(employeeId)));</span>
+<span class="nc" id="L360">		assignment.setProject(this.projectService.findById(Integer.parseInt(projectId)));</span>
+		
+<span class="nc" id="L362">		System.err.println(assignment);</span>
+		
+<span class="nc" id="L364">		this.assignmentService.update(assignment);</span>
+<span class="nc" id="L365">		logger.info(&quot;Manager Description has been added successfully to commit with employeeId : {} | projectId : {} | commitDate : {}&quot;, employeeId, projectId, commitDate);</span>
+		
+<span class="nc" id="L367">		final ProjectCommit projectCommit = this.assignmentService.findByEmployeeIdAndProjectIdAndCommitDate(Integer.parseInt(employeeId), Integer.parseInt(projectId), LocalDateTime.parse(commitDate));</span>
+<span class="nc" id="L368">		final Project project = this.projectService.findById(Integer.parseInt(projectId));</span>
+		
+<span class="nc" id="L370">		model.addAttribute(&quot;c&quot;, projectCommit);</span>
+<span class="nc" id="L371">		model.addAttribute(&quot;project&quot;, project);</span>
+<span class="nc" id="L372">		model.addAttribute(&quot;msg&quot;, &quot;Description added successfully&quot;);</span>
+<span class="nc" id="L373">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L375">		return &quot;managers/manager-describe-commit&quot;;</span>
+	}
+	
+	/**
+	 * display manager-assign view
+	 * get data and display them by a new instance of AssignEmployeesDto
+	 * @param projectId
+	 * @param authentication
+	 * @param model
+	 * @return manager-assign view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-assign&quot;})
+	public String displayManagerAssign(@RequestParam(&quot;projectId&quot;) final String projectId, final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L389">		final List&lt;EmployeeAssignedProjectDto&gt; managerSubEmployees = this.employeeService.findByManagerIdAndProjectId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId(), Integer.parseInt(projectId));</span>
+		
+<span class="nc" id="L391">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L392">		model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L393">		model.addAttribute(&quot;assignEmployeesDto&quot;, new AssignEmployeesDto(projectId, this.projectService.findById(Integer.parseInt(projectId)).getTitle(), null));</span>
+		
+<span class="nc" id="L395">		return &quot;managers/manager-assign&quot;;</span>
+	}
+	
+	/**
+	 * handle manager-assign view
+	 * get checked employees and assign them to the specified project
+	 * and persist every Assignment instance for each employee to DB 
+	 * @param assignEmployeesDto used to bind variables
+	 * @param error
+	 * @param authentication
+	 * @param model
+	 * @return manager-assign view (using default view resolver)
+	 */
+	@PostMapping(value = {&quot;/manager-assign&quot;})
+	public String handleManagerAssign(@ModelAttribute(&quot;assignEmployeesDto&quot;) final AssignEmployeesDto assignEmployeesDto, final BindingResult error, final Authentication authentication, final Model model) {
+		
+<span class="nc bnc" id="L411" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+			
+<span class="nc" id="L413">			final List&lt;EmployeeAssignedProjectDto&gt; managerSubEmployees = this.employeeService.findByManagerIdAndProjectId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId(), Integer.parseInt(assignEmployeesDto.getProjectId()));</span>
+			
+<span class="nc" id="L415">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L416">			model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L417">			model.addAttribute(&quot;project&quot;, this.projectService.findById(Integer.parseInt(assignEmployeesDto.getProjectId())));</span>
+<span class="nc" id="L418">			model.addAttribute(&quot;msg&quot;, &quot;Fill up the Manager description field !!&quot;);</span>
+<span class="nc" id="L419">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+			
+<span class="nc" id="L421">			return &quot;managers/manager-assign&quot;;</span>
+		}
+<span class="nc bnc" id="L423" title="All 2 branches missed.">		if (assignEmployeesDto.getAssignedEmployees() == null) {</span>
+<span class="nc" id="L424">			final List&lt;EmployeeAssignedProjectDto&gt; managerSubEmployees = this.employeeService.findByManagerIdAndProjectId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId(), Integer.parseInt(assignEmployeesDto.getProjectId()));</span>
+			
+<span class="nc" id="L426">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L427">			model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L428">			model.addAttribute(&quot;project&quot;, this.projectService.findById(Integer.parseInt(assignEmployeesDto.getProjectId())));</span>
+<span class="nc" id="L429">			model.addAttribute(&quot;msg&quot;, &quot;Assign employees...&quot;);</span>
+<span class="nc" id="L430">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+			
+<span class="nc" id="L432">			return &quot;managers/manager-assign&quot;;</span>
+		}
+		
+<span class="nc" id="L435">		System.err.println(assignEmployeesDto);</span>
+		// assignEmployeesDto.setTitle(this.projectService.findById(Integer.parseInt(assignEmployeesDto.getProjectId())).getTitle());
+		
+<span class="nc" id="L438">		final Assignment assignment = new Assignment();</span>
+<span class="nc" id="L439">		assignEmployeesDto.getAssignedEmployees().forEach((employeeId) -&gt; {</span>
+<span class="nc" id="L440">			assignment.setEmployeeId(Integer.parseInt(employeeId));</span>
+<span class="nc" id="L441">			assignment.setProjectId(Integer.parseInt(assignEmployeesDto.getProjectId()));</span>
+			// assignment.setCommitDate(LocalDateTime.now());
+<span class="nc" id="L443">			assignment.setCommitMgrDesc(&quot;init&quot;);</span>
+<span class="nc" id="L444">			assignment.setEmployee(this.employeeService.findById(Integer.parseInt(employeeId)));</span>
+<span class="nc" id="L445">			assignment.setProject(this.projectService.findById(Integer.parseInt(assignEmployeesDto.getProjectId())));</span>
+<span class="nc" id="L446">			System.err.println(assignment);</span>
+			
+<span class="nc" id="L448">			this.assignmentService.save(assignment);</span>
+<span class="nc" id="L449">			logger.info(&quot;employeeId : {} is assigned to this project with projectId : {}&quot;, employeeId, assignEmployeesDto.getProjectId());</span>
+<span class="nc" id="L450">		});</span>
+		
+<span class="nc" id="L452">		final List&lt;EmployeeAssignedProjectDto&gt; managerSubEmployees = this.employeeService.findByManagerIdAndProjectId(this.credentialService.findByUsername(authentication.getName()).getEmployee().getEmployeeId(), Integer.parseInt(assignEmployeesDto.getProjectId()));</span>
+		
+<span class="nc" id="L454">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L455">		model.addAttribute(&quot;managerSubEmployees&quot;, managerSubEmployees);</span>
+<span class="nc" id="L456">		model.addAttribute(&quot;assignEmployeesDto&quot;, assignEmployeesDto);</span>
+<span class="nc" id="L457">		model.addAttribute(&quot;msg&quot;, &quot;Employees assigned successfully&quot;);</span>
+<span class="nc" id="L458">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L460">		return &quot;managers/manager-assign&quot;;</span>
+	}
+	
+	/**
+	 * display manager-edit-project view
+	 * get the specified project by its projectId &amp; display data in view
+	 * @param projectId
+	 * @param authentication
+	 * @param model
+	 * @return manager-edit-project view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-edit-project&quot;})
+	public String displayManagerEditProject(@RequestParam(&quot;projectId&quot;) final String projectId, final Authentication authentication, final Model model) {
+		
+<span class="nc" id="L474">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L475">		model.addAttribute(&quot;projectId&quot;, projectId);</span>
+<span class="nc" id="L476">		model.addAttribute(&quot;project&quot;, this.projectService.findProjectDtoById(this.projectService.findById(Integer.parseInt(projectId))));</span>
+<span class="nc" id="L477">		model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+		
+<span class="nc" id="L479">		return &quot;managers/manager-edit-project&quot;;</span>
+	}
+	
+	/**
+	 * handle manager-edit-project view
+	 * bind all parameters &amp; update the specific commit by adding a new manager comment
+	 * @param projectId
+	 * @param projectDTO
+	 * @param error
+	 * @param authentication
+	 * @param model
+	 * @return manager-edit-project (using default view resolver)
+	 */
+	@PostMapping(value = {&quot;/manager-edit-project&quot;})
+	public String handleManagerEditProject(@RequestParam(&quot;projectId&quot;) final String projectId, @ModelAttribute(&quot;project&quot;) @Valid final ProjectDTO projectDTO, final BindingResult error, final Authentication authentication, final Model model) {
+		
+<span class="nc bnc" id="L495" title="All 2 branches missed.">		if (error.hasErrors()) {</span>
+<span class="nc" id="L496">			logger.error(&quot;----------ERROR Binding object----------&quot;);</span>
+<span class="nc" id="L497">			System.err.println(error);</span>
+<span class="nc" id="L498">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L499">			model.addAttribute(&quot;projectId&quot;, projectId);</span>
+<span class="nc" id="L500">			model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L501">			model.addAttribute(&quot;msg&quot;, &quot;Something went wrong !! &quot;);</span>
+<span class="nc" id="L502">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L503">			return &quot;managers/manager-edit-project&quot;;</span>
+		}
+		
+<span class="nc" id="L506">		final LocalDate startDate = LocalDate.parse(projectDTO.getStartDate());</span>
+<span class="nc" id="L507">		final LocalDate endDate = LocalDate.parse(projectDTO.getEndDate());</span>
+		
+<span class="nc bnc" id="L509" title="All 2 branches missed.">		if (startDate.isAfter(endDate)) {</span>
+<span class="nc" id="L510">			model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L511">			model.addAttribute(&quot;projectId&quot;, projectId);</span>
+<span class="nc" id="L512">			model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L513">			model.addAttribute(&quot;msg&quot;, &quot;EndDate is before StartDate! please check again...&quot;);</span>
+<span class="nc" id="L514">			model.addAttribute(&quot;msgColour&quot;, &quot;danger&quot;);</span>
+<span class="nc" id="L515">			return &quot;managers/manager-add-project&quot;;</span>
+		}
+		
+<span class="nc" id="L518">		final String msg = &quot;project &quot; + projectDTO.getTitle() + &quot; updated successfully&quot;;</span>
+		
+<span class="nc" id="L520">		this.projectService.update(Integer.parseInt(projectId), projectDTO);</span>
+<span class="nc" id="L521">		logger.info(msg);</span>
+		
+<span class="nc" id="L523">		model.addAttribute(&quot;username&quot;, authentication.getName());</span>
+<span class="nc" id="L524">		model.addAttribute(&quot;projectId&quot;, projectId);</span>
+<span class="nc" id="L525">		model.addAttribute(&quot;listStatus&quot;, StatusEnum.values());</span>
+<span class="nc" id="L526">		model.addAttribute(&quot;msg&quot;, msg);</span>
+<span class="nc" id="L527">		model.addAttribute(&quot;msgColour&quot;, &quot;success&quot;);</span>
+		
+<span class="nc" id="L529">		return &quot;managers/manager-edit-project&quot;;</span>
+	}
+	
+	/**
+	 * handle deletion of a specific project
+	 * Please NOTE that by deleting a project, you will delete all assignments related to this project
+	 * @param projectId
+	 * @param model
+	 * @return redirection to manager-index view (using default view resolver)
+	 */
+	@GetMapping(value = {&quot;/manager-delete-project&quot;})
+	public String handleManagerDeleteProject(@RequestParam(&quot;projectId&quot;) final String projectId, final Model model) {
+		
+<span class="nc" id="L542">		this.projectService.deleteById(Integer.parseInt(projectId));</span>
+<span class="nc" id="L543">		logger.warn(&quot;project with its projectId = {} is deleted with all its assignments&quot;, projectId);</span>
+		
+<span class="nc" id="L545">		return &quot;redirect:/managers/manager-index&quot;;</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

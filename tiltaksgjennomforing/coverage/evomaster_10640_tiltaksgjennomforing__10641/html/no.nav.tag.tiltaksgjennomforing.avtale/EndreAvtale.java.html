@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EndreAvtale.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">EndreAvtale.java</span></div><h1>EndreAvtale.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+<span class="nc bnc" id="L11" title="All 342 branches missed.">@Data</span>
+<span class="nc" id="L12">@NoArgsConstructor</span>
+<span class="nc" id="L13">@AllArgsConstructor</span>
+public class EndreAvtale {
+
+<span class="nc" id="L16">    private String deltakerFornavn;</span>
+<span class="nc" id="L17">    private String deltakerEtternavn;</span>
+<span class="nc" id="L18">    private String deltakerTlf;</span>
+<span class="nc" id="L19">    private String bedriftNavn;</span>
+<span class="nc" id="L20">    private String arbeidsgiverFornavn;</span>
+<span class="nc" id="L21">    private String arbeidsgiverEtternavn;</span>
+<span class="nc" id="L22">    private String arbeidsgiverTlf;</span>
+<span class="nc" id="L23">    private String veilederFornavn;</span>
+<span class="nc" id="L24">    private String veilederEtternavn;</span>
+<span class="nc" id="L25">    private String veilederTlf;</span>
+
+<span class="nc" id="L27">    private String oppfolging;</span>
+<span class="nc" id="L28">    private String tilrettelegging;</span>
+
+<span class="nc" id="L30">    private LocalDate startDato;</span>
+<span class="nc" id="L31">    private LocalDate sluttDato;</span>
+<span class="nc" id="L32">    private Integer stillingprosent;</span>
+<span class="nc" id="L33">    private String arbeidsoppgaver;</span>
+<span class="nc" id="L34">    private String stillingstittel;</span>
+<span class="nc" id="L35">    private Integer stillingStyrk08;</span>
+<span class="nc" id="L36">    private Integer stillingKonseptId;</span>
+<span class="nc" id="L37">    private Integer antallDagerPerUke;</span>
+
+<span class="nc" id="L39">    private String refusjonKontaktpersonFornavn;</span>
+<span class="nc" id="L40">    private String refusjonKontaktpersonEtternavn;</span>
+<span class="nc" id="L41">    private String refusjonKontaktpersonTlf;</span>
+<span class="nc" id="L42">    private Boolean ønskerVarslingOmRefusjon;</span>
+
+    // Arbeidstreningsfelter
+<span class="nc" id="L45">    private List&lt;Maal&gt; maal = new ArrayList&lt;&gt;();</span>
+
+    // Inkluderingstilskuddsfelter
+<span class="nc" id="L48">    private List&lt;Inkluderingstilskuddsutgift&gt; inkluderingstilskuddsutgift = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L49">    private String inkluderingstilskuddBegrunnelse;</span>
+
+    // Lønnstilskuddsfelter
+<span class="nc" id="L52">    private String arbeidsgiverKontonummer;</span>
+<span class="nc" id="L53">    private Integer lonnstilskuddProsent;</span>
+<span class="nc" id="L54">    private Integer manedslonn;</span>
+<span class="nc" id="L55">    private BigDecimal feriepengesats;</span>
+<span class="nc" id="L56">    private BigDecimal arbeidsgiveravgift;</span>
+<span class="nc" id="L57">    private Double otpSats;</span>
+<span class="nc" id="L58">    private Boolean harFamilietilknytning;</span>
+<span class="nc" id="L59">    private String familietilknytningForklaring;</span>
+<span class="nc" id="L60">    private Stillingstype stillingstype;</span>
+
+    // Mentorfelter
+<span class="nc" id="L63">    private String mentorFornavn;</span>
+<span class="nc" id="L64">    private String mentorEtternavn;</span>
+<span class="nc" id="L65">    private String mentorOppgaver;</span>
+<span class="nc" id="L66">    private Double mentorAntallTimer;</span>
+<span class="nc" id="L67">    private String mentorTlf;</span>
+<span class="nc" id="L68">    private Integer mentorTimelonn;</span>
+
+
+    public RefusjonKontaktperson getRefusjonKontaktperson(){
+<span class="nc bnc" id="L72" title="All 6 branches missed.">        if(refusjonKontaktpersonTlf == null &amp;&amp; refusjonKontaktpersonFornavn == null &amp;&amp; refusjonKontaktpersonEtternavn == null) {</span>
+<span class="nc" id="L73">            return null;</span>
+        }
+
+<span class="nc" id="L76">     return new RefusjonKontaktperson(refusjonKontaktpersonFornavn, refusjonKontaktpersonEtternavn, refusjonKontaktpersonTlf,</span>
+         ønskerVarslingOmRefusjon);
+    }
+
+    public void setRefusjonKontaktperson(RefusjonKontaktperson refusjonKontaktperson) {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if(refusjonKontaktperson == null) { return; }</span>
+<span class="nc" id="L82">        this.refusjonKontaktpersonFornavn = refusjonKontaktperson.getRefusjonKontaktpersonFornavn();</span>
+<span class="nc" id="L83">        this.refusjonKontaktpersonEtternavn = refusjonKontaktperson.getRefusjonKontaktpersonEtternavn();</span>
+<span class="nc" id="L84">        this.refusjonKontaktpersonTlf = refusjonKontaktperson.getRefusjonKontaktpersonTlf();</span>
+<span class="nc" id="L85">        this.ønskerVarslingOmRefusjon = refusjonKontaktperson.getØnskerVarslingOmRefusjon();</span>
+<span class="nc" id="L86">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

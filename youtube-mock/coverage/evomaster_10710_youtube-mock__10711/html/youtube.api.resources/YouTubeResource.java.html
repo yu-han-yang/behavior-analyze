@@ -1,0 +1,463 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>YouTubeResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.resources</a> &gt; <span class="el_source">YouTubeResource.java</span></div><h1>YouTubeResource.java</h1><pre class="source lang-java linenums">package youtube.api.resources;
+
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.jaxrs.annotation.JacksonFeatures;
+import org.springframework.stereotype.Component;
+import youtube.api.model.ErrorDescription;
+import youtube.api.model.ErrorResponse;
+import youtube.api.model.SearchListResponse;
+import youtube.api.model.SearchRequest;
+import youtube.api.repository.YouTubeRepository;
+import youtube.api.repository.YouTubeRepositoryImpl;
+import youtube.api.util.BadPaginationException;
+import youtube.api.util.Location;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.Response;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+@Component
+@Path(&quot;/search&quot;)
+public class YouTubeResource {
+<span class="fc" id="L27">    private static YouTubeResource instance = null;</span>
+<span class="fc" id="L28">    private static List&lt;String&gt; countryCodes = Arrays.asList(&quot;AF&quot;,&quot;AX&quot;,&quot;AL&quot;,&quot;DZ&quot;,&quot;AS&quot;,&quot;AD&quot;,&quot;AO&quot;,&quot;AI&quot;,&quot;AQ&quot;,&quot;AG&quot;,&quot;AR&quot;,&quot;AM&quot;,&quot;AW&quot;,&quot;AU&quot;,&quot;AT&quot;,&quot;AZ&quot;,&quot;BS&quot;,&quot;BH&quot;,&quot;BD&quot;,&quot;BB&quot;,&quot;BY&quot;,&quot;BE&quot;,&quot;BZ&quot;,&quot;BJ&quot;,&quot;BM&quot;,&quot;BT&quot;,&quot;BO&quot;,&quot;BQ&quot;,&quot;BA&quot;,&quot;BW&quot;,&quot;BV&quot;,&quot;BR&quot;,&quot;IO&quot;,&quot;BN&quot;,&quot;BG&quot;,&quot;BF&quot;,&quot;BI&quot;,&quot;KH&quot;,&quot;CM&quot;,&quot;CA&quot;,&quot;CV&quot;,&quot;KY&quot;,&quot;CF&quot;,&quot;TD&quot;,&quot;CL&quot;,&quot;CN&quot;,&quot;CX&quot;,&quot;CC&quot;,&quot;CO&quot;,&quot;KM&quot;,&quot;CG&quot;,&quot;CD&quot;,&quot;CK&quot;,&quot;CR&quot;,&quot;CI&quot;,&quot;HR&quot;,&quot;CU&quot;,&quot;CW&quot;,&quot;CY&quot;,&quot;CZ&quot;,&quot;DK&quot;,&quot;DJ&quot;,&quot;DM&quot;,&quot;DO&quot;,&quot;EC&quot;,&quot;EG&quot;,&quot;SV&quot;,&quot;GQ&quot;,&quot;ER&quot;,&quot;EE&quot;,&quot;ET&quot;,&quot;FK&quot;,&quot;FO&quot;,&quot;FJ&quot;,&quot;FI&quot;,&quot;FR&quot;,&quot;GF&quot;,&quot;PF&quot;,&quot;TF&quot;,&quot;GA&quot;,&quot;GM&quot;,&quot;GE&quot;,&quot;DE&quot;,&quot;GH&quot;,&quot;GI&quot;,&quot;GR&quot;,&quot;GL&quot;,&quot;GD&quot;,&quot;GP&quot;,&quot;GU&quot;,&quot;GT&quot;,&quot;GG&quot;,&quot;GN&quot;,&quot;GW&quot;,&quot;GY&quot;,&quot;HT&quot;,&quot;HM&quot;,&quot;VA&quot;,&quot;HN&quot;,&quot;HK&quot;,&quot;HU&quot;,&quot;IS&quot;,&quot;IN&quot;,&quot;ID&quot;,&quot;IR&quot;,&quot;IQ&quot;,&quot;IE&quot;,&quot;IM&quot;,&quot;IL&quot;,&quot;IT&quot;,&quot;JM&quot;,&quot;JP&quot;,&quot;JE&quot;,&quot;JO&quot;,&quot;KZ&quot;,&quot;KE&quot;,&quot;KI&quot;,&quot;KP&quot;,&quot;KR&quot;,&quot;KW&quot;,&quot;KG&quot;,&quot;LA&quot;,&quot;LV&quot;,&quot;LB&quot;,&quot;LS&quot;,&quot;LR&quot;,&quot;LY&quot;,&quot;LI&quot;,&quot;LT&quot;,&quot;LU&quot;,&quot;MO&quot;,&quot;MK&quot;,&quot;MG&quot;,&quot;MW&quot;,&quot;MY&quot;,&quot;MV&quot;,&quot;ML&quot;,&quot;MT&quot;,&quot;MH&quot;,&quot;MQ&quot;,&quot;MR&quot;,&quot;MU&quot;,&quot;YT&quot;,&quot;MX&quot;,&quot;FM&quot;,&quot;MD&quot;,&quot;MC&quot;,&quot;MN&quot;,&quot;ME&quot;,&quot;MS&quot;,&quot;MA&quot;,&quot;MZ&quot;,&quot;MM&quot;,&quot;NA&quot;,&quot;NR&quot;,&quot;NP&quot;,&quot;NL&quot;,&quot;NC&quot;,&quot;NZ&quot;,&quot;NI&quot;,&quot;NE&quot;,&quot;NG&quot;,&quot;NU&quot;,&quot;NF&quot;,&quot;MP&quot;,&quot;NO&quot;,&quot;OM&quot;,&quot;PK&quot;,&quot;PW&quot;,&quot;PS&quot;,&quot;PA&quot;,&quot;PG&quot;,&quot;PY&quot;,&quot;PE&quot;,&quot;PH&quot;,&quot;PN&quot;,&quot;PL&quot;,&quot;PT&quot;,&quot;PR&quot;,&quot;QA&quot;,&quot;RE&quot;,&quot;RO&quot;,&quot;RU&quot;,&quot;RW&quot;,&quot;BL&quot;,&quot;SH&quot;,&quot;KN&quot;,&quot;LC&quot;,&quot;MF&quot;,&quot;PM&quot;,&quot;VC&quot;,&quot;WS&quot;,&quot;SM&quot;,&quot;ST&quot;,&quot;SA&quot;,&quot;SN&quot;,&quot;RS&quot;,&quot;SC&quot;,&quot;SL&quot;,&quot;SG&quot;,&quot;SX&quot;,&quot;SK&quot;,&quot;SI&quot;,&quot;SB&quot;,&quot;SO&quot;,&quot;ZA&quot;,&quot;GS&quot;,&quot;SS&quot;,&quot;ES&quot;,&quot;LK&quot;,&quot;SD&quot;,&quot;SR&quot;,&quot;SJ&quot;,&quot;SZ&quot;,&quot;SE&quot;,&quot;CH&quot;,&quot;SY&quot;,&quot;TW&quot;,&quot;TJ&quot;,&quot;TZ&quot;,&quot;TH&quot;,&quot;TL&quot;,&quot;TG&quot;,&quot;TK&quot;,&quot;TO&quot;,&quot;TT&quot;,&quot;TN&quot;,&quot;TR&quot;,&quot;TM&quot;,&quot;TC&quot;,&quot;TV&quot;,&quot;UG&quot;,&quot;UA&quot;,&quot;AE&quot;,&quot;GB&quot;,&quot;US&quot;,&quot;UM&quot;,&quot;UY&quot;,&quot;UZ&quot;,&quot;VU&quot;,&quot;VE&quot;,&quot;VN&quot;,&quot;VG&quot;,&quot;VI&quot;,&quot;WF&quot;,&quot;EH&quot;,&quot;YE&quot;,&quot;ZM&quot;,&quot;ZW&quot;);</span>
+<span class="fc" id="L29">    private static List&lt;String&gt; languageCodes = Arrays.asList(&quot;AB&quot;,&quot;AA&quot;,&quot;AF&quot;,&quot;AK&quot;,&quot;SQ&quot;,&quot;AM&quot;,&quot;AR&quot;,&quot;AN&quot;,&quot;HY&quot;,&quot;AS&quot;,&quot;AV&quot;,&quot;AE&quot;,&quot;AY&quot;,&quot;AZ&quot;,&quot;BM&quot;,&quot;BA&quot;,&quot;EU&quot;,&quot;BE&quot;,&quot;BN&quot;,&quot;BH&quot;,&quot;BI&quot;,&quot;BS&quot;,&quot;BR&quot;,&quot;BG&quot;,&quot;MY&quot;,&quot;CA&quot;,&quot;CH&quot;,&quot;CE&quot;,&quot;NY&quot;,&quot;ZH&quot;,&quot;CV&quot;,&quot;KW&quot;,&quot;CO&quot;,&quot;CR&quot;,&quot;HR&quot;,&quot;CS&quot;,&quot;DA&quot;,&quot;DV&quot;,&quot;NL&quot;,&quot;DZ&quot;,&quot;EN&quot;,&quot;EO&quot;,&quot;ET&quot;,&quot;EE&quot;,&quot;FO&quot;,&quot;FJ&quot;,&quot;FI&quot;,&quot;FR&quot;,&quot;FF&quot;,&quot;GL&quot;,&quot;KA&quot;,&quot;DE&quot;,&quot;EL&quot;,&quot;GN&quot;,&quot;GU&quot;,&quot;HT&quot;,&quot;HA&quot;,&quot;HE&quot;,&quot;HZ&quot;,&quot;HI&quot;,&quot;HO&quot;,&quot;HU&quot;,&quot;IA&quot;,&quot;ID&quot;,&quot;IE&quot;,&quot;GA&quot;,&quot;IG&quot;,&quot;IK&quot;,&quot;IO&quot;,&quot;IS&quot;,&quot;IT&quot;,&quot;IU&quot;,&quot;JA&quot;,&quot;JV&quot;,&quot;KL&quot;,&quot;KN&quot;,&quot;KR&quot;,&quot;KS&quot;,&quot;KK&quot;,&quot;KM&quot;,&quot;KI&quot;,&quot;RW&quot;,&quot;KY&quot;,&quot;KV&quot;,&quot;KG&quot;,&quot;KO&quot;,&quot;KU&quot;,&quot;KJ&quot;,&quot;LA&quot;,&quot;LB&quot;,&quot;LG&quot;,&quot;LI&quot;,&quot;LN&quot;,&quot;LO&quot;,&quot;LT&quot;,&quot;LU&quot;,&quot;LV&quot;,&quot;GV&quot;,&quot;MK&quot;,&quot;MG&quot;,&quot;MS&quot;,&quot;ML&quot;,&quot;MT&quot;,&quot;MI&quot;,&quot;MR&quot;,&quot;MH&quot;,&quot;MN&quot;,&quot;NA&quot;,&quot;NV&quot;,&quot;ND&quot;,&quot;NE&quot;,&quot;NG&quot;,&quot;NB&quot;,&quot;NN&quot;,&quot;NO&quot;,&quot;II&quot;,&quot;NR&quot;,&quot;OC&quot;,&quot;OJ&quot;,&quot;CU&quot;,&quot;OM&quot;,&quot;OR&quot;,&quot;OS&quot;,&quot;PA&quot;,&quot;PI&quot;,&quot;FA&quot;,&quot;PL&quot;,&quot;PS&quot;,&quot;PT&quot;,&quot;QU&quot;,&quot;RM&quot;,&quot;RN&quot;,&quot;RO&quot;,&quot;RU&quot;,&quot;SA&quot;,&quot;SC&quot;,&quot;SD&quot;,&quot;SE&quot;,&quot;SM&quot;,&quot;SG&quot;,&quot;SR&quot;,&quot;GD&quot;,&quot;SN&quot;,&quot;SI&quot;,&quot;SK&quot;,&quot;SL&quot;,&quot;SO&quot;,&quot;ST&quot;,&quot;ES&quot;,&quot;SU&quot;,&quot;SW&quot;,&quot;SS&quot;,&quot;SV&quot;,&quot;TA&quot;,&quot;TE&quot;,&quot;TG&quot;,&quot;TH&quot;,&quot;TI&quot;,&quot;BO&quot;,&quot;TK&quot;,&quot;TL&quot;,&quot;TN&quot;,&quot;TO&quot;,&quot;TR&quot;,&quot;TS&quot;,&quot;TT&quot;,&quot;TW&quot;,&quot;TY&quot;,&quot;UG&quot;,&quot;UK&quot;,&quot;UR&quot;,&quot;UZ&quot;,&quot;VE&quot;,&quot;VI&quot;,&quot;VO&quot;,&quot;WA&quot;,&quot;CY&quot;,&quot;WO&quot;,&quot;FY&quot;,&quot;XH&quot;,&quot;YI&quot;,&quot;YO&quot;,&quot;ZA&quot;,&quot;ZU&quot;);</span>
+    YouTubeRepository repository;
+
+    private static final String BAD_REQUEST_UNKNOWN_PARAMETER = &quot;Unknown parameter: &quot;;
+    private static final String BAD_REQUEST_MISSING_PART = &quot;Required parameter: part&quot;;
+    private static final String BAD_REQUEST_DEPENDENCIES_START_MESSAGE = &quot;Incompatible parameters specified in the request: &quot;;
+    private static final String BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS = &quot;The request contains an invalid combination of search filters and/or restrictions.&quot; +
+            &quot; Note that you must set the \u003ccode\u003etype\u003c/code\u003e parameter to \u003ccode\u003evideo\u003c/code\u003e if you set either the&quot; +
+            &quot; \u003ccode\u003eforContentOwner\u003c/code\u003e or \u003ccode\u003eforMine\u003c/code\u003e parameters to \u003ccode\u003etrue\u003c/code\u003e.&quot; +
+            &quot; You must also set the \u003ccode\u003etype\u003c/code\u003e parameter to \u003ccode\u003evideo\u003c/code\u003e if you set a value for the&quot; +
+            &quot; \u003ccode\u003eeventType\u003c/code\u003e, \u003ccode\u003evideoCaption\u003c/code\u003e, \u003ccode\u003evideoCategoryId\u003c/code\u003e,&quot; +
+            &quot; \u003ccode\u003evideoDefinition\u003c/code\u003e, \u003ccode\u003evideoDimension\u003c/code\u003e, \u003ccode\u003evideoDuration\u003c/code\u003e,&quot; +
+            &quot; \u003ccode\u003evideoEmbeddable\u003c/code\u003e, \u003ccode\u003evideoLicense\u003c/code\u003e, \u003ccode\u003evideoSyndicated\u003c/code\u003e,&quot; +
+            &quot; or \u003ccode\u003evideoType\u003c/code\u003e parameters.&quot;;
+    private static final String BAD_REQUEST_INVALID_VALUE = &quot;Invalid value '&quot;;
+    private static final String BAD_REQUEST_INVALID_STRING_VALUE = &quot;Invalid string value: '&quot;;
+    private static final String BAD_REQUEST_INVALID_LOCATION = &quot;Invalid location.&quot;;
+    private static final String BAD_REQUEST_INVALID_REGION_CODE = &quot;The \u003ccode\u003eregionCode\u003c/code\u003e parameter specifies an invalid region code.&quot;;
+    private static final String BAD_REQUEST_INVALID_RELEVANCE_LANGUAGE = &quot;Invalid relevance language.&quot;;
+    private static final String BAD_REQUEST_INVALID_PAGE_TOKEN = &quot;The request specifies an invalid page token.&quot;;
+
+    private static final String ERROR_DOMAIN_YOUTUBE_SEARCH = &quot;youtube.search&quot;;
+    private static final String ERROR_DOMAIN_YOUTUBE_PARAMETER = &quot;youtube.parameter&quot;;
+    private static final String ERROR_DOMAIN_YOUTUBE_PART = &quot;youtube.part&quot;;
+    private static final String ERROR_DOMAIN_GLOBAL = &quot;global&quot;;
+
+
+<span class="fc" id="L56">    private YouTubeResource() throws ParseException {</span>
+<span class="fc" id="L57">        this.repository = YouTubeRepositoryImpl.getInstance();</span>
+<span class="fc" id="L58">    }</span>
+
+    public static YouTubeResource getInstance() throws ParseException {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if(instance == null) {</span>
+<span class="fc" id="L62">            instance = new YouTubeResource();</span>
+        }
+<span class="fc" id="L64">        return instance;</span>
+    }
+
+    @GET
+    @Produces(&quot;application/json&quot;)
+    @JacksonFeatures(serializationDisable = {SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, SerializationFeature.FAIL_ON_EMPTY_BEANS})
+    public Response list(@BeanParam SearchRequest searchRequest, @Context HttpServletRequest request) {
+
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if(searchRequest.getPart() == null) {</span>
+<span class="nc" id="L73">            throw new BadRequestException(BAD_REQUEST_MISSING_PART, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_MISSING_PART, &quot;part&quot;)).build());</span>
+        }
+
+<span class="fc" id="L76">        String partType = validatePart(searchRequest.getPart());</span>
+
+<span class="fc" id="L78">        validateDependencies(searchRequest.getForContentOwner(), searchRequest.getForDeveloper(), searchRequest.getForMine(), searchRequest.getRelatedToVideoId());</span>
+
+<span class="pc bpc" id="L80" title="1 of 12 branches missed.">        if((searchRequest.getForContentOwner() != null &amp;&amp; searchRequest.getForContentOwner() &amp;&amp; searchRequest.getOnBehalfOfContentOwner() != null &amp;&amp; !searchRequest.getOnBehalfOfContentOwner().isEmpty()) || (searchRequest.getForMine() != null &amp;&amp; searchRequest.getForMine())) {</span>
+<span class="nc" id="L81">            validateForContentOwnerOrForMineDependencies(searchRequest);</span>
+<span class="fc bfc" id="L82" title="All 4 branches covered.">        } else if(searchRequest.getForContentOwner() != null &amp;&amp; searchRequest.getForContentOwner()) {</span>
+<span class="fc" id="L83">            throw new BadRequestException(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, &quot;&quot;)).build());</span>
+<span class="fc bfc" id="L84" title="All 6 branches covered.">        } else if(searchRequest.getRelatedToVideoId() != null &amp;&amp; !searchRequest.getRelatedToVideoId().isEmpty() &amp;&amp; (!&quot;video&quot;.equals(searchRequest.getType()))) {</span>
+<span class="fc" id="L85">            throw new BadRequestException(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, &quot;&quot;)).build());</span>
+        } else {
+<span class="fc" id="L87">            validateTypeDependencies(searchRequest);</span>
+        }
+
+<span class="fc" id="L90">        validateChannelType(searchRequest.getChannelType());</span>
+
+<span class="fc" id="L92">        validateEventType(searchRequest.getEventType());</span>
+
+<span class="nc" id="L94">        Location locationAndLocationRadius = validateLocationAndLocationRadius(searchRequest.getLocation(), searchRequest.getLocationRadius());</span>
+
+<span class="nc" id="L96">        validateMaxResults(searchRequest);</span>
+
+<span class="nc" id="L98">        validateOrder(searchRequest);</span>
+
+<span class="nc" id="L100">        Date[] dates = validateDates(searchRequest.getPublishedBeforeStr(), searchRequest.getPublishedAfterStr());</span>
+
+<span class="nc" id="L102">        validateRegionCode(searchRequest.getRegionCode());</span>
+
+<span class="nc" id="L104">        validateRelevanceLanguage(searchRequest.getRelevanceLanguage());</span>
+
+<span class="nc" id="L106">        validateSafeSearch(searchRequest.getSafeSearch());</span>
+
+<span class="nc" id="L108">        validateVideoCaption(searchRequest.getVideoCaption());</span>
+
+<span class="nc" id="L110">        validateVideoDefinition(searchRequest.getVideoDefinition());</span>
+
+<span class="nc" id="L112">        validateVideoDimension(searchRequest.getVideoDimension());</span>
+
+<span class="nc" id="L114">        validateVideoDuration(searchRequest.getVideoDuration());</span>
+
+<span class="nc" id="L116">        validateVideoEmbeddable(searchRequest.getVideoEmbeddable());</span>
+
+<span class="nc" id="L118">        validateVideoLicense(searchRequest.getVideoLicense());</span>
+
+<span class="nc" id="L120">        validateVideoSyndicated(searchRequest.getVideoSyndicated());</span>
+
+<span class="nc" id="L122">        validateVideoType(searchRequest.getVideoType());</span>
+
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        byte typeSearch = searchRequest.getType() == null ||searchRequest.getType().isEmpty()? 0b111 : processTypeSearch(searchRequest.getType());</span>
+
+        SearchListResponse search;
+        try {
+<span class="nc" id="L128">            search = repository.searchList(searchRequest, partType, locationAndLocationRadius, dates, typeSearch, request.getLocale());</span>
+<span class="nc" id="L129">        } catch (BadPaginationException e) {</span>
+<span class="nc" id="L130">            throw new BadRequestException(BAD_REQUEST_INVALID_PAGE_TOKEN, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_PAGE_TOKEN, &quot;pageToken&quot;)).build());</span>
+<span class="nc" id="L131">        }</span>
+
+<span class="nc" id="L133">        GenericEntity&lt;SearchListResponse&gt; entity = new GenericEntity&lt;SearchListResponse&gt;(search){};</span>
+
+<span class="nc" id="L135">        return Response.ok(entity).build();</span>
+    }
+
+    private String validatePart(String part) {
+<span class="fc" id="L139">        boolean snippet = false;</span>
+<span class="fc" id="L140">        boolean id = false;</span>
+<span class="fc" id="L141">        String[] sp = part.split(&quot;,&quot;);</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        for(String s : sp) {</span>
+<span class="fc" id="L143">            String sTrim = s.trim();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">            if(sTrim.equals(&quot;snippet&quot;)) {</span>
+<span class="fc" id="L145">                snippet = true;</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">            } else if(sTrim.equals(&quot;id&quot;)) {</span>
+<span class="nc" id="L147">                id = true;</span>
+            } else {
+<span class="fc" id="L149">                throw new BadRequestException(part, Response.status(400).entity(generateBadRequestResponse(part, &quot;part&quot;)).build());</span>
+            }
+        }
+
+<span class="pc bpc" id="L153" title="2 of 4 branches missed.">        if(snippet &amp;&amp; id) {</span>
+<span class="nc" id="L154">            return &quot;both&quot;;</span>
+        }
+
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">        return snippet? &quot;snippet&quot; : &quot;id&quot;;</span>
+    }
+
+    private void validateDependencies(Boolean forContentOwner, Boolean forDeveloper, Boolean forMine, String relatedToVideoId) {
+<span class="fc bfc" id="L161" title="All 10 branches covered.">        if ((forContentOwner != null || forDeveloper != null || forMine != null) &amp;&amp; relatedToVideoId != null &amp;&amp; !relatedToVideoId.isEmpty()) {</span>
+<span class="fc bfc" id="L162" title="All 6 branches covered.">            String message = BAD_REQUEST_DEPENDENCIES_START_MESSAGE</span>
+                    + (forContentOwner != null ? &quot;forContentOwner, &quot; : &quot;&quot;)
+                    + (forDeveloper != null ? &quot;forDeveloper, &quot; : &quot;&quot;)
+                    + (forMine != null ? &quot;forMine, &quot; : &quot;&quot;)
+                    + &quot;relatedTo&quot;;
+<span class="fc" id="L167">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;&quot;)).build());</span>
+        }
+
+<span class="fc" id="L170">        validateDependencies(forContentOwner, forDeveloper, forMine);</span>
+<span class="fc" id="L171">    }</span>
+
+    private void validateDependencies(Boolean forContentOwner, Boolean forDeveloper, Boolean forMine) {
+<span class="fc bfc" id="L174" title="All 6 branches covered.">        if((forContentOwner != null || forDeveloper != null) &amp;&amp; forMine != null) {</span>
+<span class="fc bfc" id="L175" title="All 4 branches covered.">            String message = BAD_REQUEST_DEPENDENCIES_START_MESSAGE</span>
+                    + (forContentOwner != null ? &quot;forContentOwner, &quot; : &quot;&quot;)
+                    + (forDeveloper != null ? &quot;forDeveloper, &quot; : &quot;&quot;)
+                    + &quot;forMine&quot;;
+<span class="fc" id="L179">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;&quot;)).build());</span>
+        }
+
+<span class="fc" id="L182">        validateDependencies(forContentOwner, forDeveloper);</span>
+<span class="fc" id="L183">    }</span>
+
+    private void validateDependencies(Boolean forContentOwner, Boolean forDeveloper) {
+<span class="fc bfc" id="L186" title="All 4 branches covered.">        if(forContentOwner != null &amp;&amp; forDeveloper != null) {</span>
+<span class="fc" id="L187">            String message = BAD_REQUEST_DEPENDENCIES_START_MESSAGE + &quot;forContentOwner, forDeveloper&quot;;</span>
+<span class="fc" id="L188">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;&quot;)).build());</span>
+        }
+<span class="fc" id="L190">    }</span>
+
+    private void validateForContentOwnerOrForMineDependencies(SearchRequest searchRequest) {
+<span class="pc bpc" id="L193" title="7 of 12 branches missed.">        if(searchRequest.getType() == null || !searchRequest.getType().equals(&quot;video&quot;) || searchRequest.getVideoDefinition() != null || searchRequest.getVideoDimension() != null || searchRequest.getVideoDuration() != null || searchRequest.getVideoLicense() != null ||</span>
+<span class="nc bnc" id="L194" title="All 6 branches missed.">                searchRequest.getVideoEmbeddable() != null || searchRequest.getVideoSyndicated() != null || searchRequest.getVideoType() != null) {</span>
+<span class="fc" id="L195">            throw new BadRequestException(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, &quot;&quot;)).build());</span>
+        }
+<span class="nc" id="L197">    }</span>
+
+    private void validateTypeDependencies(SearchRequest searchRequest) {
+<span class="pc bpc" id="L200" title="2 of 14 branches missed.">        if(((searchRequest.getLocation() != null || searchRequest.getEventType() != null || searchRequest.getVideoCaption() != null || searchRequest.getVideoCategoryId() != null || searchRequest.getVideoDefinition() != null || searchRequest.getVideoDimension() != null || searchRequest.getVideoDuration() != null ||</span>
+<span class="pc bpc" id="L201" title="7 of 12 branches missed.">                searchRequest.getVideoEmbeddable() != null || searchRequest.getVideoLicense() != null || searchRequest.getVideoSyndicated() != null || searchRequest.getVideoType() != null) &amp;&amp; (searchRequest.getType() == null || !searchRequest.getType().equals(&quot;video&quot;))) ||</span>
+<span class="pc bpc" id="L202" title="2 of 6 branches missed.">                (searchRequest.getChannelType() != null &amp;&amp; (searchRequest.getType() == null || !searchRequest.getType().equals(&quot;channel&quot;)))) {</span>
+<span class="fc" id="L203">            throw new BadRequestException(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS, &quot;&quot;)).build());</span>
+        }
+<span class="fc" id="L205">    }</span>
+
+    private void validateChannelType(String channelType) {
+<span class="pc bpc" id="L208" title="5 of 6 branches missed.">        if(channelType != null &amp;&amp; !channelType.equals(&quot;any&quot;) &amp;&amp; !channelType.equals(&quot;show&quot;)) {</span>
+<span class="nc" id="L209">            String message = BAD_REQUEST_INVALID_STRING_VALUE + channelType + &quot;'. Allowed values: [any, show]&quot;;</span>
+<span class="nc" id="L210">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;channelType&quot;)).build());</span>
+        }
+<span class="fc" id="L212">    }</span>
+
+    private void validateEventType(String eventType) {
+<span class="fc bfc" id="L215" title="All 8 branches covered.">        if(eventType != null &amp;&amp; !eventType.equals(&quot;completed&quot;) &amp;&amp; !eventType.equals(&quot;live&quot;) &amp;&amp; !eventType.equals(&quot;upcoming&quot;)) {</span>
+<span class="fc" id="L216">            String message = BAD_REQUEST_INVALID_STRING_VALUE + eventType + &quot;'. Allowed values: [completed, live, upcoming]&quot;;</span>
+<span class="fc" id="L217">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;eventType&quot;)).build());</span>
+        }
+<span class="fc" id="L219">    }</span>
+
+    private Location validateLocationAndLocationRadius(String location, String locationRadius) {
+<span class="fc" id="L222">        String parameter = &quot;location&quot;;</span>
+<span class="fc" id="L223">        Location result = new Location();</span>
+<span class="pc bpc" id="L224" title="3 of 8 branches missed.">        if(location != null &amp;&amp; !location.isEmpty() &amp;&amp; locationRadius != null &amp;&amp; !locationRadius.isEmpty() &amp;&amp;</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">                location.matches(&quot;^[-+]?([1-8]?\\d(\\.\\d+)?|90(\\.0+)?),\\s*[-+]?(180(\\.0+)?|((1[0-7]\\d)|([1-9]?\\d))(\\.\\d+)?)$&quot;) &amp;&amp;</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">                locationRadius.matches(&quot;(^[1-9](\\d+)?(\\.\\d+)?|0\\.\\d+)(m|km|ft|mi)$&quot;)) {</span>
+<span class="nc" id="L227">            String[] sp = locationRadius.split(&quot;(?&lt;=[a-z])(?=\\d)|(?&lt;=\\d)(?=[a-z])&quot;);</span>
+<span class="nc" id="L228">            double radius = Double.parseDouble(sp[0]);</span>
+<span class="nc bnc" id="L229" title="All 5 branches missed.">            switch (sp[1]) {</span>
+                case &quot;m&quot;:
+<span class="nc" id="L231">                    radius /= 1000.;</span>
+<span class="nc" id="L232">                    break;</span>
+                case &quot;km&quot;:
+<span class="nc" id="L234">                    break;</span>
+                case &quot;ft&quot;:
+<span class="nc" id="L236">                    radius /= 3280.84;</span>
+<span class="nc" id="L237">                    break;</span>
+                case &quot;mi&quot;:
+<span class="nc" id="L239">                    radius *= 1.60934;</span>
+<span class="nc" id="L240">                    break;</span>
+                default:
+<span class="nc" id="L242">                    throw new BadRequestException(BAD_REQUEST_INVALID_LOCATION, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_LOCATION, parameter)).build());</span>
+            }
+<span class="nc bnc" id="L244" title="All 2 branches missed.">            if(radius &gt; 1000.) {</span>
+<span class="nc" id="L245">                throw new BadRequestException(BAD_REQUEST_INVALID_LOCATION, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_LOCATION, parameter)).build());</span>
+            }
+
+<span class="nc" id="L248">            String[] latLon = location.split(&quot;,&quot;);</span>
+<span class="nc" id="L249">            result.setLatitude(Double.parseDouble(latLon[0].trim()));</span>
+<span class="nc" id="L250">            result.setLongitude(Double.parseDouble(latLon[1].trim()));</span>
+<span class="nc" id="L251">            result.setRadius(radius*1000);</span>
+
+<span class="pc bpc" id="L253" title="3 of 8 branches missed.">        } else if((location != null &amp;&amp; !location.isEmpty()) || (locationRadius != null &amp;&amp; !locationRadius.isEmpty())) {</span>
+<span class="fc" id="L254">            throw new BadRequestException(BAD_REQUEST_INVALID_LOCATION, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_LOCATION, parameter)).build());</span>
+        }
+
+<span class="nc" id="L257">        return result;</span>
+    }
+
+    private void validateMaxResults(SearchRequest searchRequest) {
+<span class="nc bnc" id="L261" title="All 6 branches missed.">        if(searchRequest.getMaxResults() != null &amp;&amp; (searchRequest.getMaxResults() &lt; 0 || searchRequest.getMaxResults() &gt; 50)) {</span>
+<span class="nc" id="L262">            String message = BAD_REQUEST_INVALID_VALUE + searchRequest.getMaxResults() + &quot;'. Values must be within the range: [0, 50]&quot;;</span>
+<span class="nc" id="L263">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;maxResults&quot;)).build());</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        } else if(searchRequest.getMaxResults() == null) {</span>
+<span class="nc" id="L265">            searchRequest.setMaxResults(5);</span>
+        }
+<span class="nc" id="L267">    }</span>
+
+    private void validateOrder(SearchRequest searchRequest) {
+<span class="nc bnc" id="L270" title="All 10 branches missed.">        if(searchRequest.getOrder() != null &amp;&amp; !searchRequest.getOrder().equals(&quot;date&quot;) &amp;&amp; !searchRequest.getOrder().equals(&quot;rating&quot;) &amp;&amp; !searchRequest.getOrder().equals(&quot;relevance&quot;) &amp;&amp; !searchRequest.getOrder().equals(&quot;title&quot;) &amp;&amp;</span>
+<span class="nc bnc" id="L271" title="All 4 branches missed.">                !searchRequest.getOrder().equals(&quot;videoCount&quot;) &amp;&amp; !searchRequest.getOrder().equals(&quot;viewCount&quot;)) {</span>
+<span class="nc" id="L272">            String message = BAD_REQUEST_INVALID_STRING_VALUE + searchRequest.getOrder() + &quot;'. Allowed values: [date, rating, relevance, title, videoCount, viewCount]&quot;;</span>
+<span class="nc" id="L273">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;searchRequest.getOrder()&quot;)).build());</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        } else if(searchRequest.getOrder() == null) {</span>
+<span class="nc" id="L275">            searchRequest.setOrder(&quot;relevance&quot;);</span>
+        }
+<span class="nc" id="L277">    }</span>
+
+    private Date[] validateDates(String publishedBeforeStr, String publishedAfterStr) {
+<span class="nc" id="L280">        Date[] dates = new Date[2];</span>
+<span class="nc" id="L281">        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss'Z'&quot;);</span>
+<span class="nc" id="L282">        dateFormat.setTimeZone(TimeZone.getTimeZone(&quot;UTC&quot;));</span>
+
+        try {
+<span class="nc bnc" id="L285" title="All 2 branches missed.">            if(publishedBeforeStr != null) {</span>
+<span class="nc" id="L286">                dates[0] = dateFormat.parse(publishedBeforeStr);</span>
+            }
+<span class="nc bnc" id="L288" title="All 2 branches missed.">            if(publishedAfterStr != null) {</span>
+<span class="nc" id="L289">                dates[1] = dateFormat.parse(publishedAfterStr);</span>
+            }
+<span class="nc" id="L291">        } catch (ParseException e) {</span>
+<span class="nc" id="L292">            String message = &quot;Bad Request&quot;;</span>
+<span class="nc" id="L293">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;&quot;)).build());</span>
+<span class="nc" id="L294">        }</span>
+
+<span class="nc" id="L296">        return dates;</span>
+    }
+
+    private void validateRegionCode(String regionCode) {
+<span class="nc bnc" id="L300" title="All 6 branches missed.">        if(regionCode != null &amp;&amp; (!regionCode.matches(&quot;^[A-Za-z]{2}$&quot;) || !countryCodes.contains(regionCode.toUpperCase()))) {</span>
+<span class="nc" id="L301">            throw new BadRequestException(BAD_REQUEST_INVALID_REGION_CODE, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_REGION_CODE, &quot;regionCode&quot;)).build());</span>
+        }
+<span class="nc" id="L303">    }</span>
+
+    private void validateRelevanceLanguage(String relevanceLanguage) {
+<span class="nc bnc" id="L306" title="All 6 branches missed.">        if(relevanceLanguage != null &amp;&amp; (!relevanceLanguage.matches(&quot;^[A-Za-z]{2}$&quot;) || !languageCodes.contains(relevanceLanguage.toUpperCase()))) {</span>
+<span class="nc" id="L307">            throw new BadRequestException(BAD_REQUEST_INVALID_RELEVANCE_LANGUAGE, Response.status(400).entity(generateBadRequestResponse(BAD_REQUEST_INVALID_RELEVANCE_LANGUAGE, &quot;relevanceLanguage&quot;)).build());</span>
+        }
+
+<span class="nc" id="L310">    }</span>
+
+    private void validateSafeSearch(String safeSearch) {
+<span class="nc bnc" id="L313" title="All 8 branches missed.">        if(safeSearch != null &amp;&amp; !safeSearch.equals(&quot;moderate&quot;) &amp;&amp; !safeSearch.equals(&quot;strict&quot;) &amp;&amp; !safeSearch.equals(&quot;none&quot;)) {</span>
+<span class="nc" id="L314">            String message = BAD_REQUEST_INVALID_STRING_VALUE + safeSearch + &quot;'. Allowed values: [none, moderate, strict]&quot;;</span>
+<span class="nc" id="L315">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;safeSearch&quot;)).build());</span>
+        }
+<span class="nc" id="L317">    }</span>
+
+    private void validateVideoCaption(String videoCaption) {
+<span class="nc bnc" id="L320" title="All 8 branches missed.">        if(videoCaption != null &amp;&amp; !videoCaption.equals(&quot;any&quot;) &amp;&amp; !videoCaption.equals(&quot;closedCaption&quot;) &amp;&amp; !videoCaption.equals(&quot;none&quot;)) {</span>
+<span class="nc" id="L321">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoCaption + &quot;'. Allowed values: [any, closedCaption, none]&quot;;</span>
+<span class="nc" id="L322">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoCaption&quot;)).build());</span>
+        }
+<span class="nc" id="L324">    }</span>
+
+    private void validateVideoDefinition(String videoDefinition) {
+<span class="nc bnc" id="L327" title="All 8 branches missed.">        if(videoDefinition != null &amp;&amp; !videoDefinition.equals(&quot;any&quot;) &amp;&amp; !videoDefinition.equals(&quot;high&quot;) &amp;&amp; !videoDefinition.equals(&quot;standard&quot;)) {</span>
+<span class="nc" id="L328">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoDefinition + &quot;'. Allowed values: [any, high, standard]&quot;;</span>
+<span class="nc" id="L329">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoDefinition&quot;)).build());</span>
+        }
+<span class="nc" id="L331">    }</span>
+
+    private void validateVideoDimension(String videoDimension) {
+<span class="nc bnc" id="L334" title="All 8 branches missed.">        if(videoDimension != null &amp;&amp; !videoDimension.equals(&quot;2d&quot;) &amp;&amp; !videoDimension.equals(&quot;3d&quot;) &amp;&amp; !videoDimension.equals(&quot;any&quot;)) {</span>
+<span class="nc" id="L335">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoDimension + &quot;'. Allowed values: [2d, 3d, any]&quot;;</span>
+<span class="nc" id="L336">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoDimension&quot;)).build());</span>
+        }
+<span class="nc" id="L338">    }</span>
+
+    private void validateVideoDuration(String videoDuration) {
+<span class="nc bnc" id="L341" title="All 10 branches missed.">        if(videoDuration != null &amp;&amp; !videoDuration.equals(&quot;any&quot;) &amp;&amp; !videoDuration.equals(&quot;long&quot;) &amp;&amp; !videoDuration.equals(&quot;medium&quot;) &amp;&amp; !videoDuration.equals(&quot;short&quot;)) {</span>
+<span class="nc" id="L342">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoDuration + &quot;'. Allowed values: [any, long, medium, short]&quot;;</span>
+<span class="nc" id="L343">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoDuration&quot;)).build());</span>
+        }
+<span class="nc" id="L345">    }</span>
+
+    private void validateVideoEmbeddable(String videoEmbeddable) {
+<span class="nc bnc" id="L348" title="All 6 branches missed.">        if(videoEmbeddable != null &amp;&amp; !videoEmbeddable.equals(&quot;any&quot;) &amp;&amp; !videoEmbeddable.equals(&quot;true&quot;)) {</span>
+<span class="nc" id="L349">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoEmbeddable + &quot;'. Allowed values: [any, true]&quot;;</span>
+<span class="nc" id="L350">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoEmbeddable&quot;)).build());</span>
+        }
+<span class="nc" id="L352">    }</span>
+
+    private void validateVideoLicense(String videoLicense) {
+<span class="nc bnc" id="L355" title="All 8 branches missed.">        if(videoLicense != null &amp;&amp; !videoLicense.equals(&quot;any&quot;) &amp;&amp; !videoLicense.equals(&quot;creativeCommon&quot;) &amp;&amp; !videoLicense.equals(&quot;youtube&quot;)) {</span>
+<span class="nc" id="L356">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoLicense + &quot;'. Allowed values: [any, creativeCommon, youtube]&quot;;</span>
+<span class="nc" id="L357">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoLicense&quot;)).build());</span>
+        }
+<span class="nc" id="L359">    }</span>
+
+    private void validateVideoSyndicated(String videoSyndicated) {
+<span class="nc bnc" id="L362" title="All 6 branches missed.">        if(videoSyndicated != null &amp;&amp; !videoSyndicated.equals(&quot;any&quot;) &amp;&amp; !videoSyndicated.equals(&quot;true&quot;)) {</span>
+<span class="nc" id="L363">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoSyndicated + &quot;'. Allowed values: [any, true]&quot;;</span>
+<span class="nc" id="L364">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoSyndicated&quot;)).build());</span>
+        }
+<span class="nc" id="L366">    }</span>
+
+    private void validateVideoType(String videoType) {
+<span class="nc bnc" id="L369" title="All 8 branches missed.">        if(videoType != null &amp;&amp; !videoType.equals(&quot;any&quot;) &amp;&amp; !videoType.equals(&quot;episode&quot;) &amp;&amp; !videoType.equals(&quot;movie&quot;)) {</span>
+<span class="nc" id="L370">            String message = BAD_REQUEST_INVALID_STRING_VALUE + videoType + &quot;'. Allowed values: [any, episode, movie]&quot;;</span>
+<span class="nc" id="L371">            throw new BadRequestException(message, Response.status(400).entity(generateBadRequestResponse(message, &quot;videoType&quot;)).build());</span>
+        }
+<span class="nc" id="L373">    }</span>
+
+    /**
+     * This method ascertains the types of resources that must be retrieved. The number returned can be between 0 and 2^3-1; its binary representation
+     * indicates the resources requested by the user: &lt;br&gt;&lt;br&gt;
+     *  &lt;ul&gt;
+     *      &lt;li&gt;{@code 0=000} means no type specified, so the API will retrieve all types of resources (channel, playlist and video)&lt;/li&gt;
+     *      &lt;li&gt;{@code 1=001} means that the user demanded only 'video' type&lt;/li&gt;
+     *      &lt;li&gt;{@code 2=010} means that the user demanded only 'playlist' type&lt;/li&gt;
+     *      &lt;li&gt;{@code 3=011} means that the user demanded 'playlist' and 'video' types&lt;/li&gt;
+     *      &lt;li&gt;{@code 4=100} means that the user demanded only 'channel' type&lt;/li&gt;
+     *      &lt;li&gt;{@code 5=101} means that the user demanded 'channel' and 'video' types&lt;/li&gt;
+     *      &lt;li&gt;{@code 6=110} means that the user demanded 'channel' and 'playlist' types&lt;/li&gt;
+     *      &lt;li&gt;{@code 7=111} means that the user demanded all types of resources (channel, playlist and video)&lt;/li&gt;
+     *  &lt;/ul&gt;
+     *
+     * @param type the parameter received in the request
+     * @return the corresponding number
+     */
+    private byte processTypeSearch(String type) {
+<span class="nc" id="L393">        boolean channel = false;</span>
+<span class="nc" id="L394">        boolean playlist = false;</span>
+<span class="nc" id="L395">        boolean video = false;</span>
+<span class="nc" id="L396">        String[] sp = type.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        for(String s : sp) {</span>
+<span class="nc bnc" id="L398" title="All 4 branches missed.">            switch (s.trim()) {</span>
+                case &quot;channel&quot;:
+<span class="nc" id="L400">                    channel = true;</span>
+<span class="nc" id="L401">                    break;</span>
+                case &quot;playlist&quot;:
+<span class="nc" id="L403">                    playlist = true;</span>
+<span class="nc" id="L404">                    break;</span>
+                case &quot;video&quot;:
+<span class="nc" id="L406">                    video = true;</span>
+<span class="nc" id="L407">                    break;</span>
+                default:
+                    break;
+            }
+        }
+
+<span class="nc bnc" id="L413" title="All 6 branches missed.">        return (byte) ((channel? 0b100 : 0b0) + (playlist? 0b010 : 0b0) + (video? 0b001 : 0b0));</span>
+    }
+
+    private ErrorResponse generateBadRequestResponse(String message, String parameter) {
+<span class="fc" id="L417">        ErrorResponse response = new ErrorResponse();</span>
+
+<span class="fc" id="L419">        ErrorDescription description = new ErrorDescription();</span>
+<span class="fc" id="L420">        description.setMessage(message);</span>
+<span class="fc" id="L421">        description.setLocationType(&quot;parameter&quot;);</span>
+<span class="fc" id="L422">        description.setLocation(parameter);</span>
+
+<span class="pc bpc" id="L424" title="1 of 2 branches missed.">        if(message.equals(BAD_REQUEST_MISSING_PART)) {</span>
+<span class="nc" id="L425">            description.setDomain(ERROR_DOMAIN_GLOBAL);</span>
+<span class="nc" id="L426">            description.setReason(&quot;required&quot;);</span>
+<span class="fc bfc" id="L427" title="All 2 branches covered.">        } else if(parameter.equals(&quot;part&quot;)) {</span>
+<span class="fc" id="L428">            description.setDomain(ERROR_DOMAIN_YOUTUBE_PART);</span>
+<span class="fc" id="L429">            description.setReason(&quot;unknownPart&quot;);</span>
+<span class="fc bfc" id="L430" title="All 2 branches covered.">        } else if(message.startsWith(BAD_REQUEST_DEPENDENCIES_START_MESSAGE)) {</span>
+<span class="fc" id="L431">            description.setDomain(ERROR_DOMAIN_YOUTUBE_PARAMETER);</span>
+<span class="fc" id="L432">            description.setReason(&quot;incompatibleParameters&quot;);</span>
+<span class="fc bfc" id="L433" title="All 2 branches covered.">        } else if(message.equals(BAD_REQUEST_DEPENDENCIES_OPTIONAL_PARAMETERS)) {</span>
+<span class="fc" id="L434">            description.setDomain(ERROR_DOMAIN_YOUTUBE_SEARCH);</span>
+<span class="fc" id="L435">            description.setReason(&quot;invalidSearchFilter&quot;);</span>
+<span class="pc bpc" id="L436" title="1 of 4 branches missed.">        } else if(message.startsWith(BAD_REQUEST_INVALID_STRING_VALUE) || message.startsWith(BAD_REQUEST_INVALID_VALUE)) {</span>
+<span class="fc" id="L437">            description.setDomain(ERROR_DOMAIN_GLOBAL);</span>
+<span class="fc" id="L438">            description.setReason(&quot;invalidParameter&quot;);</span>
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">        } else if(message.equals(BAD_REQUEST_INVALID_LOCATION)) {</span>
+<span class="fc" id="L440">            description.setDomain(ERROR_DOMAIN_YOUTUBE_SEARCH);</span>
+<span class="fc" id="L441">            description.setReason(&quot;invalidLocation&quot;);</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">        } else if(message.equals(BAD_REQUEST_INVALID_REGION_CODE)) {</span>
+<span class="nc" id="L443">            description.setDomain(ERROR_DOMAIN_YOUTUBE_PARAMETER);</span>
+<span class="nc" id="L444">            description.setReason(&quot;invalidRegionCode&quot;);</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">        } else if(message.equals(BAD_REQUEST_INVALID_RELEVANCE_LANGUAGE)) {</span>
+<span class="nc" id="L446">            description.setDomain(ERROR_DOMAIN_YOUTUBE_SEARCH);</span>
+<span class="nc" id="L447">            description.setReason(&quot;invalidRelevanceLanguage&quot;);</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">        } else if(message.equals(BAD_REQUEST_INVALID_PAGE_TOKEN)) {</span>
+<span class="nc" id="L449">            description.setDomain(ERROR_DOMAIN_YOUTUBE_PARAMETER);</span>
+<span class="nc" id="L450">            description.setReason(&quot;invalidPageToken&quot;);</span>
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        } else if(message.startsWith(BAD_REQUEST_UNKNOWN_PARAMETER)) {</span>
+<span class="nc" id="L452">            description.setDomain(ERROR_DOMAIN_YOUTUBE_SEARCH);</span>
+<span class="nc" id="L453">            description.setReason(&quot;unknownParameter&quot;);</span>
+        }
+
+<span class="fc" id="L456">        response.setErrors(Collections.singletonList(description));</span>
+<span class="fc" id="L457">        response.setMessage(message);</span>
+<span class="fc" id="L458">        response.setStatus(400);</span>
+<span class="fc" id="L459">        return response;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

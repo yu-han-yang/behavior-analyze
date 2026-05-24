@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AgreementsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.agreement.service</a> &gt; <span class="el_source">AgreementsService.java</span></div><h1>AgreementsService.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.agreement.service;
+
+import org.apache.http.HttpStatus;
+import uk.gov.pay.api.agreement.model.Agreement;
+import uk.gov.pay.api.agreement.model.AgreementCreatedResponse;
+import uk.gov.pay.api.agreement.model.AgreementLedgerResponse;
+import uk.gov.pay.api.agreement.model.AgreementSearchResults;
+import uk.gov.pay.api.agreement.model.CreateAgreementRequest;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.exception.CancelAgreementException;
+import uk.gov.pay.api.exception.CreateAgreementException;
+import uk.gov.pay.api.ledger.model.AgreementSearchParams;
+import uk.gov.pay.api.ledger.model.SearchResults;
+import uk.gov.pay.api.model.search.PaginationDecorator;
+import uk.gov.pay.api.service.ConnectorService;
+import uk.gov.pay.api.service.LedgerService;
+
+import javax.inject.Inject;
+import javax.ws.rs.core.Response;
+import java.util.stream.Collectors;
+
+public class AgreementsService {
+    private static final String AGREEMENTS_PATH = &quot;/v1/agreements&quot;;
+    private final ConnectorService connectorService;
+    private final LedgerService ledgerService;
+    private final PaginationDecorator paginationDecorator;
+
+    @Inject
+<span class="fc" id="L29">    public AgreementsService(ConnectorService connectorService, LedgerService ledgerService, PaginationDecorator paginationDecorator) {</span>
+<span class="fc" id="L30">        this.connectorService = connectorService;</span>
+<span class="fc" id="L31">        this.ledgerService = ledgerService;</span>
+<span class="fc" id="L32">        this.paginationDecorator = paginationDecorator;</span>
+<span class="fc" id="L33">    }</span>
+
+    public AgreementCreatedResponse createAgreement(Account account, CreateAgreementRequest createAgreementRequest) {
+<span class="nc" id="L36">        return connectorService.createAgreement(account, createAgreementRequest);</span>
+    }
+
+    public Response cancelAgreement(Account account, String agreementId) {
+<span class="nc" id="L40">        connectorService.cancelAgreement(account, agreementId);</span>
+
+<span class="nc" id="L42">        return Response.noContent().build();</span>
+    }
+
+    public AgreementLedgerResponse getAgreement(Account account, String agreementId) {
+<span class="nc" id="L46">        return ledgerService.getAgreement(account, agreementId);</span>
+    }
+
+    public AgreementSearchResults searchAgreements(Account account, AgreementSearchParams params) {
+<span class="nc" id="L50">        SearchResults&lt;AgreementLedgerResponse&gt; ledgerResponse = ledgerService.searchAgreements(account, params);</span>
+<span class="nc" id="L51">        return processLedgerResponse(ledgerResponse);</span>
+    }
+
+    private AgreementSearchResults processLedgerResponse(SearchResults&lt;AgreementLedgerResponse&gt; searchResults) {
+<span class="nc" id="L55">        return new AgreementSearchResults(searchResults.getTotal(),</span>
+<span class="nc" id="L56">                searchResults.getCount(),</span>
+<span class="nc" id="L57">                searchResults.getPage(),</span>
+<span class="nc" id="L58">                searchResults.getResults().stream().map(Agreement::from).collect(Collectors.toUnmodifiableList()),</span>
+<span class="nc" id="L59">                paginationDecorator.transformLinksToPublicApiUri(searchResults.getLinks(), AGREEMENTS_PATH));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AgreementsApiResource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.agreement.resource</a> &gt; <span class="el_source">AgreementsApiResource.java</span></div><h1>AgreementsApiResource.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.agreement.resource;
+
+import com.codahale.metrics.annotation.Timed;
+import io.dropwizard.auth.Auth;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.agreement.model.Agreement;
+import uk.gov.pay.api.agreement.model.AgreementSearchResults;
+import uk.gov.pay.api.agreement.model.CreateAgreementRequest;
+import uk.gov.pay.api.agreement.service.AgreementsService;
+import uk.gov.pay.api.auth.Account;
+import uk.gov.pay.api.ledger.model.AgreementSearchParams;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.pay.api.resources.error.ApiErrorResponse;
+
+import javax.inject.Inject;
+import javax.validation.Valid;
+import javax.ws.rs.BeanParam;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Response;
+
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.apache.http.HttpStatus.SC_CREATED;
+import static org.apache.http.HttpStatus.SC_NO_CONTENT;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_200_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_201_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_400_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_401_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_404_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_422_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_429_DESCRIPTION;
+import static uk.gov.pay.api.common.ResponseConstants.RESPONSE_500_DESCRIPTION;
+
+@Path(&quot;/&quot;)
+@Tag(name = &quot;Agreements&quot;)
+@Produces({&quot;application/json&quot;})
+public class AgreementsApiResource {
+
+<span class="fc" id="L51">    private static final Logger LOGGER = LoggerFactory.getLogger(AgreementsApiResource.class);</span>
+
+    private final AgreementsService agreementsService;
+
+    @Inject
+<span class="fc" id="L56">    public AgreementsApiResource(AgreementsService agreementsService) {</span>
+<span class="fc" id="L57">        this.agreementsService = agreementsService;</span>
+<span class="fc" id="L58">    }</span>
+
+    @POST
+    @Path(&quot;/v1/agreements&quot;)
+    @Produces(APPLICATION_JSON)
+    @Consumes(APPLICATION_JSON)
+    @Operation(security = {@SecurityRequirement(name = &quot;BearerAuth&quot;)},
+            operationId = &quot;Create an agreement&quot;,
+            summary = &quot;Create an agreement for recurring payments&quot;,
+            description = &quot;You can use this endpoint to create a new agreement.&quot;,
+            responses = {
+                    @ApiResponse(responseCode = &quot;201&quot;, description = RESPONSE_201_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = Agreement.class))),
+                    @ApiResponse(responseCode = &quot;400&quot;, description = RESPONSE_400_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;401&quot;,
+                            description = RESPONSE_401_DESCRIPTION),
+                    @ApiResponse(responseCode = &quot;422&quot;,
+                            description = RESPONSE_422_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;429&quot;, description = RESPONSE_429_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+                    @ApiResponse(responseCode = &quot;500&quot;, description = RESPONSE_500_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class)))
+            }
+    )
+    public Response createAgreement(
+            @Parameter(hidden = true) @Auth Account account,
+            @Parameter(required = true, description = &quot;requestPayload&quot;)
+            @Valid CreateAgreementRequest createAgreementRequest)
+    {
+<span class="nc" id="L89">        LOGGER.info(&quot;Creating new agreement for reference {} and gateway accountID {}&quot;, </span>
+<span class="nc" id="L90">                createAgreementRequest.getReference(), account.getAccountId());</span>
+<span class="nc" id="L91">        var agreementCreatedResponse = agreementsService.createAgreement(account, createAgreementRequest);</span>
+<span class="nc" id="L92">        var agreementLedgerResponse = agreementsService.getAgreement(account, agreementCreatedResponse.getAgreementId());</span>
+        
+<span class="nc" id="L94">        LOGGER.info(&quot;Agreement returned (created): [ {} ]&quot;, agreementCreatedResponse);</span>
+<span class="nc" id="L95">        return Response.status(SC_CREATED).entity(Agreement.from(agreementLedgerResponse)).build();</span>
+    }
+
+    @GET
+    @Path(&quot;/v1/agreements/{agreementId}&quot;)
+    @Produces(APPLICATION_JSON)
+    @Operation(security = {@SecurityRequirement(name = &quot;BearerAuth&quot;)},
+            operationId = &quot;Get an agreement&quot;,
+            summary = &quot;Get information about a single agreement for recurring payments&quot;,
+            description = &quot;You can use this endpoint to get information about a single recurring payments agreement.&quot;,
+            responses = {
+                    @ApiResponse(responseCode = &quot;200&quot;, description = RESPONSE_200_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = Agreement.class))),
+                    @ApiResponse(responseCode = &quot;401&quot;,
+                            description = RESPONSE_401_DESCRIPTION),
+                    @ApiResponse(responseCode = &quot;404&quot;, description = RESPONSE_404_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;429&quot;, description = RESPONSE_429_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+                    @ApiResponse(responseCode = &quot;500&quot;, description = RESPONSE_500_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class)))
+            }
+    )
+    public Agreement getAgreement(
+            @Parameter(hidden = true) @Auth Account account,
+            @PathParam(&quot;agreementId&quot;) 
+            @Parameter(name = &quot;agreementId&quot;, 
+                    description = &quot;Returns the agreement with the matching `agreement_id`. &quot; +
+                            &quot;GOV.UK Pay generated an `agreement_id` when you created the agreement.&quot;, 
+                    example = &quot;cgc1ocvh0pt9fqs0ma67r42l58&quot;) String agreementId)
+    {
+<span class="nc" id="L126">        LOGGER.info(&quot;Get agreement {} request&quot;, agreementId);</span>
+<span class="nc" id="L127">        var agreementLedgerResponse = agreementsService.getAgreement(account, agreementId);</span>
+<span class="nc" id="L128">        return Agreement.from(agreementLedgerResponse);</span>
+    }
+
+    @GET
+    @Timed
+    @Path(&quot;/v1/agreements&quot;)
+    @Produces(APPLICATION_JSON)
+    @Operation(security = {@SecurityRequirement(name = &quot;BearerAuth&quot;)},
+            operationId = &quot;Search agreements&quot;,
+            summary = &quot;Search agreements for recurring payments&quot;,
+            description = &quot;You can use this endpoint to search for recurring payments agreements. &quot; +
+                    &quot;The agreements are sorted by date, with the most recently-created agreements appearing first.&quot;,
+            responses = {
+                    @ApiResponse(responseCode = &quot;200&quot;, description = RESPONSE_200_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = AgreementSearchResults.class))),
+                    @ApiResponse(responseCode = &quot;401&quot;,
+                            description = RESPONSE_401_DESCRIPTION),
+                    @ApiResponse(responseCode = &quot;404&quot;, description = RESPONSE_404_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;422&quot;,
+                            description = RESPONSE_422_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;429&quot;, description = RESPONSE_429_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+                    @ApiResponse(responseCode = &quot;500&quot;, description = RESPONSE_500_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class)))
+            }
+    )
+    public AgreementSearchResults getAgreements(@Parameter(hidden = true) @Auth Account account, @BeanParam AgreementSearchParams searchParams) {
+<span class="nc" id="L157">        return agreementsService.searchAgreements(account, searchParams);</span>
+    }
+
+    @POST
+    @Path(&quot;/v1/agreements/{agreementId}/cancel&quot;)
+    @Produces(APPLICATION_JSON)
+    @Operation(security = {@SecurityRequirement(name = &quot;BearerAuth&quot;)},
+            operationId = &quot;Cancel an agreement&quot;,
+            summary = &quot;Cancel an agreement for recurring payments&quot;,
+            description = &quot;You can use this endpoint to cancel a recurring payments agreement in the `active` status.&quot;,
+            responses = {
+                    @ApiResponse(responseCode = &quot;204&quot;, description = &quot;No Content&quot;),
+                    @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Cancellation of agreement failed&quot;,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;401&quot;,
+                            description = RESPONSE_401_DESCRIPTION),
+                    @ApiResponse(responseCode = &quot;404&quot;, description = RESPONSE_404_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class))),
+                    @ApiResponse(responseCode = &quot;429&quot;, description = RESPONSE_429_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))),
+                    @ApiResponse(responseCode = &quot;500&quot;, description = RESPONSE_500_DESCRIPTION,
+                            content = @Content(schema = @Schema(implementation = RequestError.class)))
+            }
+    )
+    public Response cancelAgreement(@Parameter(hidden = true) @Auth Account account, @PathParam(&quot;agreementId&quot;) @Parameter(name = &quot;agreementId&quot;,
+            description = &quot;The `agreement_id` of the agreement you are cancelling&quot;,
+            example = &quot;cgc1ocvh0pt9fqs0ma67r42l58&quot;) String agreementId)
+    {
+<span class="nc" id="L185">        agreementsService.cancelAgreement(account, agreementId);</span>
+<span class="nc" id="L186">        return Response.status(SC_NO_CONTENT).build();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

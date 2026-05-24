@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TilskuddsperiodeKafkaProducer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.tilskuddsperiode</a> &gt; <span class="el_source">TilskuddsperiodeKafkaProducer.java</span></div><h1>TilskuddsperiodeKafkaProducer.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.tilskuddsperiode;
+
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.TilskuddsperiodeAnnullert;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.TilskuddsperiodeForkortet;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.TilskuddsperiodeGodkjent;
+import no.nav.tag.tiltaksgjennomforing.infrastruktur.kafka.Topics;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.util.concurrent.ListenableFutureCallback;
+
+import java.util.UUID;
+
+@ConditionalOnProperty(&quot;tiltaksgjennomforing.kafka.enabled&quot;)
+@Component
+<span class="nc" id="L23">@Slf4j</span>
+public class TilskuddsperiodeKafkaProducer {
+
+    private final KafkaTemplate&lt;String, String&gt; aivenKafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+<span class="nc" id="L29">    public TilskuddsperiodeKafkaProducer(@Qualifier(&quot;aivenKafkaTemplate&quot;) KafkaTemplate&lt;String, String&gt; aivenKafkaTemplate, ObjectMapper objectMapper) {</span>
+<span class="nc" id="L30">        this.aivenKafkaTemplate = aivenKafkaTemplate;</span>
+<span class="nc" id="L31">        this.objectMapper = objectMapper;</span>
+<span class="nc" id="L32">    }</span>
+
+    @TransactionalEventListener
+    public void tilskuddsperiodeGodkjent(TilskuddsperiodeGodkjent event) {
+<span class="nc" id="L36">        TilskuddsperiodeGodkjentMelding melding = TilskuddsperiodeGodkjentMelding.create(event.getAvtale(), event.getTilskuddsperiode(), event.getResendingsnummer());</span>
+<span class="nc" id="L37">        publiserTilskuddsperiodeGodkjentMelding(melding);</span>
+<span class="nc" id="L38">    }</span>
+
+    @TransactionalEventListener
+    public void tilskuddsperiodeAnnullert(TilskuddsperiodeAnnullert event) {
+<span class="nc" id="L42">        UUID tilskuddsperiodeId = event.getTilskuddsperiode().getId();</span>
+<span class="nc" id="L43">        TilskuddsperiodeAnnullertMelding melding = new TilskuddsperiodeAnnullertMelding(tilskuddsperiodeId, TilskuddsperiodeAnnullertÅrsak.AVTALE_ANNULLERT);</span>
+<span class="nc" id="L44">        publiserTilskuddsperiodeAnnullertMelding(melding);</span>
+<span class="nc" id="L45">    }</span>
+
+    @TransactionalEventListener
+    public void tilskuddsperiodeForkortet(TilskuddsperiodeForkortet event) {
+<span class="nc" id="L49">        UUID tilskuddsperiodeId = event.getTilskuddsperiode().getId();</span>
+<span class="nc" id="L50">        TilskuddsperiodeForkortetMelding melding = new TilskuddsperiodeForkortetMelding(tilskuddsperiodeId, event.getTilskuddsperiode().getBeløp(), event.getTilskuddsperiode().getSluttDato());</span>
+<span class="nc" id="L51">        publiserTilskuddsperiodeForkortetMelding(melding);</span>
+<span class="nc" id="L52">    }</span>
+
+    public void publiserTilskuddsperiodeGodkjentMelding(TilskuddsperiodeGodkjentMelding melding) {
+<span class="nc" id="L55">        publiserMelding(Topics.TILSKUDDSPERIODE_GODKJENT, melding.getTilskuddsperiodeId().toString(), melding);</span>
+<span class="nc" id="L56">    }</span>
+
+    public void publiserTilskuddsperiodeAnnullertMelding(TilskuddsperiodeAnnullertMelding melding) {
+<span class="nc" id="L59">        publiserMelding(Topics.TILSKUDDSPERIODE_ANNULLERT, melding.getTilskuddsperiodeId().toString(), melding);</span>
+<span class="nc" id="L60">    }</span>
+
+    public void publiserTilskuddsperiodeForkortetMelding(TilskuddsperiodeForkortetMelding melding) {
+<span class="nc" id="L63">        publiserMelding(Topics.TILSKUDDSPERIODE_FORKORTET, melding.getTilskuddsperiodeId().toString(), melding);</span>
+<span class="nc" id="L64">    }</span>
+
+    private void publiserMelding(String topic, String meldingId, Object melding) {
+        String meldingSomString;
+        try {
+<span class="nc" id="L69">            meldingSomString = objectMapper.writeValueAsString(melding);</span>
+<span class="nc" id="L70">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L71">            log.error(&quot;Kunne ikke lage JSON for melding med id {} til topic {}&quot;, meldingId, topic);</span>
+<span class="nc" id="L72">            return;</span>
+<span class="nc" id="L73">        }</span>
+
+<span class="nc" id="L75">        aivenKafkaTemplate.send(topic, meldingId, meldingSomString)</span>
+<span class="nc" id="L76">                .addCallback(new ListenableFutureCallback&lt;&gt;() {</span>
+                    @Override
+                    public void onSuccess(SendResult&lt;String, String&gt; result) {
+<span class="nc" id="L79">                        log.info(&quot;Melding med id {} sendt til Kafka topic {}&quot;, meldingId, topic);</span>
+<span class="nc" id="L80">                    }</span>
+
+                    @Override
+                    public void onFailure(Throwable ex) {
+<span class="nc" id="L84">                        log.warn(&quot;Melding med id {} kunne ikke sendes til Kafka topic {}&quot;, meldingId, topic);</span>
+<span class="nc" id="L85">                    }</span>
+                });
+<span class="nc" id="L87">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

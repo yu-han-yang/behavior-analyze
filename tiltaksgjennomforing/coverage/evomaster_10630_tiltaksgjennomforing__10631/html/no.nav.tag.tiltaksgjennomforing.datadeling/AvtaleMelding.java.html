@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleMelding.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.datadeling</a> &gt; <span class="el_source">AvtaleMelding.java</span></div><h1>AvtaleMelding.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.datadeling;
+
+import lombok.Data;
+import no.nav.tag.tiltaksgjennomforing.avtale.*;
+import no.nav.tag.tiltaksgjennomforing.enhet.Formidlingsgruppe;
+import no.nav.tag.tiltaksgjennomforing.enhet.Kvalifiseringsgruppe;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+
+<span class="nc bnc" id="L13" title="All 718 branches missed.">@Data</span>
+public class AvtaleMelding {
+<span class="nc" id="L15">    HendelseType hendelseType;</span>
+<span class="nc" id="L16">    Status avtaleStatus;</span>
+
+<span class="nc" id="L18">    Identifikator deltakerFnr;</span>
+<span class="nc" id="L19">    Identifikator mentorFnr;</span>
+<span class="nc" id="L20">    Identifikator bedriftNr;</span>
+<span class="nc" id="L21">    Identifikator veilederNavIdent;</span>
+<span class="nc" id="L22">    Tiltakstype tiltakstype;</span>
+<span class="nc" id="L23">    LocalDateTime opprettetTidspunkt;</span>
+<span class="nc" id="L24">    UUID avtaleId;</span>
+<span class="nc" id="L25">    Integer avtaleNr;</span>
+<span class="nc" id="L26">    Instant sistEndret;</span>
+<span class="nc" id="L27">    Instant annullertTidspunkt;</span>
+<span class="nc" id="L28">    String annullertGrunn;</span>
+<span class="nc" id="L29">    boolean slettemerket;</span>
+<span class="nc" id="L30">    boolean opprettetAvArbeidsgiver;</span>
+<span class="nc" id="L31">    String enhetGeografisk;</span>
+<span class="nc" id="L32">    String enhetsnavnGeografisk;</span>
+<span class="nc" id="L33">    String enhetOppfolging;</span>
+<span class="nc" id="L34">    String enhetsnavnOppfolging;</span>
+<span class="nc" id="L35">    boolean godkjentForEtterregistrering;</span>
+<span class="nc" id="L36">    Kvalifiseringsgruppe kvalifiseringsgruppe;</span>
+<span class="nc" id="L37">    Formidlingsgruppe formidlingsgruppe;</span>
+<span class="nc" id="L38">    SortedSet&lt;TilskuddPeriode&gt; tilskuddPeriode = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L39">    boolean feilregistrert;</span>
+
+    // Innhold
+<span class="nc" id="L42">    Integer versjon;</span>
+<span class="nc" id="L43">    String deltakerFornavn;</span>
+<span class="nc" id="L44">    String deltakerEtternavn;</span>
+<span class="nc" id="L45">    String deltakerTlf;</span>
+<span class="nc" id="L46">    String bedriftNavn;</span>
+<span class="nc" id="L47">    String arbeidsgiverFornavn;</span>
+<span class="nc" id="L48">    String arbeidsgiverEtternavn;</span>
+<span class="nc" id="L49">    String arbeidsgiverTlf;</span>
+<span class="nc" id="L50">    String veilederFornavn;</span>
+<span class="nc" id="L51">    String veilederEtternavn;</span>
+<span class="nc" id="L52">    String veilederTlf;</span>
+<span class="nc" id="L53">    String oppfolging;</span>
+<span class="nc" id="L54">    String tilrettelegging;</span>
+<span class="nc" id="L55">    LocalDate startDato;</span>
+<span class="nc" id="L56">    LocalDate sluttDato;</span>
+<span class="nc" id="L57">    Integer stillingprosent;</span>
+<span class="nc" id="L58">    String journalpostId;</span>
+<span class="nc" id="L59">    String arbeidsoppgaver;</span>
+<span class="nc" id="L60">    String stillingstittel;</span>
+<span class="nc" id="L61">    Integer stillingStyrk08;</span>
+<span class="nc" id="L62">    Integer stillingKonseptId;</span>
+<span class="nc" id="L63">    Integer antallDagerPerUke;</span>
+<span class="nc" id="L64">    RefusjonKontaktperson refusjonKontaktperson;</span>
+    // Mentor
+<span class="nc" id="L66">    String mentorFornavn;</span>
+<span class="nc" id="L67">    String mentorEtternavn;</span>
+<span class="nc" id="L68">    String mentorOppgaver;</span>
+<span class="nc" id="L69">    Double mentorAntallTimer;</span>
+<span class="nc" id="L70">    Integer mentorTimelonn;</span>
+<span class="nc" id="L71">    String mentorTlf;</span>
+
+    // Lønnstilskudd
+<span class="nc" id="L74">    String arbeidsgiverKontonummer;</span>
+<span class="nc" id="L75">    Integer lonnstilskuddProsent;</span>
+<span class="nc" id="L76">    Integer manedslonn;</span>
+<span class="nc" id="L77">    BigDecimal feriepengesats;</span>
+<span class="nc" id="L78">    BigDecimal arbeidsgiveravgift;</span>
+<span class="nc" id="L79">    Boolean harFamilietilknytning;</span>
+<span class="nc" id="L80">    String familietilknytningForklaring;</span>
+<span class="nc" id="L81">    Integer feriepengerBelop;</span>
+<span class="nc" id="L82">    Double otpSats;</span>
+<span class="nc" id="L83">    Integer otpBelop;</span>
+<span class="nc" id="L84">    Integer arbeidsgiveravgiftBelop;</span>
+<span class="nc" id="L85">    Integer sumLonnsutgifter;</span>
+<span class="nc" id="L86">    Integer sumLonnstilskudd;</span>
+<span class="nc" id="L87">    Integer manedslonn100pst;</span>
+<span class="nc" id="L88">    Integer sumLønnstilskuddRedusert;</span>
+<span class="nc" id="L89">    LocalDate datoForRedusertProsent;</span>
+<span class="nc" id="L90">    Stillingstype stillingstype;</span>
+
+<span class="nc" id="L92">    List&lt;Maal&gt; maal = new ArrayList&lt;&gt;();</span>
+
+    // Inkluderingstilskudd
+<span class="nc" id="L95">    List&lt;Inkluderingstilskuddsutgift&gt; inkluderingstilskuddsutgift = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L96">    String inkluderingstilskuddBegrunnelse;</span>
+<span class="nc" id="L97">    Integer inkluderingstilskuddTotalBeløp;</span>
+
+    // Godkjenning
+<span class="nc" id="L100">    LocalDateTime godkjentAvDeltaker;</span>
+<span class="nc" id="L101">    LocalDateTime godkjentTaushetserklæringAvMentor;</span>
+<span class="nc" id="L102">    LocalDateTime godkjentAvArbeidsgiver;</span>
+<span class="nc" id="L103">    LocalDateTime godkjentAvVeileder;</span>
+<span class="nc" id="L104">    LocalDateTime godkjentAvBeslutter;</span>
+<span class="nc" id="L105">    LocalDateTime avtaleInngått;</span>
+<span class="nc" id="L106">    LocalDateTime ikrafttredelsestidspunkt;</span>
+<span class="nc" id="L107">    Identifikator godkjentAvNavIdent;</span>
+<span class="nc" id="L108">    Identifikator godkjentAvBeslutterNavIdent;</span>
+
+    // Kostnadssted
+<span class="nc" id="L111">    String enhetKostnadssted;</span>
+<span class="nc" id="L112">    String enhetsnavnKostnadssted;</span>
+<span class="nc" id="L113">    GodkjentPaVegneGrunn godkjentPaVegneGrunn;</span>
+<span class="nc" id="L114">    boolean godkjentPaVegneAv;</span>
+<span class="nc" id="L115">    GodkjentPaVegneAvArbeidsgiverGrunn godkjentPaVegneAvArbeidsgiverGrunn;</span>
+<span class="nc" id="L116">    boolean godkjentPaVegneAvArbeidsgiver;</span>
+<span class="nc" id="L117">    AvtaleInnholdType innholdType;</span>
+<span class="nc" id="L118">    Identifikator utførtAv;</span>
+<span class="nc" id="L119">    AvtaleHendelseUtførtAvRolle utførtAvRolle;</span>
+
+    public static AvtaleMelding create(Avtale avtale, AvtaleInnhold avtaleInnhold, Identifikator utførtAv, AvtaleHendelseUtførtAvRolle utførtAvAvtaleRolle, HendelseType hendelseType) {
+
+<span class="nc" id="L123">        AvtaleMelding avtaleMelding = new AvtaleMelding();</span>
+<span class="nc" id="L124">        avtaleMelding.setHendelseType(hendelseType);</span>
+<span class="nc" id="L125">        avtaleMelding.setAvtaleStatus(avtale.statusSomEnum());</span>
+<span class="nc" id="L126">        avtaleMelding.setDeltakerFnr(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L127">        avtaleMelding.setMentorFnr(avtale.getMentorFnr());</span>
+<span class="nc" id="L128">        avtaleMelding.setBedriftNr(avtale.getBedriftNr());</span>
+<span class="nc" id="L129">        avtaleMelding.setVeilederNavIdent(avtale.getVeilederNavIdent());</span>
+<span class="nc" id="L130">        avtaleMelding.setTiltakstype(avtale.getTiltakstype());</span>
+<span class="nc" id="L131">        avtaleMelding.setOpprettetTidspunkt(avtale.getOpprettetTidspunkt());</span>
+<span class="nc" id="L132">        avtaleMelding.setAvtaleId(avtale.getId());</span>
+<span class="nc" id="L133">        avtaleMelding.setAvtaleNr(avtale.getAvtaleNr());</span>
+<span class="nc" id="L134">        avtaleMelding.setSistEndret(avtale.getSistEndret());</span>
+<span class="nc" id="L135">        avtaleMelding.setAnnullertTidspunkt(avtale.getAnnullertTidspunkt());</span>
+<span class="nc" id="L136">        avtaleMelding.setAnnullertGrunn(avtale.getAnnullertGrunn());</span>
+<span class="nc" id="L137">        avtaleMelding.setSlettemerket(avtale.isSlettemerket());</span>
+<span class="nc" id="L138">        avtaleMelding.setOpprettetAvArbeidsgiver(avtale.isOpprettetAvArbeidsgiver());</span>
+<span class="nc" id="L139">        avtaleMelding.setEnhetGeografisk(avtale.getEnhetGeografisk());</span>
+<span class="nc" id="L140">        avtaleMelding.setEnhetsnavnGeografisk(avtale.getEnhetsnavnGeografisk());</span>
+<span class="nc" id="L141">        avtaleMelding.setEnhetOppfolging(avtale.getEnhetOppfolging());</span>
+<span class="nc" id="L142">        avtaleMelding.setEnhetsnavnOppfolging(avtale.getEnhetsnavnOppfolging());</span>
+<span class="nc" id="L143">        avtaleMelding.setGodkjentForEtterregistrering(avtale.isGodkjentForEtterregistrering());</span>
+<span class="nc" id="L144">        avtaleMelding.setKvalifiseringsgruppe(avtale.getKvalifiseringsgruppe());</span>
+<span class="nc" id="L145">        avtaleMelding.setFormidlingsgruppe(avtale.getFormidlingsgruppe());</span>
+<span class="nc" id="L146">        avtaleMelding.setFeilregistrert(avtale.isFeilregistrert());</span>
+<span class="nc" id="L147">        avtaleMelding.setVersjon(avtaleInnhold.getVersjon());</span>
+<span class="nc" id="L148">        avtaleMelding.setDeltakerFornavn(avtaleInnhold.getDeltakerFornavn());</span>
+<span class="nc" id="L149">        avtaleMelding.setDeltakerEtternavn(avtaleInnhold.getDeltakerEtternavn());</span>
+<span class="nc" id="L150">        avtaleMelding.setDeltakerTlf(avtaleInnhold.getDeltakerTlf());</span>
+<span class="nc" id="L151">        avtaleMelding.setBedriftNavn(avtaleInnhold.getBedriftNavn());</span>
+<span class="nc" id="L152">        avtaleMelding.setArbeidsgiverFornavn(avtaleInnhold.getArbeidsgiverFornavn());</span>
+<span class="nc" id="L153">        avtaleMelding.setArbeidsgiverEtternavn(avtaleInnhold.getArbeidsgiverEtternavn());</span>
+<span class="nc" id="L154">        avtaleMelding.setArbeidsgiverTlf(avtaleInnhold.getArbeidsgiverTlf());</span>
+<span class="nc" id="L155">        avtaleMelding.setVeilederFornavn(avtaleInnhold.getVeilederFornavn());</span>
+<span class="nc" id="L156">        avtaleMelding.setVeilederEtternavn(avtaleInnhold.getVeilederEtternavn());</span>
+<span class="nc" id="L157">        avtaleMelding.setVeilederTlf(avtaleInnhold.getVeilederTlf());</span>
+<span class="nc" id="L158">        avtaleMelding.setOppfolging(avtaleInnhold.getOppfolging());</span>
+<span class="nc" id="L159">        avtaleMelding.setTilrettelegging(avtaleInnhold.getTilrettelegging());</span>
+<span class="nc" id="L160">        avtaleMelding.setStartDato(avtaleInnhold.getStartDato());</span>
+<span class="nc" id="L161">        avtaleMelding.setSluttDato(avtaleInnhold.getSluttDato());</span>
+<span class="nc" id="L162">        avtaleMelding.setStillingprosent(avtaleInnhold.getStillingprosent());</span>
+<span class="nc" id="L163">        avtaleMelding.setJournalpostId(avtaleInnhold.getJournalpostId());</span>
+<span class="nc" id="L164">        avtaleMelding.setArbeidsoppgaver(avtaleInnhold.getArbeidsoppgaver());</span>
+<span class="nc" id="L165">        avtaleMelding.setStillingstittel(avtaleInnhold.getStillingstittel());</span>
+<span class="nc" id="L166">        avtaleMelding.setStillingStyrk08(avtaleInnhold.getStillingStyrk08());</span>
+<span class="nc" id="L167">        avtaleMelding.setStillingKonseptId(avtaleInnhold.getStillingKonseptId());</span>
+<span class="nc" id="L168">        avtaleMelding.setAntallDagerPerUke(avtaleInnhold.getAntallDagerPerUke());</span>
+<span class="nc" id="L169">        avtaleMelding.setRefusjonKontaktperson(avtaleInnhold.getRefusjonKontaktperson());</span>
+<span class="nc" id="L170">        avtaleMelding.setMentorFornavn(avtaleInnhold.getMentorFornavn());</span>
+<span class="nc" id="L171">        avtaleMelding.setMentorEtternavn(avtaleInnhold.getMentorEtternavn());</span>
+<span class="nc" id="L172">        avtaleMelding.setMentorOppgaver(avtaleInnhold.getMentorOppgaver());</span>
+<span class="nc" id="L173">        avtaleMelding.setMentorAntallTimer(avtaleInnhold.getMentorAntallTimer());</span>
+<span class="nc" id="L174">        avtaleMelding.setMentorTimelonn(avtaleInnhold.getMentorTimelonn());</span>
+<span class="nc" id="L175">        avtaleMelding.setMentorTlf(avtaleInnhold.getMentorTlf());</span>
+<span class="nc" id="L176">        avtaleMelding.setArbeidsgiverKontonummer(avtaleInnhold.getArbeidsgiverKontonummer());</span>
+<span class="nc" id="L177">        avtaleMelding.setLonnstilskuddProsent(avtaleInnhold.getLonnstilskuddProsent());</span>
+<span class="nc" id="L178">        avtaleMelding.setManedslonn(avtaleInnhold.getManedslonn());</span>
+<span class="nc" id="L179">        avtaleMelding.setFeriepengesats(avtaleInnhold.getFeriepengesats());</span>
+<span class="nc" id="L180">        avtaleMelding.setArbeidsgiveravgift(avtaleInnhold.getArbeidsgiveravgift());</span>
+<span class="nc" id="L181">        avtaleMelding.setHarFamilietilknytning(avtaleInnhold.getHarFamilietilknytning());</span>
+<span class="nc" id="L182">        avtaleMelding.setFamilietilknytningForklaring(avtaleInnhold.getFamilietilknytningForklaring());</span>
+<span class="nc" id="L183">        avtaleMelding.setFeriepengerBelop(avtaleInnhold.getFeriepengerBelop());</span>
+<span class="nc" id="L184">        avtaleMelding.setOtpSats(avtaleInnhold.getOtpSats());</span>
+<span class="nc" id="L185">        avtaleMelding.setOtpBelop(avtaleInnhold.getOtpBelop());</span>
+<span class="nc" id="L186">        avtaleMelding.setArbeidsgiveravgiftBelop(avtaleInnhold.getArbeidsgiveravgiftBelop());</span>
+<span class="nc" id="L187">        avtaleMelding.setSumLonnsutgifter(avtaleInnhold.getSumLonnsutgifter());</span>
+<span class="nc" id="L188">        avtaleMelding.setSumLonnstilskudd(avtaleInnhold.getSumLonnstilskudd());</span>
+<span class="nc" id="L189">        avtaleMelding.setManedslonn100pst(avtaleInnhold.getManedslonn100pst());</span>
+<span class="nc" id="L190">        avtaleMelding.setSumLønnstilskuddRedusert(avtaleInnhold.getSumLønnstilskuddRedusert());</span>
+<span class="nc" id="L191">        avtaleMelding.setDatoForRedusertProsent(avtaleInnhold.getDatoForRedusertProsent());</span>
+<span class="nc" id="L192">        avtaleMelding.setStillingstype(avtaleInnhold.getStillingstype());</span>
+<span class="nc" id="L193">        avtaleMelding.setInkluderingstilskuddBegrunnelse(avtaleInnhold.getInkluderingstilskuddBegrunnelse());</span>
+<span class="nc" id="L194">        avtaleMelding.setInkluderingstilskuddTotalBeløp(avtaleInnhold.inkluderingstilskuddTotalBeløp());</span>
+<span class="nc" id="L195">        avtaleMelding.setGodkjentAvDeltaker(avtaleInnhold.getGodkjentAvDeltaker());</span>
+<span class="nc" id="L196">        avtaleMelding.setGodkjentTaushetserklæringAvMentor(avtaleInnhold.getGodkjentTaushetserklæringAvMentor());</span>
+<span class="nc" id="L197">        avtaleMelding.setGodkjentAvArbeidsgiver(avtaleInnhold.getGodkjentAvArbeidsgiver());</span>
+<span class="nc" id="L198">        avtaleMelding.setGodkjentAvVeileder(avtaleInnhold.getGodkjentAvVeileder());</span>
+<span class="nc" id="L199">        avtaleMelding.setGodkjentAvBeslutter(avtaleInnhold.getGodkjentAvBeslutter());</span>
+<span class="nc" id="L200">        avtaleMelding.setAvtaleInngått(avtaleInnhold.getAvtaleInngått());</span>
+<span class="nc" id="L201">        avtaleMelding.setIkrafttredelsestidspunkt(avtaleInnhold.getIkrafttredelsestidspunkt());</span>
+<span class="nc" id="L202">        avtaleMelding.setGodkjentAvNavIdent(avtaleInnhold.getGodkjentAvNavIdent());</span>
+<span class="nc" id="L203">        avtaleMelding.setGodkjentAvBeslutterNavIdent(avtaleInnhold.getGodkjentAvBeslutterNavIdent());</span>
+<span class="nc" id="L204">        avtaleMelding.setEnhetKostnadssted(avtaleInnhold.getEnhetKostnadssted());</span>
+<span class="nc" id="L205">        avtaleMelding.setEnhetsnavnKostnadssted(avtaleInnhold.getEnhetsnavnKostnadssted());</span>
+<span class="nc" id="L206">        avtaleMelding.setGodkjentPaVegneGrunn(avtaleInnhold.getGodkjentPaVegneGrunn());</span>
+<span class="nc" id="L207">        avtaleMelding.setGodkjentPaVegneAv(avtaleInnhold.isGodkjentPaVegneAv());</span>
+<span class="nc" id="L208">        avtaleMelding.setGodkjentPaVegneAvArbeidsgiverGrunn(avtaleInnhold.getGodkjentPaVegneAvArbeidsgiverGrunn());</span>
+<span class="nc" id="L209">        avtaleMelding.setGodkjentPaVegneAvArbeidsgiver(avtaleInnhold.isGodkjentPaVegneAvArbeidsgiver());</span>
+<span class="nc" id="L210">        avtaleMelding.setInnholdType(avtaleInnhold.getInnholdType());</span>
+<span class="nc" id="L211">        avtaleMelding.setUtførtAv(utførtAv);</span>
+<span class="nc" id="L212">        avtaleMelding.setUtførtAvRolle(utførtAvAvtaleRolle);</span>
+
+        //Lister
+<span class="nc" id="L215">        avtaleMelding.setTilskuddPeriode(Collections.emptySortedSet());</span>
+<span class="nc" id="L216">        avtaleMelding.setMaal(avtaleInnhold.getMaal());</span>
+<span class="nc" id="L217">        avtaleMelding.setInkluderingstilskuddsutgift(avtaleInnhold.getInkluderingstilskuddsutgift());</span>
+
+<span class="nc" id="L219">        return avtaleMelding;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

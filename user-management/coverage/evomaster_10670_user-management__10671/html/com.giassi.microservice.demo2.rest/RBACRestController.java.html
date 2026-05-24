@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RBACRestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.giassi.microservice.demo2.rest</a> &gt; <span class="el_source">RBACRestController.java</span></div><h1>RBACRestController.java</h1><pre class="source lang-java linenums">package com.giassi.microservice.demo2.rest;
+
+import com.giassi.microservice.demo2.rest.users.dtos.PermissionDTO;
+import com.giassi.microservice.demo2.rest.users.dtos.RoleDTO;
+import com.giassi.microservice.demo2.rest.users.entities.Permission;
+import com.giassi.microservice.demo2.rest.users.entities.Role;
+import com.giassi.microservice.demo2.rest.users.services.EncryptionService;
+import com.giassi.microservice.demo2.rest.users.services.PermissionService;
+import com.giassi.microservice.demo2.rest.users.services.RoleService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@RestController
+@RequestMapping(value = &quot;/users/rbac&quot;)
+<span class="fc" id="L20">public class RBACRestController {</span>
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private PermissionService permissionService;
+
+    // roles
+    @GetMapping(&quot;/roles&quot;)
+    public ResponseEntity&lt;List&lt;RoleDTO&gt;&gt; getRolePresentationList() {
+<span class="fc" id="L31">        Iterable&lt;Role&gt; roleList = roleService.getRoleList();</span>
+<span class="fc" id="L32">        ArrayList&lt;RoleDTO&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L33">        roleList.forEach(e -&gt; list.add(new RoleDTO(e)));</span>
+<span class="fc" id="L34">        return ResponseEntity.ok(list);</span>
+    }
+
+    @PostMapping(&quot;/roles&quot;)
+    public ResponseEntity&lt;RoleDTO&gt; createRole(@RequestBody String role) {
+<span class="fc" id="L39">        return new ResponseEntity(new RoleDTO(roleService.createRole(role)), null, HttpStatus.CREATED);</span>
+    }
+
+    @GetMapping(&quot;/roles/{roleId}&quot;)
+    public RoleDTO getRoleById(@PathVariable(&quot;roleId&quot;) Long roleId) {
+<span class="fc" id="L44">        return new RoleDTO(roleService.getRoleById(roleId));</span>
+    }
+
+    @DeleteMapping(&quot;/roles/{roleId}&quot;)
+    public ResponseEntity&lt;?&gt; deleteRoleById(@PathVariable(&quot;roleId&quot;) Long roleId) {
+<span class="fc" id="L49">        roleService.deleteRole(roleId);</span>
+<span class="fc" id="L50">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // retrieve the permission's list
+    @GetMapping(&quot;/permissions&quot;)
+    public ResponseEntity&lt;List&lt;PermissionDTO&gt;&gt; getPermissionPresentationList() {
+<span class="fc" id="L56">        Iterable&lt;Permission&gt; permissionList = permissionService.getPermissionList();</span>
+<span class="fc" id="L57">        ArrayList&lt;PermissionDTO&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L58">        permissionList.forEach(e -&gt; list.add(new PermissionDTO(e)));</span>
+<span class="fc" id="L59">        return ResponseEntity.ok(list);</span>
+    }
+
+    // permissions
+
+    @GetMapping(&quot;/permissions/{permissionKey}&quot;)
+    public ResponseEntity&lt;PermissionDTO&gt; getPermissionByKey(@PathVariable(&quot;permissionKey&quot;) String permissionKey) {
+<span class="fc" id="L66">        PermissionDTO permissionDTO = new PermissionDTO(permissionService.getPermissionByKey(permissionKey));</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(permissionDTO);</span>
+    }
+
+    @PostMapping(&quot;/permissions&quot;)
+    public ResponseEntity&lt;PermissionDTO&gt; createPermission(@RequestBody PermissionDTO permissionDTO) {
+<span class="fc" id="L72">        return new ResponseEntity(new PermissionDTO(permissionService.createPermission(permissionDTO)), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/permissions&quot;)
+    public ResponseEntity&lt;PermissionDTO&gt; updatePermission(@RequestBody PermissionDTO permissionDTO) {
+<span class="nc" id="L77">        return new ResponseEntity(new PermissionDTO(permissionService.updatePermission(permissionDTO)), HttpStatus.CREATED);</span>
+    }
+
+    @DeleteMapping(&quot;/permissions/{permissionKey}&quot;)
+    public ResponseEntity&lt;?&gt; deletePermissionByKey(@PathVariable(&quot;permissionKey&quot;) String permissionKey) {
+<span class="fc" id="L82">        permissionService.deletePermissionByKey(permissionKey);</span>
+<span class="fc" id="L83">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // add or remove a Permission on a Role
+
+    @PostMapping(&quot;/roles/{roleId}/permissions/{permissionKey}&quot;)
+    public ResponseEntity&lt;RoleDTO&gt; addPermissionOnRole(@PathVariable(&quot;roleId&quot;) Long roleId, @PathVariable(&quot;permissionKey&quot;) String permissionKey) {
+<span class="nc" id="L90">        return new ResponseEntity(new RoleDTO(roleService.addPermissionOnRole(roleId, permissionKey)), null, HttpStatus.CREATED);</span>
+    }
+
+    @DeleteMapping(&quot;/roles/{roleId}/permissions/{permissionKey}&quot;)
+    public ResponseEntity&lt;RoleDTO&gt; removePermissionOnRole(@PathVariable(&quot;roleId&quot;) Long roleId, @PathVariable(&quot;permissionKey&quot;) String permissionKey) {
+<span class="nc" id="L95">        return new ResponseEntity(new RoleDTO(roleService.removePermissionOnRole(roleId, permissionKey)), null, HttpStatus.OK);</span>
+    }
+
+    // salt generation
+    @GetMapping(&quot;/salt&quot;)
+    public ResponseEntity&lt;String&gt; generateSalt() {
+<span class="fc" id="L101">        return new ResponseEntity&lt;String&gt;(EncryptionService.generateSalt(32), HttpStatus.CREATED);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

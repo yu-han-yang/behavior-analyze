@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EhCacheConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.infrastruktur.cache</a> &gt; <span class="el_source">EhCacheConfig.java</span></div><h1>EhCacheConfig.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.infrastruktur.cache;
+
+
+import net.sf.ehcache.CacheManager;
+import net.sf.ehcache.config.CacheConfiguration;
+import net.sf.ehcache.config.PersistenceConfiguration;
+import org.springframework.cache.annotation.CachingConfigurerSupport;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.ehcache.EhCacheCacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
+
+import static net.sf.ehcache.config.PersistenceConfiguration.Strategy.NONE;
+import static net.sf.ehcache.store.MemoryStoreEvictionPolicy.LRU;
+
+@Configuration
+@EnableCaching
+<span class="fc" id="L20">public class EhCacheConfig extends CachingConfigurerSupport {</span>
+
+    public final static String ABAC_CACHE = &quot;abac_cache&quot;;
+
+    public static final String AXSYS_CACHE = &quot;axsys_cache&quot;;
+
+    public static final String PDL_CACHE = &quot;pdl_cache&quot;;
+
+    public static final String NORGNAVN_CACHE = &quot;norgnavn_cache&quot;;
+
+    public static final String NORG_GEO_ENHET = &quot;norggeoenhet_cache&quot;;
+
+    public static final String ARENA_CACHCE = &quot;arena_cache&quot;;
+
+    @Bean
+    public CacheManager ehCacheManager(CacheDto cacheDto) {
+<span class="fc" id="L36">        net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();</span>
+<span class="fc" id="L37">        cacheDto.getEhcaches().forEach(cache -&gt; config.addCache(</span>
+<span class="fc" id="L38">                setupCache(</span>
+<span class="fc" id="L39">                        cache.getName(),</span>
+<span class="fc" id="L40">                        cache.getMaximumSize(),</span>
+<span class="fc" id="L41">                        Duration.ofMinutes(cache.getExpiryInMinutes())</span>
+                )
+        ));
+<span class="fc" id="L44">        return CacheManager.newInstance(config);</span>
+    }
+
+    @Bean
+    public EhCacheCacheManager cacheManager(CacheDto cacheDto) {
+<span class="fc" id="L49">        return new EhCacheCacheManager(ehCacheManager(cacheDto));</span>
+    }
+
+    private static CacheConfiguration setupCache(String name, int maxEntriesLocalHeap, Duration duration) {
+<span class="fc" id="L53">        return new CacheConfiguration(name, maxEntriesLocalHeap)</span>
+<span class="fc" id="L54">                .memoryStoreEvictionPolicy(LRU)</span>
+<span class="fc" id="L55">                .timeToIdleSeconds(duration.getSeconds())</span>
+<span class="fc" id="L56">                .timeToLiveSeconds(duration.getSeconds())</span>
+<span class="fc" id="L57">                .persistence(new PersistenceConfiguration().strategy(NONE));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

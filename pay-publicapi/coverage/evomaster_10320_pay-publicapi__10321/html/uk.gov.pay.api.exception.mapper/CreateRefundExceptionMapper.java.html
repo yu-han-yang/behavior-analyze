@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CreateRefundExceptionMapper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.exception.mapper</a> &gt; <span class="el_source">CreateRefundExceptionMapper.java</span></div><h1>CreateRefundExceptionMapper.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.exception.mapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.pay.api.exception.CreateRefundException;
+import uk.gov.pay.api.model.RequestError;
+import uk.gov.service.payments.commons.model.ErrorIdentifier;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+
+import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import static javax.ws.rs.core.Response.Status.FORBIDDEN;
+import static javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static javax.ws.rs.core.Response.Status.PRECONDITION_FAILED;
+import static uk.gov.pay.api.model.RequestError.Code.ACCOUNT_DISABLED;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_AMOUNT_AVAILABLE_MISMATCH;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_CONNECTOR_ERROR;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_NOT_AVAILABLE;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE;
+import static uk.gov.pay.api.model.RequestError.Code.CREATE_PAYMENT_REFUND_NOT_FOUND_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+
+<span class="fc" id="L25">public class CreateRefundExceptionMapper implements ExceptionMapper&lt;CreateRefundException&gt; {</span>
+
+<span class="fc" id="L27">    private static final Logger LOGGER = LoggerFactory.getLogger(CreateRefundExceptionMapper.class);</span>
+
+    @Override
+    public Response toResponse(CreateRefundException exception) {
+
+        RequestError requestError;
+        Response.Status status;
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (exception.getErrorStatus() == NOT_FOUND.getStatusCode()) {</span>
+<span class="nc" id="L36">            requestError = aRequestError(CREATE_PAYMENT_REFUND_NOT_FOUND_ERROR);</span>
+<span class="nc" id="L37">            status = NOT_FOUND;</span>
+
+        }
+        else {
+<span class="nc bnc" id="L41" title="All 5 branches missed.">            switch (exception.getErrorIdentifier()) {</span>
+                case ACCOUNT_DISABLED: {
+<span class="nc" id="L43">                    requestError = aRequestError(ACCOUNT_DISABLED);</span>
+<span class="nc" id="L44">                    status = FORBIDDEN;</span>
+<span class="nc" id="L45">                    break;</span>
+                }
+                case REFUND_NOT_AVAILABLE: {
+<span class="nc bnc" id="L48" title="All 2 branches missed.">                    if (exception.hasReason()) {</span>
+<span class="nc" id="L49">                        requestError = aRequestError(CREATE_PAYMENT_REFUND_NOT_AVAILABLE, exception.getReason());</span>
+<span class="nc" id="L50">                        status = BAD_REQUEST;</span>
+                    }
+                    else {
+<span class="nc" id="L53">                        LOGGER.error(&quot;Connector response for REFUND_NOT_AVAILABLE is missing the 'reason' field&quot;);</span>
+<span class="nc" id="L54">                        requestError = aRequestError(CREATE_PAYMENT_REFUND_CONNECTOR_ERROR);</span>
+<span class="nc" id="L55">                        status = INTERNAL_SERVER_ERROR;</span>
+                    }
+<span class="nc" id="L57">                    break;</span>
+                }
+                case REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE: {
+<span class="nc" id="L60">                    requestError = aRequestError(CREATE_PAYMENT_REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE);</span>
+<span class="nc" id="L61">                    status = BAD_REQUEST;</span>
+<span class="nc" id="L62">                    break;</span>
+                }
+                case REFUND_AMOUNT_AVAILABLE_MISMATCH: {
+<span class="nc" id="L65">                    requestError = aRequestError(CREATE_PAYMENT_REFUND_AMOUNT_AVAILABLE_MISMATCH);</span>
+<span class="nc" id="L66">                    status = PRECONDITION_FAILED;</span>
+<span class="nc" id="L67">                    break;</span>
+                }
+                default: {
+<span class="nc" id="L70">                    requestError = aRequestError(CREATE_PAYMENT_REFUND_CONNECTOR_ERROR);</span>
+<span class="nc" id="L71">                    status = INTERNAL_SERVER_ERROR;</span>
+                }
+            }
+        }
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (status == INTERNAL_SERVER_ERROR) {</span>
+<span class="nc" id="L77">            LOGGER.info(&quot;Connector invalid response was {}.\n Returning http status {} with error body {}&quot;, exception.getMessage(), status, requestError);</span>
+        }
+
+<span class="nc" id="L80">        return Response</span>
+<span class="nc" id="L81">                .status(status)</span>
+<span class="nc" id="L82">                .entity(requestError)</span>
+<span class="nc" id="L83">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

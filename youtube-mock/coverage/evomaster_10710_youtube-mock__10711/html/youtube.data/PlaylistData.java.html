@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlaylistData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.data</a> &gt; <span class="el_source">PlaylistData.java</span></div><h1>PlaylistData.java</h1><pre class="source lang-java linenums">package youtube.data;
+
+import youtube.api.model.Playlist;
+import youtube.api.model.SearchResultSnippet;
+import youtube.api.model.Video;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
+
+<span class="nc" id="L14">public class PlaylistData {</span>
+
+    public static List&lt;Playlist&gt; getPlaylistData(List&lt;Video&gt; videos) throws ParseException {
+<span class="fc" id="L17">        List&lt;Playlist&gt; result = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L19">        SimpleDateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd'T'HH:mm:ss'Z'&quot;);</span>
+<span class="fc" id="L20">        dateFormat.setTimeZone(TimeZone.getTimeZone(&quot;UTC&quot;));</span>
+
+        //##### Playlist 1 #####
+
+<span class="fc" id="L24">        List&lt;Video&gt; videosPlaylist1 = videos.subList(2,7);</span>
+
+<span class="fc" id="L26">        SearchResultSnippet snippetP1 = new SearchResultSnippet();</span>
+<span class="fc" id="L27">        snippetP1.setTitle(&quot;My favourite videos&quot;);</span>
+<span class="fc" id="L28">        snippetP1.setPublishedAt(dateFormat.parse(&quot;2020-04-01T20:18:39Z&quot;));</span>
+<span class="fc" id="L29">        snippetP1.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L30">        snippetP1.setDescription(&quot;These are my favourite videos of YouTube.&quot;);</span>
+<span class="fc" id="L31">        snippetP1.setChannelTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L32">        snippetP1.setChannelId(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+<span class="fc" id="L33">        snippetP1.setThumbnails(videosPlaylist1.get(0).getSnippet().getThumbnails());</span>
+
+<span class="fc" id="L35">        Playlist playlist1 = new Playlist(&quot;PLM6w4jagjNhE0rMyag22T9xEfifA3-IVW&quot;, snippetP1, &quot;en&quot;, videosPlaylist1);</span>
+
+        //##### Playlist 2 #####
+
+<span class="fc" id="L39">        List&lt;Video&gt; videosPlaylist2 = Arrays.asList(videos.get(1), videos.get(2), videos.get(7));</span>
+
+<span class="fc" id="L41">        SearchResultSnippet snippetP2 = new SearchResultSnippet();</span>
+<span class="fc" id="L42">        snippetP2.setTitle(&quot;Music!&quot;);</span>
+<span class="fc" id="L43">        snippetP2.setPublishedAt(dateFormat.parse(&quot;2020-04-10T17:12:10Z&quot;));</span>
+<span class="fc" id="L44">        snippetP2.setLiveBroadcastContent(SearchResultSnippet.LiveBroadcastContent.NONE);</span>
+<span class="fc" id="L45">        snippetP2.setDescription(&quot;&quot;);</span>
+<span class="fc" id="L46">        snippetP2.setChannelTitle(&quot;My channel&quot;);</span>
+<span class="fc" id="L47">        snippetP2.setChannelId(&quot;UCxwvutsrqponmlkjihgfedc&quot;);</span>
+<span class="fc" id="L48">        snippetP2.setThumbnails(videosPlaylist2.get(0).getSnippet().getThumbnails());</span>
+
+<span class="fc" id="L50">        Playlist playlist2 = new Playlist(&quot;PLt6nqoGW2VDS5IzIvMFNbXBiPqAu0g8KE&quot;, snippetP2, &quot;en&quot;, videosPlaylist2);</span>
+
+<span class="fc" id="L52">        result.add(playlist1);</span>
+<span class="fc" id="L53">        result.add(playlist2);</span>
+
+<span class="fc" id="L55">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

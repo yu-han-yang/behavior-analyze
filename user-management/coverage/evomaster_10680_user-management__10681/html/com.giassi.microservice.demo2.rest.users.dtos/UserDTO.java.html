@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.giassi.microservice.demo2.rest.users.dtos</a> &gt; <span class="el_source">UserDTO.java</span></div><h1>UserDTO.java</h1><pre class="source lang-java linenums">package com.giassi.microservice.demo2.rest.users.dtos;
+
+import com.giassi.microservice.demo2.rest.users.entities.Permission;
+import com.giassi.microservice.demo2.rest.users.entities.Role;
+import com.giassi.microservice.demo2.rest.users.entities.User;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+<span class="nc bnc" id="L13" title="All 126 branches missed.">@Data</span>
+public class UserDTO implements Serializable {
+
+<span class="nc" id="L16">    public UserDTO() {</span>
+        // empty constructor
+<span class="nc" id="L18">        roles = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L19">        permissions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L20">    }</span>
+
+<span class="fc" id="L22">    public UserDTO(User user) {</span>
+<span class="pc bpc" id="L23" title="1 of 2 branches missed.">        if (user != null) {</span>
+<span class="fc" id="L24">            this.id = user.getId();</span>
+<span class="fc" id="L25">            this.username = user.getUsername();</span>
+<span class="fc" id="L26">            this.name = user.getName();</span>
+<span class="fc" id="L27">            this.surname = user.getSurname();</span>
+<span class="fc" id="L28">            this.gender = user.getGender().name();</span>
+
+<span class="fc" id="L30">            this.birthDate = user.getBirthDate();</span>
+
+<span class="fc" id="L32">            this.enabled = user.isEnabled();</span>
+
+<span class="fc" id="L34">            this.note = user.getNote();</span>
+
+<span class="fc" id="L36">            this.creationDt = user.getCreationDt();</span>
+<span class="fc" id="L37">            this.updatedDt = user.getUpdatedDt();</span>
+<span class="fc" id="L38">            this.loginDt = user.getLoginDt();</span>
+
+<span class="fc" id="L40">            this.secured = user.isSecured();</span>
+
+            // contact, if set
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">            if (user.getContact() != null) {</span>
+<span class="fc" id="L44">                this.contactDTO = new ContactDTO(user.getContact());</span>
+            }
+
+            // address, if set
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            if (user.getAddress() != null) {</span>
+<span class="fc" id="L49">                this.addressDTO = new AddressDTO(user.getAddress());</span>
+            }
+
+            // Because the permissions can be associated to more than one roles i'm creating two String arrays
+            // with the distinct keys of roles and permissions.
+<span class="fc" id="L54">            roles = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L55">            permissions = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            for (Role role : user.getRoles()) {</span>
+<span class="fc" id="L58">                roles.add(role.getRole());</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                for (Permission p : role.getPermissions()) {</span>
+<span class="fc" id="L60">                    String key = p.getPermission();</span>
+<span class="pc bpc" id="L61" title="1 of 4 branches missed.">                    if ((!permissions.contains(key)) &amp;&amp; (p.isEnabled())) {</span>
+                        // add the permission only if enabled
+<span class="fc" id="L63">                        permissions.add(key);</span>
+                    }
+<span class="fc" id="L65">                }</span>
+<span class="fc" id="L66">            }</span>
+
+        }
+<span class="fc" id="L69">    }</span>
+
+<span class="fc" id="L71">    private Long id;</span>
+<span class="fc" id="L72">    private String username;</span>
+<span class="fc" id="L73">    private String name;</span>
+<span class="fc" id="L74">    private String surname;</span>
+<span class="fc" id="L75">    private String gender;</span>
+<span class="fc" id="L76">    private java.time.LocalDate birthDate;</span>
+
+<span class="fc" id="L78">    private boolean enabled;</span>
+
+<span class="fc" id="L80">    private String note;</span>
+
+<span class="fc" id="L82">    private LocalDateTime creationDt;</span>
+<span class="fc" id="L83">    private LocalDateTime updatedDt;</span>
+<span class="fc" id="L84">    private LocalDateTime loginDt;</span>
+
+<span class="fc" id="L86">    private boolean secured;</span>
+
+<span class="fc" id="L88">    private ContactDTO contactDTO;</span>
+<span class="fc" id="L89">    private AddressDTO addressDTO;</span>
+
+    // permissions and roles list
+<span class="fc" id="L92">    private List&lt;String&gt; roles;</span>
+<span class="fc" id="L93">    private List&lt;String&gt; permissions;</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

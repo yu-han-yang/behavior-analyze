@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PhoneValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.giassi.microservice.demo2.rest.users.services.validation</a> &gt; <span class="el_source">PhoneValidator.java</span></div><h1>PhoneValidator.java</h1><pre class="source lang-java linenums">package com.giassi.microservice.demo2.rest.users.services.validation;
+
+import com.giassi.microservice.demo2.rest.users.exceptions.InvalidUserDataException;
+import com.google.common.base.Strings;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+// Validates international phone numbers based on industry-standard notation specified by ITU-T E.123
+// https://howtodoinjava.com/regex/java-regex-validate-international-phone-numbers/
+public class PhoneValidator {
+
+<span class="fc" id="L13">    private static int MAX_PHONE_LENGTH = 50;</span>
+
+    private static final String PHONE_REGEX = &quot;^\\+(?:[0-9] ?){6,14}[0-9]$&quot;;
+
+    private Pattern pattern;
+
+<span class="fc" id="L19">    public PhoneValidator() {</span>
+<span class="fc" id="L20">        pattern = Pattern.compile(PHONE_REGEX);</span>
+<span class="fc" id="L21">    }</span>
+
+    public void checkPhone(String phone) {
+<span class="nc bnc" id="L24" title="All 2 branches missed.">        if (Strings.isNullOrEmpty(phone)) {</span>
+<span class="nc" id="L25">            throw new InvalidUserDataException(&quot;The phone cannot be null or empty&quot;);</span>
+        }
+
+        // check max phone length
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if (phone.length() &gt; MAX_PHONE_LENGTH) {</span>
+<span class="nc" id="L30">            throw new InvalidUserDataException(String.format(&quot;The phone is too long: max number of chars is %s&quot;,</span>
+<span class="nc" id="L31">                    MAX_PHONE_LENGTH));</span>
+        }
+
+<span class="nc" id="L34">        Matcher matcher = pattern.matcher(phone);</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (!matcher.matches()) {</span>
+<span class="nc" id="L36">            throw new InvalidUserDataException(String.format(&quot;The phone provided %s is not formal valid&quot;, phone));</span>
+        }
+<span class="nc" id="L38">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

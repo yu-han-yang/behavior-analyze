@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NotifikasjonMerkelapp.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon</a> &gt; <span class="el_source">NotifikasjonMerkelapp.java</span></div><h1>NotifikasjonMerkelapp.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.varsel.notifikasjon;
+
+<span class="nc" id="L3">public enum NotifikasjonMerkelapp {</span>
+<span class="nc" id="L4">    LONNTILSKUDD(&quot;Lønnstilskudd&quot;),</span>
+<span class="nc" id="L5">    MENTOR(&quot;Mentor&quot;),</span>
+<span class="nc" id="L6">    SOMMERJOBB(&quot;Sommerjobb&quot;),</span>
+<span class="nc" id="L7">    INKLUDERINGSTILSKUDD(&quot;Inkluderingstilskudd&quot;),</span>
+<span class="nc" id="L8">    ARBEIDSTRENING(&quot;Arbeidstrening&quot;);</span>
+
+    private final String merkelapp;
+
+<span class="nc" id="L12">    NotifikasjonMerkelapp(String merkelapp) {</span>
+<span class="nc" id="L13">        this.merkelapp = merkelapp;</span>
+<span class="nc" id="L14">    }</span>
+
+    public String getValue() {
+<span class="nc" id="L17">        return merkelapp;</span>
+    }
+
+    public static NotifikasjonMerkelapp getMerkelapp(String merkelapp) {
+<span class="nc bnc" id="L21" title="All 5 branches missed.">        switch (merkelapp) {</span>
+            case &quot;Midlertidig lønnstilskudd&quot;:
+            case &quot;Varig lønnstilskudd&quot;:
+<span class="nc" id="L24">                return NotifikasjonMerkelapp.LONNTILSKUDD;</span>
+            case &quot;Mentor&quot;:
+<span class="nc" id="L26">                return NotifikasjonMerkelapp.MENTOR;</span>
+            case &quot;Sommerjobb&quot;:
+<span class="nc" id="L28">                return NotifikasjonMerkelapp.SOMMERJOBB;</span>
+            case &quot;Inkluderingstilskudd&quot;:
+<span class="nc" id="L30">                return NotifikasjonMerkelapp.INKLUDERINGSTILSKUDD;</span>
+            case &quot;Arbeidstrening&quot;:
+            default:
+<span class="nc" id="L33">                return NotifikasjonMerkelapp.ARBEIDSTRENING;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

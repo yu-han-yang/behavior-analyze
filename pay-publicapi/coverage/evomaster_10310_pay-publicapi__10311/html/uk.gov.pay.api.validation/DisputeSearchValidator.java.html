@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DisputeSearchValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.validation</a> &gt; <span class="el_source">DisputeSearchValidator.java</span></div><h1>DisputeSearchValidator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.validation;
+
+import com.google.common.collect.ImmutableList;
+import uk.gov.pay.api.exception.DisputesValidationException;
+import uk.gov.pay.api.service.DisputesSearchParams;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.apache.commons.lang3.StringUtils.join;
+import static org.eclipse.jetty.util.StringUtil.isBlank;
+import static uk.gov.pay.api.model.RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR;
+import static uk.gov.pay.api.model.RequestError.aRequestError;
+import static uk.gov.pay.api.validation.SearchValidator.validateDisplaySizeIfNotNull;
+import static uk.gov.pay.api.validation.SearchValidator.validateFromDate;
+import static uk.gov.pay.api.validation.SearchValidator.validateFromSettledDate;
+import static uk.gov.pay.api.validation.SearchValidator.validatePageIfNotNull;
+import static uk.gov.pay.api.validation.SearchValidator.validateToDate;
+import static uk.gov.pay.api.validation.SearchValidator.validateToSettledDate;
+
+
+<span class="nc" id="L22">public class DisputeSearchValidator {</span>
+<span class="nc" id="L23">    private static final List&lt;String&gt; VALID_DISPUTE_STATES = ImmutableList.of(&quot;needs_response&quot;, &quot;under_review&quot;,</span>
+            &quot;lost&quot;, &quot;won&quot;);
+
+    public static void validateDisputeParameters(DisputesSearchParams params) {
+<span class="nc" id="L27">        String pageNumber = params.getPage();</span>
+<span class="nc" id="L28">        String displaySize = params.getDisplaySize();</span>
+<span class="nc" id="L29">        String fromSettledDate = params.getFromSettledDate();</span>
+<span class="nc" id="L30">        String toSettledDate = params.getToSettledDate();</span>
+<span class="nc" id="L31">        String fromDate = params.getFromDate();</span>
+<span class="nc" id="L32">        String toDate = params.getToDate();</span>
+<span class="nc" id="L33">        String state = params.getState();</span>
+        
+<span class="nc" id="L35">        List&lt;String&gt; validationErrors = new LinkedList&lt;&gt;();</span>
+        try {
+<span class="nc" id="L37">            validateFromDate(fromDate, validationErrors);</span>
+<span class="nc" id="L38">            validateToDate(toDate, validationErrors);</span>
+<span class="nc" id="L39">            validateFromSettledDate(fromSettledDate, validationErrors);</span>
+<span class="nc" id="L40">            validateToSettledDate(toSettledDate, validationErrors);</span>
+<span class="nc" id="L41">            validatePageIfNotNull(pageNumber, validationErrors);</span>
+<span class="nc" id="L42">            validateDisplaySizeIfNotNull(displaySize, validationErrors);</span>
+<span class="nc" id="L43">            validateState(state, validationErrors);</span>
+<span class="nc" id="L44">        } catch (Exception e) {</span>
+<span class="nc" id="L45">            throw new DisputesValidationException(aRequestError(SEARCH_DISPUTES_VALIDATION_ERROR, join(validationErrors, &quot;, &quot;), e.getMessage()));</span>
+<span class="nc" id="L46">        }</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (!validationErrors.isEmpty()) {</span>
+<span class="nc" id="L48">            throw new DisputesValidationException(aRequestError(SEARCH_DISPUTES_VALIDATION_ERROR, join(validationErrors, &quot;, &quot;)));</span>
+        }
+<span class="nc" id="L50">    }</span>
+
+    private static void validateState(String state, List&lt;String&gt; validationErrors) {
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (!validateState(state)) {</span>
+<span class="nc" id="L54">            validationErrors.add(&quot;state&quot;);</span>
+        }
+<span class="nc" id="L56">    }</span>
+
+    private static boolean validateState(String state) {
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        return isBlank(state) || VALID_DISPUTE_STATES.contains(state);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

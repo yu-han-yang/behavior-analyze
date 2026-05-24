@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleInnhold.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AvtaleInnhold.java</span></div><h1>AvtaleInnhold.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import static no.nav.tag.tiltaksgjennomforing.utils.Utils.erTom;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+import javax.persistence.CascadeType;
+import javax.persistence.Convert;
+import javax.persistence.Embedded;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.FieldNameConstants;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
+// Lombok
+<span class="nc" id="L35">@Data</span>
+<span class="nc" id="L36">@Builder(toBuilder = true)</span>
+<span class="nc bnc" id="L37" title="All 6 branches missed.">@EqualsAndHashCode(onlyExplicitlyIncluded = true)</span>
+<span class="nc" id="L38">@AllArgsConstructor</span>
+<span class="nc" id="L39">@NoArgsConstructor</span>
+<span class="nc" id="L40">@FieldNameConstants</span>
+// Hibernate
+@Entity
+public class AvtaleInnhold {
+
+    @Id
+    @JsonIgnore
+<span class="nc" id="L47">    private UUID id;</span>
+
+    @ManyToOne
+    @JoinColumn(name = &quot;avtale&quot;)
+    @JsonIgnore
+    @ToString.Exclude
+<span class="nc" id="L53">    private Avtale avtale;</span>
+
+<span class="nc" id="L55">    private Integer versjon;</span>
+
+<span class="nc" id="L57">    private String deltakerFornavn;</span>
+<span class="nc" id="L58">    private String deltakerEtternavn;</span>
+<span class="nc" id="L59">    private String deltakerTlf;</span>
+<span class="nc" id="L60">    private String bedriftNavn;</span>
+<span class="nc" id="L61">    private String arbeidsgiverFornavn;</span>
+<span class="nc" id="L62">    private String arbeidsgiverEtternavn;</span>
+<span class="nc" id="L63">    private String arbeidsgiverTlf;</span>
+<span class="nc" id="L64">    private String veilederFornavn;</span>
+<span class="nc" id="L65">    private String veilederEtternavn;</span>
+<span class="nc" id="L66">    private String veilederTlf;</span>
+<span class="nc" id="L67">    private String oppfolging;</span>
+<span class="nc" id="L68">    private String tilrettelegging;</span>
+<span class="nc" id="L69">    private LocalDate startDato;</span>
+<span class="nc" id="L70">    private LocalDate sluttDato;</span>
+<span class="nc" id="L71">    private Integer stillingprosent;</span>
+<span class="nc" id="L72">    private String journalpostId;</span>
+<span class="nc" id="L73">    private String arbeidsoppgaver;</span>
+<span class="nc" id="L74">    private String stillingstittel;</span>
+<span class="nc" id="L75">    private Integer stillingStyrk08;</span>
+<span class="nc" id="L76">    private Integer stillingKonseptId;</span>
+<span class="nc" id="L77">    private Integer antallDagerPerUke;</span>
+
+     @Embedded
+<span class="nc" id="L80">     private RefusjonKontaktperson refusjonKontaktperson;</span>
+
+
+    // Mentor
+<span class="nc" id="L84">    private String mentorFornavn;</span>
+<span class="nc" id="L85">    private String mentorEtternavn;</span>
+<span class="nc" id="L86">    private String mentorOppgaver;</span>
+<span class="nc" id="L87">    private Double mentorAntallTimer;</span>
+<span class="nc" id="L88">    private Integer mentorTimelonn;</span>
+<span class="nc" id="L89">    private String mentorTlf;</span>
+
+    // Lønnstilskudd
+<span class="nc" id="L92">    private String arbeidsgiverKontonummer;</span>
+<span class="nc" id="L93">    private Integer lonnstilskuddProsent;</span>
+<span class="nc" id="L94">    private Integer manedslonn;</span>
+<span class="nc" id="L95">    private BigDecimal feriepengesats;</span>
+<span class="nc" id="L96">    private BigDecimal arbeidsgiveravgift;</span>
+<span class="nc" id="L97">    private Boolean harFamilietilknytning;</span>
+<span class="nc" id="L98">    private String familietilknytningForklaring;</span>
+<span class="nc" id="L99">    private Integer feriepengerBelop;</span>
+<span class="nc" id="L100">    private Double otpSats;</span>
+<span class="nc" id="L101">    private Integer otpBelop;</span>
+<span class="nc" id="L102">    private Integer arbeidsgiveravgiftBelop;</span>
+<span class="nc" id="L103">    private Integer sumLonnsutgifter;</span>
+<span class="nc" id="L104">    private Integer sumLonnstilskudd;</span>
+<span class="nc" id="L105">    private Integer manedslonn100pst;</span>
+<span class="nc" id="L106">    private Integer sumLønnstilskuddRedusert;</span>
+<span class="nc" id="L107">    private LocalDate datoForRedusertProsent;</span>
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L109">    private Stillingstype stillingstype;</span>
+
+    // Arbeidstrening
+<span class="nc" id="L112">    @OneToMany(mappedBy = &quot;avtaleInnhold&quot;, cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)</span>
+    @Fetch(FetchMode.SUBSELECT)
+<span class="nc" id="L114">    private List&lt;Maal&gt; maal = new ArrayList&lt;&gt;();</span>
+
+    // Inkluderingstilskudd
+<span class="nc" id="L117">    @OneToMany(mappedBy = &quot;avtaleInnhold&quot;, cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)</span>
+    @Fetch(FetchMode.SUBSELECT)
+<span class="nc" id="L119">    private List&lt;Inkluderingstilskuddsutgift&gt; inkluderingstilskuddsutgift = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L120">    private String inkluderingstilskuddBegrunnelse;</span>
+
+    @JsonProperty
+    public Integer inkluderingstilskuddTotalBeløp() {
+<span class="nc" id="L124">        return inkluderingstilskuddsutgift.stream().map(inkluderingstilskuddsutgift -&gt; inkluderingstilskuddsutgift.getBeløp())</span>
+<span class="nc" id="L125">                .collect(Collectors.toList()).stream()</span>
+<span class="nc" id="L126">                .reduce(0, Integer::sum);</span>
+    }
+
+    // Godkjenning
+<span class="nc" id="L130">    private LocalDateTime godkjentAvDeltaker;</span>
+<span class="nc" id="L131">    private LocalDateTime godkjentTaushetserklæringAvMentor;</span>
+<span class="nc" id="L132">    private LocalDateTime godkjentAvArbeidsgiver;</span>
+<span class="nc" id="L133">    private LocalDateTime godkjentAvVeileder;</span>
+<span class="nc" id="L134">    private LocalDateTime godkjentAvBeslutter;</span>
+<span class="nc" id="L135">    private LocalDateTime avtaleInngått;</span>
+<span class="nc" id="L136">    private LocalDateTime ikrafttredelsestidspunkt;</span>
+    @Convert(converter = NavIdentConverter.class)
+<span class="nc" id="L138">    private NavIdent godkjentAvNavIdent;</span>
+    @Convert(converter = NavIdentConverter.class)
+<span class="nc" id="L140">    private NavIdent godkjentAvBeslutterNavIdent;</span>
+
+    // Kostnadssted
+<span class="nc" id="L143">    private String enhetKostnadssted;</span>
+<span class="nc" id="L144">    private String enhetsnavnKostnadssted;</span>
+
+    @Embedded
+<span class="nc" id="L147">    private GodkjentPaVegneGrunn godkjentPaVegneGrunn;</span>
+<span class="nc" id="L148">    private boolean godkjentPaVegneAv;</span>
+
+    @Embedded
+<span class="nc" id="L151">    private GodkjentPaVegneAvArbeidsgiverGrunn godkjentPaVegneAvArbeidsgiverGrunn;</span>
+<span class="nc" id="L152">    private boolean godkjentPaVegneAvArbeidsgiver;</span>
+
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L155">    private AvtaleInnholdType innholdType;</span>
+
+
+    public static AvtaleInnhold nyttTomtInnhold(Tiltakstype tiltakstype) {
+<span class="nc" id="L159">        var innhold = new AvtaleInnhold();</span>
+<span class="nc" id="L160">        innhold.setId(UUID.randomUUID());</span>
+<span class="nc" id="L161">        innhold.setVersjon(1);</span>
+<span class="nc" id="L162">        innhold.setInnholdType(AvtaleInnholdType.INNGÅ);</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (tiltakstype == Tiltakstype.SOMMERJOBB) {</span>
+<span class="nc" id="L164">            innhold.setStillingstype(Stillingstype.MIDLERTIDIG);</span>
+        }
+<span class="nc" id="L166">        return innhold;</span>
+    }
+
+    public AvtaleInnhold nyGodkjentVersjon(AvtaleInnholdType innholdType) {
+<span class="nc" id="L170">        AvtaleInnhold nyVersjon = toBuilder()</span>
+<span class="nc" id="L171">                .id(UUID.randomUUID())</span>
+<span class="nc" id="L172">                .maal(kopiAvMål())</span>
+<span class="nc" id="L173">                .inkluderingstilskuddsutgift(kopiAvInkluderingstilskuddsutgifer())</span>
+<span class="nc" id="L174">                .journalpostId(null)</span>
+<span class="nc" id="L175">                .versjon(versjon + 1)</span>
+<span class="nc" id="L176">                .innholdType(innholdType)</span>
+<span class="nc" id="L177">                .build();</span>
+<span class="nc" id="L178">        nyVersjon.getMaal().forEach(m -&gt; m.setAvtaleInnhold(nyVersjon));</span>
+<span class="nc" id="L179">        nyVersjon.getInkluderingstilskuddsutgift().forEach(i -&gt; i.setAvtaleInnhold(nyVersjon));</span>
+<span class="nc" id="L180">        return nyVersjon;</span>
+    }
+
+    private List&lt;Maal&gt; kopiAvMål() {
+<span class="nc" id="L184">        return maal.stream().map(m -&gt; new Maal(m)).collect(Collectors.toList());</span>
+    }
+
+    private List&lt;Inkluderingstilskuddsutgift&gt; kopiAvInkluderingstilskuddsutgifer() {
+<span class="nc" id="L188">        return inkluderingstilskuddsutgift.stream().map(i -&gt; new Inkluderingstilskuddsutgift(i)).collect(Collectors.toList());</span>
+    }
+
+    void endreAvtale(EndreAvtale nyAvtale) {
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (tiltakstypeHarFastsattLonnstilskuddsprosentsatsUtIfraKvalifiseringsgruppe()) {</span>
+<span class="nc" id="L193">            innholdStrategi().endreAvtaleInnholdMedKvalifiseringsgruppe(nyAvtale, avtale.getKvalifiseringsgruppe());</span>
+        } else {
+<span class="nc" id="L195">            innholdStrategi().endre(nyAvtale);</span>
+        }
+<span class="nc" id="L197">    }</span>
+
+    public Set&lt;String&gt; felterSomIkkeErFyltUt() {
+<span class="nc" id="L200">        return innholdStrategi().alleFelterSomMåFyllesUt()</span>
+<span class="nc" id="L201">                .entrySet().stream()</span>
+<span class="nc" id="L202">                .filter(entry -&gt; erTom(entry.getValue()))</span>
+<span class="nc" id="L203">                .map(Map.Entry::getKey)</span>
+<span class="nc" id="L204">                .collect(Collectors.toSet());</span>
+    }
+
+    private AvtaleInnholdStrategy innholdStrategi() {
+<span class="nc" id="L208">        return AvtaleInnholdStrategyFactory.create(this, avtale.getTiltakstype());</span>
+    }
+
+    private boolean tiltakstypeHarFastsattLonnstilskuddsprosentsatsUtIfraKvalifiseringsgruppe() {
+        // Midlertidig skrudd av utleding av lønnstilskuddprosent for Sommerjobb fra kvalifiseringsgruppe for å åpne for etterregistrering.
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        return avtale.getTiltakstype() == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD;</span>
+    }
+
+    public boolean skalJournalfores() {
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        return this.godkjentAvVeileder != null &amp;&amp; this.getJournalpostId() == null;</span>
+    }
+
+    public void endreTilskuddsberegning(EndreTilskuddsberegning tilskuddsberegning) {
+<span class="nc" id="L221">        innholdStrategi().endreTilskuddsberegning(tilskuddsberegning);</span>
+<span class="nc" id="L222">    }</span>
+
+    public void reberegnLønnstilskudd() {
+<span class="nc" id="L225">        innholdStrategi().regnUtTotalLonnstilskudd();</span>
+<span class="nc" id="L226">    }</span>
+
+    public void reberegnRedusertProsentOgRedusertLonnstilskudd() {
+<span class="nc" id="L229">        innholdStrategi().reUtregnRedusertProsentOgSum();</span>
+<span class="nc" id="L230">    }</span>
+
+    public void endreKontaktInfo(EndreKontaktInformasjon endreKontaktInformasjon) {
+<span class="nc" id="L233">        setDeltakerFornavn(endreKontaktInformasjon.getDeltakerFornavn());</span>
+<span class="nc" id="L234">        setDeltakerEtternavn(endreKontaktInformasjon.getDeltakerEtternavn());</span>
+<span class="nc" id="L235">        setDeltakerTlf(endreKontaktInformasjon.getDeltakerTlf());</span>
+<span class="nc" id="L236">        setVeilederFornavn(endreKontaktInformasjon.getVeilederFornavn());</span>
+<span class="nc" id="L237">        setVeilederEtternavn(endreKontaktInformasjon.getVeilederEtternavn());</span>
+<span class="nc" id="L238">        setVeilederTlf(endreKontaktInformasjon.getVeilederTlf());</span>
+<span class="nc" id="L239">        setArbeidsgiverFornavn(endreKontaktInformasjon.getArbeidsgiverFornavn());</span>
+<span class="nc" id="L240">        setArbeidsgiverEtternavn(endreKontaktInformasjon.getArbeidsgiverEtternavn());</span>
+<span class="nc" id="L241">        setArbeidsgiverTlf(endreKontaktInformasjon.getArbeidsgiverTlf());</span>
+<span class="nc" id="L242">        setRefusjonKontaktperson(endreKontaktInformasjon.getRefusjonKontaktperson());</span>
+<span class="nc" id="L243">    }</span>
+
+    public void endreStillingsInfo(EndreStillingsbeskrivelse endreStillingsbeskrivelse) {
+<span class="nc" id="L246">        setStillingstittel(endreStillingsbeskrivelse.getStillingstittel());</span>
+<span class="nc" id="L247">        setArbeidsoppgaver(endreStillingsbeskrivelse.getArbeidsoppgaver());</span>
+<span class="nc" id="L248">        setStillingStyrk08(endreStillingsbeskrivelse.getStillingStyrk08());</span>
+<span class="nc" id="L249">        setStillingKonseptId(endreStillingsbeskrivelse.getStillingKonseptId());</span>
+<span class="nc" id="L250">        setStillingprosent(endreStillingsbeskrivelse.getStillingprosent());</span>
+<span class="nc" id="L251">        setAntallDagerPerUke(endreStillingsbeskrivelse.getAntallDagerPerUke());</span>
+<span class="nc" id="L252">    }</span>
+
+    public void endreOppfølgingOgTilretteleggingInfo(EndreOppfølgingOgTilrettelegging endreOppfølgingOgTilrettelegging) {
+<span class="nc" id="L255">        setOppfolging(endreOppfølgingOgTilrettelegging.getOppfolging());</span>
+<span class="nc" id="L256">        setTilrettelegging(endreOppfølgingOgTilrettelegging.getTilrettelegging());</span>
+<span class="nc" id="L257">    }</span>
+
+    public void endreSluttDato(LocalDate nySluttDato) {
+<span class="nc" id="L260">        innholdStrategi().endreSluttDato(nySluttDato);</span>
+<span class="nc" id="L261">    }</span>
+
+    public void endreOmMentor(EndreOmMentor endreOmMentor) {
+<span class="nc" id="L264">        setMentorFornavn(endreOmMentor.getMentorFornavn());</span>
+<span class="nc" id="L265">        setMentorEtternavn(endreOmMentor.getMentorEtternavn());</span>
+<span class="nc" id="L266">        setMentorTlf(endreOmMentor.getMentorTlf());</span>
+<span class="nc" id="L267">        setMentorAntallTimer(endreOmMentor.getMentorAntallTimer());</span>
+<span class="nc" id="L268">        setMentorTimelonn(endreOmMentor.getMentorTimelonn());</span>
+<span class="nc" id="L269">        setMentorOppgaver(endreOmMentor.getMentorOppgaver());</span>
+<span class="nc" id="L270">    }</span>
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RateLimiterConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.app.config</a> &gt; <span class="el_source">RateLimiterConfig.java</span></div><h1>RateLimiterConfig.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.app.config;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.dropwizard.Configuration;
+
+import javax.validation.Valid;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+<span class="fc" id="L13">public class RateLimiterConfig extends Configuration {</span>
+
+    @Min(1)
+    private int noOfReq;
+
+    @Min(1)
+    private int noOfReqForPost;
+
+    @Min(1)
+    private int noOfReqForElevatedAccounts;
+
+    @Min(1)
+    private int noOfPostReqForElevatedAccounts;
+
+    @Min(1)
+    private int noOfReqPerNode;
+
+    @Min(1)
+    private int noOfReqForPostPerNode;
+
+    @Valid
+    @JsonDeserialize(converter = StringToListConverter.class)
+    private List&lt;String&gt; elevatedAccounts;
+
+    @Min(500)
+    @Max(60000)
+    private int perMillis;
+
+    @Valid
+    @JsonDeserialize(converter = StringToListConverter.class)
+    private List&lt;String&gt; lowTrafficAccounts;
+
+    @Min(1)
+    private int noOfReqForLowTrafficAccounts;
+
+    @Min(1)
+    private int noOfPostReqForLowTrafficAccounts;
+
+    @Min(1000)
+    @Max(3_599_999)
+    private int intervalInMillisForLowTrafficAccounts;
+
+    public int getNoOfReq() {
+<span class="nc" id="L56">        return noOfReq;</span>
+    }
+
+    public int getPerMillis() {
+<span class="fc" id="L60">        return perMillis;</span>
+    }
+
+    public int getNoOfReqForPost() {
+<span class="nc" id="L64">        return noOfReqForPost;</span>
+    }
+
+    public int getNoOfReqPerNode() {
+<span class="fc" id="L68">        return noOfReqPerNode;</span>
+    }
+
+    public int getNoOfReqForPostPerNode() {
+<span class="fc" id="L72">        return noOfReqForPostPerNode;</span>
+    }
+
+    public int getNoOfReqForElevatedAccounts() {
+<span class="nc" id="L76">        return noOfReqForElevatedAccounts;</span>
+    }
+
+    public int getNoOfPostReqForElevatedAccounts() {
+<span class="nc" id="L80">        return noOfPostReqForElevatedAccounts;</span>
+    }
+
+    public List&lt;String&gt; getElevatedAccounts() {
+<span class="nc" id="L84">        return Optional.ofNullable(elevatedAccounts).orElse(Collections.emptyList());</span>
+    }
+
+    public List&lt;String&gt; getLowTrafficAccounts() {
+<span class="nc" id="L88">        return Optional.ofNullable(lowTrafficAccounts).orElse(Collections.emptyList());</span>
+    }
+
+    public int getNoOfReqForLowTrafficAccounts() {
+<span class="nc" id="L92">        return noOfReqForLowTrafficAccounts;</span>
+    }
+
+    public int getNoOfPostReqForLowTrafficAccounts() {
+<span class="nc" id="L96">        return noOfPostReqForLowTrafficAccounts;</span>
+    }
+
+    public int getIntervalInMillisForLowTrafficAccounts() {
+<span class="nc" id="L100">        return intervalInMillisForLowTrafficAccounts;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserRestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">sk.cyrilgavala.reservationsApi.web.controller</a> &gt; <span class="el_source">UserRestController.java</span></div><h1>UserRestController.java</h1><pre class="source lang-java linenums">package sk.cyrilgavala.reservationsApi.web.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import sk.cyrilgavala.reservationsApi.config.SecurityConfiguration;
+import sk.cyrilgavala.reservationsApi.exception.DuplicateUserException;
+import sk.cyrilgavala.reservationsApi.model.User;
+import sk.cyrilgavala.reservationsApi.security.TokenProvider;
+import sk.cyrilgavala.reservationsApi.service.UserService;
+import sk.cyrilgavala.reservationsApi.web.request.LoginRequest;
+import sk.cyrilgavala.reservationsApi.web.request.RegisterRequest;
+import sk.cyrilgavala.reservationsApi.web.response.AuthResponse;
+
+import javax.validation.Valid;
+import java.util.Base64;
+
+@Tag(name = &quot;Users&quot;)
+@RestController
+@RequestMapping(&quot;/api/user&quot;)
+<span class="fc" id="L32">@RequiredArgsConstructor</span>
+@CrossOrigin
+public class UserRestController {
+
+	private final UserService userService;
+	private final AuthenticationManager authenticationManager;
+	private final TokenProvider tokenProvider;
+	private final PasswordEncoder passwordEncoder;
+
+	@Operation(summary = &quot;Perform user's login to retrieve access token.&quot;, description = &quot;Perform user's login to retrieve access token.&quot;)
+	@PostMapping(&quot;/login&quot;)
+	public AuthResponse login(@Valid @RequestBody LoginRequest loginRequest) {
+<span class="fc" id="L44">		String token = authenticateAndGetToken(loginRequest.getUsername(), new String(Base64.getDecoder().decode(loginRequest.getPassword())));</span>
+<span class="fc" id="L45">		return new AuthResponse(token);</span>
+	}
+
+	@Operation(summary = &quot;Perform user's registration to save a user and retrieve access token.&quot;, description = &quot;Perform user's registration to save a user and retrieve access token.&quot;)
+	@ResponseStatus(HttpStatus.CREATED)
+	@PostMapping(&quot;/register&quot;)
+	public AuthResponse register(@Valid @RequestBody RegisterRequest registerRequest) {
+<span class="fc bfc" id="L52" title="All 2 branches covered.">		if (userService.existsByUsername(registerRequest.getUsername())) {</span>
+<span class="fc" id="L53">			throw new DuplicateUserException(String.format(&quot;Username %s already been used&quot;, registerRequest.getUsername()));</span>
+		}
+<span class="pc bpc" id="L55" title="1 of 2 branches missed.">		if (userService.existsByEmail(registerRequest.getEmail())) {</span>
+<span class="nc" id="L56">			throw new DuplicateUserException(String.format(&quot;Email %s already been used&quot;, registerRequest.getEmail()));</span>
+		}
+
+<span class="fc" id="L59">		userService.saveUser(mapRegisterRequestToUser(registerRequest));</span>
+
+<span class="fc" id="L61">		String token = authenticateAndGetToken(registerRequest.getUsername(), new String(Base64.getDecoder().decode(registerRequest.getPassword())));</span>
+<span class="fc" id="L62">		return new AuthResponse(token);</span>
+	}
+
+	private String authenticateAndGetToken(String username, String password) {
+<span class="fc" id="L66">		Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));</span>
+<span class="fc" id="L67">		return tokenProvider.generate(authentication);</span>
+	}
+
+	private User mapRegisterRequestToUser(RegisterRequest registerRequest) {
+<span class="fc" id="L71">		User user = new User();</span>
+<span class="fc" id="L72">		user.setUsername(registerRequest.getUsername());</span>
+<span class="fc" id="L73">		user.setPassword(passwordEncoder.encode(new String(Base64.getDecoder().decode(registerRequest.getPassword()))));</span>
+<span class="fc" id="L74">		user.setEmail(registerRequest.getEmail());</span>
+<span class="fc" id="L75">		user.setRole(SecurityConfiguration.USER);</span>
+<span class="fc" id="L76">		return user;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

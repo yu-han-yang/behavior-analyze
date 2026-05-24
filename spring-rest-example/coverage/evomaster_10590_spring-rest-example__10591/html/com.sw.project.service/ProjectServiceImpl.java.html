@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sw.project.service</a> &gt; <span class="el_source">ProjectServiceImpl.java</span></div><h1>ProjectServiceImpl.java</h1><pre class="source lang-java linenums">package com.sw.project.service;
+
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.sw.project.domain.Project;
+import com.sw.project.repository.ProjectRepository;
+
+@Service(&quot;projectService&quot;)
+<span class="fc" id="L14">public class ProjectServiceImpl implements ProjectService{</span>
+	
+<span class="fc" id="L16">	private Logger logger = LoggerFactory.getLogger(this.getClass());</span>
+	@Autowired
+	private ProjectRepository projectRepository;
+	
+	@Override
+	public String saveProject(Project project) {
+
+		//validateProjectCode(project);
+		try {
+<span class="fc" id="L25">			projectRepository.saveAndFlush(project);</span>
+<span class="fc" id="L26">			return &quot;1&quot;;</span>
+<span class="nc" id="L27">		}catch(Exception e) {</span>
+			
+<span class="nc" id="L29">			return e.getMessage();</span>
+		}
+
+	}
+
+	@Override
+	public Optional&lt;Project&gt; findProjectByCode(String code) { //code를 ipt로 해당 Project 정보 추출s
+		
+<span class="fc" id="L37">		return Optional.ofNullable(projectRepository.getProject(code));</span>
+	}
+
+
+	@Override
+	public Boolean deleteProject(String code) {
+		// TODO Auto-generated method stub
+		try {
+<span class="fc" id="L45">			projectRepository.deleteByCode(code);</span>
+<span class="fc" id="L46">			logger.info(&quot;Code !!&quot;);</span>
+<span class="fc" id="L47">			return true;</span>
+<span class="nc" id="L48">		}catch(Exception e) {</span>
+<span class="nc" id="L49">			logger.info(e.getMessage());</span>
+<span class="nc" id="L50">			return false;</span>
+		}
+	}
+
+	@Override
+	public Boolean updateProject(Project project) {
+		
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if(projectRepository.saveAndFlush(project).equals(null)) </span>
+<span class="nc" id="L58">			return false;</span>
+		
+<span class="fc" id="L60">		return true;</span>
+	}
+
+}
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

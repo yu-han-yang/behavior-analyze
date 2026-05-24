@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LeaderPodCheck.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.leader</a> &gt; <span class="el_source">LeaderPodCheck.java</span></div><h1>LeaderPodCheck.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.leader;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
+@Component
+<span class="fc" id="L19">@Slf4j</span>
+public class LeaderPodCheck {
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String path;
+    private final boolean enabled;
+
+<span class="fc" id="L27">    public LeaderPodCheck(RestTemplate restTemplate, ObjectMapper objectMapper, @Value(&quot;${ELECTOR_PATH}&quot;) String electorPath) {</span>
+<span class="fc" id="L28">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L29">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L30">        this.enabled = isNotBlank(electorPath);</span>
+<span class="fc" id="L31">        this.path = &quot;http://&quot; + electorPath;</span>
+<span class="fc" id="L32">    }</span>
+
+    public boolean isLeaderPod() {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (!enabled) {</span>
+<span class="nc" id="L36">            return true;</span>
+        }
+        String hostname;
+        String leader;
+        try {
+<span class="nc" id="L41">            leader = getJSONFromUrl(path).name;</span>
+<span class="nc" id="L42">            hostname = InetAddress.getLocalHost().getHostName();</span>
+<span class="nc" id="L43">        } catch (UnknownHostException e) {</span>
+<span class="nc" id="L44">            log.error(&quot;Feil v/henting av host for leader-election&quot;, e);</span>
+<span class="nc" id="L45">            return false;</span>
+<span class="nc" id="L46">        } catch (Exception e) {</span>
+<span class="nc" id="L47">            log.error(&quot;Feil v/oppslag i leader-elector&quot;, e);</span>
+<span class="nc" id="L48">            throw new RuntimeException(e);</span>
+<span class="nc" id="L49">        }</span>
+<span class="nc" id="L50">        return hostname.equals(leader);</span>
+    }
+
+    private Elector getJSONFromUrl(String electorPath) throws JsonProcessingException {
+<span class="nc" id="L54">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L55">        headers.setAccept(List.of(MediaType.ALL));</span>
+<span class="nc" id="L56">        var entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L57">        ResponseEntity responseEntity = restTemplate.exchange(electorPath, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L58">        return objectMapper.readValue((String) responseEntity.getBody(), Elector.class);</span>
+    }
+
+<span class="nc bnc" id="L61" title="All 14 branches missed.">    @Data</span>
+    private static class Elector {
+<span class="nc" id="L63">        String name;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SommerjobbStartOgSluttDatoStrategy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale.startOgSluttDatoStrategy</a> &gt; <span class="el_source">SommerjobbStartOgSluttDatoStrategy.java</span></div><h1>SommerjobbStartOgSluttDatoStrategy.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale.startOgSluttDatoStrategy;
+
+import java.time.LocalDate;
+import no.nav.tag.tiltaksgjennomforing.exceptions.Feilkode;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilkodeException;
+
+<span class="nc" id="L7">public class SommerjobbStartOgSluttDatoStrategy implements StartOgSluttDatoStrategy {</span>
+    @Override
+    public void sjekkStartOgSluttDato(LocalDate startDato, LocalDate sluttDato, boolean erGodkjentForEtterregistrering, boolean erAvtaleInngått) {
+<span class="nc" id="L10">        StartOgSluttDatoStrategy.super.sjekkStartOgSluttDato(startDato, sluttDato, erGodkjentForEtterregistrering, erAvtaleInngått);</span>
+<span class="nc bnc" id="L11" title="All 2 branches missed.">        if (startDato != null) {</span>
+<span class="nc bnc" id="L12" title="All 2 branches missed.">                if (startDato.isBefore(LocalDate.of(startDato.getYear(), 6, 1)) ) {</span>
+<span class="nc" id="L13">                    throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_TIDLIG);</span>
+                }
+<span class="nc bnc" id="L15" title="All 2 branches missed.">                if (startDato.isAfter(LocalDate.of(startDato.getYear(), 8, 31))) {</span>
+<span class="nc" id="L16">                    throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_SENT);</span>
+                }
+        }
+<span class="nc bnc" id="L19" title="All 4 branches missed.">      if (startDato != null &amp;&amp; sluttDato != null) {</span>
+<span class="nc bnc" id="L20" title="All 2 branches missed.">        if (startDato.plusWeeks(4).minusDays(1).isBefore(sluttDato)) {</span>
+<span class="nc" id="L21">          throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_LANG_VARIGHET);</span>
+        }else{
+<span class="nc bnc" id="L23" title="All 2 branches missed.">          if (sluttDato.isBefore(LocalDate.of(sluttDato.getYear(), 6, 1)) ) {</span>
+<span class="nc" id="L24">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_TIDLIG);</span>
+          }
+<span class="nc bnc" id="L26" title="All 2 branches missed.">          if (sluttDato.isAfter(LocalDate.of(sluttDato.getYear(), 9, 27))) {</span>
+<span class="nc" id="L27">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_SENT);</span>
+          }
+        }
+      }
+<span class="nc" id="L31">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

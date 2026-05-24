@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>InternalAvtaleHendelseController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.datadeling</a> &gt; <span class="el_source">InternalAvtaleHendelseController.java</span></div><h1>InternalAvtaleHendelseController.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.datadeling;
+
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.victools.jsonschema.generator.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.security.token.support.core.api.ProtectedWithClaims;
+import no.nav.security.token.support.core.api.Unprotected;
+import no.nav.tag.tiltaksgjennomforing.Miljø;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.TokenUtils;
+import no.nav.tag.tiltaksgjennomforing.avtale.Avtale;
+import no.nav.tag.tiltaksgjennomforing.avtale.AvtaleRepository;
+import no.nav.tag.tiltaksgjennomforing.avtale.Fnr;
+import no.nav.tag.tiltaksgjennomforing.exceptions.RessursFinnesIkkeException;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.*;
+
+@Profile(value = {Miljø.DEV_FSS})
+@RestController
+@RequestMapping(&quot;/avtale-hendelse&quot;)
+<span class="nc" id="L26">@RequiredArgsConstructor</span>
+@ProtectedWithClaims(issuer = &quot;aad&quot;)
+<span class="nc" id="L28">@Slf4j</span>
+public class InternalAvtaleHendelseController {
+
+    private final AvtaleMeldingEntitetRepository avtaleMeldingEntitetRepository;
+    private final AvtaleRepository avtaleRepository;
+
+    private final TokenUtils tokenUtils;
+
+    private void sjekkTilgang() {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if (!tokenUtils.harAdRolle(&quot;access_as_application&quot;)) {</span>
+<span class="nc" id="L38">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+        }
+<span class="nc" id="L40">    }</span>
+
+    @PostMapping(&quot;/fnr&quot;)
+    public List&lt;String&gt; hentSisteHendelseForFnr(@RequestBody AvtaleMeldingForFnr meldingForFnr) {
+<span class="nc" id="L44">        sjekkTilgang();</span>
+<span class="nc" id="L45">        List&lt;String&gt; hendelser = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if(Fnr.erGyldigFnr(meldingForFnr.fnr)) {</span>
+<span class="nc" id="L47">            List&lt;Avtale&gt; alleAvtalerForDeltaker = avtaleRepository.findAllByDeltakerFnr(new Fnr(meldingForFnr.fnr));</span>
+<span class="nc" id="L48">            alleAvtalerForDeltaker.forEach(avtale -&gt; {</span>
+<span class="nc" id="L49">                List&lt;AvtaleMeldingEntitet&gt; avtaleMeldingEntiteter = avtaleMeldingEntitetRepository.findAllByAvtaleId(avtale.getId());</span>
+<span class="nc" id="L50">                AvtaleMeldingEntitet avtaleMeldingEntitet = avtaleMeldingEntiteter.stream().max(Comparator.comparing(melding -&gt; melding.getTidspunkt())).orElseGet(null);</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">                if(avtaleMeldingEntitet != null) {</span>
+<span class="nc" id="L52">                    hendelser.add(avtaleMeldingEntitet.getJson());</span>
+                }
+<span class="nc" id="L54">            });</span>
+        }
+
+<span class="nc" id="L57">        return hendelser;</span>
+    }
+
+    @GetMapping(&quot;/{avtaleId}&quot;)
+    public String hentSisteHendelse(@PathVariable(&quot;avtaleId&quot;) UUID avtaleId) {
+<span class="nc" id="L62">        List&lt;AvtaleMeldingEntitet&gt; avtaleMeldingEntiteter = avtaleMeldingEntitetRepository.findAllByAvtaleId(avtaleId);</span>
+<span class="nc" id="L63">        AvtaleMeldingEntitet avtaleMeldingEntitet = avtaleMeldingEntiteter.stream().max(Comparator.comparing(melding -&gt; melding.getTidspunkt())).orElseThrow(RessursFinnesIkkeException::new);</span>
+
+<span class="nc" id="L65">        return avtaleMeldingEntitet.getJson();</span>
+    }
+
+    @GetMapping(&quot;/skjema&quot;)
+    @Unprotected
+    public String hentJsonSkjema() {
+<span class="nc" id="L71">        SchemaGeneratorConfigBuilder configBuilder = new SchemaGeneratorConfigBuilder(SchemaVersion.DRAFT_2020_12, OptionPreset.PLAIN_JSON)</span>
+<span class="nc" id="L72">                .without(Option.DEFINITIONS_FOR_ALL_OBJECTS);</span>
+<span class="nc" id="L73">        SchemaGeneratorConfig config = configBuilder.build();</span>
+<span class="nc" id="L74">        SchemaGenerator generator = new SchemaGenerator(config);</span>
+<span class="nc" id="L75">        JsonNode jsonSchema = generator.generateSchema(AvtaleMelding.class);</span>
+
+<span class="nc" id="L77">        return jsonSchema.toPrettyString();</span>
+    }
+
+
+<span class="nc" id="L81">    private record AvtaleMeldingForFnr(String fnr) { }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

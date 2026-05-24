@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlleredeRegistrertAvtale.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AlleredeRegistrertAvtale.java</span></div><h1>AlleredeRegistrertAvtale.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+<span class="nc bnc" id="L14" title="All 106 branches missed.">@Data</span>
+<span class="nc" id="L15">@AllArgsConstructor</span>
+<span class="nc" id="L16">@NoArgsConstructor</span>
+public class AlleredeRegistrertAvtale {
+
+<span class="nc" id="L19">    private UUID id;</span>
+<span class="nc" id="L20">    private Integer avtaleNr;</span>
+<span class="nc" id="L21">    private Tiltakstype tiltakstype;</span>
+<span class="nc" id="L22">    private Fnr deltakerFnr;</span>
+<span class="nc" id="L23">    private BedriftNr bedriftNr;</span>
+<span class="nc" id="L24">    private NavIdent veilederNavIdent;</span>
+<span class="nc" id="L25">    private Status status;</span>
+<span class="nc" id="L26">    private boolean opprettetAvArbeidsgiver;</span>
+
+<span class="nc" id="L28">    private LocalDate startDato;</span>
+<span class="nc" id="L29">    private LocalDate sluttDato;</span>
+<span class="nc" id="L30">    private LocalDateTime godkjentAvVeileder;</span>
+<span class="nc" id="L31">    private LocalDateTime godkjentAvBeslutter;</span>
+<span class="nc" id="L32">    private LocalDateTime avtaleInngått;</span>
+
+    private static List&lt;AlleredeRegistrertAvtale&gt; filtrerAvtaler(Stream&lt;Avtale&gt; avtaler) {
+<span class="nc" id="L35">        return avtaler.map(AlleredeRegistrertAvtale::setAvtaleFelter).toList();</span>
+    }
+
+    public static AlleredeRegistrertAvtale setAvtaleFelter(Avtale avtale) {
+<span class="nc" id="L39">        AlleredeRegistrertAvtale alleredeRegistrertAvtale = new AlleredeRegistrertAvtale();</span>
+<span class="nc" id="L40">        alleredeRegistrertAvtale.setId(avtale.getId());</span>
+<span class="nc" id="L41">        alleredeRegistrertAvtale.setAvtaleNr(avtale.getAvtaleNr());</span>
+<span class="nc" id="L42">        alleredeRegistrertAvtale.setTiltakstype(avtale.getTiltakstype());</span>
+<span class="nc" id="L43">        alleredeRegistrertAvtale.setDeltakerFnr(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L44">        alleredeRegistrertAvtale.setBedriftNr(avtale.getBedriftNr());</span>
+<span class="nc" id="L45">        alleredeRegistrertAvtale.setStatus(avtale.statusSomEnum());</span>
+<span class="nc" id="L46">        alleredeRegistrertAvtale.setVeilederNavIdent(avtale.getVeilederNavIdent());</span>
+<span class="nc" id="L47">        alleredeRegistrertAvtale.setOpprettetAvArbeidsgiver(avtale.isOpprettetAvArbeidsgiver());</span>
+<span class="nc" id="L48">        alleredeRegistrertAvtale.setStartDato(avtale.getGjeldendeInnhold().getStartDato());</span>
+<span class="nc" id="L49">        alleredeRegistrertAvtale.setSluttDato(avtale.getGjeldendeInnhold().getSluttDato());</span>
+<span class="nc" id="L50">        alleredeRegistrertAvtale.setGodkjentAvVeileder(avtale.getGjeldendeInnhold().getGodkjentAvVeileder());</span>
+<span class="nc" id="L51">        alleredeRegistrertAvtale.setGodkjentAvBeslutter(avtale.getGjeldendeInnhold().getGodkjentAvBeslutter());</span>
+<span class="nc" id="L52">        alleredeRegistrertAvtale.setAvtaleInngått(avtale.getGjeldendeInnhold().getAvtaleInngått());</span>
+<span class="nc" id="L53">        return alleredeRegistrertAvtale;</span>
+    }
+
+    public static List&lt;AlleredeRegistrertAvtale&gt; filtrerAvtaleDeltakerAlleredeErRegistrertPaa(
+            List&lt;Avtale&gt; alleAvtalerPaaDeltaker,
+            Tiltakstype tiltakstype
+    ) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if(List.of(Tiltakstype.INKLUDERINGSTILSKUDD, Tiltakstype.MENTOR).contains(tiltakstype)) {</span>
+<span class="nc" id="L61">            return filtrerAvtaler(alleAvtalerPaaDeltaker.stream().filter(avtale -&gt; avtale.getTiltakstype().equals(tiltakstype)));</span>
+        }
+<span class="nc" id="L63">        return filtrerAvtaler(alleAvtalerPaaDeltaker.stream().filter(avtale -&gt; List.of(</span>
+                Tiltakstype.SOMMERJOBB,
+                Tiltakstype.ARBEIDSTRENING,
+                Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD,
+                Tiltakstype.VARIG_LONNSTILSKUDD
+<span class="nc" id="L68">        ).contains(avtale.getTiltakstype())));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

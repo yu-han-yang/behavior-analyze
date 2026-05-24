@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>YoutubeChannelRepository.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.repository</a> &gt; <span class="el_source">YoutubeChannelRepository.java</span></div><h1>YoutubeChannelRepository.java</h1><pre class="source lang-java linenums">package youtube.api.repository;
+
+import youtube.api.model.*;
+import youtube.api.util.RepositoryUtils;
+
+import java.text.ParseException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static youtube.data.ChannelData.getChannelData;
+import static youtube.api.util.RepositoryUtils.*;
+
+public class YoutubeChannelRepository {
+
+<span class="fc" id="L15">    private static YoutubeChannelRepository instance = null;</span>
+    private List&lt;Channel&gt; channels;
+
+<span class="fc" id="L18">    private YoutubeChannelRepository() throws ParseException {</span>
+<span class="fc" id="L19">        this.channels = instantiate();</span>
+<span class="fc" id="L20">    }</span>
+
+    public static YoutubeChannelRepository getInstance() throws ParseException {
+<span class="fc bfc" id="L23" title="All 2 branches covered.">        if(instance == null) {</span>
+<span class="fc" id="L24">            instance = new YoutubeChannelRepository();</span>
+        }
+
+<span class="fc" id="L27">        return instance;</span>
+    }
+
+    private List&lt;Channel&gt; instantiate() throws ParseException {
+<span class="fc" id="L31">        return getChannelData();</span>
+    }
+
+    public List&lt;SearchResult&gt; processDefaultRequest(SearchRequest searchRequest, String partType, Date[] dates) {
+<span class="nc" id="L35">        List&lt;SearchResult&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L36" title="All 4 branches missed.">        if(searchRequest.getForDeveloper() == null || !searchRequest.getForDeveloper()) {</span>
+<span class="nc" id="L37">            result = channels.stream()</span>
+<span class="nc" id="L38">                    .filter(x -&gt; filterByChannelId(x, searchRequest.getChannelId()))</span>
+<span class="nc" id="L39">                    .filter(x -&gt; filterByChannelType(x, searchRequest.getChannelType()))</span>
+<span class="nc" id="L40">                    .filter(x -&gt; filterByDates(x, dates))</span>
+<span class="nc" id="L41">                    .filter(x -&gt; filterByQuery(x, searchRequest.getQ()))</span>
+<span class="nc" id="L42">                    .filter(x -&gt; filterByRelevanceLanguage(x, searchRequest.getRelevanceLanguage()))</span>
+<span class="nc" id="L43">                    .filter(x -&gt; filterByTopicId(x, searchRequest.getTopicId()))</span>
+<span class="nc" id="L44">                    .map(x -&gt; convertToSearchResult(x, partType))</span>
+<span class="nc" id="L45">                    .collect(Collectors.toList());</span>
+        }
+<span class="nc" id="L47">        return result;</span>
+    }
+
+    protected List&lt;Channel&gt; getChannels() {
+<span class="nc" id="L51">        return channels;</span>
+    }
+
+    public boolean existsContentOwner(String contentOwnerId) {
+<span class="nc" id="L55">        return channels.stream().anyMatch(x -&gt; x.getContentOwnerId().equals(contentOwnerId));</span>
+    }
+
+    public Channel getChannelById(String channelId) {
+<span class="nc" id="L59">        return channels.stream()</span>
+<span class="nc" id="L60">                .filter(x -&gt; x.getId().equals(channelId))</span>
+<span class="nc" id="L61">                .findFirst()</span>
+<span class="nc" id="L62">                .orElse(null);</span>
+    }
+
+    private boolean filterByChannelType(Channel x, String channelType) {
+<span class="nc bnc" id="L66" title="All 8 branches missed.">        return (channelType == null || channelType.isEmpty()) || channelType.equals(&quot;any&quot;) || x.getType().equals(channelType);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

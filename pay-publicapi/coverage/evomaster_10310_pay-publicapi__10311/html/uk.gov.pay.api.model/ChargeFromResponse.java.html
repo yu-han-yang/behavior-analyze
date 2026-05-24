@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChargeFromResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">ChargeFromResponse.java</span></div><h1>ChargeFromResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import uk.gov.pay.api.model.telephone.PaymentOutcome;
+import uk.gov.pay.api.utils.CustomSupportedLanguageDeserializer;
+import uk.gov.pay.api.utils.WalletDeserializer;
+import uk.gov.service.payments.commons.api.json.ExternalMetadataDeserialiser;
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+<span class="nc" id="L24">public class ChargeFromResponse {</span>
+    
+    private String chargeId;
+    
+    private String returnUrl;
+    
+    private String paymentProvider;
+    
+<span class="nc" id="L32">    private List&lt;PaymentConnectorResponseLink&gt; links = new ArrayList&lt;&gt;();</span>
+    
+    private RefundSummary refundSummary;
+
+    private PaymentSettlementSummary settlementSummary;
+    
+    @JsonProperty(&quot;card_details&quot;)
+    private CardDetailsFromResponse cardDetails;
+
+    private Long amount;
+
+    private PaymentState state;
+
+    private String description;
+
+    private String reference;
+
+    private String email;
+    
+    private String telephoneNumber;
+
+    @JsonProperty(&quot;agreement_id&quot;)
+    private String agreementId;
+
+    @JsonDeserialize(using = CustomSupportedLanguageDeserializer.class)
+    private SupportedLanguage language;
+    
+    private boolean delayedCapture;
+    
+    private boolean moto;
+    
+    private Long corporateCardSurcharge;
+    
+    private Long totalAmount;
+    
+    private Long fee;
+    
+    private Long netAmount;
+    
+    private String createdDate;
+    
+    private String authorisedDate;
+    
+    private String processorId;
+    
+    private String providerId;
+    
+    private String authCode;
+    
+    private PaymentOutcome paymentOutcome;
+    
+    private String gatewayTransactionId;
+
+    @JsonDeserialize(using = ExternalMetadataDeserialiser.class)
+    private ExternalMetadata metadata;
+
+    private AuthorisationSummary authorisationSummary;
+    
+    private AuthorisationMode authorisationMode;
+
+    // wallet_type is a top level charge property but is returned as part of the card_details object
+    @JsonProperty(&quot;wallet_type&quot;)
+    @JsonDeserialize(using = WalletDeserializer.class)
+    private Wallet walletType;
+
+    public Optional&lt;ExternalMetadata&gt; getMetadata() {
+<span class="nc" id="L98">        return Optional.ofNullable(metadata);</span>
+    }
+
+    public String getChargeId() {
+<span class="nc" id="L102">        return chargeId;</span>
+    }
+
+    public Long getAmount() {
+<span class="nc" id="L106">        return amount;</span>
+    }
+
+    public PaymentState getState() {
+<span class="nc" id="L110">        return state;</span>
+    }
+
+    public String getReturnUrl() {
+<span class="nc" id="L114">        return returnUrl;</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L118">        return description;</span>
+    }
+
+    public String getReference() {
+<span class="nc" id="L122">        return reference;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L126">        return email;</span>
+    }
+
+    public String getTelephoneNumber() {
+<span class="nc" id="L130">        return telephoneNumber;</span>
+    }
+
+    public SupportedLanguage getLanguage() {
+<span class="nc" id="L134">        return language;</span>
+    }
+
+    public boolean getDelayedCapture() {
+<span class="nc" id="L138">        return delayedCapture;</span>
+    }
+
+    public boolean isMoto() {
+<span class="nc" id="L142">        return moto;</span>
+    }
+
+    public String getAgreementId() {
+<span class="nc" id="L146">        return agreementId;</span>
+    }
+
+    public Long getCorporateCardSurcharge() {
+<span class="nc" id="L150">        return corporateCardSurcharge;</span>
+    }
+
+    public Long getTotalAmount() {
+<span class="nc" id="L154">        return totalAmount;</span>
+    }
+    
+    public Long getFee() {
+<span class="nc" id="L158">        return fee;</span>
+    }
+
+    public Long getNetAmount() {
+<span class="nc" id="L162">        return netAmount;</span>
+    }
+
+    public String getPaymentProvider() {
+<span class="nc" id="L166">        return paymentProvider;</span>
+    }
+
+    /**
+     * card brand is no longer a top level charge property. It is now at `card_details.card_brand` attribute
+     * We still need to support `v1` clients with a top level card brand attribute to keep support their integrations.
+     *
+     * @return
+     */
+    @JsonProperty(&quot;card_brand&quot;)
+    public String getCardBrand() {
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        return cardDetails != null ? cardDetails.getCardBrand() : &quot;&quot;;</span>
+    }
+
+    public String getCreatedDate() {
+<span class="nc" id="L181">        return createdDate;</span>
+    }
+
+    public String getAuthorisedDate() {
+<span class="nc" id="L185">        return authorisedDate;</span>
+    }
+
+    public String getProcessorId() {
+<span class="nc" id="L189">        return processorId;</span>
+    }
+
+    public String getProviderId() {
+<span class="nc" id="L193">        return providerId;</span>
+    }
+
+    public String getAuthCode() {
+<span class="nc" id="L197">        return authCode;</span>
+    }
+
+    public PaymentOutcome getPaymentOutcome() {
+<span class="nc" id="L201">        return paymentOutcome;</span>
+    }
+
+    public List&lt;PaymentConnectorResponseLink&gt; getLinks() {
+<span class="nc" id="L205">        return links;</span>
+    }
+
+    public RefundSummary getRefundSummary() {
+<span class="nc" id="L209">        return refundSummary;</span>
+    }
+
+    public PaymentSettlementSummary getSettlementSummary() {
+<span class="nc" id="L213">        return settlementSummary;</span>
+    }
+
+    public CardDetailsFromResponse getCardDetailsFromResponse() {
+<span class="nc" id="L217">        return cardDetails;</span>
+    }
+
+    public String getGatewayTransactionId() {
+<span class="nc" id="L221">        return gatewayTransactionId;</span>
+    }
+
+    public AuthorisationSummary getAuthorisationSummary() {
+<span class="nc" id="L225">        return authorisationSummary;</span>
+    };
+
+    public AuthorisationMode getAuthorisationMode() {
+<span class="nc" id="L229">        return authorisationMode;</span>
+    }
+
+    public Optional&lt;Wallet&gt; getWalletType() {
+<span class="nc" id="L233">        return Optional.ofNullable(walletType);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

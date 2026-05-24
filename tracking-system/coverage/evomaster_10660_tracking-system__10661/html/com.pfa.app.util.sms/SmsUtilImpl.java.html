@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SmsUtilImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.util.sms</a> &gt; <span class="el_source">SmsUtilImpl.java</span></div><h1>SmsUtilImpl.java</h1><pre class="source lang-java linenums">package com.pfa.app.util.sms;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.pfa.app.config.twilio.TwilioConfig;
+import com.twilio.exception.ApiException;
+import com.twilio.rest.api.v2010.account.Message;
+import com.twilio.type.PhoneNumber;
+
+@Component
+public class SmsUtilImpl implements SmsUtil {
+	
+	private TwilioConfig twilioConfig;
+<span class="fc" id="L17">	private static final Logger logger = LoggerFactory.getLogger(SmsUtilImpl.class);</span>
+	
+	static {
+<span class="fc" id="L20">		logger.info(&quot;************ entering &quot; + SmsUtilImpl.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L21">	}</span>
+	
+	@Autowired
+<span class="fc" id="L24">	public SmsUtilImpl(final TwilioConfig twilioConfig) {</span>
+<span class="fc" id="L25">		this.twilioConfig = twilioConfig;</span>
+<span class="fc" id="L26">	}</span>
+	
+	@Override
+	public void sendSms(final Sms sms) {
+		try {
+<span class="nc" id="L31">			Message.creator(new PhoneNumber(&quot;+216&quot; + sms.getTo()), new PhoneNumber(this.twilioConfig.getTrialNumber()), sms.getMsg()).create();</span>
+		}
+<span class="nc" id="L33">		catch (ApiException e) {</span>
+<span class="nc" id="L34">			e.printStackTrace();</span>
+<span class="nc" id="L35">			System.err.println(e.getMessage());</span>
+<span class="nc" id="L36">		}</span>
+<span class="nc" id="L37">	}</span>
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

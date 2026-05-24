@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisterRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.models.printshops</a> &gt; <span class="el_source">RegisterRequest.java</span></div><h1>RegisterRequest.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Jorge Caldas, José Cortez
+ * José Francisco, Marcelo Gonçalves
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.models.printshops;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.text.SimpleDateFormat;
+import java.util.GregorianCalendar;
+import java.util.Objects;
+
+/**
+ *
+ * @author josesousa
+ */
+@Entity
+@Table(name = &quot;register_requests&quot;)
+public class RegisterRequest implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+    @Column(nullable = false, name = &quot;manager_name&quot;)
+    private String managerName;
+    @Column(nullable = false, name = &quot;manager_username&quot;)
+    private String managerUsername;
+    @Column(nullable = false, name = &quot;manager_email&quot;)
+    private String managerEmail;
+    @Column(nullable = false, name = &quot;manager_password&quot;)
+    private String managerPassword;
+    @Column(nullable = false, name = &quot;pshop_address&quot;)
+    private String pShopAddress;
+    @Column(nullable = false, name = &quot;pshop_latitude&quot;)
+    private Double pShopLatitude;
+    @Column(nullable = false, name = &quot;pshop_longitude&quot;)
+    private Double pShopLongitude;
+    @Column(nullable = false, name = &quot;pshop_nif&quot;)
+    private String pShopNIF;
+    @Column(nullable = false, name = &quot;pshop_name&quot;)
+    private String pShopName;
+<span class="pc" id="L56">    @JsonIgnore</span>
+    @Column(nullable = false, name = &quot;accepted&quot;)
+    private boolean accepted = false;
+    @Column(nullable = false, name = &quot;pshop_date_request&quot;)
+    private String pShopDateRequest;
+    @Column(nullable = true, name = &quot;pshop_date_request_accepted&quot;)
+    private String pShopDateRequestAccepted;
+
+<span class="fc" id="L64">    public RegisterRequest() {</span>
+        // Return a Calendar based on default Locale and TimeZone
+<span class="fc" id="L66">        this.pShopDateRequest = GregorianCalendarToString((GregorianCalendar) GregorianCalendar.getInstance());</span>
+<span class="fc" id="L67">        this.pShopDateRequestAccepted = null;</span>
+<span class="fc" id="L68">    }</span>
+
+<span class="fc" id="L70">    public RegisterRequest(String managerName, String managerUsername, String managerEmail, String managerPassword, String pShopAddress, Double pShopLatitude, Double pShopLongitude, String pShopNIF, String pShopName, boolean accepted) {</span>
+<span class="fc" id="L71">        this.managerName = managerName;</span>
+<span class="fc" id="L72">        this.managerUsername = managerUsername;</span>
+<span class="fc" id="L73">        this.managerEmail = managerEmail;</span>
+<span class="fc" id="L74">        this.managerPassword = managerPassword;</span>
+<span class="fc" id="L75">        this.pShopAddress = pShopAddress;</span>
+<span class="fc" id="L76">        this.pShopLatitude = pShopLatitude;</span>
+<span class="fc" id="L77">        this.pShopLongitude = pShopLongitude;</span>
+<span class="fc" id="L78">        this.pShopNIF = pShopNIF;</span>
+<span class="fc" id="L79">        this.pShopName = pShopName;</span>
+<span class="fc" id="L80">        this.accepted = accepted;</span>
+<span class="fc" id="L81">        this.pShopDateRequest = GregorianCalendarToString((GregorianCalendar) GregorianCalendar.getInstance());</span>
+<span class="fc" id="L82">        this.pShopDateRequestAccepted = null;</span>
+<span class="fc" id="L83">    }</span>
+
+    public long getId() {
+<span class="fc" id="L86">        return id;</span>
+    }
+
+    public String getManagerName() {
+<span class="fc" id="L90">        return managerName;</span>
+    }
+
+    public void setManagerName(String managerName) {
+<span class="fc" id="L94">        this.managerName = managerName;</span>
+<span class="fc" id="L95">    }</span>
+
+    public void setId(long id) {
+<span class="fc" id="L98">        this.id = id;</span>
+<span class="fc" id="L99">    }</span>
+
+    public String getManagerUsername() {
+<span class="fc" id="L102">        return managerUsername;</span>
+    }
+
+    public void setManagerUsername(String managerUsername) {
+<span class="fc" id="L106">        this.managerUsername = managerUsername;</span>
+<span class="fc" id="L107">    }</span>
+
+    public String getManagerEmail() {
+<span class="fc" id="L110">        return managerEmail;</span>
+    }
+
+    public void setManagerEmail(String managerEmail) {
+<span class="fc" id="L114">        this.managerEmail = managerEmail;</span>
+<span class="fc" id="L115">    }</span>
+
+    public String getManagerPassword() {
+<span class="fc" id="L118">        return managerPassword;</span>
+    }
+
+    public void setManagerPassword(String managerPassword) {
+<span class="fc" id="L122">        this.managerPassword = managerPassword;</span>
+<span class="fc" id="L123">    }</span>
+
+    public String getpShopAddress() {
+<span class="fc" id="L126">        return pShopAddress;</span>
+    }
+
+    public void setpShopAddress(String pShopAddress) {
+<span class="fc" id="L130">        this.pShopAddress = pShopAddress;</span>
+<span class="fc" id="L131">    }</span>
+
+    public Double getpShopLatitude() {
+<span class="fc" id="L134">        return pShopLatitude;</span>
+    }
+
+    public void setpShopLatitude(Double pShopLatitude) {
+<span class="fc" id="L138">        this.pShopLatitude = pShopLatitude;</span>
+<span class="fc" id="L139">    }</span>
+
+    public Double getpShopLongitude() {
+<span class="fc" id="L142">        return pShopLongitude;</span>
+    }
+
+    public void setpShopLongitude(Double pShopLongitude) {
+<span class="fc" id="L146">        this.pShopLongitude = pShopLongitude;</span>
+<span class="fc" id="L147">    }</span>
+
+    public String getpShopNIF() {
+<span class="fc" id="L150">        return pShopNIF;</span>
+    }
+
+    public void setpShopNIF(String pShopNIF) {
+<span class="fc" id="L154">        this.pShopNIF = pShopNIF;</span>
+<span class="fc" id="L155">    }</span>
+
+    public String getpShopName() {
+<span class="fc" id="L158">        return pShopName;</span>
+    }
+
+    public void setpShopName(String pShopName) {
+<span class="fc" id="L162">        this.pShopName = pShopName;</span>
+<span class="fc" id="L163">    }</span>
+
+    public boolean isAccepted() {
+<span class="nc" id="L166">        return accepted;</span>
+    }
+
+    public void setAccepted(boolean accepted) {
+<span class="nc" id="L170">        this.accepted = accepted;</span>
+<span class="nc" id="L171">    }</span>
+
+    public String getpShopDateRequest() {
+<span class="fc" id="L174">        return pShopDateRequest;</span>
+    }
+
+    public String getpShopDateRequestAccepted() {
+<span class="fc" id="L178">        return pShopDateRequestAccepted;</span>
+    }
+
+    public void setpShopDateRequestAccepted(GregorianCalendar date) {
+<span class="nc" id="L182">        this.pShopDateRequestAccepted = GregorianCalendarToString(date);</span>
+<span class="nc" id="L183">    }</span>
+
+<span class="nc" id="L185">    public RegisterRequest(long id, String managerName, String managerUsername, String managerEmail, String managerPassword, String pShopAddress, Double pShopLatitude, Double pShopLongitude, String pShopNIF, String pShopName, String pShopDateRequest, String pShopDateRequestAccepted) {</span>
+<span class="nc" id="L186">        this.id = id;</span>
+<span class="nc" id="L187">        this.managerName = managerName;</span>
+<span class="nc" id="L188">        this.managerUsername = managerUsername;</span>
+<span class="nc" id="L189">        this.managerEmail = managerEmail;</span>
+<span class="nc" id="L190">        this.managerPassword = managerPassword;</span>
+<span class="nc" id="L191">        this.pShopAddress = pShopAddress;</span>
+<span class="nc" id="L192">        this.pShopLatitude = pShopLatitude;</span>
+<span class="nc" id="L193">        this.pShopLongitude = pShopLongitude;</span>
+<span class="nc" id="L194">        this.pShopNIF = pShopNIF;</span>
+<span class="nc" id="L195">        this.pShopName = pShopName;</span>
+<span class="nc" id="L196">        this.pShopDateRequest = pShopDateRequest;</span>
+<span class="nc" id="L197">        this.pShopDateRequestAccepted = pShopDateRequestAccepted;</span>
+<span class="nc" id="L198">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L202">        return &quot;RegisterRequest{&quot; + &quot;id=&quot; + id + &quot;, managerName=&quot; + managerName + &quot;, managerUsername=&quot; + managerUsername + &quot;, managerEmail=&quot; + managerEmail + &quot;, managerPassword=&quot; + managerPassword + &quot;, pShopAddress=&quot; + pShopAddress + &quot;, pShopLatitude=&quot; + pShopLatitude + &quot;, pShopLongitude=&quot; + pShopLongitude + &quot;, pShopNIF=&quot; + pShopNIF + &quot;, pShopName=&quot; + pShopName + &quot;, accepted=&quot; + accepted + &quot;, pShopDateRequest=&quot; + pShopDateRequest + &quot;, pShopDateRequestAccepted=&quot; + pShopDateRequestAccepted + '}';</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L207">        int hash = 5;</span>
+<span class="nc" id="L208">        hash = 67 * hash + (int) (this.id ^ (this.id &gt;&gt;&gt; 32));</span>
+<span class="nc" id="L209">        hash = 67 * hash + Objects.hashCode(this.managerName);</span>
+<span class="nc" id="L210">        hash = 67 * hash + Objects.hashCode(this.managerUsername);</span>
+<span class="nc" id="L211">        hash = 67 * hash + Objects.hashCode(this.managerEmail);</span>
+<span class="nc" id="L212">        hash = 67 * hash + Objects.hashCode(this.managerPassword);</span>
+<span class="nc" id="L213">        hash = 67 * hash + Objects.hashCode(this.pShopAddress);</span>
+<span class="nc" id="L214">        hash = 67 * hash + Objects.hashCode(this.pShopLatitude);</span>
+<span class="nc" id="L215">        hash = 67 * hash + Objects.hashCode(this.pShopLongitude);</span>
+<span class="nc" id="L216">        hash = 67 * hash + Objects.hashCode(this.pShopNIF);</span>
+<span class="nc" id="L217">        hash = 67 * hash + Objects.hashCode(this.pShopName);</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        hash = 67 * hash + (this.accepted ? 1 : 0);</span>
+<span class="nc" id="L219">        hash = 67 * hash + Objects.hashCode(this.pShopDateRequest);</span>
+<span class="nc" id="L220">        hash = 67 * hash + Objects.hashCode(this.pShopDateRequestAccepted);</span>
+<span class="nc" id="L221">        return hash;</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        if (this == obj) {</span>
+<span class="nc" id="L227">            return true;</span>
+        }
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (obj == null) {</span>
+<span class="nc" id="L230">            return false;</span>
+        }
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (getClass() != obj.getClass()) {</span>
+<span class="nc" id="L233">            return false;</span>
+        }
+<span class="nc" id="L235">        final RegisterRequest other = (RegisterRequest) obj;</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        if (this.id != other.id) {</span>
+<span class="nc" id="L237">            return false;</span>
+        }
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if (this.accepted != other.accepted) {</span>
+<span class="nc" id="L240">            return false;</span>
+        }
+<span class="nc bnc" id="L242" title="All 2 branches missed.">        if (!Objects.equals(this.managerName, other.managerName)) {</span>
+<span class="nc" id="L243">            return false;</span>
+        }
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (!Objects.equals(this.managerUsername, other.managerUsername)) {</span>
+<span class="nc" id="L246">            return false;</span>
+        }
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (!Objects.equals(this.managerEmail, other.managerEmail)) {</span>
+<span class="nc" id="L249">            return false;</span>
+        }
+<span class="nc bnc" id="L251" title="All 2 branches missed.">        if (!Objects.equals(this.managerPassword, other.managerPassword)) {</span>
+<span class="nc" id="L252">            return false;</span>
+        }
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (!Objects.equals(this.pShopAddress, other.pShopAddress)) {</span>
+<span class="nc" id="L255">            return false;</span>
+        }
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        if (!Objects.equals(this.pShopNIF, other.pShopNIF)) {</span>
+<span class="nc" id="L258">            return false;</span>
+        }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        if (!Objects.equals(this.pShopName, other.pShopName)) {</span>
+<span class="nc" id="L261">            return false;</span>
+        }
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (!Objects.equals(this.pShopDateRequest, other.pShopDateRequest)) {</span>
+<span class="nc" id="L264">            return false;</span>
+        }
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (!Objects.equals(this.pShopDateRequestAccepted, other.pShopDateRequestAccepted)) {</span>
+<span class="nc" id="L267">            return false;</span>
+        }
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        if (!Objects.equals(this.pShopLatitude, other.pShopLatitude)) {</span>
+<span class="nc" id="L270">            return false;</span>
+        }
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        if (!Objects.equals(this.pShopLongitude, other.pShopLongitude)) {</span>
+<span class="nc" id="L273">            return false;</span>
+        }
+<span class="nc" id="L275">        return true;</span>
+    }
+
+    /**
+     * From GregoriaCalendar to String.
+     *
+     * @param c, GregorianCalendar instance
+     * @return Well formated string for display
+     */
+    private String GregorianCalendarToString(GregorianCalendar c) {
+<span class="fc" id="L285">        SimpleDateFormat sdf = new SimpleDateFormat(&quot;dd/MM/yyyy hh:mm&quot;);</span>
+<span class="fc" id="L286">        sdf.setCalendar(c);</span>
+<span class="fc" id="L287">        String dateFormatted = sdf.format(c.getTime());</span>
+<span class="fc" id="L288">        return dateFormatted;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

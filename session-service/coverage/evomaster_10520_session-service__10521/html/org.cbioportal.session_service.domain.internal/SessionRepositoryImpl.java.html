@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SessionRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">org.cbioportal.session_service.domain.internal</a> &gt; <span class="el_source">SessionRepositoryImpl.java</span></div><h1>SessionRepositoryImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2016 Memorial Sloan-Kettering Cancer Center.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS
+ * FOR A PARTICULAR PURPOSE. The software and documentation provided hereunder
+ * is on an &quot;as is&quot; basis, and Memorial Sloan-Kettering Cancer Center has no
+ * obligations to provide maintenance, support, updates, enhancements or
+ * modifications. In no event shall Memorial Sloan-Kettering Cancer Center be
+ * liable to any party for direct, indirect, special, incidental or
+ * consequential damages, including lost profits, arising out of the use of this
+ * software and its documentation, even if Memorial Sloan-Kettering Cancer
+ * Center has been advised of the possibility of such damage.
+ */
+
+/*
+ * This file is part of cBioPortal Session Service.
+ *
+ * cBioPortal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see &lt;http://www.gnu.org/licenses/&gt;.
+*/
+
+package org.cbioportal.session_service.domain.internal;
+
+import org.bson.Document;
+import org.cbioportal.session_service.domain.Session;
+import org.cbioportal.session_service.domain.SessionType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+
+import org.springframework.data.mongodb.core.index.CompoundIndexDefinition;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.BasicQuery;
+import org.springframework.data.mongodb.core.query.Criteria;
+
+import java.util.List;
+
+/**
+ * This is necessary because we are saving objects from one domain
+ * class to different collections.
+ *
+ * @author Manda Wilson 
+ */
+<span class="fc" id="L54">public class SessionRepositoryImpl implements SessionRepositoryCustom {</span>
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
+    
+    @Override
+    public void saveSession(Session session) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (!this.mongoTemplate.collectionExists(session.getType().toString())) {</span>
+<span class="fc" id="L62">            this.mongoTemplate.createCollection(session.getType().toString());</span>
+<span class="fc" id="L63">            Document indexKeys = new Document();</span>
+<span class="fc" id="L64">            indexKeys.append(&quot;source&quot;, 1);</span>
+<span class="fc" id="L65">            indexKeys.append(&quot;type&quot;, 1);</span>
+<span class="fc" id="L66">            indexKeys.append(&quot;checksum&quot;, 1);</span>
+<span class="fc" id="L67">            this.mongoTemplate.indexOps(session.getType().toString()).ensureIndex(</span>
+<span class="fc" id="L68">                new CompoundIndexDefinition(indexKeys).unique());</span>
+        } 
+<span class="fc" id="L70">        this.mongoTemplate.save(session, session.getType().toString());</span>
+<span class="fc" id="L71">    }</span>
+
+    public Session findOneBySourceAndTypeAndData(String source, SessionType type, Object data) {
+<span class="nc" id="L74">        Query query = new Query(Criteria.where(&quot;source&quot;).is(source).and(&quot;type&quot;).is(type).and(&quot;data&quot;).is(data));</span>
+<span class="nc" id="L75">        return this.mongoTemplate.findOne(query, Session.class, type.toString());</span>
+    }
+
+    public Session findOneBySourceAndTypeAndChecksum(String source, SessionType type, String checksum) {
+<span class="nc" id="L79">        Query query = new Query(Criteria.where(&quot;source&quot;).is(source).and(&quot;type&quot;).is(type).and(&quot;checksum&quot;).is(checksum));</span>
+<span class="nc" id="L80">        return this.mongoTemplate.findOne(query, Session.class, type.toString());</span>
+    }
+
+    public Session findOneBySourceAndTypeAndId(String source, SessionType type, String id) {
+<span class="fc" id="L84">        return this.mongoTemplate.findOne(</span>
+<span class="fc" id="L85">            new Query(Criteria.where(&quot;source&quot;).is(source).and(&quot;type&quot;).is(type).and(&quot;id&quot;).is(id)), </span>
+<span class="fc" id="L86">            Session.class, type.toString());</span>
+    }
+
+    public List&lt;Session&gt; findBySourceAndType(String source, SessionType type) {
+<span class="fc" id="L90">        return this.mongoTemplate.find(</span>
+<span class="fc" id="L91">            new Query(Criteria.where(&quot;source&quot;).is(source).and(&quot;type&quot;).is(type)), </span>
+<span class="fc" id="L92">            Session.class, type.toString());</span>
+    }
+
+    public long deleteBySourceAndTypeAndId(String source, SessionType type, String id) {
+<span class="fc" id="L96">        return this.mongoTemplate.remove(</span>
+<span class="fc" id="L97">            new Query(Criteria.where(&quot;source&quot;).is(source).and(&quot;type&quot;).is(type).and(&quot;id&quot;).is(id)),</span>
+<span class="fc" id="L98">            Session.class, type.toString()).getDeletedCount();</span>
+    }
+
+    public List&lt;Session&gt; findBySourceAndTypeAndQuery(String source, SessionType type, String query) {
+<span class="fc" id="L102">        BasicQuery basicQuery = new BasicQuery(query);</span>
+<span class="fc" id="L103">        basicQuery.addCriteria(Criteria.where(&quot;source&quot;).is(source));</span>
+<span class="fc" id="L104">        return this.mongoTemplate.find(basicQuery, Session.class, type.toString());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.pfa.app.service.impl</a> &gt; <span class="el_source">ProjectServiceImpl.java</span></div><h1>ProjectServiceImpl.java</h1><pre class="source lang-java linenums">package com.pfa.app.service.impl;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+
+import javax.transaction.Transactional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.pfa.app.converter.ProjectDtoProjectConverter;
+import com.pfa.app.converter.ProjectProjectDtoConverter;
+import com.pfa.app.exception.custom.ObjectNotFoundException;
+import com.pfa.app.model.dto.ChartData;
+import com.pfa.app.model.dto.ManagerProjectData;
+import com.pfa.app.model.dto.ProjectCommitInfoDTO;
+import com.pfa.app.model.dto.ProjectDTO;
+import com.pfa.app.model.dto.collection.DtoCollection;
+import com.pfa.app.model.entity.Project;
+import com.pfa.app.repository.ProjectRepository;
+import com.pfa.app.service.ProjectService;
+
+@Service
+@Transactional
+public class ProjectServiceImpl implements ProjectService {
+	
+	private final ProjectRepository rep;
+	private final ProjectDtoProjectConverter projectDtoProjectConverter;
+	private final ProjectProjectDtoConverter projectProjectDtoConverter;
+<span class="fc" id="L33">	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);</span>
+	
+	static {
+<span class="fc" id="L36">		logger.info(&quot;************ entering &quot; + ProjectServiceImpl.class.getName() + &quot; ************&quot;);</span>
+<span class="fc" id="L37">	}</span>
+	
+	@Autowired
+<span class="fc" id="L40">	public ProjectServiceImpl(final ProjectRepository rep, final ProjectDtoProjectConverter projectDtoProjectConverter, final ProjectProjectDtoConverter projectProjectDtoConverter) {</span>
+<span class="fc" id="L41">		this.rep = rep;</span>
+<span class="fc" id="L42">		this.projectDtoProjectConverter = projectDtoProjectConverter;</span>
+<span class="fc" id="L43">		this.projectProjectDtoConverter = projectProjectDtoConverter;</span>
+<span class="fc" id="L44">	}</span>
+	
+	@Override
+	public DtoCollection&lt;Project&gt; findAll() {
+<span class="fc" id="L48">		return new DtoCollection&lt;&gt;(Collections.unmodifiableList(this.rep.findAll()));</span>
+	}
+	
+	@Override
+	public Project findById(final Integer projectId) {
+<span class="fc" id="L53">		return this.rep.findById(projectId).orElseThrow(() -&gt; new ObjectNotFoundException(&quot;###### NO Project object FOUND! ######&quot;));</span>
+	}
+	
+	@Override
+	public ProjectDTO findProjectDtoById(final Project project) {
+<span class="nc" id="L58">		return this.projectProjectDtoConverter.convert(project);</span>
+	}
+	
+	@Override
+	public Project save(final Project project) {
+<span class="fc" id="L63">		return this.rep.save(project);</span>
+	}
+	
+	@Override
+	public Project save(final ProjectDTO projectDTO) {
+<span class="nc" id="L68">		return this.rep.save(this.projectDtoProjectConverter.convert(projectDTO));</span>
+	}
+	
+	@Override
+	public Project update(final Project project) {
+<span class="fc" id="L73">		return this.rep.save(project);</span>
+	}
+	
+	@Override
+	public Project update(final Integer projectId, final ProjectDTO projectDTO) {
+<span class="nc" id="L78">		final Project project = this.findById(projectId);</span>
+<span class="nc" id="L79">		project.setTitle(projectDTO.getTitle());</span>
+<span class="nc" id="L80">		project.setStartDate(LocalDate.parse(projectDTO.getStartDate()));</span>
+<span class="nc" id="L81">		project.setEndDate(LocalDate.parse(projectDTO.getEndDate()));</span>
+<span class="nc" id="L82">		project.setStatus(projectDTO.getStatus());</span>
+<span class="nc" id="L83">		return this.rep.save(project);</span>
+	}
+	
+	@Override
+	public void deleteById(final Integer projectId) {
+<span class="nc" id="L88">		this.rep.delete(this.findById(projectId));</span>
+<span class="nc" id="L89">	}</span>
+	
+	/**
+	 * get project status for pie chart
+	 * @return list of ChartData
+	 */
+	@Override
+	public List&lt;ChartData&gt; getProjectStatus() {
+<span class="nc" id="L97">		return this.rep.getProjectStatus();</span>
+	}
+	
+	@Override
+	public ProjectCommitInfoDTO findByUsernameAndProjectId(final String username, final Integer projectId) {
+<span class="nc" id="L102">		return this.rep.findByUsernameAndProjectId(username, projectId).orElseThrow(() -&gt; new ObjectNotFoundException(&quot;###### NO ProjectCommitInfoDTO object FOUND! ######&quot;));</span>
+	}
+	
+	@Override
+	public List&lt;ManagerProjectData&gt; findByEmployeeId(int employeeId) {
+<span class="fc" id="L107">		return this.rep.findByEmployeeId(employeeId);</span>
+	}
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

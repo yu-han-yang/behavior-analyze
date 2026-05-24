@@ -1,0 +1,1380 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Avtale.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Avtale.java</span></div><h1>Avtale.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+import lombok.experimental.FieldNameConstants;
+import lombok.extern.slf4j.Slf4j;
+import no.nav.tag.tiltaksgjennomforing.avtale.events.*;
+import no.nav.tag.tiltaksgjennomforing.avtale.startOgSluttDatoStrategy.StartOgSluttDatoStrategyFactory;
+import no.nav.tag.tiltaksgjennomforing.enhet.Formidlingsgruppe;
+import no.nav.tag.tiltaksgjennomforing.enhet.Kvalifiseringsgruppe;
+import no.nav.tag.tiltaksgjennomforing.exceptions.*;
+import no.nav.tag.tiltaksgjennomforing.persondata.Navn;
+import no.nav.tag.tiltaksgjennomforing.persondata.NavnFormaterer;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import no.nav.tag.tiltaksgjennomforing.utils.TelefonnummerValidator;
+import no.nav.tag.tiltaksgjennomforing.utils.Utils;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.annotations.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.type.PostgresUUIDType;
+import org.springframework.data.domain.AbstractAggregateRoot;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.*;
+import javax.persistence.OrderBy;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static no.nav.tag.tiltaksgjennomforing.utils.DatoUtils.sisteDatoIMnd;
+import static no.nav.tag.tiltaksgjennomforing.utils.Utils.sjekkAtIkkeNull;
+
+<span class="fc" id="L38">@Slf4j</span>
+<span class="nc" id="L39">@Data</span>
+<span class="nc bnc" id="L40" title="All 14 branches missed.">@EqualsAndHashCode(onlyExplicitlyIncluded = true)</span>
+<span class="nc" id="L41">@Builder(toBuilder = true)</span>
+@Entity
+<span class="nc" id="L43">@AllArgsConstructor</span>
+<span class="nc" id="L44">@NoArgsConstructor</span>
+<span class="nc" id="L45">@FieldNameConstants</span>
+@TypeDef(name = &quot;postgres-uuid&quot;,
+        defaultForType = UUID.class,
+        typeClass = PostgresUUIDType.class)
+public class Avtale extends AbstractAggregateRoot&lt;Avtale&gt; {
+
+    @Convert(converter = FnrConverter.class)
+<span class="nc" id="L52">    private Fnr deltakerFnr;</span>
+    @Convert(converter = FnrConverter.class)
+<span class="nc" id="L54">    private Fnr mentorFnr;</span>
+    @Convert(converter = BedriftNrConverter.class)
+<span class="nc" id="L56">    private BedriftNr bedriftNr;</span>
+    @Convert(converter = NavIdentConverter.class)
+<span class="nc" id="L58">    private NavIdent veilederNavIdent;</span>
+
+    @Enumerated(EnumType.STRING)
+    @Column(updatable = false)
+<span class="nc" id="L62">    private Tiltakstype tiltakstype;</span>
+
+<span class="nc" id="L64">    private LocalDateTime opprettetTidspunkt;</span>
+    @Id
+    @EqualsAndHashCode.Include
+<span class="nc" id="L67">    private UUID id;</span>
+
+    @Generated(GenerationTime.INSERT)
+<span class="nc" id="L70">    private Integer avtaleNr;</span>
+
+    @OneToOne(cascade = CascadeType.ALL)
+<span class="nc" id="L73">    private AvtaleInnhold gjeldendeInnhold;</span>
+
+<span class="nc" id="L75">    private Instant sistEndret;</span>
+<span class="nc" id="L76">    private Instant annullertTidspunkt;</span>
+<span class="nc" id="L77">    private String annullertGrunn;</span>
+<span class="nc" id="L78">    private boolean avbrutt;</span>
+<span class="nc" id="L79">    private boolean slettemerket;</span>
+<span class="nc" id="L80">    private LocalDate avbruttDato;</span>
+<span class="nc" id="L81">    private String avbruttGrunn;</span>
+<span class="nc" id="L82">    private boolean opprettetAvArbeidsgiver;</span>
+<span class="nc" id="L83">    private String enhetGeografisk;</span>
+<span class="nc" id="L84">    private String enhetsnavnGeografisk;</span>
+<span class="nc" id="L85">    private String enhetOppfolging;</span>
+<span class="nc" id="L86">    private String enhetsnavnOppfolging;</span>
+
+
+<span class="nc" id="L89">    private boolean godkjentForEtterregistrering;</span>
+
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L92">    private Kvalifiseringsgruppe kvalifiseringsgruppe;</span>
+    @Enumerated(EnumType.STRING)
+<span class="nc" id="L94">    private Formidlingsgruppe formidlingsgruppe;</span>
+
+
+<span class="nc" id="L97">    @OneToMany(mappedBy = &quot;avtale&quot;, cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)</span>
+    @Fetch(FetchMode.SUBSELECT)
+    @SortNatural
+    @OrderBy(&quot;startDato ASC&quot;)
+<span class="nc" id="L101">    private SortedSet&lt;TilskuddPeriode&gt; tilskuddPeriode = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L102">    private boolean feilregistrert;</span>
+
+    @JsonIgnore
+    @OneToOne(mappedBy = &quot;avtale&quot;, fetch = FetchType.EAGER)
+<span class="nc" id="L106">    private ArenaRyddeAvtale arenaRyddeAvtale;</span>
+
+<span class="nc" id="L108">    private Avtale(OpprettAvtale opprettAvtale) {</span>
+<span class="nc" id="L109">        sjekkAtIkkeNull(opprettAvtale.getDeltakerFnr(), &quot;Deltakers fnr må være satt.&quot;);</span>
+<span class="nc" id="L110">        sjekkAtIkkeNull(opprettAvtale.getBedriftNr(), &quot;Arbeidsgivers bedriftnr må være satt.&quot;);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (opprettAvtale.getDeltakerFnr().erUnder16år()) {</span>
+<span class="nc" id="L112">            throw new FeilkodeException(Feilkode.SOMMERJOBB_IKKE_GAMMEL_NOK);</span>
+        }
+<span class="nc bnc" id="L114" title="All 4 branches missed.">        if (opprettAvtale.getTiltakstype() == Tiltakstype.SOMMERJOBB &amp;&amp; opprettAvtale.getDeltakerFnr().erOver30årFørsteJanuar()) {</span>
+<span class="nc" id="L115">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL);</span>
+        }
+
+<span class="nc" id="L118">        this.id = UUID.randomUUID();</span>
+<span class="nc" id="L119">        this.opprettetTidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L120">        this.deltakerFnr = opprettAvtale.getDeltakerFnr();</span>
+<span class="nc" id="L121">        this.bedriftNr = opprettAvtale.getBedriftNr();</span>
+<span class="nc" id="L122">        this.tiltakstype = opprettAvtale.getTiltakstype();</span>
+<span class="nc" id="L123">        this.sistEndret = Now.instant();</span>
+<span class="nc" id="L124">        this.gjeldendeInnhold = AvtaleInnhold.nyttTomtInnhold(tiltakstype);</span>
+<span class="nc" id="L125">        this.gjeldendeInnhold.setAvtale(this);</span>
+<span class="nc" id="L126">    }</span>
+
+<span class="nc" id="L128">    private Avtale(OpprettMentorAvtale opprettMentorAvtale) {</span>
+<span class="nc" id="L129">        sjekkAtIkkeNull(opprettMentorAvtale.getDeltakerFnr(), &quot;Deltakers fnr må være satt.&quot;);</span>
+<span class="nc" id="L130">        sjekkAtIkkeNull(opprettMentorAvtale.getBedriftNr(), &quot;Arbeidsgivers bedriftnr må være satt.&quot;);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (opprettMentorAvtale.getDeltakerFnr().erUnder16år()) {</span>
+<span class="nc" id="L132">            throw new FeilkodeException(Feilkode.SOMMERJOBB_IKKE_GAMMEL_NOK);</span>
+        }
+<span class="nc bnc" id="L134" title="All 4 branches missed.">        if (opprettMentorAvtale.getTiltakstype() == Tiltakstype.SOMMERJOBB &amp;&amp; opprettMentorAvtale.getDeltakerFnr().erOver30årFørsteJanuar()) {</span>
+<span class="nc" id="L135">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL);</span>
+        }
+
+<span class="nc" id="L138">        this.id = UUID.randomUUID();</span>
+<span class="nc" id="L139">        this.opprettetTidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L140">        this.deltakerFnr = opprettMentorAvtale.getDeltakerFnr();</span>
+<span class="nc" id="L141">        this.mentorFnr = opprettMentorAvtale.getMentorFnr();</span>
+<span class="nc" id="L142">        this.bedriftNr = opprettMentorAvtale.getBedriftNr();</span>
+<span class="nc" id="L143">        this.tiltakstype = opprettMentorAvtale.getTiltakstype();</span>
+<span class="nc" id="L144">        this.sistEndret = Now.instant();</span>
+<span class="nc" id="L145">        this.gjeldendeInnhold = AvtaleInnhold.nyttTomtInnhold(tiltakstype);</span>
+<span class="nc" id="L146">        this.gjeldendeInnhold.setAvtale(this);</span>
+<span class="nc" id="L147">    }</span>
+
+    public static Avtale veilederOppretterAvtale(OpprettAvtale opprettAvtale, NavIdent navIdent) {
+<span class="nc" id="L150">        Avtale avtale = new Avtale(opprettAvtale);</span>
+<span class="nc" id="L151">        avtale.veilederNavIdent = sjekkAtIkkeNull(navIdent, &quot;Veileders NAV-ident må være satt.&quot;);</span>
+<span class="nc" id="L152">        avtale.registerEvent(new AvtaleOpprettetAvVeileder(avtale, navIdent));</span>
+<span class="nc" id="L153">        return avtale;</span>
+    }
+
+    protected boolean harOppfølgingsStatus() {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        return (this.getEnhetOppfolging() != null ||</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                this.getKvalifiseringsgruppe() != null ||</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">                this.getFormidlingsgruppe() != null);</span>
+    }
+
+    public static Avtale veilederOppretterAvtale(OpprettMentorAvtale opprettMentorAvtale, NavIdent navIdent) {
+<span class="nc" id="L163">        Avtale avtale = new Avtale(opprettMentorAvtale);</span>
+<span class="nc" id="L164">        avtale.veilederNavIdent = sjekkAtIkkeNull(navIdent, &quot;Veileders NAV-ident må være satt.&quot;);</span>
+<span class="nc" id="L165">        avtale.registerEvent(new AvtaleOpprettetAvVeileder(avtale, navIdent));</span>
+<span class="nc" id="L166">        return avtale;</span>
+    }
+
+    public static Avtale arbeidsgiverOppretterAvtale(OpprettAvtale opprettAvtale) {
+<span class="nc" id="L170">        Avtale avtale = new Avtale(opprettAvtale);</span>
+<span class="nc" id="L171">        avtale.opprettetAvArbeidsgiver = true;</span>
+<span class="nc" id="L172">        avtale.registerEvent(new AvtaleOpprettetAvArbeidsgiver(avtale));</span>
+<span class="nc" id="L173">        return avtale;</span>
+    }
+
+    public static Avtale arbeidsgiverOppretterAvtale(OpprettMentorAvtale opprettMentorAvtale) {
+<span class="nc" id="L177">        Avtale avtale = new Avtale(opprettMentorAvtale);</span>
+<span class="nc" id="L178">        avtale.opprettetAvArbeidsgiver = true;</span>
+<span class="nc" id="L179">        avtale.registerEvent(new AvtaleOpprettetAvArbeidsgiver(avtale));</span>
+<span class="nc" id="L180">        return avtale;</span>
+    }
+
+    public void endreAvtale(
+            Instant sistEndret,
+            EndreAvtale nyAvtale,
+            Avtalerolle utfortAvRolle,
+            EnumSet&lt;Tiltakstype&gt; tiltakstyperMedTilskuddsperioder,
+            Identifikator identifikator
+    ) {
+<span class="nc" id="L190">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L191">        sjekkOmAvtalenKanEndres();</span>
+<span class="nc" id="L192">        sjekkSistEndret(sistEndret);</span>
+<span class="nc" id="L193">        sjekkStartOgSluttDato(nyAvtale.getStartDato(), nyAvtale.getSluttDato());</span>
+<span class="nc" id="L194">        getGjeldendeInnhold().endreAvtale(nyAvtale);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (tiltakstyperMedTilskuddsperioder.contains(tiltakstype)) {</span>
+<span class="nc" id="L196">            nyeTilskuddsperioder();</span>
+        }
+<span class="nc" id="L198">        sistEndretNå();</span>
+<span class="nc" id="L199">        registerEvent(new AvtaleEndret(this, utfortAvRolle, identifikator));</span>
+<span class="nc" id="L200">    }</span>
+
+    public void endreAvtale(
+            Instant sistEndret,
+            EndreAvtale nyAvtale,
+            Avtalerolle utfortAv,
+            EnumSet&lt;Tiltakstype&gt; tiltakstyperMedTilskuddsperioder
+    ) {
+<span class="nc" id="L208">        endreAvtale(sistEndret, nyAvtale, utfortAv, tiltakstyperMedTilskuddsperioder, null);</span>
+<span class="nc" id="L209">    }</span>
+
+    public void delMedAvtalepart(Avtalerolle avtalerolle) {
+<span class="nc" id="L212">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc" id="L214">        String tlf = telefonnummerTilAvtalepart(avtalerolle);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">        if (!TelefonnummerValidator.erGyldigMobilnummer(tlf)) {</span>
+<span class="nc" id="L216">            throw new FeilkodeException(Feilkode.UGYLDIG_TLF);</span>
+        }
+<span class="nc" id="L218">        registerEvent(new AvtaleDeltMedAvtalepart(this, avtalerolle));</span>
+<span class="nc" id="L219">    }</span>
+
+    public void refusjonKlar(LocalDate fristForGodkjenning) {
+<span class="nc" id="L222">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L223">        registerEvent(new RefusjonKlar(this, fristForGodkjenning));</span>
+<span class="nc" id="L224">    }</span>
+
+    public void refusjonRevarsel(LocalDate fristForGodkjenning) {
+<span class="nc" id="L227">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L228">        registerEvent(new RefusjonKlarRevarsel(this, fristForGodkjenning));</span>
+<span class="nc" id="L229">    }</span>
+
+    public void refusjonFristForlenget() {
+<span class="nc" id="L232">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L233">        registerEvent(new RefusjonFristForlenget(this));</span>
+<span class="nc" id="L234">    }</span>
+
+    public void refusjonKorrigert() {
+<span class="nc" id="L237">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L238">        registerEvent(new RefusjonKorrigert(this));</span>
+<span class="nc" id="L239">    }</span>
+
+    private String telefonnummerTilAvtalepart(Avtalerolle avtalerolle) {
+<span class="nc bnc" id="L242" title="All 5 branches missed.">        return switch (avtalerolle) {</span>
+<span class="nc" id="L243">            case DELTAKER -&gt; gjeldendeInnhold.getDeltakerTlf();</span>
+<span class="nc" id="L244">            case ARBEIDSGIVER -&gt; gjeldendeInnhold.getArbeidsgiverTlf();</span>
+<span class="nc" id="L245">            case VEILEDER -&gt; gjeldendeInnhold.getVeilederTlf();</span>
+<span class="nc" id="L246">            case MENTOR -&gt; gjeldendeInnhold.getMentorTlf();</span>
+<span class="nc" id="L247">            default -&gt; throw new IllegalArgumentException();</span>
+        };
+    }
+
+    @JsonProperty
+    public boolean erRyddeAvtale() {
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (arenaRyddeAvtale != null) {</span>
+<span class="nc" id="L254">            return true;</span>
+        }
+<span class="nc" id="L256">        return false;</span>
+    }
+
+    @JsonProperty
+    public boolean erLaast() {
+<span class="nc bnc" id="L261" title="All 6 branches missed.">        return erGodkjentAvVeileder() &amp;&amp; erGodkjentAvArbeidsgiver() &amp;&amp; erGodkjentAvDeltaker();</span>
+    }
+
+    @JsonProperty
+    public boolean erGodkjentAvDeltaker() {
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        return gjeldendeInnhold.getGodkjentAvDeltaker() != null;</span>
+    }
+
+    @JsonProperty
+    public boolean erGodkjentTaushetserklæringAvMentor() {
+<span class="nc bnc" id="L271" title="All 2 branches missed.">        if (gjeldendeInnhold == null) return false;</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        return gjeldendeInnhold.getGodkjentTaushetserklæringAvMentor() != null;</span>
+    }
+
+    @JsonProperty
+    public boolean erGodkjentAvArbeidsgiver() {
+<span class="nc bnc" id="L277" title="All 2 branches missed.">        return gjeldendeInnhold.getGodkjentAvArbeidsgiver() != null;</span>
+    }
+
+    @JsonProperty
+    public boolean erGodkjentAvVeileder() {
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        return gjeldendeInnhold.getGodkjentAvVeileder() != null;</span>
+    }
+
+    @JsonProperty
+    public boolean erAvtaleInngått() {
+<span class="nc bnc" id="L287" title="All 2 branches missed.">        return gjeldendeInnhold.getAvtaleInngått() != null;</span>
+    }
+
+    @JsonProperty
+    public LocalDateTime godkjentAvDeltaker() {
+<span class="nc" id="L292">        return gjeldendeInnhold.getGodkjentAvDeltaker();</span>
+    }
+
+    @JsonProperty
+    public LocalDateTime godkjentAvMentor() {
+<span class="nc" id="L297">        return gjeldendeInnhold.getGodkjentTaushetserklæringAvMentor();</span>
+    }
+
+    @JsonProperty
+    public LocalDateTime godkjentAvArbeidsgiver() {
+<span class="nc" id="L302">        return gjeldendeInnhold.getGodkjentAvArbeidsgiver();</span>
+    }
+
+    @JsonProperty
+    public LocalDateTime godkjentAvVeileder() {
+<span class="nc" id="L307">        return gjeldendeInnhold.getGodkjentAvVeileder();</span>
+    }
+
+    @JsonProperty
+    public LocalDateTime godkjentAvBeslutter() {
+<span class="nc" id="L312">        return gjeldendeInnhold.getGodkjentAvBeslutter();</span>
+    }
+
+    @JsonProperty
+    private LocalDateTime avtaleInngått() {
+<span class="nc" id="L317">        return gjeldendeInnhold.getAvtaleInngått();</span>
+    }
+
+    @JsonProperty
+    private NavIdent godkjentAvNavIdent() {
+<span class="nc" id="L322">        return gjeldendeInnhold.getGodkjentAvNavIdent();</span>
+    }
+
+    @JsonProperty
+    private NavIdent godkjentAvBeslutterNavIdent() {
+<span class="nc" id="L327">        return gjeldendeInnhold.getGodkjentAvBeslutterNavIdent();</span>
+    }
+
+    @JsonProperty
+    private GodkjentPaVegneGrunn godkjentPaVegneGrunn() {
+<span class="nc" id="L332">        return gjeldendeInnhold.getGodkjentPaVegneGrunn();</span>
+    }
+
+    @JsonProperty
+    private boolean godkjentPaVegneAv() {
+<span class="nc" id="L337">        return gjeldendeInnhold.isGodkjentPaVegneAv();</span>
+    }
+
+    @JsonProperty
+    private GodkjentPaVegneAvArbeidsgiverGrunn godkjentPaVegneAvArbeidsgiverGrunn() {
+<span class="nc" id="L342">        return gjeldendeInnhold.getGodkjentPaVegneAvArbeidsgiverGrunn();</span>
+    }
+
+    @JsonProperty
+    private boolean godkjentPaVegneAvArbeidsgiver() {
+<span class="nc" id="L347">        return gjeldendeInnhold.isGodkjentPaVegneAvArbeidsgiver();</span>
+    }
+
+    private boolean skalBesluttes() {
+<span class="nc bnc" id="L351" title="All 6 branches missed.">        return tiltakstype == Tiltakstype.SOMMERJOBB || tiltakstype == Tiltakstype.VARIG_LONNSTILSKUDD || tiltakstype == Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD;</span>
+    }
+
+    private void sjekkOmAvtalenKanEndres() {
+<span class="nc bnc" id="L355" title="All 6 branches missed.">        if (erGodkjentAvDeltaker() || erGodkjentAvArbeidsgiver() || erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L356">            throw new TilgangskontrollException(&quot;Godkjenninger må oppheves før avtalen kan endres.&quot;);</span>
+        }
+<span class="nc" id="L358">    }</span>
+
+    void opphevGodkjenningerSomArbeidsgiver() {
+<span class="nc" id="L361">        boolean varGodkjentAvDeltaker = erGodkjentAvDeltaker();</span>
+<span class="nc" id="L362">        opphevGodkjenninger();</span>
+<span class="nc" id="L363">        registerEvent(new GodkjenningerOpphevetAvArbeidsgiver(this, new GamleVerdier(varGodkjentAvDeltaker, false)));</span>
+<span class="nc" id="L364">    }</span>
+
+    void opphevGodkjenningerSomVeileder() {
+<span class="nc" id="L367">        boolean varGodkjentAvDeltaker = erGodkjentAvDeltaker();</span>
+<span class="nc" id="L368">        boolean varGodkjentAvArbeidsgiver = erGodkjentAvArbeidsgiver();</span>
+<span class="nc" id="L369">        opphevGodkjenninger();</span>
+<span class="nc" id="L370">        registerEvent(new GodkjenningerOpphevetAvVeileder(this, new GamleVerdier(varGodkjentAvDeltaker, varGodkjentAvArbeidsgiver)));</span>
+<span class="nc" id="L371">    }</span>
+
+    private void opphevGodkjenninger() {
+<span class="nc" id="L374">        gjeldendeInnhold.setGodkjentAvDeltaker(null);</span>
+<span class="nc" id="L375">        gjeldendeInnhold.setGodkjentAvArbeidsgiver(null);</span>
+<span class="nc" id="L376">        gjeldendeInnhold.setGodkjentAvVeileder(null);</span>
+<span class="nc" id="L377">        gjeldendeInnhold.setGodkjentPaVegneAv(false);</span>
+<span class="nc" id="L378">        gjeldendeInnhold.setGodkjentPaVegneGrunn(null);</span>
+<span class="nc" id="L379">        gjeldendeInnhold.setGodkjentAvNavIdent(null);</span>
+<span class="nc" id="L380">        sistEndretNå();</span>
+<span class="nc" id="L381">    }</span>
+
+    private void sistEndretNå() {
+<span class="nc" id="L384">        this.sistEndret = Now.instant();</span>
+<span class="nc" id="L385">    }</span>
+
+    void sjekkSistEndret(Instant sistEndret) {
+<span class="nc bnc" id="L388" title="All 4 branches missed.">        if (sistEndret == null || sistEndret.isBefore(this.sistEndret)) {</span>
+<span class="nc" id="L389">            throw new SamtidigeEndringerException();</span>
+        }
+<span class="nc" id="L391">    }</span>
+
+    //TODO TEST MEG
+    void godkjennForArbeidsgiver(Identifikator utfortAv) {
+<span class="nc" id="L395">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L396">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        if (erGodkjentAvArbeidsgiver()) {</span>
+<span class="nc" id="L398">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_ARBEIDSGIVER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc" id="L400">        gjeldendeInnhold.setGodkjentAvArbeidsgiver(Now.localDateTime());</span>
+<span class="nc" id="L401">        sistEndretNå();</span>
+<span class="nc" id="L402">        registerEvent(new GodkjentAvArbeidsgiver(this, utfortAv));</span>
+<span class="nc" id="L403">    }</span>
+
+    void godkjennForVeileder(NavIdent utfortAv) {
+<span class="nc" id="L406">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L407">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">        if (erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L409">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L411" title="All 2 branches missed.">        if (erUfordelt()) {</span>
+<span class="nc" id="L412">            throw new AvtaleErIkkeFordeltException();</span>
+        }
+<span class="nc bnc" id="L414" title="All 4 branches missed.">        if (this.getTiltakstype() == Tiltakstype.MENTOR &amp;&amp; !erGodkjentTaushetserklæringAvMentor()) {</span>
+<span class="nc" id="L415">            throw new FeilkodeException(Feilkode.MENTOR_MÅ_SIGNERE_TAUSHETSERKLÆRING);</span>
+        }
+<span class="nc bnc" id="L417" title="All 4 branches missed.">        if (!erGodkjentAvArbeidsgiver() || !erGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L418">            throw new VeilederSkalGodkjenneSistException();</span>
+        }
+<span class="nc bnc" id="L420" title="All 2 branches missed.">        if (this.getTiltakstype() == Tiltakstype.SOMMERJOBB &amp;&amp;</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">                this.getDeltakerFnr().erOver30årFraOppstartDato(getGjeldendeInnhold().getStartDato())) {</span>
+<span class="nc" id="L422">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO);</span>
+        }
+<span class="nc bnc" id="L424" title="All 4 branches missed.">        else if (this.getTiltakstype() != Tiltakstype.SOMMERJOBB &amp;&amp; this.getDeltakerFnr().erOver72ÅrFraSluttDato(getGjeldendeInnhold().getSluttDato())) {</span>
+<span class="nc" id="L425">            throw new FeilkodeException(Feilkode.DELTAKER_72_AAR);</span>
+        }
+
+<span class="nc" id="L428">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L429">        gjeldendeInnhold.setGodkjentAvVeileder(tidspunkt);</span>
+<span class="nc" id="L430">        gjeldendeInnhold.setGodkjentAvNavIdent(new NavIdent(utfortAv.asString()));</span>
+<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (!skalBesluttes()) {</span>
+<span class="nc" id="L432">            avtaleInngått(tidspunkt, Avtalerolle.VEILEDER, utfortAv);</span>
+        }
+<span class="nc" id="L434">        gjeldendeInnhold.setIkrafttredelsestidspunkt(tidspunkt);</span>
+<span class="nc" id="L435">        sistEndretNå();</span>
+<span class="nc" id="L436">        registerEvent(new GodkjentAvVeileder(this, utfortAv));</span>
+<span class="nc" id="L437">    }</span>
+
+    private void avtaleInngått(LocalDateTime tidspunkt, Avtalerolle utførtAvRolle, NavIdent utførtAv) {
+<span class="nc" id="L440">        gjeldendeInnhold.setAvtaleInngått(tidspunkt);</span>
+<span class="nc" id="L441">        registerEvent(new AvtaleInngått(this, utførtAvRolle, utførtAv));</span>
+<span class="nc" id="L442">    }</span>
+
+    void godkjennForVeilederOgDeltaker(NavIdent utfortAv, GodkjentPaVegneGrunn paVegneAvGrunn) {
+<span class="nc" id="L445">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L446">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">        if (erGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L448">            throw new DeltakerHarGodkjentException();</span>
+        }
+<span class="nc bnc" id="L450" title="All 2 branches missed.">        if (!erGodkjentAvArbeidsgiver()) {</span>
+<span class="nc" id="L451">            throw new ArbeidsgiverSkalGodkjenneFørVeilederException();</span>
+        }
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        if (erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L454">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L456" title="All 2 branches missed.">        if (this.getTiltakstype() == Tiltakstype.SOMMERJOBB &amp;&amp;</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">                this.getDeltakerFnr().erOver30årFraOppstartDato(getGjeldendeInnhold().getStartDato())) {</span>
+<span class="nc" id="L458">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO);</span>
+        }
+<span class="nc bnc" id="L460" title="All 4 branches missed.">        if (this.getTiltakstype() == Tiltakstype.MENTOR &amp;&amp; !erGodkjentTaushetserklæringAvMentor()) {</span>
+<span class="nc" id="L461">            throw new FeilkodeException(Feilkode.MENTOR_MÅ_SIGNERE_TAUSHETSERKLÆRING);</span>
+        }
+<span class="nc bnc" id="L463" title="All 4 branches missed.">        if (this.getTiltakstype() == Tiltakstype.VARIG_LONNSTILSKUDD &amp;&amp; this.getDeltakerFnr().erOver72ÅrFraSluttDato(getGjeldendeInnhold().getSluttDato())) {</span>
+<span class="nc" id="L464">            throw new FeilkodeException(Feilkode.DELTAKER_72_AAR);</span>
+<span class="nc bnc" id="L465" title="All 4 branches missed.">        } else if (this.getTiltakstype() != Tiltakstype.VARIG_LONNSTILSKUDD &amp;&amp; this.getDeltakerFnr().erOver67ÅrFraSluttDato(getGjeldendeInnhold().getSluttDato())) {</span>
+<span class="nc" id="L466">            throw new FeilkodeException(Feilkode.DELTAKER_67_AAR);</span>
+        }
+
+<span class="nc" id="L469">        paVegneAvGrunn.valgtMinstEnGrunn();</span>
+<span class="nc" id="L470">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L471">        gjeldendeInnhold.setGodkjentAvVeileder(tidspunkt);</span>
+<span class="nc" id="L472">        gjeldendeInnhold.setGodkjentAvDeltaker(tidspunkt);</span>
+<span class="nc" id="L473">        gjeldendeInnhold.setGodkjentPaVegneAv(true);</span>
+<span class="nc" id="L474">        gjeldendeInnhold.setGodkjentPaVegneGrunn(paVegneAvGrunn);</span>
+<span class="nc" id="L475">        gjeldendeInnhold.setGodkjentAvNavIdent(new NavIdent(utfortAv.asString()));</span>
+<span class="nc" id="L476">        gjeldendeInnhold.setIkrafttredelsestidspunkt(tidspunkt);</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">        if (!skalBesluttes()) {</span>
+<span class="nc" id="L478">            avtaleInngått(tidspunkt, Avtalerolle.VEILEDER, utfortAv);</span>
+        }
+<span class="nc" id="L480">        sistEndretNå();</span>
+<span class="nc" id="L481">        registerEvent(new GodkjentPaVegneAvDeltaker(this, utfortAv));</span>
+<span class="nc" id="L482">    }</span>
+
+    void godkjennForVeilederOgArbeidsgiver(NavIdent utfortAv, GodkjentPaVegneAvArbeidsgiverGrunn godkjentPaVegneAvArbeidsgiverGrunn) {
+<span class="nc" id="L485">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L486">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L487" title="All 6 branches missed.">        if (tiltakstype != Tiltakstype.SOMMERJOBB &amp;&amp; tiltakstype != Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD &amp;&amp; tiltakstype != Tiltakstype.VARIG_LONNSTILSKUDD) {</span>
+<span class="nc" id="L488">            throw new FeilkodeException(Feilkode.GODKJENN_PAA_VEGNE_AV_FEIL_TILTAKSTYPE);</span>
+        }
+<span class="nc bnc" id="L490" title="All 2 branches missed.">        if (erGodkjentAvArbeidsgiver()) {</span>
+<span class="nc" id="L491">            throw new FeilkodeException(Feilkode.ARBEIDSGIVER_HAR_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L493" title="All 2 branches missed.">        if (!erGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L494">            throw new FeilkodeException(Feilkode.DELTAKER_SKAL_GODKJENNE_FOER_VEILEDER);</span>
+        }
+<span class="nc bnc" id="L496" title="All 2 branches missed.">        if (erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L497">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L499" title="All 4 branches missed.">        if (tiltakstype == Tiltakstype.SOMMERJOBB &amp;&amp; this.getDeltakerFnr().erOver30årFraOppstartDato(getGjeldendeInnhold().getStartDato())) {</span>
+<span class="nc" id="L500">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO);</span>
+        }
+<span class="nc" id="L502">        godkjentPaVegneAvArbeidsgiverGrunn.valgtMinstEnGrunn();</span>
+<span class="nc" id="L503">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L504">        gjeldendeInnhold.setGodkjentAvVeileder(tidspunkt);</span>
+<span class="nc" id="L505">        gjeldendeInnhold.setGodkjentAvArbeidsgiver(tidspunkt);</span>
+<span class="nc" id="L506">        gjeldendeInnhold.setGodkjentPaVegneAvArbeidsgiver(true);</span>
+<span class="nc" id="L507">        gjeldendeInnhold.setGodkjentPaVegneAvArbeidsgiverGrunn(godkjentPaVegneAvArbeidsgiverGrunn);</span>
+<span class="nc" id="L508">        gjeldendeInnhold.setGodkjentAvNavIdent(new NavIdent(utfortAv.asString()));</span>
+<span class="nc" id="L509">        gjeldendeInnhold.setIkrafttredelsestidspunkt(tidspunkt);</span>
+<span class="nc bnc" id="L510" title="All 2 branches missed.">        if (!skalBesluttes()) {</span>
+<span class="nc" id="L511">            avtaleInngått(tidspunkt, Avtalerolle.VEILEDER, utfortAv);</span>
+        }
+<span class="nc" id="L513">        sistEndretNå();</span>
+<span class="nc" id="L514">        registerEvent(new GodkjentPaVegneAvArbeidsgiver(this, utfortAv));</span>
+<span class="nc" id="L515">    }</span>
+
+    public void godkjennForVeilederOgDeltakerOgArbeidsgiver(NavIdent utfortAv, GodkjentPaVegneAvDeltakerOgArbeidsgiverGrunn paVegneAvDeltakerOgArbeidsgiverGrunn) {
+<span class="nc" id="L518">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L519">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L520" title="All 6 branches missed.">        if (tiltakstype != Tiltakstype.SOMMERJOBB &amp;&amp; tiltakstype != Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD &amp;&amp; tiltakstype != Tiltakstype.VARIG_LONNSTILSKUDD) {</span>
+<span class="nc" id="L521">            throw new FeilkodeException(Feilkode.GODKJENN_PAA_VEGNE_AV_FEIL_TILTAKSTYPE);</span>
+        }
+<span class="nc bnc" id="L523" title="All 2 branches missed.">        if (erGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L524">            throw new DeltakerHarGodkjentException();</span>
+        }
+<span class="nc bnc" id="L526" title="All 2 branches missed.">        if (erGodkjentAvArbeidsgiver()) {</span>
+<span class="nc" id="L527">            throw new FeilkodeException(Feilkode.ARBEIDSGIVER_HAR_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L529" title="All 2 branches missed.">        if (erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L530">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L532" title="All 4 branches missed.">        if (tiltakstype == Tiltakstype.SOMMERJOBB &amp;&amp; this.getDeltakerFnr().erOver30årFraOppstartDato(getGjeldendeInnhold().getStartDato())) {</span>
+<span class="nc" id="L533">            throw new FeilkodeException(Feilkode.SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO);</span>
+        }
+
+
+<span class="nc" id="L537">        paVegneAvDeltakerOgArbeidsgiverGrunn.valgtMinstEnGrunn();</span>
+<span class="nc" id="L538">        LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L539">        gjeldendeInnhold.setGodkjentAvVeileder(tidspunkt);</span>
+<span class="nc" id="L540">        gjeldendeInnhold.setGodkjentAvDeltaker(tidspunkt);</span>
+<span class="nc" id="L541">        gjeldendeInnhold.setGodkjentAvArbeidsgiver(tidspunkt);</span>
+<span class="nc" id="L542">        gjeldendeInnhold.setGodkjentPaVegneAv(true);</span>
+<span class="nc" id="L543">        gjeldendeInnhold.setGodkjentPaVegneAvArbeidsgiver(true);</span>
+<span class="nc" id="L544">        gjeldendeInnhold.setGodkjentPaVegneGrunn(paVegneAvDeltakerOgArbeidsgiverGrunn.getGodkjentPaVegneAvDeltakerGrunn());</span>
+<span class="nc" id="L545">        gjeldendeInnhold.setGodkjentPaVegneAvArbeidsgiverGrunn(paVegneAvDeltakerOgArbeidsgiverGrunn.getGodkjentPaVegneAvArbeidsgiverGrunn());</span>
+<span class="nc" id="L546">        gjeldendeInnhold.setGodkjentAvNavIdent(new NavIdent(utfortAv.asString()));</span>
+<span class="nc" id="L547">        gjeldendeInnhold.setIkrafttredelsestidspunkt(tidspunkt);</span>
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (!skalBesluttes()) {</span>
+<span class="nc" id="L549">            avtaleInngått(tidspunkt, Avtalerolle.VEILEDER, utfortAv);</span>
+        }
+<span class="nc" id="L551">        sistEndretNå();</span>
+<span class="nc" id="L552">        registerEvent(new GodkjentPaVegneAvDeltakerOgArbeidsgiver(this, utfortAv));</span>
+<span class="nc" id="L553">    }</span>
+
+    void godkjennForDeltaker(Identifikator utfortAv) {
+<span class="nc" id="L556">        sjekkOmAltErKlarTilGodkjenning();</span>
+<span class="nc bnc" id="L557" title="All 2 branches missed.">        if (erGodkjentAvDeltaker()) {</span>
+<span class="nc" id="L558">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_DELTAKER_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc" id="L560">        gjeldendeInnhold.setGodkjentAvDeltaker(Now.localDateTime());</span>
+<span class="nc" id="L561">        sistEndretNå();</span>
+<span class="nc" id="L562">        registerEvent(new GodkjentAvDeltaker(this, utfortAv));</span>
+<span class="nc" id="L563">    }</span>
+
+    void godkjennForMentor(Identifikator utfortAv) {
+<span class="nc bnc" id="L566" title="All 2 branches missed.">        if (erGodkjentTaushetserklæringAvMentor()) {</span>
+<span class="nc" id="L567">            throw new FeilkodeException(Feilkode.KAN_IKKE_GODKJENNE_MENTOR_HAR_ALLEREDE_GODKJENT);</span>
+        }
+<span class="nc" id="L569">        gjeldendeInnhold.setGodkjentTaushetserklæringAvMentor(Now.localDateTime());</span>
+<span class="nc" id="L570">        sistEndretNå();</span>
+<span class="nc" id="L571">        registerEvent(new SignertAvMentor(this, utfortAv));</span>
+<span class="nc" id="L572">    }</span>
+
+    void sjekkOmAltErKlarTilGodkjenning() {
+<span class="nc" id="L575">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L577" title="All 2 branches missed.">        if (!erAltUtfylt()) {</span>
+<span class="nc" id="L578">            throw new AltMåVæreFyltUtException();</span>
+        }
+<span class="nc bnc" id="L580" title="All 2 branches missed.">        if (List.of(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB).contains(tiltakstype) &amp;&amp;</span>
+<span class="nc bnc" id="L581" title="All 2 branches missed.">                Utils.erNoenTomme(gjeldendeInnhold.getSumLonnstilskudd(), gjeldendeInnhold.getLonnstilskuddProsent(), tilskuddPeriode)) {</span>
+<span class="nc" id="L582">            throw new FeilkodeException(Feilkode.MANGLER_BEREGNING);</span>
+        }
+<span class="nc bnc" id="L584" title="All 2 branches missed.">        if (veilederNavIdent == null) {</span>
+<span class="nc" id="L585">            throw new FeilkodeException(Feilkode.MANGLER_VEILEDER_PÅ_AVTALE);</span>
+        }
+<span class="nc" id="L587">    }</span>
+
+    @JsonProperty
+    public String status() {
+<span class="nc" id="L591">        return statusSomEnum().getBeskrivelse();</span>
+    }
+
+    @JsonProperty
+    public Status statusSomEnum() {
+<span class="nc bnc" id="L596" title="All 2 branches missed.">        if (getAnnullertTidspunkt() != null) {</span>
+<span class="nc" id="L597">            return Status.ANNULLERT;</span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">        } else if (isAvbrutt()) {</span>
+<span class="nc" id="L599">            return Status.AVBRUTT;</span>
+<span class="nc bnc" id="L600" title="All 4 branches missed.">        } else if (erAvtaleInngått() &amp;&amp; (gjeldendeInnhold.getSluttDato().isBefore(Now.localDate()))) {</span>
+<span class="nc" id="L601">            return Status.AVSLUTTET;</span>
+<span class="nc bnc" id="L602" title="All 4 branches missed.">        } else if (erAvtaleInngått() &amp;&amp; (gjeldendeInnhold.getStartDato().isBefore(Now.localDate().plusDays(1)))) {</span>
+<span class="nc" id="L603">            return Status.GJENNOMFØRES;</span>
+<span class="nc bnc" id="L604" title="All 2 branches missed.">        } else if (erAvtaleInngått()) {</span>
+<span class="nc" id="L605">            return Status.KLAR_FOR_OPPSTART;</span>
+<span class="nc bnc" id="L606" title="All 2 branches missed.">        } else if (erAltUtfylt()) {</span>
+<span class="nc" id="L607">            return Status.MANGLER_GODKJENNING;</span>
+        } else {
+<span class="nc" id="L609">            return Status.PÅBEGYNT;</span>
+        }
+    }
+
+    @JsonProperty
+    public boolean kanAvbrytes() {
+<span class="nc bnc" id="L615" title="All 2 branches missed.">        return !isAvbrutt();</span>
+    }
+
+    @JsonProperty
+    public boolean kanGjenopprettes() {
+<span class="nc" id="L620">        return isAvbrutt();</span>
+    }
+
+    public void annuller(Veileder veileder, String annullerGrunn) {
+<span class="nc" id="L624">        sjekkAtIkkeAvtalenInneholderUtbetaltTilskuddsperiode();</span>
+<span class="nc" id="L625">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc" id="L627">        annullerTilskuddsperioder();</span>
+<span class="nc" id="L628">        setAnnullertTidspunkt(Now.instant());</span>
+<span class="nc" id="L629">        setAnnullertGrunn(annullerGrunn);</span>
+<span class="nc bnc" id="L630" title="All 2 branches missed.">        if (erUfordelt()) {</span>
+<span class="nc" id="L631">            setVeilederNavIdent(veileder.getIdentifikator());</span>
+        }
+<span class="nc bnc" id="L633" title="All 2 branches missed.">        if (&quot;Feilregistrering&quot;.equals(annullerGrunn)) {</span>
+<span class="nc" id="L634">            setFeilregistrert(true);</span>
+        }
+<span class="nc" id="L636">        sistEndretNå();</span>
+<span class="nc" id="L637">        registerEvent(new AnnullertAvVeileder(this, veileder.getIdentifikator()));</span>
+<span class="nc" id="L638">    }</span>
+
+    private void sjekkAtIkkeAvtalenInneholderUtbetaltTilskuddsperiode() {
+<span class="nc bnc" id="L641" title="All 2 branches missed.">        if (this.getTilskuddPeriode().stream().anyMatch(TilskuddPeriode::erUtbetalt))</span>
+<span class="nc" id="L642">            throw new FeilkodeException(Feilkode.AVTALE_INNEHOLDER_UTBETALT_TILSKUDDSPERIODE);</span>
+<span class="nc bnc" id="L643" title="All 2 branches missed.">        if (this.getTilskuddPeriode().stream().anyMatch(TilskuddPeriode::erRefusjonGodkjent))</span>
+<span class="nc" id="L644">            throw new FeilkodeException(Feilkode.AVTALE_INNEHOLDER_TILSKUDDSPERIODE_MED_GODKJENT_REFUSJON);</span>
+<span class="nc" id="L645">    }</span>
+
+    public void overtaAvtale(NavIdent nyNavIdent) {
+<span class="nc" id="L648">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L649">        NavIdent gammelNavIdent = this.getVeilederNavIdent();</span>
+<span class="nc" id="L650">        this.setVeilederNavIdent(nyNavIdent);</span>
+<span class="nc" id="L651">        getGjeldendeInnhold().reberegnLønnstilskudd();</span>
+<span class="nc" id="L652">        sistEndretNå();</span>
+<span class="nc bnc" id="L653" title="All 2 branches missed.">        if (gammelNavIdent == null) {</span>
+<span class="nc" id="L654">            nyeTilskuddsperioder();</span>
+<span class="nc" id="L655">            this.registerEvent(new AvtaleOpprettetAvArbeidsgiverErFordelt(this));</span>
+        } else {
+<span class="nc" id="L657">            registerEvent(new AvtaleNyVeileder(this, gammelNavIdent));</span>
+        }
+<span class="nc" id="L659">    }</span>
+
+    private boolean erAltUtfylt() {
+<span class="nc" id="L662">        return felterSomIkkeErFyltUt().isEmpty();</span>
+    }
+
+    public void leggTilBedriftNavn(String bedriftNavn) {
+<span class="nc" id="L666">        gjeldendeInnhold.setBedriftNavn(bedriftNavn);</span>
+<span class="nc" id="L667">    }</span>
+
+    public void leggTilDeltakerNavn(Navn navn) {
+<span class="nc" id="L670">        NavnFormaterer formaterer = new NavnFormaterer(navn);</span>
+<span class="nc" id="L671">        gjeldendeInnhold.setDeltakerFornavn(formaterer.getFornavn());</span>
+<span class="nc" id="L672">        gjeldendeInnhold.setDeltakerEtternavn(formaterer.getEtternavn());</span>
+<span class="nc" id="L673">    }</span>
+
+    @JsonProperty
+    public Set&lt;String&gt; felterSomIkkeErFyltUt() {
+<span class="nc" id="L677">        return getGjeldendeInnhold().felterSomIkkeErFyltUt();</span>
+    }
+
+    public void annullerTilskuddsperiode(TilskuddPeriode tilskuddsperiode) {
+        // Sjekk på refusjonens status
+<span class="nc bnc" id="L682" title="All 2 branches missed.">        if (tilskuddsperiode.getRefusjonStatus() == RefusjonStatus.UTGÅTT) {</span>
+<span class="nc" id="L683">            log.warn(&quot;Sender ikke annuleringsmelding for tilskuddsperiode {} med utgått refusjon.&quot;, tilskuddsperiode.getId());</span>
+        } else {
+<span class="nc" id="L685">            tilskuddsperiode.setStatus(TilskuddPeriodeStatus.ANNULLERT);</span>
+<span class="nc" id="L686">            registerEvent(new TilskuddsperiodeAnnullert(this, tilskuddsperiode));</span>
+        }
+<span class="nc" id="L688">    }</span>
+
+    @JsonProperty
+    public boolean erUfordelt() {
+<span class="nc bnc" id="L692" title="All 2 branches missed.">        return this.getVeilederNavIdent() == null;</span>
+    }
+
+    public void godkjennTilskuddsperiode(NavIdent beslutter, String enhet) {
+<span class="nc" id="L696">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L698" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L699">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_KAN_KUN_BEHANDLES_VED_INNGAATT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L701" title="All 4 branches missed.">        if (enhet == null || !enhet.matches(&quot;^\\d{4}$&quot;)) {</span>
+<span class="nc" id="L702">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ENHET_FIRE_SIFFER);</span>
+        }
+<span class="nc bnc" id="L704" title="All 2 branches missed.">        if (beslutter.equals(gjeldendeInnhold.getGodkjentAvNavIdent())) {</span>
+<span class="nc" id="L705">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_IKKE_GODKJENNE_EGNE);</span>
+        }
+<span class="nc" id="L707">        TilskuddPeriode gjeldendePeriode = gjeldendeTilskuddsperiode();</span>
+
+        // Sjekk om samme løpenummer allerede er godkjent og annullert. Trenger da en &quot;ekstra&quot; resendingsnummer
+<span class="nc" id="L710">        Integer resendingsnummer = finnResendingsNummer(gjeldendePeriode);</span>
+<span class="nc" id="L711">        gjeldendePeriode.godkjenn(beslutter, enhet);</span>
+<span class="nc bnc" id="L712" title="All 2 branches missed.">        if (!erAvtaleInngått()) {</span>
+<span class="nc" id="L713">            LocalDateTime tidspunkt = Now.localDateTime();</span>
+<span class="nc" id="L714">            godkjennForBeslutter(tidspunkt, beslutter);</span>
+<span class="nc" id="L715">            avtaleInngått(tidspunkt, Avtalerolle.BESLUTTER, beslutter);</span>
+        }
+<span class="nc" id="L717">        sistEndretNå();</span>
+<span class="nc" id="L718">        registerEvent(new TilskuddsperiodeGodkjent(this, gjeldendePeriode, beslutter, resendingsnummer));</span>
+<span class="nc" id="L719">    }</span>
+
+    private void godkjennForBeslutter(LocalDateTime tidspunkt, NavIdent beslutter) {
+<span class="nc" id="L722">        gjeldendeInnhold.setGodkjentAvBeslutter(tidspunkt);</span>
+<span class="nc" id="L723">        gjeldendeInnhold.setGodkjentAvBeslutterNavIdent(beslutter);</span>
+<span class="nc" id="L724">    }</span>
+
+    public void avslåTilskuddsperiode(NavIdent beslutter, EnumSet&lt;Avslagsårsak&gt; avslagsårsaker, String avslagsforklaring) {
+<span class="nc" id="L727">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L729" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L730">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_KAN_KUN_BEHANDLES_VED_INNGAATT_AVTALE);</span>
+        }
+<span class="nc" id="L732">        TilskuddPeriode gjeldendePeriode = gjeldendeTilskuddsperiode();</span>
+<span class="nc" id="L733">        gjeldendePeriode.avslå(beslutter, avslagsårsaker, avslagsforklaring);</span>
+<span class="nc" id="L734">        sistEndretNå();</span>
+<span class="nc" id="L735">        registerEvent(new TilskuddsperiodeAvslått(this, beslutter, gjeldendePeriode));</span>
+<span class="nc" id="L736">    }</span>
+
+    public void togglegodkjennEtterregistrering(NavIdent beslutter) {
+<span class="nc" id="L739">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc bnc" id="L740" title="All 2 branches missed.">        if (erAvtaleInngått()) {</span>
+<span class="nc" id="L741">            throw new FeilkodeException(Feilkode.KAN_IKKE_MERKES_FOR_ETTERREGISTRERING_AVTALE_GODKJENT);</span>
+        }
+<span class="nc bnc" id="L743" title="All 2 branches missed.">        setGodkjentForEtterregistrering(!this.godkjentForEtterregistrering);</span>
+<span class="nc" id="L744">        sistEndretNå();</span>
+<span class="nc bnc" id="L745" title="All 2 branches missed.">        if (this.godkjentForEtterregistrering) {</span>
+<span class="nc" id="L746">            registerEvent(new GodkjentForEtterregistrering(this, beslutter));</span>
+        } else {
+<span class="nc" id="L748">            registerEvent(new FjernetEtterregistrering(this, beslutter));</span>
+        }
+<span class="nc" id="L750">    }</span>
+
+    protected TilskuddPeriodeStatus getGjeldendeTilskuddsperiodestatus() {
+<span class="nc" id="L753">        TilskuddPeriode tilskuddPeriode = gjeldendeTilskuddsperiode();</span>
+<span class="nc bnc" id="L754" title="All 2 branches missed.">        if (tilskuddPeriode == null) {</span>
+<span class="nc" id="L755">            return null;</span>
+        }
+<span class="nc" id="L757">        return tilskuddPeriode.getStatus();</span>
+    }
+
+    public TilskuddPeriode tilskuddsperiode(int index) {
+<span class="nc" id="L761">        return tilskuddPeriode.toArray(new TilskuddPeriode[0])[index];</span>
+    }
+
+    @JsonProperty
+    public TilskuddPeriode gjeldendeTilskuddsperiode() {
+<span class="nc" id="L766">        TreeSet&lt;TilskuddPeriode&gt; aktiveTilskuddsperioder = new TreeSet(tilskuddPeriode.stream().filter(t -&gt; t.isAktiv()).collect(Collectors.toSet()));</span>
+
+<span class="nc bnc" id="L768" title="All 2 branches missed.">        if (aktiveTilskuddsperioder.isEmpty()) {</span>
+<span class="nc" id="L769">            return null;</span>
+        }
+
+        // Finner første avslått
+<span class="nc bnc" id="L773" title="All 2 branches missed.">        Optional&lt;TilskuddPeriode&gt; førsteAvslått = aktiveTilskuddsperioder.stream().filter(tilskuddPeriode -&gt; tilskuddPeriode.getStatus() == TilskuddPeriodeStatus.AVSLÅTT).findFirst();</span>
+<span class="nc bnc" id="L774" title="All 2 branches missed.">        if (førsteAvslått.isPresent()) {</span>
+<span class="nc" id="L775">            return førsteAvslått.get();</span>
+        }
+
+        // Finn første som kan behandles
+<span class="nc" id="L779">        Optional&lt;TilskuddPeriode&gt; førsteSomKanBehandles = aktiveTilskuddsperioder.stream().filter(TilskuddPeriode::kanBehandles).findFirst();</span>
+<span class="nc bnc" id="L780" title="All 2 branches missed.">        if (førsteSomKanBehandles.isPresent()) {</span>
+<span class="nc" id="L781">            return førsteSomKanBehandles.get();</span>
+        }
+
+        // Finn siste godkjent
+<span class="nc bnc" id="L785" title="All 2 branches missed.">        Optional&lt;TilskuddPeriode&gt; sisteGodkjent = aktiveTilskuddsperioder.descendingSet().stream().filter(tilskuddPeriode -&gt; tilskuddPeriode.getStatus() == TilskuddPeriodeStatus.GODKJENT)</span>
+<span class="nc" id="L786">                .findFirst();</span>
+<span class="nc bnc" id="L787" title="All 2 branches missed.">        if (sisteGodkjent.isPresent()) {</span>
+<span class="nc" id="L788">            return sisteGodkjent.get();</span>
+        }
+
+<span class="nc" id="L791">        return aktiveTilskuddsperioder.first();</span>
+    }
+
+    public TreeSet&lt;TilskuddPeriode&gt; finnTilskuddsperioderIkkeLukketForEndring() {
+<span class="nc" id="L795">        TreeSet&lt;TilskuddPeriode&gt; tilskuddsperioder = tilskuddPeriode.stream()</span>
+<span class="nc bnc" id="L796" title="All 4 branches missed.">                .filter(t -&gt; t.isAktiv() &amp;&amp; (t.getStatus().equals(TilskuddPeriodeStatus.UBEHANDLET) ||</span>
+<span class="nc bnc" id="L797" title="All 2 branches missed.">                        t.getStatus().equals(TilskuddPeriodeStatus.AVSLÅTT)))</span>
+<span class="nc" id="L798">                .collect(Collectors.toCollection(TreeSet::new));</span>
+<span class="nc bnc" id="L799" title="All 2 branches missed.">        if (tilskuddsperioder.isEmpty()) {</span>
+<span class="nc" id="L800">            return null;</span>
+        }
+<span class="nc" id="L802">        return tilskuddsperioder;</span>
+    }
+
+    public void oppdatereKostnadsstedForTilskuddsperioder(NyttKostnadssted nyttKostnadssted) {
+<span class="nc" id="L806">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc bnc" id="L807" title="All 2 branches missed.">        if (erAvtaleInngått()) {</span>
+<span class="nc" id="L808">            throw new FeilkodeException(Feilkode.KAN_IKKE_OPPDATERE_KOSTNADSSTED_INGAATT_AVTALE);</span>
+        }
+<span class="nc" id="L810">        gjeldendeInnhold.setEnhetKostnadssted(nyttKostnadssted.getEnhet());</span>
+<span class="nc" id="L811">        gjeldendeInnhold.setEnhetsnavnKostnadssted(nyttKostnadssted.getEnhetsnavn());</span>
+<span class="nc" id="L812">        nyeTilskuddsperioder();</span>
+<span class="nc" id="L813">    }</span>
+
+    public void slettemerk(NavIdent utførtAv) {
+<span class="nc" id="L816">        this.setSlettemerket(true);</span>
+<span class="nc" id="L817">        registerEvent(new AvtaleSlettemerket(this, utførtAv));</span>
+<span class="nc" id="L818">    }</span>
+
+    void forlengTilskuddsperioder(LocalDate gammelSluttDato, LocalDate nySluttDato) {
+<span class="nc bnc" id="L821" title="All 2 branches missed.">        if (tilskuddPeriode.isEmpty()) {</span>
+<span class="nc" id="L822">            return;</span>
+        }
+<span class="nc" id="L824">        Optional&lt;TilskuddPeriode&gt; periodeMedHøyestLøpenummer = tilskuddPeriode.stream().max(Comparator.comparing(tilskuddPeriode1 -&gt; tilskuddPeriode1.getLøpenummer()));</span>
+<span class="nc bnc" id="L825" title="All 2 branches missed.">        if(periodeMedHøyestLøpenummer.isPresent()) {</span>
+<span class="nc" id="L826">            TilskuddPeriode sisteTilskuddsperiode = periodeMedHøyestLøpenummer.get();</span>
+<span class="nc bnc" id="L827" title="All 2 branches missed.">            if (sisteTilskuddsperiode.getStatus() == TilskuddPeriodeStatus.UBEHANDLET) {</span>
+                // Kan utvide siste tilskuddsperiode hvis den er ubehandlet
+<span class="nc" id="L829">                tilskuddPeriode.remove(sisteTilskuddsperiode);</span>
+<span class="nc" id="L830">                List&lt;TilskuddPeriode&gt; nyeTilskuddperioder = beregnTilskuddsperioder(sisteTilskuddsperiode.getStartDato(), nySluttDato);</span>
+<span class="nc" id="L831">                fikseLøpenumre(nyeTilskuddperioder, sisteTilskuddsperiode.getLøpenummer());</span>
+<span class="nc" id="L832">                tilskuddPeriode.addAll(nyeTilskuddperioder);</span>
+<span class="nc bnc" id="L833" title="All 8 branches missed.">            } else if (sisteTilskuddsperiode.getSluttDato().isBefore(sisteDatoIMnd(sisteTilskuddsperiode.getSluttDato())) &amp;&amp; sisteTilskuddsperiode.getStatus() == TilskuddPeriodeStatus.GODKJENT &amp;&amp; (!sisteTilskuddsperiode.erRefusjonGodkjent() &amp;&amp; !sisteTilskuddsperiode.erUtbetalt())) {</span>
+<span class="nc" id="L834">                annullerTilskuddsperiode(sisteTilskuddsperiode);</span>
+<span class="nc" id="L835">                List&lt;TilskuddPeriode&gt; nyeTilskuddperioder = beregnTilskuddsperioder(sisteTilskuddsperiode.getStartDato(), nySluttDato);</span>
+<span class="nc" id="L836">                fikseLøpenumre(nyeTilskuddperioder, sisteTilskuddsperiode.getLøpenummer() + 1);</span>
+<span class="nc" id="L837">                tilskuddPeriode.addAll(nyeTilskuddperioder);</span>
+<span class="nc" id="L838">            } else {</span>
+                // Regner ut nye perioder fra gammel avtaleslutt til ny avtaleslutt
+<span class="nc" id="L840">                List&lt;TilskuddPeriode&gt; nyeTilskuddperioder = beregnTilskuddsperioder(gammelSluttDato.plusDays(1), nySluttDato);</span>
+<span class="nc" id="L841">                fikseLøpenumre(nyeTilskuddperioder, sisteTilskuddsperiode.getLøpenummer() + 1);</span>
+<span class="nc" id="L842">                tilskuddPeriode.addAll(nyeTilskuddperioder);</span>
+            }
+        }
+<span class="nc" id="L845">    }</span>
+
+    private void fikseLøpenumre(List&lt;TilskuddPeriode&gt; tilskuddperioder, int startPåLøpenummer) {
+<span class="nc bnc" id="L848" title="All 2 branches missed.">        for (int i = 0; i &lt; tilskuddperioder.size(); i++) {</span>
+<span class="nc" id="L849">            tilskuddperioder.get(i).setLøpenummer(startPåLøpenummer + i);</span>
+        }
+<span class="nc" id="L851">    }</span>
+
+    private void annullerTilskuddsperioder() {
+<span class="nc bnc" id="L854" title="All 2 branches missed.">        for (TilskuddPeriode tilskuddsperiode : Set.copyOf(tilskuddPeriode)) {</span>
+<span class="nc" id="L855">            TilskuddPeriodeStatus status = tilskuddsperiode.getStatus();</span>
+<span class="nc bnc" id="L856" title="All 2 branches missed.">            if (status == TilskuddPeriodeStatus.UBEHANDLET) {</span>
+<span class="nc" id="L857">                tilskuddPeriode.remove(tilskuddsperiode);</span>
+<span class="nc bnc" id="L858" title="All 2 branches missed.">            } else if (status == TilskuddPeriodeStatus.GODKJENT) {</span>
+<span class="nc" id="L859">                annullerTilskuddsperiode(tilskuddsperiode);</span>
+            }
+<span class="nc" id="L861">        }</span>
+<span class="nc" id="L862">    }</span>
+
+    private void forkortTilskuddsperioder(LocalDate nySluttDato) {
+<span class="nc bnc" id="L865" title="All 2 branches missed.">        for (TilskuddPeriode tilskuddsperiode : Set.copyOf(tilskuddPeriode)) {</span>
+<span class="nc" id="L866">            TilskuddPeriodeStatus status = tilskuddsperiode.getStatus();</span>
+<span class="nc bnc" id="L867" title="All 2 branches missed.">            if (tilskuddsperiode.getStartDato().isAfter(nySluttDato)) {</span>
+<span class="nc bnc" id="L868" title="All 2 branches missed.">                if (status == TilskuddPeriodeStatus.UBEHANDLET) {</span>
+<span class="nc" id="L869">                    tilskuddPeriode.remove(tilskuddsperiode);</span>
+<span class="nc bnc" id="L870" title="All 2 branches missed.">                } else if (status == TilskuddPeriodeStatus.GODKJENT) {</span>
+<span class="nc" id="L871">                    annullerTilskuddsperiode(tilskuddsperiode);</span>
+                }
+<span class="nc bnc" id="L873" title="All 2 branches missed.">            } else if (tilskuddsperiode.getSluttDato().isAfter(nySluttDato)) {</span>
+<span class="nc bnc" id="L874" title="All 4 branches missed.">                if (status == TilskuddPeriodeStatus.UBEHANDLET || status == TilskuddPeriodeStatus.GODKJENT) {</span>
+<span class="nc" id="L875">                    tilskuddsperiode.setSluttDato(nySluttDato);</span>
+<span class="nc" id="L876">                    tilskuddsperiode.setBeløp(beregnTilskuddsbeløp(tilskuddsperiode.getStartDato(), tilskuddsperiode.getSluttDato()));</span>
+<span class="nc bnc" id="L877" title="All 2 branches missed.">                    if (status == TilskuddPeriodeStatus.GODKJENT) {</span>
+<span class="nc" id="L878">                        registerEvent(new TilskuddsperiodeForkortet(this, tilskuddsperiode));</span>
+                    }
+                }
+            }
+<span class="nc" id="L882">        }</span>
+<span class="nc" id="L883">    }</span>
+
+    void endreBeløpITilskuddsperioder() {
+<span class="nc" id="L886">        sendTilbakeTilBeslutter();</span>
+<span class="nc bnc" id="L887" title="All 2 branches missed.">        tilskuddPeriode.stream().filter(t -&gt; t.getStatus() == TilskuddPeriodeStatus.UBEHANDLET)</span>
+<span class="nc" id="L888">                .forEach(t -&gt; t.setBeløp(beregnTilskuddsbeløp(t.getStartDato(), t.getSluttDato())));</span>
+<span class="nc" id="L889">    }</span>
+
+    public void sendTilbakeTilBeslutter() {
+<span class="nc" id="L892">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L893">        var rettede = tilskuddPeriode.stream()</span>
+<span class="nc" id="L894">                .filter(TilskuddPeriode::isAktiv)</span>
+<span class="nc bnc" id="L895" title="All 2 branches missed.">                .filter(t -&gt; t.getStatus() == TilskuddPeriodeStatus.AVSLÅTT)</span>
+<span class="nc" id="L896">                .map(TilskuddPeriode::deaktiverOgLagNyUbehandlet).toList();</span>
+<span class="nc" id="L897">        tilskuddPeriode.addAll(rettede);</span>
+<span class="nc" id="L898">    }</span>
+
+    private void sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt() {
+<span class="nc bnc" id="L901" title="All 2 branches missed.">        if (erAnnullertEllerAvbrutt()) {</span>
+<span class="nc" id="L902">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_ANNULLERT_AVTALE);</span>
+        }
+<span class="nc" id="L904">    }</span>
+
+    @JsonProperty
+    public boolean erAnnullertEllerAvbrutt() {
+<span class="nc bnc" id="L908" title="All 4 branches missed.">        return isAvbrutt() || annullertTidspunkt != null;</span>
+    }
+
+    private Integer beregnTilskuddsbeløp(LocalDate startDato, LocalDate sluttDato) {
+<span class="nc" id="L912">        return RegnUtTilskuddsperioderForAvtale.beløpForPeriode(startDato,</span>
+                sluttDato,
+<span class="nc" id="L914">                gjeldendeInnhold.getDatoForRedusertProsent(),</span>
+<span class="nc" id="L915">                gjeldendeInnhold.getSumLonnstilskudd(),</span>
+<span class="nc" id="L916">                gjeldendeInnhold.getSumLønnstilskuddRedusert());</span>
+    }
+
+    private List&lt;TilskuddPeriode&gt; beregnTilskuddsperioder(LocalDate startDato, LocalDate sluttDato) {
+<span class="nc" id="L920">        List&lt;TilskuddPeriode&gt; tilskuddsperioder = RegnUtTilskuddsperioderForAvtale.beregnTilskuddsperioderForAvtale(</span>
+                id,
+                tiltakstype,
+<span class="nc" id="L923">                gjeldendeInnhold.getSumLonnstilskudd(),</span>
+                startDato,
+                sluttDato,
+<span class="nc" id="L926">                gjeldendeInnhold.getLonnstilskuddProsent(),</span>
+<span class="nc" id="L927">                gjeldendeInnhold.getDatoForRedusertProsent(),</span>
+<span class="nc" id="L928">                gjeldendeInnhold.getSumLønnstilskuddRedusert());</span>
+<span class="nc" id="L929">        tilskuddsperioder.forEach(t -&gt; t.setAvtale(this));</span>
+<span class="nc" id="L930">        tilskuddsperioder.forEach(t -&gt; t.setEnhet(gjeldendeInnhold.getEnhetKostnadssted()));</span>
+<span class="nc" id="L931">        tilskuddsperioder.forEach(t -&gt; t.setEnhetsnavn(gjeldendeInnhold.getEnhetsnavnKostnadssted()));</span>
+<span class="nc" id="L932">        return tilskuddsperioder;</span>
+    }
+
+    private void nyeTilskuddsperioder() {
+<span class="nc bnc" id="L936" title="All 2 branches missed.">        if (erAvtaleInngått()) {</span>
+<span class="nc" id="L937">            throw new FeilkodeException(Feilkode.KAN_IKKE_LAGE_NYE_TILSKUDDSPRIODER_INNGAATT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L939" title="All 4 branches missed.">        tilskuddPeriode.removeIf(t -&gt; (t.getStatus() == TilskuddPeriodeStatus.UBEHANDLET) || (t.getStatus() == TilskuddPeriodeStatus.BEHANDLET_I_ARENA));</span>
+<span class="nc bnc" id="L940" title="All 2 branches missed.">        if (Utils.erIkkeTomme(gjeldendeInnhold.getStartDato(), gjeldendeInnhold.getSluttDato(), gjeldendeInnhold.getSumLonnstilskudd())) {</span>
+<span class="nc" id="L941">            List&lt;TilskuddPeriode&gt; tilskuddsperioder = beregnTilskuddsperioder(gjeldendeInnhold.getStartDato(), gjeldendeInnhold.getSluttDato());</span>
+<span class="nc bnc" id="L942" title="All 2 branches missed.">            if (arenaRyddeAvtale != null) {</span>
+<span class="nc" id="L943">                LocalDate standardMigreringsdato = LocalDate.of(2023, 02, 01);</span>
+<span class="nc bnc" id="L944" title="All 2 branches missed.">                LocalDate migreringsdato = arenaRyddeAvtale.getMigreringsdato() != null ? arenaRyddeAvtale.getMigreringsdato() : standardMigreringsdato;</span>
+
+<span class="nc" id="L946">                tilskuddsperioder.forEach(periode -&gt; {</span>
+                    // Set status BEHANDLET_I_ARENA på tilskuddsperioder før migreringsdato
+                    // Eller skal det være startdato? Er jo den samme datoen som migreringsdato. hmm...
+<span class="nc bnc" id="L949" title="All 2 branches missed.">                    if (periode.getSluttDato().minusDays(1).isBefore(migreringsdato)) {</span>
+<span class="nc" id="L950">                        periode.setStatus(TilskuddPeriodeStatus.BEHANDLET_I_ARENA);</span>
+                    }
+<span class="nc" id="L952">                });</span>
+            }
+<span class="nc" id="L954">            fikseLøpenumre(tilskuddsperioder, 1);</span>
+<span class="nc" id="L955">            tilskuddPeriode.addAll(tilskuddsperioder);</span>
+        }
+<span class="nc" id="L957">    }</span>
+
+    private boolean sjekkRyddingAvTilskuddsperioder() {
+<span class="nc bnc" id="L960" title="All 2 branches missed.">        if (Utils.erNoenTomme(</span>
+<span class="nc" id="L961">                gjeldendeInnhold.getStartDato(),</span>
+<span class="nc" id="L962">                gjeldendeInnhold.getSluttDato(),</span>
+<span class="nc" id="L963">                gjeldendeInnhold.getSumLonnstilskudd(),</span>
+<span class="nc" id="L964">                gjeldendeInnhold.getLonnstilskuddProsent(),</span>
+<span class="nc" id="L965">                gjeldendeInnhold.getArbeidsgiveravgift(),</span>
+<span class="nc" id="L966">                gjeldendeInnhold.getManedslonn(),</span>
+<span class="nc" id="L967">                gjeldendeInnhold.getOtpSats())) {</span>
+<span class="nc" id="L968">            return false;</span>
+        }
+        // Statuser som skal få tilskuddsperioder
+<span class="nc" id="L971">        Status status = statusSomEnum();</span>
+<span class="nc bnc" id="L972" title="All 4 branches missed.">        if (status == Status.ANNULLERT || status == Status.AVBRUTT) {</span>
+<span class="nc" id="L973">            return false;</span>
+        }
+
+<span class="nc" id="L976">        return true;</span>
+    }
+
+    /**
+     * Avtaler (lønnstilskudd) som avsluttes i Arena må få tilskuddsperioder her.
+     * &lt;p&gt;
+     * - Sjekk at avtalen ikke allerede har perioder (altså en pilotavtale)
+     * - Tilskuddsperioder lages fra startdato til sluttdato, de som er før dato for migrering settes til en ny status, f eks. BEHANDLET_I_ARENA
+     * - Sjekk logikk som skjer ved godkjenning av første perioden
+     * - Tar ikke høyde for perioder med lengde tre måneder som i arena
+     * -
+     */
+    public boolean nyeTilskuddsperioderEtterMigreringFraArena(LocalDate migreringsDato, boolean dryRun) {
+<span class="nc bnc" id="L989" title="All 2 branches missed.">        if (sjekkRyddingAvTilskuddsperioder()) {</span>
+
+<span class="nc bnc" id="L991" title="All 2 branches missed.">            for (TilskuddPeriode tilskuddsperiode : Set.copyOf(tilskuddPeriode)) {</span>
+<span class="nc" id="L992">                TilskuddPeriodeStatus status = tilskuddsperiode.getStatus();</span>
+<span class="nc bnc" id="L993" title="All 4 branches missed.">                if (status == TilskuddPeriodeStatus.UBEHANDLET || status == TilskuddPeriodeStatus.BEHANDLET_I_ARENA) {</span>
+<span class="nc" id="L994">                    tilskuddPeriode.remove(tilskuddsperiode);</span>
+<span class="nc bnc" id="L995" title="All 2 branches missed.">                } else if (status == TilskuddPeriodeStatus.GODKJENT) {</span>
+
+<span class="nc bnc" id="L997" title="All 4 branches missed.">                    if (tilskuddsperiode.getRefusjonStatus() == RefusjonStatus.SENDT_KRAV || tilskuddsperiode.getRefusjonStatus() == RefusjonStatus.UTBETALT) {</span>
+<span class="nc" id="L998">                        log.error(&quot;Prøver å rydde tilskuddsperiode {} som har status: {}&quot;, tilskuddsperiode.getId(), tilskuddsperiode.getRefusjonStatus());</span>
+                    } else {
+<span class="nc" id="L1000">                        annullerTilskuddsperiode(tilskuddsperiode);</span>
+                    }
+
+                } else {
+<span class="nc" id="L1004">                    log.error(&quot;Prøver rydde tilskuddsperioder for en avtale, men statusen er ikke UBEHANDLET, eller GODKJENT (som blir annullert) på periode {}&quot;, tilskuddsperiode.getId());</span>
+                }
+<span class="nc" id="L1006">            }</span>
+
+<span class="nc" id="L1008">            List&lt;TilskuddPeriode&gt; tilskuddsperioder = beregnTilskuddsperioder(gjeldendeInnhold.getStartDato(), gjeldendeInnhold.getSluttDato());</span>
+<span class="nc" id="L1009">            tilskuddsperioder.forEach(periode -&gt; {</span>
+                // Set status BEHANDLET_I_ARENA på tilskuddsperioder før migreringsdato
+                // Eller skal det være startdato? Er jo den samme datoen som migreringsdato. hmm...
+<span class="nc bnc" id="L1012" title="All 2 branches missed.">                if (periode.getSluttDato().minusDays(1).isBefore(migreringsDato)) {</span>
+<span class="nc" id="L1013">                    periode.setStatus(TilskuddPeriodeStatus.BEHANDLET_I_ARENA);</span>
+                }
+<span class="nc" id="L1015">            });</span>
+<span class="nc" id="L1016">            fikseLøpenumre(tilskuddsperioder, 1);</span>
+<span class="nc bnc" id="L1017" title="All 2 branches missed.">            if (!dryRun) {</span>
+<span class="nc" id="L1018">                tilskuddPeriode.addAll(tilskuddsperioder);</span>
+            }
+<span class="nc" id="L1020">            return true;</span>
+        } else {
+<span class="nc" id="L1022">            log.info(&quot;Avtale {} har allerede tilskuddsperioder eller en status som ikke skal ha perioder, eller er ikke tilstrekkelig fylt ut, genererer ikke nye&quot;, id);</span>
+<span class="nc" id="L1023">            return false;</span>
+        }
+    }
+
+    public void reberegnUbehandledeTilskuddsperioder() {
+<span class="nc" id="L1028">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+
+        // Finn første ubehandlede periode
+        //Optional&lt;TilskuddPeriode&gt; førsteUbehandledeTilskuddsperiode = tilskuddPeriode.stream().filter(t -&gt; t.getStatus() == TilskuddPeriodeStatus.UBEHANDLET).findFirst();
+        // Fjern ubehandlede
+<span class="nc bnc" id="L1033" title="All 2 branches missed.">        for (TilskuddPeriode tilskuddsperiode : Set.copyOf(tilskuddPeriode)) {</span>
+<span class="nc" id="L1034">            TilskuddPeriodeStatus status = tilskuddsperiode.getStatus();</span>
+<span class="nc bnc" id="L1035" title="All 2 branches missed.">            if (status == TilskuddPeriodeStatus.UBEHANDLET) {</span>
+<span class="nc" id="L1036">                tilskuddPeriode.remove(tilskuddsperiode);</span>
+            }
+<span class="nc" id="L1038">        }</span>
+
+        // Lag nye fra og med siste ikke ubehandlet + en dag
+        LocalDate startDato;
+<span class="nc bnc" id="L1042" title="All 2 branches missed.">        List&lt;TilskuddPeriode&gt; godkjentePerioder = tilskuddPeriode.stream().filter(t -&gt; t.getStatus() == TilskuddPeriodeStatus.GODKJENT).sorted(Comparator.comparing(t -&gt; t.getLøpenummer())).toList();</span>
+
+<span class="nc bnc" id="L1044" title="All 2 branches missed.">        if (godkjentePerioder.size() != 0) {</span>
+<span class="nc" id="L1045">            startDato = godkjentePerioder.get(godkjentePerioder.size() - 1).getSluttDato().plusDays(1);</span>
+        } else {
+<span class="nc" id="L1047">            startDato = tilskuddPeriode.first().getStartDato();</span>
+        }
+
+<span class="nc" id="L1050">        List&lt;TilskuddPeriode&gt; nyetilskuddsperioder = beregnTilskuddsperioder(startDato, gjeldendeInnhold.getSluttDato());</span>
+<span class="nc" id="L1051">        tilskuddPeriode.addAll(nyetilskuddsperioder);</span>
+<span class="nc" id="L1052">        fikseLøpenumre(tilskuddPeriode.stream().toList(), 1);</span>
+<span class="nc" id="L1053">    }</span>
+
+    public void lagNyGodkjentTilskuddsperiodeFraAnnullertPeriode(TilskuddPeriode annullertTilskuddPeriode) {
+<span class="nc" id="L1056">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1057" title="All 2 branches missed.">        if(annullertTilskuddPeriode.getStatus() != TilskuddPeriodeStatus.ANNULLERT) {</span>
+<span class="nc" id="L1058">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET);</span>
+        }
+<span class="nc" id="L1060">        TilskuddPeriode nyTilskuddsperiode = annullertTilskuddPeriode.deaktiverOgLagNyUbehandlet();</span>
+<span class="nc" id="L1061">        annullertTilskuddPeriode.setAktiv(true);</span>
+<span class="nc" id="L1062">        nyTilskuddsperiode.setStatus(TilskuddPeriodeStatus.GODKJENT);</span>
+<span class="nc" id="L1063">        nyTilskuddsperiode.setGodkjentAvNavIdent(annullertTilskuddPeriode.getGodkjentAvNavIdent());</span>
+<span class="nc" id="L1064">        nyTilskuddsperiode.setGodkjentTidspunkt(annullertTilskuddPeriode.getGodkjentTidspunkt());</span>
+<span class="nc" id="L1065">        nyTilskuddsperiode.setEnhet(annullertTilskuddPeriode.getEnhet());</span>
+<span class="nc" id="L1066">        Integer resendingsnummer = finnResendingsNummer(annullertTilskuddPeriode);</span>
+<span class="nc" id="L1067">        registerEvent(new TilskuddsperiodeGodkjent(this, nyTilskuddsperiode, nyTilskuddsperiode.getGodkjentAvNavIdent(), resendingsnummer));</span>
+<span class="nc" id="L1068">        tilskuddPeriode.add(nyTilskuddsperiode);</span>
+<span class="nc" id="L1069">    }</span>
+
+    private Integer finnResendingsNummer(TilskuddPeriode gjeldendePeriode) {
+<span class="nc" id="L1072">        Integer resendingsnummer = null;</span>
+<span class="nc bnc" id="L1073" title="All 2 branches missed.">        for (TilskuddPeriode periode : tilskuddPeriode) {</span>
+<span class="nc bnc" id="L1074" title="All 4 branches missed.">            if(periode.getStatus() == TilskuddPeriodeStatus.ANNULLERT &amp;&amp; periode.getLøpenummer().equals(gjeldendePeriode.getLøpenummer())) {</span>
+<span class="nc bnc" id="L1075" title="All 2 branches missed.">                if(resendingsnummer == null) {</span>
+<span class="nc" id="L1076">                    resendingsnummer = 0;</span>
+                }
+<span class="nc" id="L1078">                resendingsnummer++;</span>
+            }
+<span class="nc" id="L1080">        }</span>
+<span class="nc" id="L1081">        return resendingsnummer;</span>
+    }
+
+    public void lagNyTilskuddsperiodeFraAnnullertPeriode(TilskuddPeriode annullertTilskuddPeriode) {
+<span class="nc" id="L1085">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1086" title="All 2 branches missed.">        if(annullertTilskuddPeriode.getStatus() != TilskuddPeriodeStatus.ANNULLERT) {</span>
+<span class="nc" id="L1087">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET);</span>
+        }
+<span class="nc" id="L1089">        TilskuddPeriode nyUbehandletPeriode = annullertTilskuddPeriode.deaktiverOgLagNyUbehandlet();</span>
+<span class="nc" id="L1090">        annullertTilskuddPeriode.setAktiv(true);</span>
+<span class="nc" id="L1091">        tilskuddPeriode.add(nyUbehandletPeriode);</span>
+<span class="nc" id="L1092">    }</span>
+
+    public void lagNyBehandletIArenaTilskuddsperiodeFraAnnullertPeriode(TilskuddPeriode annullertTilskuddPeriode) {
+<span class="nc" id="L1095">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1096" title="All 2 branches missed.">        if(annullertTilskuddPeriode.getStatus() != TilskuddPeriodeStatus.ANNULLERT) {</span>
+<span class="nc" id="L1097">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET);</span>
+        }
+<span class="nc" id="L1099">        TilskuddPeriode nyUbehandletPeriode = annullertTilskuddPeriode.deaktiverOgLagNyUbehandlet();</span>
+<span class="nc" id="L1100">        nyUbehandletPeriode.setStatus(TilskuddPeriodeStatus.BEHANDLET_I_ARENA);</span>
+<span class="nc" id="L1101">        annullertTilskuddPeriode.setAktiv(true);</span>
+<span class="nc" id="L1102">        tilskuddPeriode.add(nyUbehandletPeriode);</span>
+<span class="nc" id="L1103">    }</span>
+
+    public void forkortAvtale(LocalDate nySluttDato, String grunn, String annetGrunn, NavIdent utførtAv) {
+<span class="nc" id="L1106">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L1108" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1109">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORKORTE_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1111" title="All 2 branches missed.">        if (!nySluttDato.isBefore(gjeldendeInnhold.getSluttDato())) {</span>
+<span class="nc" id="L1112">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORKORTE_ETTER_SLUTTDATO);</span>
+        }
+        // Kan ikke forkorte før en utbetalt/sendtkrav tilskuddsperiode
+<span class="nc" id="L1115">        TreeSet&lt;TilskuddPeriode&gt; aktiveTilskuddsperioder = new TreeSet(tilskuddPeriode.stream().filter(t -&gt; t.isAktiv()).collect(Collectors.toSet()));</span>
+<span class="nc" id="L1116">        Optional&lt;TilskuddPeriode&gt; sisteUtbetalt = aktiveTilskuddsperioder.descendingSet().stream().filter(tilskuddPeriode -&gt; (</span>
+<span class="nc bnc" id="L1117" title="All 2 branches missed.">                tilskuddPeriode.getRefusjonStatus() == RefusjonStatus.SENDT_KRAV ||</span>
+<span class="nc bnc" id="L1118" title="All 2 branches missed.">                tilskuddPeriode.getRefusjonStatus() == RefusjonStatus.UTBETALT ||</span>
+<span class="nc bnc" id="L1119" title="All 2 branches missed.">                tilskuddPeriode.getRefusjonStatus() == RefusjonStatus.UTBETALING_FEILET ||</span>
+<span class="nc bnc" id="L1120" title="All 2 branches missed.">                tilskuddPeriode.getRefusjonStatus() == RefusjonStatus.GODKJENT_MINUSBELØP ||</span>
+<span class="nc bnc" id="L1121" title="All 2 branches missed.">                tilskuddPeriode.getRefusjonStatus() == RefusjonStatus.GODKJENT_NULLBELØP)</span>
+<span class="nc" id="L1122">        ).max(Comparator.comparing(tilskuddPeriode1 -&gt; tilskuddPeriode1.getStartDato()));</span>
+<span class="nc bnc" id="L1123" title="All 4 branches missed.">        if (sisteUtbetalt.isPresent() &amp;&amp; nySluttDato.isBefore(sisteUtbetalt.get().getSluttDato())) {</span>
+<span class="nc" id="L1124">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORKORTE_FOR_UTBETALT_TILSKUDDSPERIODE);</span>
+        }
+<span class="nc" id="L1126">        sjekkStartOgSluttDato(gjeldendeInnhold.getStartDato(), nySluttDato);</span>
+<span class="nc bnc" id="L1127" title="All 6 branches missed.">        if (StringUtils.isBlank(grunn) || (grunn.equals(&quot;Annet&quot;) &amp;&amp; StringUtils.isBlank(annetGrunn))) {</span>
+<span class="nc" id="L1128">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORKORTE_GRUNN_MANGLER);</span>
+        }
+<span class="nc" id="L1130">        AvtaleInnhold nyAvtaleInnholdVersjon = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.FORKORTE);</span>
+<span class="nc" id="L1131">        gjeldendeInnhold = nyAvtaleInnholdVersjon;</span>
+<span class="nc" id="L1132">        getGjeldendeInnhold().endreSluttDato(nySluttDato);</span>
+<span class="nc" id="L1133">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1134">        forkortTilskuddsperioder(nySluttDato);</span>
+<span class="nc" id="L1135">        sistEndretNå();</span>
+<span class="nc" id="L1136">        registerEvent(new AvtaleForkortet(this, nyAvtaleInnholdVersjon, nySluttDato, grunn, annetGrunn, utførtAv));</span>
+<span class="nc" id="L1137">    }</span>
+
+    public void forlengAvtale(LocalDate nySluttDato, NavIdent utførtAv) {
+<span class="nc" id="L1140">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L1142" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1143">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORLENGE_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1145" title="All 2 branches missed.">        if (!nySluttDato.isAfter(gjeldendeInnhold.getSluttDato())) {</span>
+<span class="nc" id="L1146">            throw new FeilkodeException(Feilkode.KAN_IKKE_FORLENGE_FEIL_SLUTTDATO);</span>
+        }
+<span class="nc" id="L1148">        sjekkStartOgSluttDato(gjeldendeInnhold.getStartDato(), nySluttDato);</span>
+<span class="nc" id="L1149">        var gammelSluttDato = gjeldendeInnhold.getSluttDato();</span>
+<span class="nc" id="L1150">        AvtaleInnhold nyVersjon = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.FORLENGE);</span>
+<span class="nc" id="L1151">        gjeldendeInnhold = nyVersjon;</span>
+<span class="nc" id="L1152">        getGjeldendeInnhold().endreSluttDato(nySluttDato);</span>
+<span class="nc" id="L1153">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1154">        forlengTilskuddsperioder(gammelSluttDato, nySluttDato);</span>
+<span class="nc" id="L1155">        sistEndretNå();</span>
+<span class="nc" id="L1156">        registerEvent(new AvtaleForlenget(this, utførtAv));</span>
+<span class="nc" id="L1157">    }</span>
+
+
+    private void sjekkStartOgSluttDato(LocalDate startDato, LocalDate sluttDato) {
+<span class="nc" id="L1161">        StartOgSluttDatoStrategyFactory.create(getTiltakstype(), getKvalifiseringsgruppe()).sjekkStartOgSluttDato(startDato, sluttDato, isGodkjentForEtterregistrering(), erAvtaleInngått());</span>
+<span class="nc" id="L1162">    }</span>
+
+    public void endreTilskuddsberegning(EndreTilskuddsberegning tilskuddsberegning, NavIdent utførtAv) {
+<span class="nc" id="L1165">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc" id="L1167">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1168" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1169">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OKONOMI_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1171" title="All 2 branches missed.">        if (Utils.erNoenTomme(tilskuddsberegning.getArbeidsgiveravgift(),</span>
+<span class="nc" id="L1172">                tilskuddsberegning.getFeriepengesats(),</span>
+<span class="nc" id="L1173">                tilskuddsberegning.getManedslonn(),</span>
+<span class="nc" id="L1174">                tilskuddsberegning.getOtpSats())) {</span>
+
+<span class="nc" id="L1176">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT);</span>
+        }
+<span class="nc" id="L1178">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_TILSKUDDSBEREGNING);</span>
+<span class="nc" id="L1179">        getGjeldendeInnhold().endreTilskuddsberegning(tilskuddsberegning);</span>
+<span class="nc" id="L1180">        endreBeløpITilskuddsperioder();</span>
+<span class="nc" id="L1181">        sistEndretNå();</span>
+<span class="nc" id="L1182">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1183">        registerEvent(new TilskuddsberegningEndret(this, utførtAv));</span>
+<span class="nc" id="L1184">    }</span>
+
+    // Metode for å rydde opp i beregnede felter som ikke har blitt satt etter at lønnstilskuddsprosent manuelt i databasen har blitt satt inn
+    public void reberegnLønnstilskudd() {
+<span class="nc" id="L1188">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L1189">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1190" title="All 4 branches missed.">        if (gjeldendeInnhold.getSumLonnstilskudd() == null &amp;&amp; Utils.erIkkeTomme(</span>
+<span class="nc" id="L1191">                gjeldendeInnhold.getLonnstilskuddProsent(),</span>
+<span class="nc" id="L1192">                gjeldendeInnhold.getArbeidsgiveravgift(),</span>
+<span class="nc" id="L1193">                gjeldendeInnhold.getFeriepengesats(),</span>
+<span class="nc" id="L1194">                gjeldendeInnhold.getManedslonn(),</span>
+<span class="nc" id="L1195">                gjeldendeInnhold.getOtpSats())) {</span>
+<span class="nc" id="L1196">            getGjeldendeInnhold().reberegnLønnstilskudd();</span>
+<span class="nc" id="L1197">            return;</span>
+        }
+<span class="nc" id="L1199">        throw new FeilkodeException(Feilkode.KAN_IKKE_REBEREGNE);</span>
+    }
+
+    public void reUtregnRedusert() {
+<span class="nc" id="L1203">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L1204">        krevEnAvTiltakstyper(Tiltakstype.MIDLERTIDIG_LONNSTILSKUDD, Tiltakstype.VARIG_LONNSTILSKUDD, Tiltakstype.SOMMERJOBB);</span>
+<span class="nc bnc" id="L1205" title="All 2 branches missed.">        if (Utils.erIkkeTomme(</span>
+<span class="nc" id="L1206">                gjeldendeInnhold.getStartDato(),</span>
+<span class="nc" id="L1207">                gjeldendeInnhold.getSluttDato(),</span>
+<span class="nc" id="L1208">                gjeldendeInnhold.getSumLonnstilskudd(),</span>
+<span class="nc" id="L1209">                gjeldendeInnhold.getLonnstilskuddProsent(),</span>
+<span class="nc" id="L1210">                gjeldendeInnhold.getArbeidsgiveravgift(),</span>
+<span class="nc" id="L1211">                gjeldendeInnhold.getFeriepengesats(),</span>
+<span class="nc" id="L1212">                gjeldendeInnhold.getManedslonn(),</span>
+<span class="nc" id="L1213">                gjeldendeInnhold.getOtpSats())) {</span>
+
+<span class="nc" id="L1215">            getGjeldendeInnhold().reberegnRedusertProsentOgRedusertLonnstilskudd();</span>
+<span class="nc" id="L1216">            return;</span>
+        }
+<span class="nc" id="L1218">        throw new FeilkodeException(Feilkode.KAN_IKKE_REBEREGNE);</span>
+    }
+
+    private void krevEnAvTiltakstyper(Tiltakstype... tiltakstyper) {
+<span class="nc bnc" id="L1222" title="All 4 branches missed.">        if (Stream.of(tiltakstyper).noneMatch(t -&gt; t == tiltakstype)) {</span>
+<span class="nc" id="L1223">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE);</span>
+        }
+<span class="nc" id="L1225">    }</span>
+
+    public void endreKontaktInformasjon(EndreKontaktInformasjon endreKontaktInformasjon, NavIdent utførtAv) {
+<span class="nc" id="L1228">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L1230" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1231">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1233" title="All 2 branches missed.">        if (Utils.erNoenTomme(endreKontaktInformasjon.getDeltakerFornavn(),</span>
+<span class="nc" id="L1234">                endreKontaktInformasjon.getDeltakerEtternavn(),</span>
+<span class="nc" id="L1235">                endreKontaktInformasjon.getDeltakerTlf(), endreKontaktInformasjon.getVeilederFornavn(),</span>
+<span class="nc" id="L1236">                endreKontaktInformasjon.getVeilederEtternavn(),</span>
+<span class="nc" id="L1237">                endreKontaktInformasjon.getVeilederTlf(),</span>
+<span class="nc" id="L1238">                endreKontaktInformasjon.getArbeidsgiverFornavn(),</span>
+<span class="nc" id="L1239">                endreKontaktInformasjon.getArbeidsgiverEtternavn(),</span>
+<span class="nc" id="L1240">                endreKontaktInformasjon.getArbeidsgiverTlf())</span>
+        ) {
+<span class="nc" id="L1242">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER);</span>
+        }
+
+<span class="nc" id="L1245">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_KONTAKTINFO);</span>
+<span class="nc" id="L1246">        getGjeldendeInnhold().endreKontaktInfo(endreKontaktInformasjon);</span>
+<span class="nc" id="L1247">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1248">        sistEndretNå();</span>
+<span class="nc" id="L1249">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1250">        registerEvent(new KontaktinformasjonEndret(this, utførtAv));</span>
+<span class="nc" id="L1251">    }</span>
+
+    public void endreStillingsbeskrivelse(EndreStillingsbeskrivelse endreStillingsbeskrivelse, NavIdent utførtAv) {
+<span class="nc" id="L1254">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L1256" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1257">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1259" title="All 2 branches missed.">        if (Utils.erNoenTomme(endreStillingsbeskrivelse.getStillingstittel(),</span>
+<span class="nc" id="L1260">                endreStillingsbeskrivelse.getArbeidsoppgaver(),</span>
+<span class="nc" id="L1261">                endreStillingsbeskrivelse.getStillingStyrk08(),</span>
+<span class="nc" id="L1262">                endreStillingsbeskrivelse.getStillingKonseptId(),</span>
+<span class="nc" id="L1263">                endreStillingsbeskrivelse.getStillingprosent(),</span>
+<span class="nc" id="L1264">                endreStillingsbeskrivelse.getAntallDagerPerUke())</span>
+        ) {
+<span class="nc" id="L1266">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER);</span>
+        }
+<span class="nc" id="L1268">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_STILLING);</span>
+<span class="nc" id="L1269">        getGjeldendeInnhold().endreStillingsInfo(endreStillingsbeskrivelse);</span>
+<span class="nc" id="L1270">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1271">        sistEndretNå();</span>
+<span class="nc" id="L1272">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1273">        registerEvent(new StillingsbeskrivelseEndret(this, utførtAv));</span>
+<span class="nc" id="L1274">    }</span>
+
+    public void endreOppfølgingOgTilrettelegging(EndreOppfølgingOgTilrettelegging endreOppfølgingOgTilrettelegging, NavIdent utførtAv) {
+<span class="nc" id="L1277">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc bnc" id="L1279" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1280">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OPPFØLGING_OG_TILRETTELEGGING_GRUNN_IKKE_GODKJENT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1282" title="All 2 branches missed.">        if (Utils.erNoenTomme(endreOppfølgingOgTilrettelegging.getOppfolging(),</span>
+<span class="nc" id="L1283">                endreOppfølgingOgTilrettelegging.getTilrettelegging())</span>
+        ) {
+<span class="nc" id="L1285">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OPPFØLGING_OG_TILRETTELEGGING_GRUNN_MANGLER);</span>
+        }
+<span class="nc" id="L1287">        gjeldendeInnhold = gjeldendeInnhold.nyGodkjentVersjon(AvtaleInnholdType.ENDRE_OPPFØLGING_OG_TILRETTELEGGING);</span>
+<span class="nc" id="L1288">        gjeldendeInnhold.endreOppfølgingOgTilretteleggingInfo(endreOppfølgingOgTilrettelegging);</span>
+<span class="nc" id="L1289">        gjeldendeInnhold.setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1290">        sistEndretNå();</span>
+<span class="nc" id="L1291">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1292">        registerEvent(new OppfølgingOgTilretteleggingEndret(this, utførtAv));</span>
+<span class="nc" id="L1293">    }</span>
+
+    public void endreMål(EndreMål endreMål, NavIdent utførtAv) {
+<span class="nc" id="L1296">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc" id="L1298">        krevEnAvTiltakstyper(Tiltakstype.ARBEIDSTRENING);</span>
+<span class="nc bnc" id="L1299" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1300">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_MAAL_IKKE_INNGAATT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1302" title="All 2 branches missed.">        if (endreMål.getMaal().isEmpty()) {</span>
+<span class="nc" id="L1303">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_MAAL_TOM_LISTE);</span>
+        }
+<span class="nc bnc" id="L1305" title="All 2 branches missed.">        for (Maal m : endreMål.getMaal()) {</span>
+<span class="nc bnc" id="L1306" title="All 2 branches missed.">            if (Utils.erNoenTomme(m.getBeskrivelse(), m.getKategori())) {</span>
+<span class="nc" id="L1307">                throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_MAAL_IKKE_BESKRIVELSE_ELLER_KATEGORI);</span>
+            }
+<span class="nc" id="L1309">        }</span>
+<span class="nc" id="L1310">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_MÅL);</span>
+<span class="nc" id="L1311">        getGjeldendeInnhold().getMaal().clear();</span>
+<span class="nc" id="L1312">        List&lt;Maal&gt; nyeMål = endreMål.getMaal().stream().map(m -&gt; new Maal().setId(UUID.randomUUID()).setBeskrivelse(m.getBeskrivelse()).setKategori(m.getKategori())).collect(Collectors.toList());</span>
+<span class="nc" id="L1313">        getGjeldendeInnhold().getMaal().addAll(nyeMål);</span>
+<span class="nc" id="L1314">        getGjeldendeInnhold().getMaal().forEach(m -&gt; m.setAvtaleInnhold(getGjeldendeInnhold()));</span>
+<span class="nc" id="L1315">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1316">        sistEndretNå();</span>
+<span class="nc" id="L1317">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1318">        registerEvent(new MålEndret(this, utførtAv));</span>
+<span class="nc" id="L1319">    }</span>
+
+    public void endreInkluderingstilskudd(EndreInkluderingstilskudd endreInkluderingstilskudd, NavIdent utførtAv) {
+<span class="nc" id="L1322">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+
+<span class="nc" id="L1324">        krevEnAvTiltakstyper(Tiltakstype.INKLUDERINGSTILSKUDD);</span>
+<span class="nc bnc" id="L1325" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1326">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_IKKE_INNGAATT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1328" title="All 2 branches missed.">        if (endreInkluderingstilskudd.getInkluderingstilskuddsutgift().isEmpty()) {</span>
+<span class="nc" id="L1329">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_TOM_LISTE);</span>
+        }
+<span class="nc bnc" id="L1331" title="All 2 branches missed.">        if (endreInkluderingstilskudd.inkluderingstilskuddTotalBeløp() &gt; 136000) {</span>
+<span class="nc" id="L1332">            throw new FeilkodeException(Feilkode.INKLUDERINGSTILSKUDD_SUM_FOR_HØY);</span>
+        }
+<span class="nc bnc" id="L1334" title="All 2 branches missed.">        for (Inkluderingstilskuddsutgift i : endreInkluderingstilskudd.getInkluderingstilskuddsutgift()) {</span>
+<span class="nc bnc" id="L1335" title="All 2 branches missed.">            if (Utils.erNoenTomme(i.getBeløp(), i.getType())) {</span>
+<span class="nc" id="L1336">                throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_IKKE_BELOP_ELLER_TYPE);</span>
+            }
+<span class="nc" id="L1338">        }</span>
+<span class="nc" id="L1339">        List&lt;Inkluderingstilskuddsutgift&gt; inkluderingstilskuddsutgifterPåForrigeVersjon = getGjeldendeInnhold().getInkluderingstilskuddsutgift();</span>
+<span class="nc bnc" id="L1340" title="All 2 branches missed.">        List&lt;Inkluderingstilskuddsutgift&gt; forrigeVersjonFraKlient = endreInkluderingstilskudd.getInkluderingstilskuddsutgift().stream().filter(e -&gt; e.getId() != null).collect(Collectors.toList());</span>
+
+        // Sjekk at det er like mange utgifter på forrige versjon som det er id'er i request. Hvis ikke er ikke frontend i sync
+<span class="nc bnc" id="L1343" title="All 2 branches missed.">        if (inkluderingstilskuddsutgifterPåForrigeVersjon.size() != forrigeVersjonFraKlient.size()) {</span>
+<span class="nc" id="L1344">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_TOM_LISTE);</span>
+        }
+<span class="nc" id="L1346">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_INKLUDERINGSTILSKUDD);</span>
+
+<span class="nc bnc" id="L1348" title="All 2 branches missed.">        List&lt;Inkluderingstilskuddsutgift&gt; nye = endreInkluderingstilskudd.getInkluderingstilskuddsutgift().stream().filter(e -&gt; e.getId() == null).collect(Collectors.toList());</span>
+<span class="nc" id="L1349">        List&lt;Inkluderingstilskuddsutgift&gt; nyeInkluderingstilskuddsutgifter = nye.stream().map(m -&gt; new Inkluderingstilskuddsutgift().setId(UUID.randomUUID()).setBeløp(m.getBeløp()).setType(m.getType())).collect(Collectors.toList());</span>
+
+<span class="nc" id="L1351">        getGjeldendeInnhold().getInkluderingstilskuddsutgift().addAll(nyeInkluderingstilskuddsutgifter);</span>
+<span class="nc" id="L1352">        getGjeldendeInnhold().getInkluderingstilskuddsutgift().forEach(i -&gt; i.setAvtaleInnhold(getGjeldendeInnhold()));</span>
+<span class="nc" id="L1353">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1354">        sistEndretNå();</span>
+<span class="nc" id="L1355">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1356">        registerEvent(new InkluderingstilskuddEndret(this, utførtAv));</span>
+<span class="nc" id="L1357">    }</span>
+
+    public void endreOmMentor(EndreOmMentor endreOmMentor, NavIdent utførtAv) {
+<span class="nc" id="L1360">        sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt();</span>
+<span class="nc" id="L1361">        krevEnAvTiltakstyper(Tiltakstype.MENTOR);</span>
+
+<span class="nc bnc" id="L1363" title="All 2 branches missed.">        if (!erGodkjentAvVeileder()) {</span>
+<span class="nc" id="L1364">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OM_MENTOR_IKKE_INNGAATT_AVTALE);</span>
+        }
+<span class="nc bnc" id="L1366" title="All 2 branches missed.">        if (Utils.erNoenTomme(endreOmMentor.getMentorFornavn(), endreOmMentor.getMentorEtternavn(),</span>
+<span class="nc" id="L1367">                endreOmMentor.getMentorTlf(), endreOmMentor.getMentorTimelonn(),</span>
+<span class="nc" id="L1368">                endreOmMentor.getMentorAntallTimer(), endreOmMentor.getMentorOppgaver())) {</span>
+<span class="nc" id="L1369">            throw new FeilkodeException(Feilkode.KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT);</span>
+        }
+<span class="nc" id="L1371">        gjeldendeInnhold = getGjeldendeInnhold().nyGodkjentVersjon(AvtaleInnholdType.ENDRE_OM_MENTOR);</span>
+<span class="nc" id="L1372">        getGjeldendeInnhold().endreOmMentor(endreOmMentor);</span>
+<span class="nc" id="L1373">        getGjeldendeInnhold().setIkrafttredelsestidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L1374">        sistEndretNå();</span>
+<span class="nc" id="L1375">        sendTilbakeTilBeslutter();</span>
+<span class="nc" id="L1376">        registerEvent(new OmMentorEndret(this, utførtAv));</span>
+<span class="nc" id="L1377">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

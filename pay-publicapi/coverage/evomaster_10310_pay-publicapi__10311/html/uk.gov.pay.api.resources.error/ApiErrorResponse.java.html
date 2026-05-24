@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiErrorResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.resources.error</a> &gt; <span class="el_source">ApiErrorResponse.java</span></div><h1>ApiErrorResponse.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.resources.error;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static java.lang.String.format;
+
+@Schema(name = &quot;ErrorResponse&quot;, description = &quot;An error response&quot;)
+@JsonInclude(NON_NULL)
+public class ApiErrorResponse {
+
+<span class="nc" id="L13">    public enum Code {</span>
+
+<span class="nc" id="L15">        TOO_MANY_REQUESTS_ERROR(&quot;P0900&quot;, &quot;Too many requests&quot;);</span>
+
+        private String value;
+        private String format;
+
+<span class="nc" id="L20">        Code(String value, String format) {</span>
+<span class="nc" id="L21">            this.value = value;</span>
+<span class="nc" id="L22">            this.format = format;</span>
+<span class="nc" id="L23">        }</span>
+
+        public String value() {
+<span class="nc" id="L26">            return value;</span>
+        }
+
+        public String getFormat() {
+<span class="nc" id="L30">            return format;</span>
+        }
+    }
+
+    private final Code code;
+    private final String description;
+
+    public static ApiErrorResponse anApiErrorResponse(Code code, Object... parameters) {
+<span class="nc" id="L38">        return new ApiErrorResponse(code, parameters);</span>
+    }
+
+<span class="nc" id="L41">    private ApiErrorResponse(Code code, Object... parameters) {</span>
+<span class="nc" id="L42">        this.code = code;</span>
+<span class="nc" id="L43">        this.description = format(code.getFormat(), parameters);</span>
+<span class="nc" id="L44">    }</span>
+
+    @Schema(example = &quot;P0900&quot;, description = &quot;A GOV.UK Pay API error code. &quot; +
+            &quot;You can [find out more about this code in our documentation]&quot; +
+            &quot;(https://docs.payments.service.gov.uk/api_reference/#gov-uk-pay-api-error-codes).&quot;)
+    public String getCode() {
+<span class="nc" id="L50">        return code.value();</span>
+    }
+
+    @Schema(example = &quot;Too many requests&quot;, description = &quot;Additional details about the error&quot;)
+    public String getDescription() {
+<span class="nc" id="L55">        return description;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L60">        return &quot;ApiErrorResponse{&quot; +</span>
+<span class="nc" id="L61">                &quot;code=&quot; + code.value() +</span>
+                &quot;, name=&quot; + code +
+                &quot;, description='&quot; + description + '\'' +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

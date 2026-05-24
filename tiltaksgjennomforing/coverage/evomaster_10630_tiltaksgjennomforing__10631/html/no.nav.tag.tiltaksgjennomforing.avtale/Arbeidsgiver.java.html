@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Arbeidsgiver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Arbeidsgiver.java</span></div><h1>Arbeidsgiver.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import no.nav.arbeidsgiver.altinnrettigheter.proxy.klient.model.AltinnReportee;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetArbeidsgiver;
+import no.nav.tag.tiltaksgjennomforing.autorisasjon.InnloggetBruker;
+import no.nav.tag.tiltaksgjennomforing.enhet.Norg2Client;
+
+import no.nav.tag.tiltaksgjennomforing.exceptions.TilgangskontrollException;
+import no.nav.tag.tiltaksgjennomforing.exceptions.VarighetDatoErTilbakeITidException;
+import no.nav.tag.tiltaksgjennomforing.persondata.PdlRespons;
+import no.nav.tag.tiltaksgjennomforing.persondata.PersondataService;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import static no.nav.tag.tiltaksgjennomforing.persondata.PersondataService.hentNavnFraPdlRespons;
+
+public class Arbeidsgiver extends Avtalepart&lt;Fnr&gt; {
+    private final Map&lt;BedriftNr, Collection&lt;Tiltakstype&gt;&gt; tilganger;
+    private final Set&lt;AltinnReportee&gt; altinnOrganisasjoner;
+    private final PersondataService persondataService;
+    private final Norg2Client norg2Client;
+
+    public Arbeidsgiver(
+            Fnr identifikator,
+            Set&lt;AltinnReportee&gt; altinnOrganisasjoner,
+            Map&lt;BedriftNr, Collection&lt;Tiltakstype&gt;&gt; tilganger,
+            PersondataService persondataService,
+            Norg2Client norg2Client
+    ) {
+<span class="nc" id="L40">        super(identifikator);</span>
+<span class="nc" id="L41">        this.altinnOrganisasjoner = altinnOrganisasjoner;</span>
+<span class="nc" id="L42">        this.tilganger = tilganger;</span>
+<span class="nc" id="L43">        this.persondataService = persondataService;</span>
+<span class="nc" id="L44">        this.norg2Client = norg2Client;</span>
+<span class="nc" id="L45">    }</span>
+
+    private static boolean avbruttForMerEnn12UkerSiden(Avtale avtale) {
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        return avtale.isAvbrutt() &amp;&amp; avtale.getSistEndret()</span>
+<span class="nc" id="L49">                .plus(84, ChronoUnit.DAYS)</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">                .isBefore(Now.instant());</span>
+    }
+
+    private static boolean annullertForMerEnn12UkerSiden(Avtale avtale) {
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        return avtale.getAnnullertTidspunkt() != null &amp;&amp; avtale.getAnnullertTidspunkt()</span>
+<span class="nc" id="L55">                .plus(84, ChronoUnit.DAYS)</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">                .isBefore(Now.instant());</span>
+    }
+
+    private static boolean sluttdatoPassertMedMerEnn12Uker(Avtale avtale) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        return avtale.erGodkjentAvVeileder() &amp;&amp; avtale.getGjeldendeInnhold()</span>
+<span class="nc" id="L61">                .getSluttDato().plusWeeks(12)</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">                .isBefore(Now.localDate());</span>
+    }
+
+    private static Avtale fjernAvbruttGrunn(Avtale avtale) {
+<span class="nc" id="L66">        avtale.setAvbruttGrunn(null);</span>
+<span class="nc" id="L67">        return avtale;</span>
+    }
+
+    private static Avtale fjernAnnullertGrunn(Avtale avtale) {
+<span class="nc" id="L71">        avtale.setAnnullertGrunn(null);</span>
+<span class="nc" id="L72">        return avtale;</span>
+    }
+
+    private static Avtale fjernKvalifiseringsgruppe(Avtale avtale) {
+<span class="nc" id="L76">        avtale.setKvalifiseringsgruppe(null);</span>
+<span class="nc" id="L77">        avtale.setFormidlingsgruppe(null);</span>
+<span class="nc" id="L78">        return avtale;</span>
+    }
+
+    @Override
+    protected void avvisDatoerTilbakeITid(Avtale avtale, LocalDate startDato, LocalDate sluttDato) {
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (!avtale.erUfordelt()) {</span>
+<span class="nc" id="L84">            return;</span>
+        }
+<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (startDato != null &amp;&amp; startDato.isBefore(Now.localDate())) {</span>
+<span class="nc" id="L87">            throw new VarighetDatoErTilbakeITidException();</span>
+        }
+<span class="nc bnc" id="L89" title="All 4 branches missed.">        if (sluttDato != null &amp;&amp; sluttDato.isBefore(Now.localDate())) {</span>
+<span class="nc" id="L90">            throw new VarighetDatoErTilbakeITidException();</span>
+        }
+<span class="nc" id="L92">    }</span>
+
+    @Override
+    void godkjennForAvtalepart(Avtale avtale) {
+<span class="nc" id="L96">        avtale.godkjennForArbeidsgiver(getIdentifikator());</span>
+<span class="nc" id="L97">    }</span>
+
+    @Override
+    public boolean kanEndreAvtale() {
+<span class="nc" id="L101">        return true;</span>
+    }
+
+    @Override
+    public boolean erGodkjentAvInnloggetBruker(Avtale avtale) {
+<span class="nc" id="L106">        return avtale.erGodkjentAvArbeidsgiver();</span>
+    }
+
+    @Override
+    boolean kanOppheveGodkjenninger(Avtale avtale) {
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        return !avtale.erGodkjentAvVeileder();</span>
+    }
+
+    @Override
+    void opphevGodkjenningerSomAvtalepart(Avtale avtale) {
+<span class="nc" id="L116">        avtale.opphevGodkjenningerSomArbeidsgiver();</span>
+<span class="nc" id="L117">    }</span>
+
+    @Override
+    protected Avtalerolle rolle() {
+<span class="nc" id="L121">        return Avtalerolle.ARBEIDSGIVER;</span>
+    }
+
+    @Override
+    public InnloggetBruker innloggetBruker() {
+<span class="nc" id="L126">        return new InnloggetArbeidsgiver(getIdentifikator(), altinnOrganisasjoner, tilganger);</span>
+    }
+
+    @Override
+    public Collection&lt;BedriftNr&gt; identifikatorer() {
+<span class="nc" id="L131">        return tilganger.keySet();</span>
+    }
+
+    @Override
+    public boolean harTilgangTilAvtale(Avtale avtale) {
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (sluttdatoPassertMedMerEnn12Uker(avtale)) {</span>
+<span class="nc" id="L137">            return false;</span>
+        }
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (avbruttForMerEnn12UkerSiden(avtale)) {</span>
+<span class="nc" id="L140">            return false;</span>
+        }
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (annullertForMerEnn12UkerSiden(avtale)) {</span>
+<span class="nc" id="L143">            return false;</span>
+        }
+<span class="nc" id="L145">        return harTilgangPåTiltakIBedrift(avtale.getBedriftNr(), avtale.getTiltakstype());</span>
+    }
+
+    private boolean harTilgangPåTiltakIBedrift(BedriftNr bedriftNr, Tiltakstype tiltakstype) {
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (!tilganger.containsKey(bedriftNr)) {</span>
+<span class="nc" id="L150">            return false;</span>
+        }
+<span class="nc" id="L152">        Collection&lt;Tiltakstype&gt; gyldigeTilgangerPåBedriftNr = tilganger.get(bedriftNr);</span>
+<span class="nc" id="L153">        return gyldigeTilgangerPåBedriftNr.contains(tiltakstype);</span>
+    }
+
+    @Override
+    Page&lt;Avtale&gt; hentAlleAvtalerMedMuligTilgang(AvtaleRepository avtaleRepository, AvtalePredicate queryParametre, Pageable pageable) {
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (tilganger.isEmpty()) {</span>
+<span class="nc" id="L159">            return Page.empty();</span>
+        }
+        Page&lt;Avtale&gt; avtaler;
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        if (queryParametre.getTiltakstype() != null) {</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">            if (harTilgangPåTiltakIBedrift(queryParametre.getBedriftNr(), queryParametre.getTiltakstype()))</span>
+<span class="nc" id="L164">                avtaler = avtaleRepository.findAllByBedriftNrInAndTiltakstype(Set.of(queryParametre.getBedriftNr()), queryParametre.getTiltakstype(), pageable);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">            else if (queryParametre.getBedriftNr() == null) {</span>
+<span class="nc" id="L166">                avtaler = avtaleRepository.findAllByBedriftNrInAndTiltakstype(tilganger.keySet(), queryParametre.getTiltakstype(), pageable);</span>
+            } else { // Bruker ba om informasjon på en bedrift hen ikke har tilgang til, og får dermed tom liste
+<span class="nc" id="L168">                avtaler = Page.empty();</span>
+            }
+        } else {
+<span class="nc bnc" id="L171" title="All 4 branches missed.">            if (queryParametre.getBedriftNr() != null &amp;&amp; tilganger.containsKey(queryParametre.getBedriftNr()))</span>
+<span class="nc" id="L172">                avtaler = avtaleRepository.findAllByBedriftNrIn(Set.of(queryParametre.getBedriftNr()), pageable);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            else if (queryParametre.getBedriftNr() == null) {</span>
+<span class="nc" id="L174">                avtaler = avtaleRepository.findAllByBedriftNrIn(tilganger.keySet(), pageable);</span>
+            } else { // Bruker ba om informasjon på en bedrift hen ikke har tilgang til, og får dermed tom liste
+<span class="nc" id="L176">                avtaler = Page.empty();</span>
+            }
+        }
+<span class="nc" id="L179">        return avtaler</span>
+<span class="nc" id="L180">                .map(Arbeidsgiver::fjernAvbruttGrunn)</span>
+<span class="nc" id="L181">                .map(Arbeidsgiver::fjernAnnullertGrunn);</span>
+    }
+
+    public List&lt;Avtale&gt; hentAvtalerForMinsideArbeidsgiver(AvtaleRepository avtaleRepository, BedriftNr bedriftNr) {
+<span class="nc" id="L185">        return avtaleRepository.findAllByBedriftNr(bedriftNr).stream()</span>
+<span class="nc" id="L186">                .filter(this::harTilgang)</span>
+<span class="nc" id="L187">                .map(Arbeidsgiver::fjernAvbruttGrunn)</span>
+<span class="nc" id="L188">                .map(Arbeidsgiver::fjernAnnullertGrunn)</span>
+<span class="nc" id="L189">                .collect(Collectors.toList());</span>
+    }
+
+    private void tilgangTilBedriftVedOpprettelseAvAvtale(BedriftNr bedriftNr, Tiltakstype tiltakstype) {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">        if (!harTilgangPåTiltakIBedrift(bedriftNr, tiltakstype)) {</span>
+<span class="nc" id="L194">            throw new TilgangskontrollException(&quot;Har ikke tilgang på tiltak i valgt bedrift&quot;);</span>
+        }
+<span class="nc" id="L196">    }</span>
+
+    public Avtale opprettAvtale(OpprettAvtale opprettAvtale) {
+<span class="nc" id="L199">        this.tilgangTilBedriftVedOpprettelseAvAvtale(opprettAvtale.getBedriftNr(), opprettAvtale.getTiltakstype());</span>
+<span class="nc" id="L200">        Avtale avtale = Avtale.arbeidsgiverOppretterAvtale(opprettAvtale);</span>
+<span class="nc" id="L201">        leggEnheterVedOpprettelseAvAvtale(avtale);</span>
+
+<span class="nc" id="L203">        return avtale;</span>
+    }
+
+    public Avtale opprettMentorAvtale(OpprettMentorAvtale opprettMentorAvtale) {
+<span class="nc" id="L207">        this.tilgangTilBedriftVedOpprettelseAvAvtale(</span>
+<span class="nc" id="L208">                opprettMentorAvtale.getBedriftNr(),</span>
+<span class="nc" id="L209">                opprettMentorAvtale.getTiltakstype()</span>
+        );
+<span class="nc" id="L211">        Avtale avtale = Avtale.arbeidsgiverOppretterAvtale(opprettMentorAvtale);</span>
+<span class="nc" id="L212">        leggEnheterVedOpprettelseAvAvtale(avtale);</span>
+
+<span class="nc" id="L214">        return avtale;</span>
+    }
+
+    protected void leggEnheterVedOpprettelseAvAvtale(Avtale avtale) {
+<span class="nc" id="L218">        final PdlRespons persondata = this.hentPersonDataForOpprettelseAvAvtale(avtale);</span>
+<span class="nc" id="L219">        super.hentGeoEnhetFraNorg2(avtale, persondata, norg2Client);</span>
+<span class="nc" id="L220">        super.hentOppfølingenhetNavnFraNorg2(avtale, norg2Client);</span>
+<span class="nc" id="L221">    }</span>
+
+    private PdlRespons hentPersonDataForOpprettelseAvAvtale(Avtale avtale) {
+<span class="nc" id="L224">        final PdlRespons persondata = persondataService.hentPersondata(avtale.getDeltakerFnr());</span>
+<span class="nc" id="L225">        avtale.leggTilDeltakerNavn(hentNavnFraPdlRespons(persondata));</span>
+<span class="nc" id="L226">        return persondata;</span>
+    }
+
+    @Override
+    public Avtale hentAvtale(AvtaleRepository avtaleRepository, UUID avtaleId) {
+<span class="nc" id="L231">        Avtale avtale = super.hentAvtale(avtaleRepository, avtaleId);</span>
+<span class="nc" id="L232">        fjernAvbruttGrunn(avtale);</span>
+<span class="nc" id="L233">        fjernAnnullertGrunn(avtale);</span>
+<span class="nc" id="L234">        fjernKvalifiseringsgruppe(avtale);</span>
+<span class="nc" id="L235">        return avtale;</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

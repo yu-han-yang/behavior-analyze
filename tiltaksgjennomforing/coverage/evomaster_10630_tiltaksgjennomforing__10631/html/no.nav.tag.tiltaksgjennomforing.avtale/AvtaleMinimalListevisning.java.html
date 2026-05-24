@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AvtaleMinimalListevisning.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">AvtaleMinimalListevisning.java</span></div><h1>AvtaleMinimalListevisning.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+<span class="nc" id="L11">@Builder</span>
+<span class="nc" id="L12">@AllArgsConstructor</span>
+<span class="nc" id="L13">@NoArgsConstructor</span>
+<span class="nc bnc" id="L14" title="All 106 branches missed.">@Data</span>
+public class AvtaleMinimalListevisning {
+<span class="nc" id="L16">    private String id;</span>
+<span class="nc" id="L17">    private String deltakerFnr;</span>
+<span class="nc" id="L18">    private String deltakerFornavn;</span>
+<span class="nc" id="L19">    private String deltakerEtternavn;</span>
+<span class="nc" id="L20">    private String bedriftNavn;</span>
+<span class="nc" id="L21">    private String veilederNavIdent;</span>
+<span class="nc" id="L22">    private LocalDate startDato;</span>
+<span class="nc" id="L23">    private LocalDate sluttDato;</span>
+<span class="nc" id="L24">    private Status status;</span>
+<span class="nc" id="L25">    private Tiltakstype tiltakstype;</span>
+<span class="nc" id="L26">    private boolean erGodkjentTaushetserklæringAvMentor;</span>
+<span class="nc" id="L27">    private TilskuddPeriodeStatus gjeldendeTilskuddsperiodeStatus;</span>
+<span class="nc" id="L28">    private Instant sistEndret;</span>
+
+    public static AvtaleMinimalListevisning fromAvtale(Avtale avtale) {
+<span class="nc" id="L31">        AvtaleMinimalListevisning avtaleMininal = AvtaleMinimalListevisning.builder()</span>
+<span class="nc" id="L32">                .id(avtale.getId().toString())</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">                .deltakerFnr(avtale.getDeltakerFnr() != null ? avtale.getDeltakerFnr().asString() : null)</span>
+<span class="nc" id="L34">                .deltakerEtternavn(avtale.getGjeldendeInnhold().getDeltakerEtternavn())</span>
+<span class="nc" id="L35">                .deltakerFornavn(avtale.getGjeldendeInnhold().getDeltakerFornavn())</span>
+<span class="nc" id="L36">                .bedriftNavn(avtale.getGjeldendeInnhold().getBedriftNavn())</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">                .veilederNavIdent(avtale.getVeilederNavIdent() != null ? avtale.getVeilederNavIdent().asString() : null)</span>
+<span class="nc" id="L38">                .startDato(avtale.getGjeldendeInnhold().getStartDato())</span>
+<span class="nc" id="L39">                .sluttDato(avtale.getGjeldendeInnhold().getSluttDato())</span>
+<span class="nc" id="L40">                .status(avtale.statusSomEnum())</span>
+<span class="nc" id="L41">                .tiltakstype(avtale.getTiltakstype())</span>
+<span class="nc" id="L42">                .erGodkjentTaushetserklæringAvMentor(avtale.erGodkjentTaushetserklæringAvMentor())</span>
+<span class="nc" id="L43">                .gjeldendeTilskuddsperiodeStatus(avtale.getGjeldendeTilskuddsperiodestatus())</span>
+<span class="nc" id="L44">                .sistEndret(avtale.getSistEndret())</span>
+<span class="nc" id="L45">                .build();</span>
+<span class="nc" id="L46">        return avtaleMininal;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>YouTubeRepositoryImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">youtube.api.repository</a> &gt; <span class="el_source">YouTubeRepositoryImpl.java</span></div><h1>YouTubeRepositoryImpl.java</h1><pre class="source lang-java linenums">package youtube.api.repository;
+
+import youtube.api.model.*;
+import youtube.api.util.BadPaginationException;
+import youtube.api.util.Location;
+import youtube.api.util.RepositoryUtils;
+
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.InternalServerErrorException;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.Response;
+import java.text.ParseException;
+import java.util.*;
+
+public class YouTubeRepositoryImpl implements YouTubeRepository {
+
+    YouTubeVideoRepository videoRepository;
+    YoutubeChannelRepository channelRepository;
+    YoutubePlaylistRepository playlistRepository;
+    private static YouTubeRepositoryImpl instance;
+
+    private static final String BAD_REQUEST_INVALID_CHANNEL_ID = &quot;Invalid channel.&quot;;
+    private static final String BAD_REQUEST_INVALID_RELATED_TO_VIDEO = &quot;Invalid video.&quot;;
+    private static final String NOT_FOUND_CONTENT_OWNER = &quot;The specified content owner account was not found.&quot;;
+<span class="fc" id="L25">    private static final String VISITOR_ID = RepositoryUtils.generateEtag();</span>
+
+    private YouTubeRepositoryImpl() {}
+
+    public static YouTubeRepositoryImpl getInstance() throws ParseException {
+<span class="fc bfc" id="L30" title="All 2 branches covered.">        if(instance == null) {</span>
+<span class="fc" id="L31">            instance = new YouTubeRepositoryImpl();</span>
+<span class="fc" id="L32">            instance.init();</span>
+        }
+<span class="fc" id="L34">        return instance;</span>
+    }
+
+    private void init() throws ParseException {
+<span class="fc" id="L38">        videoRepository = YouTubeVideoRepository.getInstance();</span>
+<span class="fc" id="L39">        channelRepository = YoutubeChannelRepository.getInstance();</span>
+<span class="fc" id="L40">        playlistRepository = YoutubePlaylistRepository.getInstance(videoRepository.getVideos());</span>
+<span class="fc" id="L41">    }</span>
+
+
+    @Override
+    public SearchListResponse searchList(SearchRequest searchRequest, String partType, Location location, Date[] dates, byte typeSearch, Locale locale) throws BadPaginationException {
+
+<span class="nc bnc" id="L47" title="All 4 branches missed.">        if(searchRequest.getChannelId() != null &amp;&amp; this.channelRepository.getChannelById(searchRequest.getChannelId()) == null) {</span>
+<span class="nc" id="L48">            throw new BadRequestException(BAD_REQUEST_INVALID_CHANNEL_ID, Response.status(400).entity(generateErrorResponse(BAD_REQUEST_INVALID_CHANNEL_ID, &quot;channelId&quot;, 400)).build());</span>
+        }
+
+<span class="nc bnc" id="L51" title="All 4 branches missed.">        if(searchRequest.getOnBehalfOfContentOwner() != null &amp;&amp; !this.channelRepository.existsContentOwner(searchRequest.getOnBehalfOfContentOwner())) {</span>
+<span class="nc" id="L52">            throw new NotFoundException(NOT_FOUND_CONTENT_OWNER, Response.status(404).entity(generateErrorResponse(NOT_FOUND_CONTENT_OWNER, &quot;onBehalfOfContentOwner&quot;, 404)).build());</span>
+        }
+
+<span class="nc" id="L55">        SearchListResponse response = new SearchListResponse();</span>
+        List&lt;SearchResult&gt; items;
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if(searchRequest.getForContentOwner() != null &amp;&amp; searchRequest.getForContentOwner()) {</span>
+<span class="nc" id="L58">            items = searchForContentOwnerFilter(searchRequest, partType, location, dates, locale);</span>
+<span class="nc bnc" id="L59" title="All 4 branches missed.">        } else if(searchRequest.getForMine() != null &amp;&amp; searchRequest.getForMine()) {</span>
+<span class="nc" id="L60">            items = searchForMineFilter(searchRequest, partType, location, dates, locale);</span>
+<span class="nc bnc" id="L61" title="All 4 branches missed.">        } else if(searchRequest.getRelatedToVideoId() != null &amp;&amp; !searchRequest.getRelatedToVideoId().isEmpty()) {</span>
+<span class="nc" id="L62">            items = searchRelatedToVideoFilter(searchRequest, partType, locale);</span>
+        } else {
+<span class="nc" id="L64">            items = defaultSearch(searchRequest, partType, location, dates, typeSearch, locale);</span>
+        }
+
+<span class="nc" id="L67">        response.setTokenPagination(new TokenPagination());</span>
+<span class="nc" id="L68">        response.setEtag(&quot;'abcdefghijk_lmnopqrstuvwxyz1234567890'&quot;);</span>
+<span class="nc" id="L69">        response.setKind(&quot;youtube#searchListResponse&quot;);</span>
+<span class="nc" id="L70">        response.setRegionCode(locale.getCountry());</span>
+<span class="nc" id="L71">        response.setVisitorId(VISITOR_ID);</span>
+<span class="nc" id="L72">        response.setEventId(RepositoryUtils.generateEtag());</span>
+
+<span class="nc" id="L74">        sort(items, searchRequest.getOrder());</span>
+<span class="nc" id="L75">        pagination(response, items, searchRequest.getMaxResults(), searchRequest.getPageToken());</span>
+<span class="nc" id="L76">        return response;</span>
+    }
+
+    private List&lt;SearchResult&gt; searchForContentOwnerFilter(SearchRequest searchRequest, String partType, Location location, Date[] dates, Locale locale) {
+<span class="nc" id="L80">        return this.videoRepository.processForContentOwnerRequest(searchRequest, partType, location, dates, locale);</span>
+    }
+
+    private List&lt;SearchResult&gt; searchForMineFilter(SearchRequest searchRequest, String partType, Location location, Date[] dates, Locale locale) {
+<span class="nc" id="L84">        return this.videoRepository.processForMineRequest(searchRequest, partType, location, dates, locale);</span>
+    }
+
+    private List&lt;SearchResult&gt; searchRelatedToVideoFilter(SearchRequest searchRequest, String partType, Locale locale) {
+<span class="nc" id="L88">        Video v = this.videoRepository.getVideoById(searchRequest.getRelatedToVideoId());</span>
+<span class="nc bnc" id="L89" title="All 4 branches missed.">        if(v == null &amp;&amp; searchRequest.getRelatedToVideoId() != null) {</span>
+<span class="nc" id="L90">            throw new BadRequestException(BAD_REQUEST_INVALID_RELATED_TO_VIDEO, Response.status(400).entity(generateErrorResponse(BAD_REQUEST_INVALID_RELATED_TO_VIDEO, &quot;relatedToVideo&quot;, 400)).build());</span>
+        }
+<span class="nc" id="L92">        return this.videoRepository.processRelatedToVideoRequest(searchRequest, v, partType, locale);</span>
+    }
+
+    private List&lt;SearchResult&gt; defaultSearch(SearchRequest searchRequest, String partType, Location location, Date[] dates, byte typeSearch, Locale locale) {
+<span class="nc" id="L96">        List&lt;SearchResult&gt; items = new ArrayList&lt;&gt;();</span>
+        //This if statement checks if the LSB is set or the byte is 0. If so, the API will search for videos.
+<span class="nc bnc" id="L98" title="All 4 branches missed.">        if(typeSearch == 0 || (typeSearch &amp; 1) != 0) {</span>
+<span class="nc" id="L99">            items.addAll(this.videoRepository.processDefaultRequest(searchRequest, partType, location, dates, locale));</span>
+        }
+        //This if statement checks if the second LSB is set or the byte is 0. If so, the API will search for playlists.
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if((typeSearch &amp; 0xff &amp; (1&lt;&lt;1)) != 0) {</span>
+<span class="nc" id="L103">            items.addAll(this.playlistRepository.processDefaultRequest(searchRequest, partType, dates));</span>
+        }
+        //This if statement checks if the MSB is set or the byte is 0. If so, the API will search for channels.
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if((typeSearch &amp; 0xff &amp; (1&lt;&lt;2)) != 0) {</span>
+<span class="nc" id="L107">            items.addAll(this.channelRepository.processDefaultRequest(searchRequest, partType, dates));</span>
+        }
+
+<span class="nc" id="L110">        return items;</span>
+    }
+
+    private void sort(List&lt;SearchResult&gt; items, String order) {
+<span class="nc bnc" id="L114" title="All 6 branches missed.">        if(order != null &amp;&amp; !order.isEmpty() &amp;&amp; order.equals(&quot;date&quot;)) {</span>
+<span class="nc" id="L115">            items.sort(Comparator.comparing((SearchResult x) -&gt; x.getSnippet().getPublishedAt()).reversed());</span>
+<span class="nc bnc" id="L116" title="All 6 branches missed.">        } else if(order != null &amp;&amp; !order.isEmpty() &amp;&amp; order.equals(&quot;title&quot;)) {</span>
+<span class="nc" id="L117">            items.sort(Comparator.comparing(x -&gt; x.getSnippet().getTitle()));</span>
+<span class="nc bnc" id="L118" title="All 6 branches missed.">        } else if(order != null &amp;&amp; !order.isEmpty() &amp;&amp; order.equals(&quot;viewCount&quot;)) {</span>
+<span class="nc" id="L119">            items.sort(new ViewCountSort(videoRepository, channelRepository, playlistRepository));</span>
+        }
+<span class="nc" id="L121">    }</span>
+
+    private void pagination(SearchListResponse response, List&lt;SearchResult&gt; items, Integer maxResults, String pageToken) throws BadPaginationException {
+<span class="nc" id="L124">        int pages = (int) Math.ceil((double) items.size()/(double) maxResults);</span>
+        int page;
+        try {
+<span class="nc bnc" id="L127" title="All 4 branches missed.">            page = pageToken == null || pageToken.isEmpty()? 1 : Integer.parseInt(pageToken.split(&quot;-&quot;)[1]);</span>
+<span class="nc" id="L128">        } catch (IndexOutOfBoundsException | NumberFormatException e) {</span>
+<span class="nc" id="L129">            throw new BadPaginationException();</span>
+<span class="nc" id="L130">        }</span>
+
+<span class="nc" id="L132">        int totalResults = items.size();</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if(page &lt; pages) {</span>
+<span class="nc" id="L135">            items = items.subList(maxResults*(page-1), maxResults*page);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        } else if(page == pages) {</span>
+<span class="nc" id="L137">            items = items.subList(maxResults*(page-1), totalResults);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        } else if(pages != 0) {</span>
+<span class="nc" id="L139">            throw new BadPaginationException();</span>
+        }
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if(page != 1) {</span>
+<span class="nc" id="L143">            response.setPrevPageToken(&quot;page-&quot; + (page-1));</span>
+        }
+<span class="nc bnc" id="L145" title="All 4 branches missed.">        if(pages != 0 &amp;&amp; page != pages) {</span>
+<span class="nc" id="L146">            response.setNextPageToken(&quot;page-&quot; + (page+1));</span>
+        }
+
+<span class="nc" id="L149">        PageInfo pageInfo = new PageInfo();</span>
+<span class="nc" id="L150">        pageInfo.setResultsPerPage(maxResults);</span>
+<span class="nc" id="L151">        pageInfo.setTotalResults(totalResults);</span>
+<span class="nc" id="L152">        response.setPageInfo(pageInfo);</span>
+<span class="nc" id="L153">        response.setItems(items);</span>
+<span class="nc" id="L154">    }</span>
+
+    private ErrorResponse generateErrorResponse(String message, String parameter, int statusCode) {
+<span class="nc" id="L157">        ErrorResponse response = new ErrorResponse();</span>
+<span class="nc" id="L158">        response.setStatus(statusCode);</span>
+<span class="nc" id="L159">        response.setMessage(message);</span>
+
+<span class="nc" id="L161">        ErrorDescription description = new ErrorDescription();</span>
+<span class="nc" id="L162">        description.setMessage(message);</span>
+<span class="nc" id="L163">        description.setLocationType(&quot;parameter&quot;);</span>
+<span class="nc" id="L164">        description.setLocation(parameter);</span>
+
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if(statusCode == 404) {</span>
+<span class="nc" id="L167">            description.setDomain(&quot;youtube.parameter&quot;);</span>
+<span class="nc" id="L168">            description.setReason(&quot;contentOwnerAccountNotFound&quot;);</span>
+
+<span class="nc bnc" id="L170" title="All 4 branches missed.">        } else if(statusCode == 400 &amp;&amp; parameter.equals(&quot;relatedToVideo&quot;)) {</span>
+<span class="nc" id="L171">            description.setDomain(&quot;youtube.search&quot;);</span>
+<span class="nc" id="L172">            description.setReason(&quot;invalidChannelId&quot;);</span>
+<span class="nc bnc" id="L173" title="All 4 branches missed.">        } else if(statusCode == 400 &amp;&amp; parameter.equals(&quot;channelId&quot;)) {</span>
+<span class="nc" id="L174">            description.setDomain(&quot;youtube.search&quot;);</span>
+<span class="nc" id="L175">            description.setReason(&quot;invalidVideoId&quot;);</span>
+        }
+
+<span class="nc" id="L178">        response.setErrors(Collections.singletonList(description));</span>
+<span class="nc" id="L179">        return response;</span>
+    }
+
+    public static class ViewCountSort implements Comparator&lt;SearchResult&gt; {
+
+        private YouTubeVideoRepository videoRepository;
+        private YoutubeChannelRepository channelRepository;
+        private YoutubePlaylistRepository playlistRepository;
+
+<span class="nc" id="L188">        public ViewCountSort(YouTubeVideoRepository videoRepository, YoutubeChannelRepository channelRepository, YoutubePlaylistRepository playlistRepository) {</span>
+<span class="nc" id="L189">            this.videoRepository = videoRepository;</span>
+<span class="nc" id="L190">            this.channelRepository = channelRepository;</span>
+<span class="nc" id="L191">            this.playlistRepository = playlistRepository;</span>
+<span class="nc" id="L192">        }</span>
+
+        @Override
+        public int compare(SearchResult o1, SearchResult o2) {
+<span class="nc bnc" id="L196" title="All 2 branches missed.">            Video v1 = o1.getId().getKind().equals(&quot;youtube#video&quot;)? this.videoRepository.getVideoById(o1.getId().getVideoId()) : null;</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            Video v2 = o2.getId().getKind().equals(&quot;youtube#video&quot;)? this.videoRepository.getVideoById(o2.getId().getVideoId()) : null;</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            Channel c1 = o1.getId().getKind().equals(&quot;youtube#channel&quot;)? this.channelRepository.getChannelById(o1.getId().getChannelId()) : null;</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">            Channel c2 = o2.getId().getKind().equals(&quot;youtube#channel&quot;)? this.channelRepository.getChannelById(o2.getId().getChannelId()) : null;</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">            Playlist p1 = o1.getId().getKind().equals(&quot;youtube#playlist&quot;)? this.playlistRepository.getPlaylistById(o1.getId().getPlaylistId()) : null;</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            Playlist p2 = o2.getId().getKind().equals(&quot;youtube#playlist&quot;)? this.playlistRepository.getPlaylistById(o2.getId().getPlaylistId()) : null;</span>
+
+            Long viewCount1;
+            Long viewCount2;
+
+<span class="nc" id="L206">            viewCount1 = getViewCount(v1, c1, p1);</span>
+
+<span class="nc" id="L208">            viewCount2 = getViewCount(v2, c2, p2);</span>
+
+<span class="nc" id="L210">            return viewCount2.compareTo(viewCount1);</span>
+        }
+
+        private Long getViewCount(Video v, Channel c, Playlist p) {
+            Long viewCount;
+<span class="nc bnc" id="L215" title="All 2 branches missed.">            if(v != null) {</span>
+<span class="nc bnc" id="L216" title="All 4 branches missed.">                viewCount = v.getHasLiveStreamingDetails() != null &amp;&amp; v.getHasLiveStreamingDetails()? v.getLiveStreamingConcurrentViewers() : v.getViewCount();</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">            } else if(c != null) {</span>
+<span class="nc" id="L218">                viewCount = c.getViewCount();</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">            } else if(p != null){</span>
+<span class="nc" id="L220">                viewCount = (long) p.getVideos().stream().mapToLong(Video::getViewCount).average().orElse(0);</span>
+            } else {
+<span class="nc" id="L222">                throw new InternalServerErrorException();</span>
+            }
+<span class="nc" id="L224">            return viewCount;</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

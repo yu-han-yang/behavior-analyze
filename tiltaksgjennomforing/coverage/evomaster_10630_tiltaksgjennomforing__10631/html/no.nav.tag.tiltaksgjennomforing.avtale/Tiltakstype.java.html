@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Tiltakstype.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">Tiltakstype.java</span></div><h1>Tiltakstype.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+<span class="fc" id="L3">public enum Tiltakstype {</span>
+<span class="fc" id="L4">    ARBEIDSTRENING(&quot;Arbeidstrening&quot;, &quot;ab0422&quot;, &quot;ARBTREN&quot;),</span>
+<span class="fc" id="L5">    MIDLERTIDIG_LONNSTILSKUDD(&quot;Midlertidig lønnstilskudd&quot;, &quot;ab0336&quot;, &quot;MIDLONTIL&quot;),</span>
+<span class="fc" id="L6">    VARIG_LONNSTILSKUDD(&quot;Varig lønnstilskudd&quot;, &quot;ab0337&quot;, &quot;VARLONTIL&quot;),</span>
+<span class="fc" id="L7">    MENTOR(&quot;Mentor&quot;, &quot;ab0416&quot;, &quot;MENTOR&quot;),</span>
+<span class="fc" id="L8">    INKLUDERINGSTILSKUDD(&quot;Inkluderingstilskudd&quot;, &quot;ab0417&quot;, &quot;INKLUTILS&quot;),</span>
+<span class="fc" id="L9">    SOMMERJOBB(&quot;Sommerjobb&quot;, &quot;ab0450&quot;, null);</span>
+
+    final String beskrivelse;
+    final String behandlingstema;
+    final String tiltakskodeArena;
+
+<span class="fc" id="L15">    Tiltakstype(String beskrivelse, String behandlingstema, String tiltakskodeArena) {</span>
+<span class="fc" id="L16">        this.beskrivelse = beskrivelse;</span>
+<span class="fc" id="L17">        this.behandlingstema = behandlingstema;</span>
+<span class="fc" id="L18">        this.tiltakskodeArena = tiltakskodeArena;</span>
+<span class="fc" id="L19">    }</span>
+
+    public String getBeskrivelse() {
+<span class="fc" id="L22">        return this.beskrivelse;</span>
+    }
+
+    public String getBehandlingstema() {
+<span class="fc" id="L26">        return this.behandlingstema;</span>
+    }
+
+    public String getTiltakskodeArena() {
+<span class="fc" id="L30">        return tiltakskodeArena;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

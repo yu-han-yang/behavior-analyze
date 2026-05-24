@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Charge.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model</a> &gt; <span class="el_source">Charge.java</span></div><h1>Charge.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model;
+
+import uk.gov.service.payments.commons.model.AuthorisationMode;
+import uk.gov.service.payments.commons.model.SupportedLanguage;
+import uk.gov.service.payments.commons.model.charge.ExternalMetadata;
+
+import java.util.List;
+import java.util.Optional;
+
+public class Charge {
+
+    private String chargeId;
+
+    private String returnUrl;
+
+    private String paymentProvider;
+
+    private List&lt;PaymentConnectorResponseLink&gt; links;
+
+    private RefundSummary refundSummary;
+
+    private PaymentSettlementSummary settlementSummary;
+
+    private CardDetails cardDetails;
+
+    private Long amount;
+
+    private PaymentState state;
+
+    private String description;
+
+    private String reference;
+
+    private String email;
+
+    private SupportedLanguage language;
+
+    private boolean delayedCapture;
+
+    private boolean moto;
+
+    private String agreementId;
+
+    private Long corporateCardSurcharge;
+
+    private Long totalAmount;
+
+    private Long fee;
+
+    private Long netAmount;
+
+    private String createdDate;
+
+    private String gatewayTransactionId;
+
+    private ExternalMetadata metadata;
+
+    private AuthorisationSummary authorisationSummary;
+
+    private AuthorisationMode authorisationMode;
+
+    public Charge(String chargeId, Long amount, PaymentState state, String returnUrl, String description,
+                  String reference, String email, String paymentProvider, String createdDate,
+                  SupportedLanguage language, boolean delayedCapture, boolean moto, RefundSummary refundSummary,
+                  PaymentSettlementSummary settlementSummary, CardDetails cardDetails,
+                  List&lt;PaymentConnectorResponseLink&gt; links, Long corporateCardSurcharge, Long totalAmount,
+                  String gatewayTransactionId, ExternalMetadata metadata, Long fee, Long netAmount,
+<span class="nc" id="L68">                  AuthorisationSummary authorisationSummary, String agreementId, AuthorisationMode authorisationMode) {</span>
+<span class="nc" id="L69">        this.chargeId = chargeId;</span>
+<span class="nc" id="L70">        this.amount = amount;</span>
+<span class="nc" id="L71">        this.state = state;</span>
+<span class="nc" id="L72">        this.returnUrl = returnUrl;</span>
+<span class="nc" id="L73">        this.description = description;</span>
+<span class="nc" id="L74">        this.reference = reference;</span>
+<span class="nc" id="L75">        this.email = email;</span>
+<span class="nc" id="L76">        this.paymentProvider = paymentProvider;</span>
+<span class="nc" id="L77">        this.createdDate = createdDate;</span>
+<span class="nc" id="L78">        this.language = language;</span>
+<span class="nc" id="L79">        this.delayedCapture = delayedCapture;</span>
+<span class="nc" id="L80">        this.moto = moto;</span>
+<span class="nc" id="L81">        this.refundSummary = refundSummary;</span>
+<span class="nc" id="L82">        this.settlementSummary = settlementSummary;</span>
+<span class="nc" id="L83">        this.cardDetails = cardDetails;</span>
+<span class="nc" id="L84">        this.links = links;</span>
+<span class="nc" id="L85">        this.corporateCardSurcharge = corporateCardSurcharge;</span>
+<span class="nc" id="L86">        this.totalAmount = totalAmount;</span>
+<span class="nc" id="L87">        this.gatewayTransactionId = gatewayTransactionId;</span>
+<span class="nc" id="L88">        this.metadata = metadata;</span>
+<span class="nc" id="L89">        this.fee = fee;</span>
+<span class="nc" id="L90">        this.netAmount = netAmount;</span>
+<span class="nc" id="L91">        this.authorisationSummary = authorisationSummary;</span>
+<span class="nc" id="L92">        this.agreementId = agreementId;</span>
+<span class="nc" id="L93">        this.authorisationMode = authorisationMode;</span>
+<span class="nc" id="L94">    }</span>
+
+    public static Charge from(ChargeFromResponse chargeFromResponse) {
+<span class="nc" id="L97">        return new Charge(</span>
+<span class="nc" id="L98">                chargeFromResponse.getChargeId(),</span>
+<span class="nc" id="L99">                chargeFromResponse.getAmount(),</span>
+<span class="nc" id="L100">                chargeFromResponse.getState(),</span>
+<span class="nc" id="L101">                chargeFromResponse.getReturnUrl(),</span>
+<span class="nc" id="L102">                chargeFromResponse.getDescription(),</span>
+<span class="nc" id="L103">                chargeFromResponse.getReference(),</span>
+<span class="nc" id="L104">                chargeFromResponse.getEmail(),</span>
+<span class="nc" id="L105">                chargeFromResponse.getPaymentProvider(),</span>
+<span class="nc" id="L106">                chargeFromResponse.getCreatedDate(),</span>
+<span class="nc" id="L107">                chargeFromResponse.getLanguage(),</span>
+<span class="nc" id="L108">                chargeFromResponse.getDelayedCapture(),</span>
+<span class="nc" id="L109">                chargeFromResponse.isMoto(),</span>
+<span class="nc" id="L110">                chargeFromResponse.getRefundSummary(),</span>
+<span class="nc" id="L111">                chargeFromResponse.getSettlementSummary(),</span>
+<span class="nc" id="L112">                chargeFromResponse.getWalletType()</span>
+<span class="nc" id="L113">                        .map(wallet -&gt; CardDetails.from(chargeFromResponse.getCardDetailsFromResponse(), wallet.getTitleCase()))</span>
+<span class="nc" id="L114">                        .orElse(CardDetails.from(chargeFromResponse.getCardDetailsFromResponse(), null)),</span>
+<span class="nc" id="L115">                chargeFromResponse.getLinks(),</span>
+<span class="nc" id="L116">                chargeFromResponse.getCorporateCardSurcharge(),</span>
+<span class="nc" id="L117">                chargeFromResponse.getTotalAmount(),</span>
+<span class="nc" id="L118">                chargeFromResponse.getGatewayTransactionId(),</span>
+<span class="nc" id="L119">                chargeFromResponse.getMetadata().orElse(null),</span>
+<span class="nc" id="L120">                chargeFromResponse.getFee(),</span>
+<span class="nc" id="L121">                chargeFromResponse.getNetAmount(),</span>
+<span class="nc" id="L122">                chargeFromResponse.getAuthorisationSummary(),</span>
+<span class="nc" id="L123">                chargeFromResponse.getAgreementId(),</span>
+<span class="nc" id="L124">                chargeFromResponse.getAuthorisationMode()</span>
+        );
+    }
+
+    public static Charge from(TransactionResponse transactionResponse) {
+<span class="nc" id="L129">        return new Charge(</span>
+<span class="nc" id="L130">                transactionResponse.getTransactionId(),</span>
+<span class="nc" id="L131">                transactionResponse.getAmount(),</span>
+<span class="nc" id="L132">                transactionResponse.getState(),</span>
+<span class="nc" id="L133">                transactionResponse.getReturnUrl(),</span>
+<span class="nc" id="L134">                transactionResponse.getDescription(),</span>
+<span class="nc" id="L135">                transactionResponse.getReference(),</span>
+<span class="nc" id="L136">                transactionResponse.getEmail(),</span>
+<span class="nc" id="L137">                transactionResponse.getPaymentProvider(),</span>
+<span class="nc" id="L138">                transactionResponse.getCreatedDate(),</span>
+<span class="nc" id="L139">                transactionResponse.getLanguage(),</span>
+<span class="nc" id="L140">                transactionResponse.getDelayedCapture(),</span>
+<span class="nc" id="L141">                transactionResponse.isMoto(),</span>
+<span class="nc" id="L142">                transactionResponse.getRefundSummary(),</span>
+<span class="nc" id="L143">                transactionResponse.getSettlementSummary(),</span>
+<span class="nc" id="L144">                transactionResponse.getWalletType()</span>
+<span class="nc" id="L145">                        .map(wallet -&gt; CardDetails.from(transactionResponse.getCardDetailsFromResponse(), wallet.getTitleCase()))</span>
+<span class="nc" id="L146">                        .orElse(CardDetails.from(transactionResponse.getCardDetailsFromResponse(), null)),</span>
+<span class="nc" id="L147">                transactionResponse.getLinks(),</span>
+<span class="nc" id="L148">                transactionResponse.getCorporateCardSurcharge(),</span>
+<span class="nc" id="L149">                transactionResponse.getTotalAmount(),</span>
+<span class="nc" id="L150">                transactionResponse.getGatewayTransactionId(),</span>
+<span class="nc" id="L151">                transactionResponse.getMetadata().orElse(null),</span>
+<span class="nc" id="L152">                transactionResponse.getFee(),</span>
+<span class="nc" id="L153">                transactionResponse.getNetAmount(),</span>
+<span class="nc" id="L154">                transactionResponse.getAuthorisationSummary(),</span>
+                null,
+<span class="nc" id="L156">                transactionResponse.getAuthorisationMode());</span>
+    }
+
+    public Optional&lt;ExternalMetadata&gt; getMetadata() {
+<span class="nc" id="L160">        return Optional.ofNullable(metadata);</span>
+    }
+
+    public String getChargeId() {
+<span class="nc" id="L164">        return chargeId;</span>
+    }
+
+    public Long getAmount() {
+<span class="nc" id="L168">        return amount;</span>
+    }
+
+    public PaymentState getState() {
+<span class="nc" id="L172">        return state;</span>
+    }
+
+    public String getReturnUrl() {
+<span class="nc" id="L176">        return returnUrl;</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L180">        return description;</span>
+    }
+
+    public String getReference() {
+<span class="nc" id="L184">        return reference;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L188">        return email;</span>
+    }
+
+    public SupportedLanguage getLanguage() {
+<span class="nc" id="L192">        return language;</span>
+    }
+
+    public boolean getDelayedCapture() {
+<span class="nc" id="L196">        return delayedCapture;</span>
+    }
+
+    public boolean isMoto() {
+<span class="nc" id="L200">        return moto;</span>
+    }
+
+    public Long getCorporateCardSurcharge() {
+<span class="nc" id="L204">        return corporateCardSurcharge;</span>
+    }
+
+    public Long getTotalAmount() {
+<span class="nc" id="L208">        return totalAmount;</span>
+    }
+
+    public Long getFee() {
+<span class="nc" id="L212">        return fee;</span>
+    }
+
+    public Long getNetAmount() {
+<span class="nc" id="L216">        return netAmount;</span>
+    }
+
+    public String getPaymentProvider() {
+<span class="nc" id="L220">        return paymentProvider;</span>
+    }
+
+    public String getCardBrand() {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        return cardDetails != null ? cardDetails.getCardBrand() : &quot;&quot;;</span>
+    }
+
+    public String getCreatedDate() {
+<span class="nc" id="L228">        return createdDate;</span>
+    }
+
+    public List&lt;PaymentConnectorResponseLink&gt; getLinks() {
+<span class="nc" id="L232">        return links;</span>
+    }
+
+    public RefundSummary getRefundSummary() {
+<span class="nc" id="L236">        return refundSummary;</span>
+    }
+
+    public PaymentSettlementSummary getSettlementSummary() {
+<span class="nc" id="L240">        return settlementSummary;</span>
+    }
+
+    public CardDetails getCardDetails() {
+<span class="nc" id="L244">        return cardDetails;</span>
+    }
+
+    public String getGatewayTransactionId() {
+<span class="nc" id="L248">        return gatewayTransactionId;</span>
+    }
+
+    public AuthorisationSummary getAuthorisationSummary() {
+<span class="nc" id="L252">        return authorisationSummary;</span>
+    }
+
+    public String getAgreementId() {
+<span class="nc" id="L256">        return agreementId;</span>
+    }
+
+    public AuthorisationMode getAuthorisationMode() {
+<span class="nc" id="L260">        return authorisationMode;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

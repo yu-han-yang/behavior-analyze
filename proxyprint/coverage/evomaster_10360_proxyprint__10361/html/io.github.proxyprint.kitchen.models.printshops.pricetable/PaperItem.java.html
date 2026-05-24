@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaperItem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.models.printshops.pricetable</a> &gt; <span class="el_source">PaperItem.java</span></div><h1>PaperItem.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Pivotal Software, Inc..
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.proxyprint.kitchen.models.printshops.pricetable;
+
+/**
+ *
+ * @author josesousa
+ */
+public class PaperItem extends Item {
+<span class="fc" id="L23">    public static String KEY_BASE = &quot;PAPER&quot;;</span>
+
+    protected Format format;
+    protected Sides sides;
+    protected Colors colors;
+
+<span class="fc" id="L29">    public PaperItem(Format format, Sides sides, Colors colors) {</span>
+<span class="fc" id="L30">        this.format = format;</span>
+<span class="fc" id="L31">        this.sides = sides;</span>
+<span class="fc" id="L32">        this.colors = colors;</span>
+<span class="fc" id="L33">    }</span>
+
+    public Format getFormat() {
+<span class="nc" id="L36">        return format;</span>
+    }
+
+    public void setFormat(Format format) {
+<span class="nc" id="L40">        this.format = format;</span>
+<span class="nc" id="L41">    }</span>
+
+    public Sides getSides() {
+<span class="nc" id="L44">        return sides;</span>
+    }
+
+    public void setSides(Sides sides) {
+<span class="nc" id="L48">        this.sides = sides;</span>
+<span class="nc" id="L49">    }</span>
+
+    public Colors getColors() {
+<span class="nc" id="L52">        return colors;</span>
+    }
+
+    public void setColors(Colors colors) {
+<span class="nc" id="L56">        this.colors = colors;</span>
+<span class="nc" id="L57">    }</span>
+
+    // Get the paper specs hash
+    public String getPaperSpecs() {
+<span class="nc" id="L61">        return this.format.toString()+this.sides.toString();</span>
+    }
+
+    @Override
+    public String genKey() {
+<span class="fc" id="L66">        return String.format(&quot;%s,%s,%s,%s&quot;, KEY_BASE, colors.toString(), format.toString(), sides.toString());</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (!(o instanceof PaperItem)) return false;</span>
+
+<span class="nc" id="L74">        PaperItem paperItem = (PaperItem) o;</span>
+
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        if (getFormat() != paperItem.getFormat()) return false;</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (getSides() != paperItem.getSides()) return false;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        return getColors() == paperItem.getColors();</span>
+
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        int result = getFormat() != null ? getFormat().hashCode() : 0;</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        result = 31 * result + (getSides() != null ? getSides().hashCode() : 0);</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        result = 31 * result + (getColors() != null ? getColors().hashCode() : 0);</span>
+<span class="nc" id="L87">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

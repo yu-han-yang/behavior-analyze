@@ -1,0 +1,647 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">io.github.proxyprint.kitchen.controllers.admin</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package io.github.proxyprint.kitchen.controllers.admin;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+import io.github.proxyprint.kitchen.models.Admin;
+import io.github.proxyprint.kitchen.models.Money;
+import io.github.proxyprint.kitchen.models.consumer.Consumer;
+import io.github.proxyprint.kitchen.models.consumer.PrintingSchema;
+import io.github.proxyprint.kitchen.models.consumer.printrequest.PrintRequest;
+import io.github.proxyprint.kitchen.models.printshops.*;
+import io.github.proxyprint.kitchen.models.printshops.pricetable.*;
+import io.github.proxyprint.kitchen.models.repositories.*;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.lang.reflect.Type;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Created by daniel on 19-04-2016.
+ */
+@RestController 
+@Transactional
+<span class="fc" id="L37">public class AdminController {</span>
+
+    @Autowired
+    private PrintShopDAO printShops;
+    @Autowired
+    private AdminDAO admins;
+    @Autowired
+    private UserDAO users;
+    @Autowired
+    private PrintingSchemaDAO printingSchemas;
+    @Autowired
+    private RegisterRequestDAO registerRequests;
+    @Autowired
+    private ReviewDAO reviews;
+    @Autowired
+    private Gson GSON;
+
+    @ApiOperation(value = &quot;Returns the list of all printshops.&quot;, notes = &quot;This method allows the admin entity to access all printshop's information registered in the platform.&quot;)
+    @Secured({&quot;ROLE_ADMIN&quot;})
+    @RequestMapping(value = &quot;/admin/printshops&quot;, method = RequestMethod.GET)
+    public String getPrinShopsList() {
+<span class="fc" id="L58">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L60">        List&lt;PrintShop&gt; printShopsList = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        for (PrintShop printshop : printShops.findAll()) {</span>
+<span class="fc" id="L62">            printShopsList.add(printshop);</span>
+<span class="fc" id="L63">        }</span>
+
+<span class="fc" id="L65">        Type listOfPShops = new TypeToken&lt;List&lt;PrintShop&gt;&gt;() {</span>
+<span class="fc" id="L66">        }.getType();</span>
+<span class="fc" id="L67">        String res = GSON.toJson(printShopsList, listOfPShops);</span>
+
+<span class="fc" id="L69">        response.addProperty(&quot;prinshops&quot;, res);</span>
+<span class="fc" id="L70">        response.addProperty(&quot;success&quot;, true);</span>
+<span class="fc" id="L71">        return GSON.toJson(response);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns success/insuccess.&quot;, notes = &quot;This method allows the register of an admin entity.&quot;)
+    @RequestMapping(value = &quot;/admin/register&quot;, method = RequestMethod.POST)
+    public ResponseEntity&lt;Admin&gt; newAdmin(@RequestBody Admin admin) {
+<span class="nc" id="L77">        this.admins.save(admin);</span>
+<span class="nc" id="L78">        return new ResponseEntity&lt;&gt;(admin, HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns nothing.&quot;, notes = &quot;This method allows developers to fill in the database with fake but consistent data.&quot;)
+    @RequestMapping(value = &quot;/admin/seed&quot;, method = RequestMethod.POST)
+    public ResponseEntity&lt;String&gt; seed() {
+<span class="fc" id="L84">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L86">        Money m = new Money(500,33);</span>
+<span class="fc" id="L87">        Admin master = new Admin(&quot;master&quot;, &quot;1234&quot;, &quot;proxyprint@gmail.pt&quot;);</span>
+<span class="fc" id="L88">        master.setBalance(m);</span>
+        // joao represents the consumer PERSONAL entity at the paypal sand box
+<span class="fc" id="L90">        Consumer joao = new Consumer(&quot;João dos Santos&quot;, &quot;joao&quot;, &quot;1234&quot;, &quot;proxyprint.pt.consumer@gmail.com&quot;, &quot;69&quot;, &quot;69&quot;);</span>
+<span class="fc" id="L91">        Consumer rui = new Consumer(&quot;Rui Moreira Campos&quot;, &quot;rui&quot;, &quot;1234&quot;, &quot;proxyprint.pt.consumer@gmail.com&quot;, &quot;69&quot;, &quot;69&quot;);</span>
+<span class="fc" id="L92">        Consumer ana = new Consumer(&quot;Ana Monteiro&quot;, &quot;anam&quot;, &quot;1234&quot;, &quot;proxyprint.pt.consumer@gmail.com&quot;, &quot;69&quot;, &quot;69&quot;);</span>
+<span class="fc" id="L93">        Consumer rita = new Consumer(&quot;Rita Maria Costinha&quot;, &quot;ritinha&quot;, &quot;1234&quot;, &quot;proxyprint.pt.consumer@gmail.com&quot;, &quot;69&quot;, &quot;69&quot;);</span>
+
+        // Printshops
+<span class="fc" id="L96">        PrintShop printshop = new PrintShop(&quot;Copy Scan&quot;, &quot;Rua Quinta dos Órfãos 16 S. Vitor (Junto à Universidade do Minho), Braga&quot;, 41.557973, -8.398398, &quot;123555378&quot;, &quot;logo_1&quot;, 0);</span>
+<span class="fc" id="L97">        printShops.save(printshop);</span>
+<span class="fc" id="L98">        PrintShop printshop2 = new PrintShop(&quot;SmartPrint&quot;, &quot;Rua dos Peões, Braga&quot;, 41.557973, -8.398398, &quot;123555378&quot;, &quot;logo_2&quot;, 0);</span>
+<span class="fc" id="L99">        printshop = new PrintShop(&quot;Flash Vidius - Gomes &amp; Santana, Lda.&quot;, &quot;R. Manuel Silva, 20 - R/C. C.P. 4490000, Povoa de Varzim, Porto&quot;, 41.379392, -8.761458, &quot;199111333&quot;, &quot;logo_3&quot;, 0);</span>
+<span class="fc" id="L100">        printShops.save(printshop);</span>
+<span class="fc" id="L101">        printshop = new PrintShop(&quot;CopyGraphe&quot;, &quot;R. Ramalho Ortigão C Com Pescador - lj 12. C.P. 4490678, Povoa de Varzim, Porto&quot;, 41.383314, -8.761942, &quot;123098333&quot;, &quot;logo_4&quot;, 0);</span>
+<span class="fc" id="L102">        printShops.save(printshop);</span>
+<span class="fc" id="L103">        printshop = new PrintShop(&quot;Nelson Costa Santos&quot;, &quot;Tv. Senra, 22 - Póvoa de Varzim. C.P. 4490000, Povoa de Varzim, Porto.&quot;, 41.382070, -8.763069, &quot;153655378&quot;, &quot;logo_5&quot;, 0);</span>
+<span class="fc" id="L104">        printShops.save(printshop);</span>
+<span class="fc" id="L105">        printshop = new PrintShop(&quot;Gráfica Editora Poveira, Lda.&quot;, &quot;R. Manuel Silva, 18. C.P. 4490657, Povoa de Varzim, Porto.&quot;, 41.379605, -8.761047, &quot;133555378&quot;, &quot;logo_6&quot;, 0);</span>
+<span class="fc" id="L106">        printShops.save(printshop);</span>
+<span class="fc" id="L107">        PrintShop staples_vdc = new PrintShop(&quot;Staples Vila do Conde&quot;, &quot;Avenida General Humberto Delgado 2, Vila do Conde&quot;, 41.370674, -8.744176, &quot;133555378&quot;, &quot;logo_7&quot;, 0);</span>
+<span class="fc" id="L108">        printShops.save(staples_vdc);</span>
+<span class="fc" id="L109">        PrintShop staples_vdm = new PrintShop(&quot;Staples Vila da Maia&quot;, &quot;Rua Comendador Valentim dos Santos Dinis 570, Maia&quot;, 41.246159, -8.625225, &quot;133555378&quot;, &quot;logo_7&quot;, 0);</span>
+<span class="fc" id="L110">        printShops.save(staples_vdm);</span>
+
+<span class="fc" id="L112">        printshop = new PrintShop(&quot;Video Norte&quot;, &quot;Rua Nova de Santa Cruz&quot;, 41.5594, -8.3972, &quot;123444378&quot;, &quot;logo_8&quot;, 0);</span>
+
+        // joaquim represents the printshop BUSINESS entity at the paypal sand box
+<span class="fc" id="L115">        Manager manager = new Manager(&quot;joaquim&quot;, &quot;1234&quot;, &quot;Joaquim Pereira&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;);</span>
+        // laura represents the printshop-2 BUSINESS entity at the paypal sand box
+<span class="fc" id="L117">        Manager manager2 = new Manager(&quot;laura&quot;, &quot;1234&quot;, &quot;Laura Afonso&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;);</span>
+<span class="fc" id="L118">        RegisterRequest registerRequest1 = new RegisterRequest(&quot;Jorge Caldas&quot;, &quot;jcaldas&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;, &quot;1234&quot;, &quot;Rua das Cruzes n31&quot;, 43.221, 41.121, &quot;124555321&quot;, &quot;Printer Style&quot;, false);</span>
+<span class="fc" id="L119">        RegisterRequest registerRequest2 = new RegisterRequest(&quot;Martim da Silva&quot;, &quot;msilva&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;, &quot;1234&quot;, &quot;Rua das Cruzes n32&quot;, 43.221, 41.121, &quot;124555321&quot;, &quot;Print More&quot;, false);</span>
+<span class="fc" id="L120">        RegisterRequest registerRequest3 = new RegisterRequest(&quot;Carlos Pinto&quot;, &quot;cpin&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;, &quot;1234&quot;, &quot;Rua n33&quot;, 43.221, 41.121, &quot;124555321&quot;, &quot;Papelaria Pinto&quot;, false);</span>
+<span class="fc" id="L121">        RegisterRequest registerRequest4 = new RegisterRequest(&quot;Ana Carolina Matos&quot;, &quot;acmatos&quot;, &quot;proxyprint.pt.printshop@gmail.com&quot;, &quot;1234&quot;, &quot;Rua das Cerejas n33&quot;, 43.221, 41.121, &quot;124555321&quot;, &quot;Impressões Matos&quot;, false);</span>
+
+<span class="fc" id="L123">        users.save(master);</span>
+
+        /*-------------------------------------
+            PriceTable 'Video Norte'
+        ------------------------------------*/
+        // Paper
+<span class="fc" id="L129">        PaperItem p1 = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW);</span>
+
+        // Black &amp; White
+<span class="fc" id="L132">        RangePaperItem rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 1, 20);</span>
+<span class="fc" id="L133">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.1);</span>
+<span class="fc" id="L134">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 1, 20);</span>
+<span class="fc" id="L135">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.19);</span>
+<span class="fc" id="L136">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 1, 20);</span>
+<span class="fc" id="L137">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.18);</span>
+<span class="fc" id="L138">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 1, 20);</span>
+<span class="fc" id="L139">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.35);</span>
+
+<span class="fc" id="L141">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 21, 50);</span>
+<span class="fc" id="L142">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L143">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 21, 50);</span>
+<span class="fc" id="L144">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.15);</span>
+<span class="fc" id="L145">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 21, 50);</span>
+<span class="fc" id="L146">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.16);</span>
+<span class="fc" id="L147">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 21, 50);</span>
+<span class="fc" id="L148">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.31);</span>
+
+<span class="fc" id="L150">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 51, 100);</span>
+<span class="fc" id="L151">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.06);</span>
+<span class="fc" id="L152">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 51, 100);</span>
+<span class="fc" id="L153">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.11);</span>
+<span class="fc" id="L154">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 51, 100);</span>
+<span class="fc" id="L155">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.14);</span>
+<span class="fc" id="L156">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 51, 100);</span>
+<span class="fc" id="L157">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.27);</span>
+
+<span class="fc" id="L159">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 101, 500);</span>
+<span class="fc" id="L160">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.05);</span>
+<span class="fc" id="L161">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 101, 500);</span>
+<span class="fc" id="L162">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.09);</span>
+<span class="fc" id="L163">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 101, 500);</span>
+<span class="fc" id="L164">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.12);</span>
+<span class="fc" id="L165">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 101, 500);</span>
+<span class="fc" id="L166">        printshop.addItemPriceTable(rp1.genKey(),(float) 0.23);</span>
+
+        // Color
+<span class="fc" id="L169">        PaperItem p2 = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR);</span>
+
+<span class="fc" id="L171">        RangePaperItem rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 1, 5);</span>
+<span class="fc" id="L172">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.75);</span>
+<span class="fc" id="L173">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 1, 5);</span>
+<span class="fc" id="L174">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.49);</span>
+<span class="fc" id="L175">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 1, 5);</span>
+<span class="fc" id="L176">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.40);</span>
+<span class="fc" id="L177">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 1, 5);</span>
+<span class="fc" id="L178">        printshop.addItemPriceTable(rp2.genKey(),(float) 2.79);</span>
+
+<span class="fc" id="L180">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 6, 20);</span>
+<span class="fc" id="L181">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.60);</span>
+<span class="fc" id="L182">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 6, 20);</span>
+<span class="fc" id="L183">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.19);</span>
+<span class="fc" id="L184">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 6, 20);</span>
+<span class="fc" id="L185">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.10);</span>
+<span class="fc" id="L186">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 6, 20);</span>
+<span class="fc" id="L187">        printshop.addItemPriceTable(rp2.genKey(),(float) 2.19);</span>
+
+<span class="fc" id="L189">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 21, 50);</span>
+<span class="fc" id="L190">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.50);</span>
+<span class="fc" id="L191">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 21, 50);</span>
+<span class="fc" id="L192">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.99);</span>
+<span class="fc" id="L193">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 21, 50);</span>
+<span class="fc" id="L194">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.95);</span>
+<span class="fc" id="L195">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 21, 50);</span>
+<span class="fc" id="L196">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.89);</span>
+
+<span class="fc" id="L198">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 51, 100);</span>
+<span class="fc" id="L199">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.40);</span>
+<span class="fc" id="L200">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 51, 100);</span>
+<span class="fc" id="L201">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.79);</span>
+<span class="fc" id="L202">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 51, 100);</span>
+<span class="fc" id="L203">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.75);</span>
+<span class="fc" id="L204">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 51, 100);</span>
+<span class="fc" id="L205">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.49);</span>
+
+<span class="fc" id="L207">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 101, 500);</span>
+<span class="fc" id="L208">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.30);</span>
+<span class="fc" id="L209">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 101, 500);</span>
+<span class="fc" id="L210">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.59);</span>
+<span class="fc" id="L211">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 101, 500);</span>
+<span class="fc" id="L212">        printshop.addItemPriceTable(rp2.genKey(),(float) 0.55);</span>
+<span class="fc" id="L213">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 101, 500);</span>
+<span class="fc" id="L214">        printshop.addItemPriceTable(rp2.genKey(),(float) 1.19);</span>
+
+        // Bindings
+<span class="fc" id="L217">        BindingItem b = new BindingItem(BindingItem.RingType.PLASTIC, 6, 10);</span>
+<span class="fc" id="L218">        printshop.addItemPriceTable(b.genKey(), (float) 1.15);</span>
+<span class="fc" id="L219">        b = new BindingItem(BindingItem.RingType.PLASTIC, 12, 20);</span>
+<span class="fc" id="L220">        printshop.addItemPriceTable(b.genKey(), (float) 1.4);</span>
+<span class="fc" id="L221">        b = new BindingItem(BindingItem.RingType.PLASTIC, 22, 28);</span>
+<span class="fc" id="L222">        printshop.addItemPriceTable(b.genKey(), (float) 1.75);</span>
+<span class="fc" id="L223">        b = new BindingItem(BindingItem.RingType.PLASTIC, 32, 38);</span>
+<span class="fc" id="L224">        printshop.addItemPriceTable(b.genKey(), (float) 2.00);</span>
+<span class="fc" id="L225">        b = new BindingItem(BindingItem.RingType.PLASTIC, 45, 52);</span>
+<span class="fc" id="L226">        printshop.addItemPriceTable(b.genKey(), (float) 2.5);</span>
+
+<span class="fc" id="L228">        b = new BindingItem(BindingItem.RingType.SPIRAL, 6, 10);</span>
+<span class="fc" id="L229">        printshop.addItemPriceTable(b.genKey(), (float) 1.55);</span>
+<span class="fc" id="L230">        b = new BindingItem(BindingItem.RingType.SPIRAL, 12, 20);</span>
+<span class="fc" id="L231">        printshop.addItemPriceTable(b.genKey(), (float) 1.90);</span>
+<span class="fc" id="L232">        b = new BindingItem(BindingItem.RingType.SPIRAL, 24, 32);</span>
+<span class="fc" id="L233">        printshop.addItemPriceTable(b.genKey(), (float) 2.55);</span>
+<span class="fc" id="L234">        b = new BindingItem(BindingItem.RingType.SPIRAL, 36, 40);</span>
+<span class="fc" id="L235">        printshop.addItemPriceTable(b.genKey(), (float) 2.95);</span>
+<span class="fc" id="L236">        b = new BindingItem(BindingItem.RingType.SPIRAL, 44, 50);</span>
+<span class="fc" id="L237">        printshop.addItemPriceTable(b.genKey(), (float) 3.35);</span>
+<span class="fc" id="L238">        BindingItem bs = new BindingItem(BindingItem.RingType.STAPLING, 0, 0);</span>
+<span class="fc" id="L239">        printshop.addItemPriceTable(bs.genKey(), (float) 0.01);</span>
+
+        // Covers
+<span class="fc" id="L242">        CoverItem c = new CoverItem(Item.CoverType.CRISTAL_ACETATE, Item.Format.A4);</span>
+<span class="fc" id="L243">        printshop.addItemPriceTable(c.genKey(), (float) 0.5);</span>
+
+<span class="fc" id="L245">        c = new CoverItem(Item.CoverType.PVC_TRANSPARENT, Item.Format.A4);</span>
+<span class="fc" id="L246">        printshop.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L247">        c = new CoverItem(Item.CoverType.PVC_TRANSPARENT, Item.Format.A3);</span>
+<span class="fc" id="L248">        printshop.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+
+<span class="fc" id="L250">        c = new CoverItem(Item.CoverType.PVC_OPAQUE, Item.Format.A4);</span>
+<span class="fc" id="L251">        printshop.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L252">        c = new CoverItem(Item.CoverType.PVC_OPAQUE, Item.Format.A3);</span>
+<span class="fc" id="L253">        printshop.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+
+        /*-------------------------------------
+            PriceTable 'Staples - Print at shop pricetable'
+        ------------------------------------*/
+        // Paper
+<span class="fc" id="L259">        p1 = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW);</span>
+
+        // Black &amp; White
+<span class="fc" id="L262">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 1, 25);</span>
+<span class="fc" id="L263">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.13);</span>
+<span class="fc" id="L264">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.13);</span>
+<span class="fc" id="L265">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 1, 25);</span>
+<span class="fc" id="L266">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.18);</span>
+<span class="fc" id="L267">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.18);</span>
+<span class="fc" id="L268">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 1, 25);</span>
+<span class="fc" id="L269">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.19);</span>
+<span class="fc" id="L270">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.19);</span>
+<span class="fc" id="L271">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 1, 25);</span>
+<span class="fc" id="L272">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.35);</span>
+<span class="fc" id="L273">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.35);</span>
+
+<span class="fc" id="L275">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 26, 500);</span>
+<span class="fc" id="L276">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L277">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L278">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 26, 500);</span>
+<span class="fc" id="L279">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.13);</span>
+<span class="fc" id="L280">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.13);</span>
+<span class="fc" id="L281">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 26, 500);</span>
+<span class="fc" id="L282">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.14);</span>
+<span class="fc" id="L283">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.14);</span>
+<span class="fc" id="L284">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 26, 500);</span>
+<span class="fc" id="L285">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.24);</span>
+<span class="fc" id="L286">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.24);</span>
+
+<span class="fc" id="L288">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 501, 2000);</span>
+<span class="fc" id="L289">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.05);</span>
+<span class="fc" id="L290">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.05);</span>
+<span class="fc" id="L291">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 501, 2000);</span>
+<span class="fc" id="L292">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L293">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L294">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 501, 2000);</span>
+<span class="fc" id="L295">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.09);</span>
+<span class="fc" id="L296">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.09);</span>
+<span class="fc" id="L297">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 501, 2000);</span>
+<span class="fc" id="L298">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.16);</span>
+<span class="fc" id="L299">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.16);</span>
+
+<span class="fc" id="L301">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.BW, 2001, 3500);</span>
+<span class="fc" id="L302">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.04);</span>
+<span class="fc" id="L303">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.04);</span>
+<span class="fc" id="L304">        rp1 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW, 2001, 3500);</span>
+<span class="fc" id="L305">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.07);</span>
+<span class="fc" id="L306">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.07);</span>
+<span class="fc" id="L307">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.BW, 2001, 3500);</span>
+<span class="fc" id="L308">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L309">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.08);</span>
+<span class="fc" id="L310">        rp1 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.BW, 2001, 3500);</span>
+<span class="fc" id="L311">        staples_vdc.addItemPriceTable(rp1.genKey(),(float) 0.14);</span>
+<span class="fc" id="L312">        staples_vdm.addItemPriceTable(rp1.genKey(),(float) 0.14);</span>
+
+        // Color
+<span class="fc" id="L315">        p2 = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR);</span>
+
+<span class="fc" id="L317">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 1, 10);</span>
+<span class="fc" id="L318">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.01);</span>
+<span class="fc" id="L319">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.01);</span>
+<span class="fc" id="L320">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 1, 10);</span>
+<span class="fc" id="L321">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.97);</span>
+<span class="fc" id="L322">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.97);</span>
+<span class="fc" id="L323">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 1, 10);</span>
+<span class="fc" id="L324">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.90);</span>
+<span class="fc" id="L325">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.90);</span>
+<span class="fc" id="L326">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 1, 10);</span>
+<span class="fc" id="L327">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 3.74);</span>
+<span class="fc" id="L328">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 3.74);</span>
+
+<span class="fc" id="L330">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 11, 50);</span>
+<span class="fc" id="L331">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 0.80);</span>
+<span class="fc" id="L332">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 0.80);</span>
+<span class="fc" id="L333">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 11, 50);</span>
+<span class="fc" id="L334">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.58);</span>
+<span class="fc" id="L335">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.58);</span>
+<span class="fc" id="L336">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 11, 50);</span>
+<span class="fc" id="L337">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.53);</span>
+<span class="fc" id="L338">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.53);</span>
+<span class="fc" id="L339">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 11, 50);</span>
+<span class="fc" id="L340">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 2.97);</span>
+<span class="fc" id="L341">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 2.97);</span>
+
+<span class="fc" id="L343">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 51, 250);</span>
+<span class="fc" id="L344">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 0.73);</span>
+<span class="fc" id="L345">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 0.73);</span>
+<span class="fc" id="L346">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 51, 250);</span>
+<span class="fc" id="L347">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.42);</span>
+<span class="fc" id="L348">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.42);</span>
+<span class="fc" id="L349">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 51, 250);</span>
+<span class="fc" id="L350">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.39);</span>
+<span class="fc" id="L351">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.39);</span>
+<span class="fc" id="L352">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 51, 250);</span>
+<span class="fc" id="L353">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 2.69);</span>
+<span class="fc" id="L354">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 2.69);</span>
+
+<span class="fc" id="L356">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.SIMPLEX, Item.Colors.COLOR, 251, 1000);</span>
+<span class="fc" id="L357">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 0.49);</span>
+<span class="fc" id="L358">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 0.49);</span>
+<span class="fc" id="L359">        rp2 = new RangePaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.COLOR, 251, 1000);</span>
+<span class="fc" id="L360">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 0.97);</span>
+<span class="fc" id="L361">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 0.97);</span>
+<span class="fc" id="L362">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR, 251, 1000);</span>
+<span class="fc" id="L363">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 0.98);</span>
+<span class="fc" id="L364">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 0.98);</span>
+<span class="fc" id="L365">        rp2 = new RangePaperItem(Item.Format.A3, Item.Sides.DUPLEX, Item.Colors.COLOR, 251, 1000);</span>
+<span class="fc" id="L366">        staples_vdc.addItemPriceTable(rp2.genKey(),(float) 1.84);</span>
+<span class="fc" id="L367">        staples_vdm.addItemPriceTable(rp2.genKey(),(float) 1.84);</span>
+
+        // Bindings
+<span class="fc" id="L370">        b = new BindingItem(BindingItem.RingType.PLASTIC, 6, 10);</span>
+<span class="fc" id="L371">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.67);</span>
+<span class="fc" id="L372">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.67);</span>
+<span class="fc" id="L373">        b = new BindingItem(BindingItem.RingType.PLASTIC, 12, 16);</span>
+<span class="fc" id="L374">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.73);</span>
+<span class="fc" id="L375">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.73);</span>
+<span class="fc" id="L376">        b = new BindingItem(BindingItem.RingType.PLASTIC, 18, 22);</span>
+<span class="fc" id="L377">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.05);</span>
+<span class="fc" id="L378">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.05);</span>
+<span class="fc" id="L379">        b = new BindingItem(BindingItem.RingType.PLASTIC, 25, 32);</span>
+<span class="fc" id="L380">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.10);</span>
+<span class="fc" id="L381">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.10);</span>
+<span class="fc" id="L382">        b = new BindingItem(BindingItem.RingType.PLASTIC, 38, 52);</span>
+<span class="fc" id="L383">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.68);</span>
+<span class="fc" id="L384">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.68);</span>
+
+<span class="fc" id="L386">        b = new BindingItem(BindingItem.RingType.WIRE, 1, 9);</span>
+<span class="fc" id="L387">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.92);</span>
+<span class="fc" id="L388">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.92);</span>
+<span class="fc" id="L389">        b = new BindingItem(BindingItem.RingType.WIRE, 11, 14);</span>
+<span class="fc" id="L390">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.64);</span>
+<span class="fc" id="L391">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.64);</span>
+<span class="fc" id="L392">        b = new BindingItem(BindingItem.RingType.WIRE, 16, 19);</span>
+<span class="fc" id="L393">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.95);</span>
+<span class="fc" id="L394">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.95);</span>
+<span class="fc" id="L395">        b = new BindingItem(BindingItem.RingType.WIRE, 22, 25);</span>
+<span class="fc" id="L396">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.0);</span>
+<span class="fc" id="L397">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.0);</span>
+<span class="fc" id="L398">        b = new BindingItem(BindingItem.RingType.WIRE, 28, 32);</span>
+<span class="fc" id="L399">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.54);</span>
+<span class="fc" id="L400">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.54);</span>
+
+<span class="fc" id="L402">        b = new BindingItem(BindingItem.RingType.SPIRAL, 1, 10);</span>
+<span class="fc" id="L403">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.92);</span>
+<span class="fc" id="L404">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.92);</span>
+<span class="fc" id="L405">        b = new BindingItem(BindingItem.RingType.SPIRAL, 12, 14);</span>
+<span class="fc" id="L406">        staples_vdc.addItemPriceTable(b.genKey(), (float) 1.97);</span>
+<span class="fc" id="L407">        staples_vdm.addItemPriceTable(b.genKey(), (float) 1.97);</span>
+<span class="fc" id="L408">        b = new BindingItem(BindingItem.RingType.SPIRAL, 16, 20);</span>
+<span class="fc" id="L409">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.06);</span>
+<span class="fc" id="L410">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.06);</span>
+<span class="fc" id="L411">        b = new BindingItem(BindingItem.RingType.SPIRAL, 22, 26);</span>
+<span class="fc" id="L412">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.33);</span>
+<span class="fc" id="L413">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.33);</span>
+<span class="fc" id="L414">        b = new BindingItem(BindingItem.RingType.SPIRAL, 28, 32);</span>
+<span class="fc" id="L415">        staples_vdc.addItemPriceTable(b.genKey(), (float) 2.99);</span>
+<span class="fc" id="L416">        staples_vdm.addItemPriceTable(b.genKey(), (float) 2.99);</span>
+<span class="fc" id="L417">        bs = new BindingItem(BindingItem.RingType.STAPLING, 0, 0);</span>
+<span class="fc" id="L418">        staples_vdc.addItemPriceTable(bs.genKey(), (float) 0.01);</span>
+<span class="fc" id="L419">        staples_vdm.addItemPriceTable(bs.genKey(), (float) 0.01);</span>
+
+        // Covers
+<span class="fc" id="L422">        c = new CoverItem(Item.CoverType.CRISTAL_ACETATE, Item.Format.A4);</span>
+<span class="fc" id="L423">        staples_vdc.addItemPriceTable(c.genKey(), (float) 0.5);</span>
+<span class="fc" id="L424">        staples_vdm.addItemPriceTable(c.genKey(), (float) 0.5);</span>
+
+<span class="fc" id="L426">        c = new CoverItem(Item.CoverType.PVC_TRANSPARENT, Item.Format.A4);</span>
+<span class="fc" id="L427">        staples_vdc.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L428">        staples_vdm.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L429">        c = new CoverItem(Item.CoverType.PVC_TRANSPARENT, Item.Format.A3);</span>
+<span class="fc" id="L430">        staples_vdc.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+<span class="fc" id="L431">        staples_vdm.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+
+<span class="fc" id="L433">        c = new CoverItem(Item.CoverType.PVC_OPAQUE, Item.Format.A4);</span>
+<span class="fc" id="L434">        staples_vdc.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L435">        staples_vdm.addItemPriceTable(c.genKey(), (float) 0.7);</span>
+<span class="fc" id="L436">        c = new CoverItem(Item.CoverType.PVC_OPAQUE, Item.Format.A3);</span>
+<span class="fc" id="L437">        staples_vdc.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+<span class="fc" id="L438">        staples_vdm.addItemPriceTable(c.genKey(), (float) 1.5);</span>
+
+<span class="fc" id="L440">        printShops.save(staples_vdc);</span>
+<span class="fc" id="L441">        printShops.save(staples_vdm);</span>
+
+        // PrintingSchemas
+<span class="fc" id="L444">        PrintingSchema printingSchema1 = new PrintingSchema(&quot;A4+2LAD+PB+Agrafar&quot;,p1.genKey(),&quot;BINDING,STAPLING,0,0&quot;,&quot;&quot;);</span>
+<span class="fc" id="L445">        printingSchemas.save(printingSchema1);</span>
+<span class="fc" id="L446">        PrintingSchema printingSchema2= new PrintingSchema(&quot;A4+2LAD+CORES+Encaderna&quot;,p2.genKey(),&quot;BINDING,SPIRAL&quot;,c.genKey());</span>
+<span class="fc" id="L447">        printingSchemas.save(printingSchema2);</span>
+<span class="fc" id="L448">        PaperItem pi = new PaperItem(Item.Format.A4, Item.Sides.DUPLEX, Item.Colors.BW);</span>
+<span class="fc" id="L449">        PrintingSchema printingSchema3 = new PrintingSchema(&quot;A4+2LAD+PB&quot;,pi.genKey(),&quot;&quot;,&quot;&quot;);</span>
+<span class="fc" id="L450">        PaperItem pi2 = new PaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR);</span>
+<span class="fc" id="L451">        PrintingSchema printingSchema4 = new PrintingSchema(&quot;A4+SIMPLEX+COLOR&quot;,pi.genKey(),&quot;&quot;,&quot;&quot;);</span>
+<span class="fc" id="L452">        PaperItem pi3 = new PaperItem(Item.Format.A3, Item.Sides.SIMPLEX, Item.Colors.COLOR);</span>
+<span class="fc" id="L453">        PrintingSchema printingSchema5 = new PrintingSchema(&quot;A4+SIMPLEX+PW+Encadernar&quot;,pi.genKey(),&quot;BINDING,SPIRAL&quot;,&quot;COVER,PVC_TRANSPARENT,A4&quot;);</span>
+
+        // Add printing schemas to joao
+<span class="fc" id="L456">        joao.addPrintingSchema(printingSchema1);</span>
+<span class="fc" id="L457">        joao.addPrintingSchema(printingSchema2);</span>
+<span class="fc" id="L458">        joao.addPrintingSchema(printingSchema3);</span>
+<span class="fc" id="L459">        joao.addPrintingSchema(printingSchema4);</span>
+<span class="fc" id="L460">        joao.addPrintingSchema(printingSchema5);</span>
+
+        // Add ProxyMoney to Consumers
+<span class="fc" id="L463">        Money money = new Money(1342,22);</span>
+<span class="fc" id="L464">        joao.setBalance(money);</span>
+<span class="fc" id="L465">        rui.setBalance(money);</span>
+<span class="fc" id="L466">        ana.setBalance(money);</span>
+<span class="fc" id="L467">        rita.setBalance(money);</span>
+
+<span class="fc" id="L469">        users.save(joao);</span>
+<span class="fc" id="L470">        users.save(rui);</span>
+<span class="fc" id="L471">        users.save(ana);</span>
+<span class="fc" id="L472">        users.save(rita);</span>
+
+        // Save printshops
+<span class="fc" id="L475">        printShops.save(printshop);</span>
+<span class="fc" id="L476">        printShops.save(printshop2);</span>
+
+        // Set printshops to managers and save
+<span class="fc" id="L479">        manager.setPrintShop(printshop);</span>
+<span class="fc" id="L480">        users.save(manager);</span>
+
+<span class="fc" id="L482">        manager2.setPrintShop(printshop2);</span>
+<span class="fc" id="L483">        users.save(manager2);</span>
+
+        /*--------------------- Employees ---------------------*/
+        Employee mafalda, miguel, joana, rafaela;
+<span class="fc" id="L487">        Employee employee = new Employee(&quot;mafalda&quot;, &quot;1234&quot;, &quot;Mafalda Sofia Pinto&quot;, printshop);</span>
+<span class="fc" id="L488">        mafalda = employee;</span>
+<span class="fc" id="L489">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L490">        users.save(employee);</span>
+<span class="fc" id="L491">        employee = new Employee(&quot;miguel&quot;, &quot;1234&quot;, &quot;Miguel Santos&quot;, printshop);</span>
+<span class="fc" id="L492">        miguel = employee;</span>
+<span class="fc" id="L493">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L494">        users.save(employee);</span>
+<span class="fc" id="L495">        employee = new Employee(&quot;ana&quot;, &quot;1234&quot;, &quot;Ana Ferreira&quot;, printshop);</span>
+<span class="fc" id="L496">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L497">        users.save(employee);</span>
+<span class="fc" id="L498">        employee = new Employee(&quot;joana&quot;, &quot;1234&quot;, &quot;Joana Sofia&quot;, printshop);</span>
+<span class="fc" id="L499">        joana = employee;</span>
+<span class="fc" id="L500">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L501">        users.save(employee);</span>
+<span class="fc" id="L502">        employee = new Employee(&quot;rita&quot;, &quot;1234&quot;, &quot;Rita Semedo&quot;, printshop);</span>
+<span class="fc" id="L503">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L504">        users.save(employee);</span>
+<span class="fc" id="L505">        employee = new Employee(&quot;rafaela&quot;, &quot;1234&quot;, &quot;Rafaela Martins&quot;, printshop);</span>
+<span class="fc" id="L506">        rafaela = employee;</span>
+<span class="fc" id="L507">        employee.setPrintShop(printshop);</span>
+<span class="fc" id="L508">        users.save(employee);</span>
+<span class="fc" id="L509">        employee = new Employee(&quot;cristiano&quot;, &quot;1234&quot;, &quot;Cristiano Costa&quot;, printshop);</span>
+<span class="fc" id="L510">        employee.setPrintShop(printshop2);</span>
+<span class="fc" id="L511">        users.save(employee);</span>
+<span class="fc" id="L512">        employee = new Employee(&quot;marco&quot;, &quot;1234&quot;, &quot;Marco Pinheiro&quot;, printshop);</span>
+<span class="fc" id="L513">        employee.setPrintShop(printshop2);</span>
+<span class="fc" id="L514">        users.save(employee);</span>
+<span class="fc" id="L515">        employee = new Employee(&quot;daniel&quot;, &quot;1234&quot;, &quot;Daniel Caldas&quot;, printshop);</span>
+<span class="fc" id="L516">        employee.setPrintShop(printshop2);</span>
+<span class="fc" id="L517">        users.save(employee);</span>
+<span class="fc" id="L518">        employee = new Employee(&quot;carlos&quot;, &quot;1234&quot;, &quot;Carlos do Mar&quot;, printshop);</span>
+<span class="fc" id="L519">        employee.setPrintShop(printshop2);</span>
+<span class="fc" id="L520">        users.save(employee);</span>
+<span class="fc" id="L521">        employee = new Employee(&quot;mariovdc&quot;, &quot;1234&quot;, &quot;Mário Pereira&quot;, staples_vdc);</span>
+<span class="fc" id="L522">        employee.setPrintShop(staples_vdc);</span>
+<span class="fc" id="L523">        users.save(employee);</span>
+<span class="fc" id="L524">        employee = new Employee(&quot;mariovdm&quot;, &quot;1234&quot;, &quot;Mário Lino&quot;, staples_vdm);</span>
+<span class="fc" id="L525">        employee.setPrintShop(staples_vdm);</span>
+<span class="fc" id="L526">        users.save(employee);</span>
+        /*--------------------- Employees ---------------------*/
+
+        /*--------------------- Print Requests  ---------------------*/
+        PrintRequest tmpPrintRequest;
+
+        // joao
+<span class="fc" id="L533">        printshop.addPrintRequest(new PrintRequest(2.50, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L534">        printshop.addPrintRequest(new PrintRequest(1.40, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L535">        printshop.addPrintRequest(new PrintRequest(1.20, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+
+<span class="fc" id="L537">        tmpPrintRequest = new PrintRequest(2.22, Date.from(Instant.now()), joao, PrintRequest.Status.IN_PROGRESS);</span>
+<span class="fc" id="L538">        tmpPrintRequest.setEmpAttended(miguel.getName());</span>
+<span class="fc" id="L539">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L541">        tmpPrintRequest = new PrintRequest(4.32, Date.from(Instant.now()), joao, PrintRequest.Status.FINISHED);</span>
+<span class="fc" id="L542">        tmpPrintRequest.setEmpAttended(rafaela.getName());</span>
+<span class="fc" id="L543">        tmpPrintRequest.setEmpDelivered(rita.getName());</span>
+<span class="fc" id="L544">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L545">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L547">        tmpPrintRequest = new PrintRequest(3.21, Date.from(Instant.now()), joao, PrintRequest.Status.LIFTED);</span>
+<span class="fc" id="L548">        tmpPrintRequest.setEmpAttended(ana.getName());</span>
+<span class="fc" id="L549">        tmpPrintRequest.setEmpDelivered(miguel.getName());</span>
+<span class="fc" id="L550">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L551">        tmpPrintRequest.setDeliveredTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L552">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+        // rui
+<span class="fc" id="L555">        printshop.addPrintRequest(new PrintRequest(2.50, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L556">        printshop.addPrintRequest(new PrintRequest(1.40, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L557">        printshop.addPrintRequest(new PrintRequest(1.20, Date.from(Instant.now()), joao, PrintRequest.Status.PENDING));</span>
+
+<span class="fc" id="L559">        tmpPrintRequest = new PrintRequest(2.22, Date.from(Instant.now()), joao, PrintRequest.Status.IN_PROGRESS);</span>
+<span class="fc" id="L560">        tmpPrintRequest.setEmpAttended(miguel.getName());</span>
+<span class="fc" id="L561">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L563">        tmpPrintRequest = new PrintRequest(4.32, Date.from(Instant.now()), joao, PrintRequest.Status.FINISHED);</span>
+<span class="fc" id="L564">        tmpPrintRequest.setEmpAttended(rafaela.getName());</span>
+<span class="fc" id="L565">        tmpPrintRequest.setEmpDelivered(rita.getName());</span>
+<span class="fc" id="L566">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L567">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L569">        tmpPrintRequest = new PrintRequest(3.21, Date.from(Instant.now()), joao, PrintRequest.Status.LIFTED);</span>
+<span class="fc" id="L570">        tmpPrintRequest.setEmpAttended(ana.getName());</span>
+<span class="fc" id="L571">        tmpPrintRequest.setEmpDelivered(miguel.getName());</span>
+<span class="fc" id="L572">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L573">        tmpPrintRequest.setDeliveredTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L574">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+        // ana
+<span class="fc" id="L577">        printshop.addPrintRequest(new PrintRequest(2.50, Date.from(Instant.now()), ana, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L578">        printshop.addPrintRequest(new PrintRequest(1.40, Date.from(Instant.now()), ana, PrintRequest.Status.PENDING));</span>
+<span class="fc" id="L579">        printshop.addPrintRequest(new PrintRequest(1.20, Date.from(Instant.now()), ana, PrintRequest.Status.PENDING));</span>
+
+<span class="fc" id="L581">        tmpPrintRequest = new PrintRequest(2.22, Date.from(Instant.now()), ana, PrintRequest.Status.IN_PROGRESS);</span>
+<span class="fc" id="L582">        tmpPrintRequest.setEmpAttended(miguel.getName());</span>
+<span class="fc" id="L583">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L585">        tmpPrintRequest = new PrintRequest(4.32, Date.from(Instant.now()), ana, PrintRequest.Status.FINISHED);</span>
+<span class="fc" id="L586">        tmpPrintRequest.setEmpAttended(rafaela.getName());</span>
+<span class="fc" id="L587">        tmpPrintRequest.setEmpDelivered(rita.getName());</span>
+<span class="fc" id="L588">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L589">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L591">        tmpPrintRequest = new PrintRequest(3.21, Date.from(Instant.now()), ana, PrintRequest.Status.LIFTED);</span>
+<span class="fc" id="L592">        tmpPrintRequest.setEmpAttended(ana.getName());</span>
+<span class="fc" id="L593">        tmpPrintRequest.setEmpDelivered(miguel.getName());</span>
+<span class="fc" id="L594">        tmpPrintRequest.setFinishedTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L595">        tmpPrintRequest.setDeliveredTimestamp(Date.from(Instant.now()));</span>
+<span class="fc" id="L596">        printshop.addPrintRequest(tmpPrintRequest);</span>
+
+<span class="fc" id="L598">        registerRequests.save(registerRequest1);</span>
+<span class="fc" id="L599">        registerRequests.save(registerRequest2);</span>
+<span class="fc" id="L600">        registerRequests.save(registerRequest3);</span>
+<span class="fc" id="L601">        registerRequests.save(registerRequest4);</span>
+
+<span class="fc" id="L603">        printShops.save(printshop);</span>
+<span class="fc" id="L604">        printShops.save(staples_vdc);</span>
+<span class="fc" id="L605">        printShops.save(staples_vdm);</span>
+
+        /*---------------- Reviews -----------------------------*/
+<span class="fc" id="L608">        Review r = new Review(&quot;Muito bom&quot;, 4, joao);</span>
+<span class="fc" id="L609">        printshop.addReview(r);</span>
+<span class="fc" id="L610">        printshop.updatePrintShopRating();</span>
+<span class="fc" id="L611">        r = new Review(&quot;Aguns funcionários poderiam ser mais simpáticos. Mas serviço ok.&quot;, 3, rui);</span>
+<span class="fc" id="L612">        printshop.addReview(r);</span>
+<span class="fc" id="L613">        printshop.updatePrintShopRating();</span>
+<span class="fc" id="L614">        r = new Review(&quot;Excelente!&quot;, 5, ana);</span>
+<span class="fc" id="L615">        printshop.addReview(r);</span>
+<span class="fc" id="L616">        printshop.updatePrintShopRating();</span>
+<span class="fc" id="L617">        printShops.save(printshop);</span>
+
+<span class="fc" id="L619">        response.addProperty(&quot;message&quot;, &quot;seeding completed&quot;);</span>
+
+<span class="fc" id="L621">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+
+    @ApiOperation(value = &quot;Returns nothing.&quot;, notes = &quot;This method allows developers to fill in the database with fake consumer accounts.&quot;)
+    @RequestMapping(value = &quot;/admin/useed&quot;, method = RequestMethod.POST)
+    public ResponseEntity&lt;String&gt; useed() {
+<span class="fc" id="L627">        JsonObject response = new JsonObject();</span>
+
+<span class="fc" id="L629">        String name = &quot;AAA&quot;;</span>
+<span class="fc" id="L630">        Money money = new Money(1000,00);</span>
+<span class="fc" id="L631">        Random rand = new Random();</span>
+        Consumer c;
+<span class="fc" id="L633">        int min=1;</span>
+<span class="fc" id="L634">        int max=90;</span>
+
+<span class="fc bfc" id="L636" title="All 2 branches covered.">        for(int i=0; i &lt; 1000; i++) {</span>
+<span class="fc" id="L637">            c = new Consumer(name+i, name.toLowerCase()+i, &quot;1234&quot;, &quot;proxyprint.pt.consumer@gmail.com&quot;, String.valueOf(rand.nextInt((max - min) + 1) + min), String.valueOf(rand.nextInt((max - min) + 1) + min));</span>
+<span class="fc" id="L638">            c.setBalance(money);</span>
+<span class="fc" id="L639">            users.save(c);</span>
+        }
+
+<span class="fc" id="L642">        response.addProperty(&quot;message&quot;,  &quot;consumers seeding completed&quot;);</span>
+<span class="fc" id="L643">        return new ResponseEntity&lt;&gt;(GSON.toJson(response), HttpStatus.OK);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

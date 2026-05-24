@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PaginationDecorator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.model.search</a> &gt; <span class="el_source">PaginationDecorator.java</span></div><h1>PaginationDecorator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.model.search;
+
+import black.door.hate.HalRepresentation;
+import uk.gov.pay.api.app.config.PublicApiConfig;
+import uk.gov.pay.api.exception.SearchPaymentsException;
+import uk.gov.pay.api.model.links.Link;
+import uk.gov.pay.api.model.links.SearchNavigationLinks;
+
+import javax.inject.Inject;
+import javax.ws.rs.core.UriBuilder;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Optional;
+
+public class PaginationDecorator {
+
+    private final String baseUrl;
+<span class="fc" id="L19">    private final List&lt;String&gt; queryParametersToBeExcluded</span>
+<span class="fc" id="L20">            = List.of(&quot;account_id&quot;, &quot;gateway_account_id&quot;, &quot;transaction_type&quot;, &quot;status_version&quot;);</span>
+
+    @Inject
+<span class="fc" id="L23">    public PaginationDecorator(PublicApiConfig config) {</span>
+<span class="fc" id="L24">        baseUrl = config.getBaseUrl();</span>
+<span class="fc" id="L25">    }</span>
+
+    public HalRepresentation.HalRepresentationBuilder decoratePagination(HalRepresentation.HalRepresentationBuilder halRepresentationBuilder,
+                                                                         SearchPagination pagination, String path) {
+
+<span class="nc" id="L30">        HalRepresentation.HalRepresentationBuilder builder = addPaginationProperties(halRepresentationBuilder, pagination);</span>
+<span class="nc" id="L31">        SearchNavigationLinks links = pagination.getLinks();</span>
+        try {
+<span class="nc" id="L33">            addLink(builder, &quot;self&quot;, transformIntoPublicUri(baseUrl, links.getSelf(), path));</span>
+<span class="nc" id="L34">            addLink(builder, &quot;first_page&quot;, transformIntoPublicUri(baseUrl, links.getFirstPage(), path));</span>
+<span class="nc" id="L35">            addLink(builder, &quot;last_page&quot;, transformIntoPublicUri(baseUrl, links.getLastPage(), path));</span>
+<span class="nc" id="L36">            addLink(builder, &quot;prev_page&quot;, transformIntoPublicUri(baseUrl, links.getPrevPage(), path));</span>
+<span class="nc" id="L37">            addLink(builder, &quot;next_page&quot;, transformIntoPublicUri(baseUrl, links.getNextPage(), path));</span>
+<span class="nc" id="L38">        } catch (URISyntaxException ex) {</span>
+<span class="nc" id="L39">            throw new SearchPaymentsException(ex);</span>
+<span class="nc" id="L40">        }</span>
+<span class="nc" id="L41">        return builder;</span>
+    }
+
+    public SearchNavigationLinks transformLinksToPublicApiUri(
+            SearchNavigationLinks links, String path) {
+        try {
+<span class="nc" id="L47">            return links.withSelfLink(transformIntoPublicUriAsString(baseUrl, links.getSelf(), path))</span>
+<span class="nc" id="L48">                    .withFirstLink(transformIntoPublicUriAsString(baseUrl, links.getFirstPage(), path))</span>
+<span class="nc" id="L49">                    .withLastLink(transformIntoPublicUriAsString(baseUrl, links.getLastPage(), path))</span>
+<span class="nc" id="L50">                    .withPrevLink(transformIntoPublicUriAsString(baseUrl, links.getPrevPage(), path))</span>
+<span class="nc" id="L51">                    .withNextLink(transformIntoPublicUriAsString(baseUrl, links.getNextPage(), path));</span>
+<span class="nc" id="L52">        } catch (URISyntaxException ex) {</span>
+<span class="nc" id="L53">            throw new SearchPaymentsException(ex);</span>
+        }
+    }
+
+    private HalRepresentation.HalRepresentationBuilder addPaginationProperties(HalRepresentation.HalRepresentationBuilder halRepresentationBuilder,
+                                                                               SearchPagination pagination) {
+<span class="nc" id="L59">        halRepresentationBuilder</span>
+<span class="nc" id="L60">                .addProperty(&quot;count&quot;, pagination.getCount())</span>
+<span class="nc" id="L61">                .addProperty(&quot;total&quot;, pagination.getTotal())</span>
+<span class="nc" id="L62">                .addProperty(&quot;page&quot;, pagination.getPage());</span>
+<span class="nc" id="L63">        return halRepresentationBuilder;</span>
+    }
+
+    private void addLink(HalRepresentation.HalRepresentationBuilder halRepresentationBuilder, String name, URI uri) {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (uri != null) {</span>
+<span class="nc" id="L68">            halRepresentationBuilder.addLink(name, uri);</span>
+        }
+<span class="nc" id="L70">    }</span>
+
+    private String transformIntoPublicUriAsString(String baseUrl, Link link, String path) throws URISyntaxException {
+<span class="nc" id="L73">        UriBuilder uriBuilder = getUriBuilder(baseUrl, link, path);</span>
+
+<span class="nc" id="L75">        return Optional.ofNullable(uriBuilder)</span>
+<span class="nc" id="L76">                .map(builder -&gt; {</span>
+                    // breaks the order of query parameters 
+<span class="nc" id="L78">                    queryParametersToBeExcluded.forEach(queryParam -&gt;</span>
+<span class="nc" id="L79">                            uriBuilder.replaceQueryParam(queryParam, (Object[]) null));</span>
+<span class="nc" id="L80">                    return builder.build().toString();</span>
+                })
+<span class="nc" id="L82">                .orElse(null);</span>
+    }
+
+    private URI transformIntoPublicUri(String baseUrl, Link link, String path) throws URISyntaxException {
+<span class="nc" id="L86">        UriBuilder uriBuilder = getUriBuilder(baseUrl, link, path);</span>
+<span class="nc" id="L87">        return Optional.ofNullable(uriBuilder)</span>
+<span class="nc" id="L88">                .map(builder -&gt; {</span>
+                    // breaks the order of query parameters
+<span class="nc" id="L90">                    queryParametersToBeExcluded.forEach(queryParam -&gt;</span>
+<span class="nc" id="L91">                            uriBuilder.replaceQueryParam(queryParam, (Object[]) null));</span>
+<span class="nc" id="L92">                    return builder.build();</span>
+                })
+<span class="nc" id="L94">                .orElse(null);</span>
+    }
+
+    private UriBuilder getUriBuilder(String baseUrl, Link link, String path) throws URISyntaxException {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (link == null)</span>
+<span class="nc" id="L99">            return null;</span>
+
+<span class="nc" id="L101">        return UriBuilder.fromUri(baseUrl)</span>
+<span class="nc" id="L102">                .path(path)</span>
+<span class="nc" id="L103">                .replaceQuery(new URI(link.getHref()).getQuery());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

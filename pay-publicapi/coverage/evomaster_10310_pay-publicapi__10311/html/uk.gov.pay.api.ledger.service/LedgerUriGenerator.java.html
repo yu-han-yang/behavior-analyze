@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LedgerUriGenerator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">uk.gov.pay.api.ledger.service</a> &gt; <span class="el_source">LedgerUriGenerator.java</span></div><h1>LedgerUriGenerator.java</h1><pre class="source lang-java linenums">package uk.gov.pay.api.ledger.service;
+
+import uk.gov.pay.api.app.config.PublicApiConfig;
+import uk.gov.pay.api.auth.Account;
+
+import javax.inject.Inject;
+import javax.ws.rs.core.UriBuilder;
+import java.util.Map;
+
+import static java.lang.String.format;
+
+public class LedgerUriGenerator {
+    private final PublicApiConfig configuration;
+
+    @Inject
+<span class="fc" id="L16">    public LedgerUriGenerator(PublicApiConfig configuration) {</span>
+<span class="fc" id="L17">        this.configuration = configuration;</span>
+<span class="fc" id="L18">    }</span>
+
+    public String transactionsURIWithParams(Map&lt;String, String&gt; queryParams) {
+<span class="nc" id="L21">        queryParams.put(&quot;status_version&quot;, &quot;1&quot;);</span>
+<span class="nc" id="L22">        return buildLedgerUri(&quot;/v1/transaction&quot;, queryParams);</span>
+    }
+
+    private String buildLedgerUri(String path, Map&lt;String, String&gt; params) {
+<span class="nc" id="L26">        var ledgerUrl = configuration.getLedgerUrl();</span>
+<span class="nc" id="L27">        UriBuilder builder = UriBuilder.fromPath(ledgerUrl).path(path);</span>
+<span class="nc" id="L28">        params.entrySet().stream()</span>
+<span class="nc bnc" id="L29" title="All 2 branches missed.">                .filter(k -&gt; k.getValue() != null)</span>
+<span class="nc" id="L30">                .forEach(k -&gt; builder.queryParam(k.getKey(), k.getValue()));</span>
+<span class="nc" id="L31">        return builder.toString();</span>
+    }
+
+    public String transactionURI(Account gatewayAccountId, String paymentId, String transactionType) {
+<span class="nc" id="L35">        String path = format(&quot;/v1/transaction/%s&quot;, paymentId);</span>
+<span class="nc" id="L36">        return buildLedgerUri(path, Map.of(</span>
+<span class="nc" id="L37">                &quot;account_id&quot;, gatewayAccountId.getAccountId(),</span>
+                &quot;transaction_type&quot;, transactionType,
+                &quot;status_version&quot;, &quot;1&quot;
+        ));
+    }
+
+    public String transactionURI(Account gatewayAccountId, String refundId, String transactionType, String paymentId) {
+<span class="nc" id="L44">        String path = format(&quot;/v1/transaction/%s&quot;, refundId);</span>
+<span class="nc" id="L45">        return buildLedgerUri(path, Map.of(</span>
+<span class="nc" id="L46">                &quot;account_id&quot;, gatewayAccountId.getAccountId(),</span>
+                &quot;transaction_type&quot;, transactionType,
+                &quot;parent_external_id&quot;, paymentId,
+                &quot;status_version&quot;, &quot;1&quot;)
+        );
+    }
+
+    public String transactionEventsURI(Account gatewayAccountId, String paymentId) {
+<span class="nc" id="L54">        String path = format(&quot;/v1/transaction/%s/event&quot;, paymentId);</span>
+<span class="nc" id="L55">        return buildLedgerUri(path, Map.of(</span>
+<span class="nc" id="L56">                &quot;gateway_account_id&quot;, gatewayAccountId.getAccountId(),</span>
+                &quot;status_version&quot;, &quot;1&quot;)
+        );
+    }
+
+    public String transactionsForTransactionURI(String gatewayAccountId, String paymentId, String transactionType) {
+<span class="nc" id="L62">        String path = format(&quot;/v1/transaction/%s/transaction&quot;, paymentId);</span>
+<span class="nc" id="L63">        return buildLedgerUri(path,</span>
+<span class="nc" id="L64">                Map.of(&quot;gateway_account_id&quot;, gatewayAccountId,</span>
+                        &quot;transaction_type&quot;, transactionType)
+        );
+    }
+
+    public String agreementURI(Account account, String agreementId) {
+<span class="nc" id="L70">        String path = format(&quot;/v1/agreement/%s&quot;, agreementId);</span>
+<span class="nc" id="L71">        return buildLedgerUri(path, Map.of(</span>
+<span class="nc" id="L72">                &quot;account_id&quot;, account.getAccountId()</span>
+        ));
+    }
+
+    public String agreementsURIWithParams(Map&lt;String, String&gt; queryParams) {
+<span class="nc" id="L77">        return buildLedgerUri(&quot;/v1/agreement&quot;, queryParams);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

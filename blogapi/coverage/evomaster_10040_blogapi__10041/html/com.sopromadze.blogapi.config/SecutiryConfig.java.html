@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecutiryConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">com.sopromadze.blogapi.config</a> &gt; <span class="el_source">SecutiryConfig.java</span></div><h1>SecutiryConfig.java</h1><pre class="source lang-java linenums">package com.sopromadze.blogapi.config;
+
+import com.sopromadze.blogapi.repository.UserRepository;
+import com.sopromadze.blogapi.security.JwtAuthenticationEntryPoint;
+import com.sopromadze.blogapi.security.JwtAuthenticationFilter;
+import com.sopromadze.blogapi.service.impl.CustomUserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.BeanIds;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@EnableGlobalMethodSecurity(
+		securedEnabled = true,
+		jsr250Enabled = true,
+		prePostEnabled = true)
+public class SecutiryConfig extends WebSecurityConfigurerAdapter {
+	private final CustomUserDetailsServiceImpl customUserDetailsService;
+	private final JwtAuthenticationEntryPoint unauthorizedHandler;
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+	@Autowired
+	public SecutiryConfig(UserRepository userRepository, CustomUserDetailsServiceImpl customUserDetailsService,
+<span class="fc" id="L36">			JwtAuthenticationEntryPoint unauthorizedHandler, JwtAuthenticationFilter jwtAuthenticationFilter) {</span>
+<span class="fc" id="L37">		this.customUserDetailsService = customUserDetailsService;</span>
+<span class="fc" id="L38">		this.unauthorizedHandler = unauthorizedHandler;</span>
+<span class="fc" id="L39">		this.jwtAuthenticationFilter = jwtAuthenticationFilter;</span>
+<span class="fc" id="L40">	}</span>
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+
+<span class="fc" id="L45">		http.cors().and().csrf().disable()</span>
+<span class="fc" id="L46">				.exceptionHandling()</span>
+<span class="fc" id="L47">				.authenticationEntryPoint(unauthorizedHandler)</span>
+<span class="fc" id="L48">				.and()</span>
+<span class="fc" id="L49">				.sessionManagement()</span>
+<span class="fc" id="L50">				.sessionCreationPolicy(SessionCreationPolicy.STATELESS)</span>
+<span class="fc" id="L51">				.and()</span>
+<span class="fc" id="L52">				.authorizeRequests()</span>
+<span class="fc" id="L53">				.antMatchers(HttpMethod.GET, &quot;/blogapi.json&quot;).permitAll()</span>
+<span class="fc" id="L54">				.antMatchers(HttpMethod.GET, &quot;/api/**&quot;).permitAll()</span>
+<span class="fc" id="L55">				.antMatchers(HttpMethod.POST, &quot;/api/auth/**&quot;).permitAll()</span>
+<span class="fc" id="L56">				.antMatchers(HttpMethod.GET, &quot;/api/users/checkUsernameAvailability&quot;, &quot;/api/users/checkEmailAvailability&quot;).permitAll()</span>
+<span class="fc" id="L57">				.anyRequest().authenticated();</span>
+
+<span class="fc" id="L59">		http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);</span>
+
+<span class="fc" id="L61">	}</span>
+
+	public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
+<span class="fc" id="L64">		authenticationManagerBuilder.userDetailsService(customUserDetailsService)</span>
+<span class="fc" id="L65">				.passwordEncoder(passwordEncoder());</span>
+<span class="fc" id="L66">	}</span>
+
+	@Bean(BeanIds.AUTHENTICATION_MANAGER)
+	public AuthenticationManager authenticationManagerBean() throws Exception {
+<span class="fc" id="L70">		return super.authenticationManagerBean();</span>
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+<span class="fc" id="L75">		return new BCryptPasswordEncoder();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

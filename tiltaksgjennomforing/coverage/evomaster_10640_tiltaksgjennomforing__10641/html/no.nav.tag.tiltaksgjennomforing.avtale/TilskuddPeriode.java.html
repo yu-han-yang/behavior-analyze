@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TilskuddPeriode.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">JaCoCo Coverage Report</a> &gt; <a href="index.source.html" class="el_package">no.nav.tag.tiltaksgjennomforing.avtale</a> &gt; <span class="el_source">TilskuddPeriode.java</span></div><h1>TilskuddPeriode.java</h1><pre class="source lang-java linenums">package no.nav.tag.tiltaksgjennomforing.avtale;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
+import no.nav.tag.tiltaksgjennomforing.exceptions.Feilkode;
+import no.nav.tag.tiltaksgjennomforing.exceptions.FeilkodeException;
+import no.nav.tag.tiltaksgjennomforing.utils.Now;
+import org.apache.commons.lang3.builder.CompareToBuilder;
+import org.jetbrains.annotations.NotNull;
+
+import javax.persistence.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Entity
+<span class="nc bnc" id="L20" title="All 8 branches missed.">@Data</span>
+<span class="nc" id="L21">@NoArgsConstructor</span>
+<span class="nc bnc" id="L22" title="All 8 branches missed.">@RequiredArgsConstructor</span>
+<span class="nc bnc" id="L23" title="All 8 branches missed.">@AllArgsConstructor(access = AccessLevel.PRIVATE)</span>
+<span class="nc bnc" id="L24" title="All 14 branches missed.">@EqualsAndHashCode(onlyExplicitlyIncluded = true)</span>
+<span class="nc bnc" id="L25" title="All 8 branches missed.">@Builder(toBuilder = true)</span>
+public class TilskuddPeriode implements Comparable&lt;TilskuddPeriode&gt; {
+
+<span class="nc" id="L28">    @Id</span>
+    @EqualsAndHashCode.Include
+<span class="nc" id="L30">    private UUID id = UUID.randomUUID();</span>
+
+    @ManyToOne
+    @JoinColumn(name = &quot;avtale_id&quot;)
+    @JsonIgnore
+    @ToString.Exclude
+<span class="nc" id="L36">    private Avtale avtale;</span>
+
+    @NonNull
+<span class="nc" id="L39">    private Integer beløp;</span>
+    @NonNull
+<span class="nc" id="L41">    private LocalDate startDato;</span>
+    @NonNull
+<span class="nc" id="L43">    private LocalDate sluttDato;</span>
+
+    @Convert(converter = NavIdentConverter.class)
+<span class="nc" id="L46">    private NavIdent godkjentAvNavIdent;</span>
+
+<span class="nc" id="L48">    private LocalDateTime godkjentTidspunkt;</span>
+
+<span class="nc" id="L50">    private String enhet;</span>
+<span class="nc" id="L51">    private String enhetsnavn;</span>
+
+    @NonNull
+<span class="nc" id="L54">    private Integer lonnstilskuddProsent;</span>
+
+<span class="nc" id="L56">    @Enumerated(EnumType.STRING)</span>
+    @ElementCollection(fetch = FetchType.LAZY)
+<span class="nc" id="L58">    private Set&lt;Avslagsårsak&gt; avslagsårsaker = EnumSet.noneOf(Avslagsårsak.class);</span>
+
+<span class="nc" id="L60">    private String avslagsforklaring;</span>
+    @Convert(converter = NavIdentConverter.class)
+<span class="nc" id="L62">    private NavIdent avslåttAvNavIdent;</span>
+<span class="nc" id="L63">    private LocalDateTime avslåttTidspunkt;</span>
+<span class="nc" id="L64">    private Integer løpenummer = 1;</span>
+
+<span class="nc" id="L66">    @Enumerated(EnumType.STRING)</span>
+<span class="nc" id="L67">    private TilskuddPeriodeStatus status = TilskuddPeriodeStatus.UBEHANDLET;</span>
+
+<span class="nc" id="L69">    @Enumerated(EnumType.STRING)</span>
+<span class="nc" id="L70">    private RefusjonStatus refusjonStatus = null;</span>
+
+<span class="nc" id="L72">    private boolean aktiv = true;</span>
+
+    public TilskuddPeriode deaktiverOgLagNyUbehandlet() {
+<span class="nc" id="L75">        this.aktiv = false;</span>
+<span class="nc" id="L76">        TilskuddPeriode kopi = new TilskuddPeriode();</span>
+<span class="nc" id="L77">        kopi.id = UUID.randomUUID();</span>
+<span class="nc" id="L78">        kopi.løpenummer = this.løpenummer;</span>
+<span class="nc" id="L79">        kopi.beløp = this.beløp;</span>
+<span class="nc" id="L80">        kopi.lonnstilskuddProsent = this.lonnstilskuddProsent;</span>
+<span class="nc" id="L81">        kopi.startDato = this.startDato;</span>
+<span class="nc" id="L82">        kopi.sluttDato = this.sluttDato;</span>
+<span class="nc" id="L83">        kopi.avtale = this.avtale;</span>
+<span class="nc" id="L84">        kopi.aktiv = true;</span>
+<span class="nc" id="L85">        kopi.status = TilskuddPeriodeStatus.UBEHANDLET;</span>
+<span class="nc" id="L86">        return kopi;</span>
+    }
+
+    private void sjekkOmKanBehandles() {
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (status != TilskuddPeriodeStatus.UBEHANDLET) {</span>
+<span class="nc" id="L91">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET);</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (Now.localDate().isBefore(kanBesluttesFom())) {</span>
+<span class="nc" id="L94">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_BEHANDLE_FOR_TIDLIG);</span>
+        }
+<span class="nc" id="L96">    }</span>
+
+    @JsonProperty
+    private LocalDate kanBesluttesFom() {
+        // TODO: DENNE KODEN MÅ FJERNES NÅR VI FÅR BESKJED OM AT DET ER OK Å HOLDE AV PENGER FOR NESTE ÅR
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        if (LocalDate.now().getYear() == 2023 &amp;&amp; startDato.getYear() == 2024) {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">            if (startDato.minusMonths(3).getYear() == 2023) {</span>
+                // Setter kun 01-01-2024 hvis den opprinnelig hadde blitt satt til 2023.
+<span class="nc" id="L104">                return LocalDate.of(2024, 01, 1);</span>
+            }
+        }
+
+<span class="nc bnc" id="L108" title="All 2 branches missed.">        if (løpenummer == 1) {</span>
+<span class="nc" id="L109">            return LocalDate.MIN;</span>
+        }
+<span class="nc" id="L111">        return startDato.minusMonths(3);</span>
+    }
+
+    void godkjenn(NavIdent beslutter, String enhet) {
+<span class="nc" id="L115">        sjekkOmKanBehandles();</span>
+
+<span class="nc" id="L117">        setGodkjentTidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L118">        setGodkjentAvNavIdent(beslutter);</span>
+<span class="nc" id="L119">        setEnhet(enhet);</span>
+<span class="nc" id="L120">        setStatus(TilskuddPeriodeStatus.GODKJENT);</span>
+<span class="nc" id="L121">    }</span>
+
+    void avslå(NavIdent beslutter, EnumSet&lt;Avslagsårsak&gt; avslagsårsaker, String avslagsforklaring) {
+<span class="nc" id="L124">        sjekkOmKanBehandles();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (avslagsforklaring.isBlank()) {</span>
+<span class="nc" id="L126">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_AVSLAGSFORKLARING_PAAKREVD);</span>
+        }
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (avslagsårsaker.isEmpty()) {</span>
+<span class="nc" id="L129">            throw new FeilkodeException(Feilkode.TILSKUDDSPERIODE_INGEN_AVSLAGSAARSAKER);</span>
+        }
+
+<span class="nc" id="L132">        setAvslåttTidspunkt(Now.localDateTime());</span>
+<span class="nc" id="L133">        setAvslåttAvNavIdent(beslutter);</span>
+<span class="nc" id="L134">        this.avslagsårsaker.addAll(avslagsårsaker);</span>
+<span class="nc" id="L135">        setAvslagsforklaring(avslagsforklaring);</span>
+<span class="nc" id="L136">        setStatus(TilskuddPeriodeStatus.AVSLÅTT);</span>
+<span class="nc" id="L137">    }</span>
+
+    public boolean kanBehandles() {
+        try {
+<span class="nc" id="L141">            sjekkOmKanBehandles();</span>
+<span class="nc" id="L142">            return true;</span>
+<span class="nc" id="L143">        } catch (FeilkodeException e) {</span>
+<span class="nc" id="L144">            return false;</span>
+        }
+    }
+
+    @Override
+    public int compareTo(@NotNull TilskuddPeriode o) {
+<span class="nc" id="L150">        return new CompareToBuilder()</span>
+<span class="nc" id="L151">                .append(this.getStartDato(), o.getStartDato())</span>
+<span class="nc" id="L152">                .append(this.isAktiv(), o.isAktiv())</span>
+<span class="nc" id="L153">                .append(this.getStatus(), o.getStatus())</span>
+<span class="nc" id="L154">                .append(this.getId(), o.getId())</span>
+<span class="nc" id="L155">                .toComparison();</span>
+    }
+
+    public boolean erUtbetalt() {
+<span class="nc bnc" id="L159" title="All 4 branches missed.">        return refusjonStatus == RefusjonStatus.UTBETALT || refusjonStatus == RefusjonStatus.KORRIGERT;</span>
+    }
+
+    public boolean erRefusjonGodkjent() {
+<span class="nc bnc" id="L163" title="All 6 branches missed.">        return refusjonStatus == RefusjonStatus.SENDT_KRAV || refusjonStatus == RefusjonStatus.GODKJENT_MINUSBELØP || refusjonStatus == RefusjonStatus.GODKJENT_NULLBELØP;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,41 +1,45 @@
-Source/OpenAPI discrepancies: the Swagger file omits parameter definitions for `{id}` and `{ids}`, but the controller requires them as path variables. For `GET /api/person/{id}`, the controller appears to intend a 404 for a missing person, but the service constructs `PersonDTO` from `null`, so the implemented behavior is a 500 runtime error.
+Source/OpenAPI discrepancies:
+- The OpenAPI file lists `/api/person/{id}` and `/api/persons/{ids}` but omits their path parameter definitions. The controller requires `{id}` and `{ids}` as `@PathVariable` values.
+- For `GET /api/person/{id}`, the controller appears to intend a `404 Not Found` when no person is found, but the service constructs `new PersonDTO(null)`, so the implemented result for a missing person is a runtime exception handled as `500 Internal Server Error`.
 
-### Behavior 1: create person
+### Function 1: create person
 
-Behavior name:
+Function name:
 create person
+
+Core endpoint(s):
+- `POST /api/person`
+
+Preconditions:
+- None. The endpoint creates a new `persons` collection document from the submitted JSON body.
 
 Successful execution:
 - Result:
-  This behavior creates one person and returns the created `PersonDTO` with a server-assigned `id`.
-- Endpoint sequence:
-  Step 1: `POST /api/person` with a JSON `PersonDTO` body.
+  One person document is inserted and the response returns the created `PersonDTO` with a server-assigned MongoDB ObjectId string in `id`.
+- Invocation:
+  Step 1: `POST /api/person` with a JSON `PersonDTO` body containing person fields such as `firstName`, `lastName`, `age`, `address`, `createdAt`, `insurance`, and `cars`.
 - Constraints:
-  The body must include a convertible `PersonDTO`. `address` and `cars` must be non-null because the DTO conversion dereferences them. If `id` is supplied, it must be a valid MongoDB ObjectId string, but it is overwritten by the repository with a newly generated id.
+  The JSON body must be convertible to `PersonDTO`. `address` must be non-null because `PersonDTO.toPersonEntity()` calls `address.toAddressEntity()`. `cars` must be non-null and must not contain null items because conversion calls `cars.stream()` and maps each car through `CarDTO.toCarEntity()`. If `id` is supplied, it must be a valid MongoDB ObjectId string, but `MongoDBPersonRepository.save()` overwrites it with a newly generated ObjectId before insertion.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The body contains an invalid `id` string.
-  - Endpoint group:
-    Step 1: `POST /api/person` with `id` set to a non-ObjectId value.
+  - Preconditions:
+    - The submitted `PersonDTO` body contains `id` set to a non-ObjectId string.
   - Failure endpoint:
     `POST /api/person`
   - Why this fails:
-    `PersonDTO.toPersonEntity()` calls `new ObjectId(id)`, which throws a runtime exception.
+    `PersonDTO.toPersonEntity()` calls `new ObjectId(id)` before the repository can overwrite the id, and the ObjectId constructor throws a runtime exception.
   - Intentionally violated constraints:
-    Body `id` must be absent or a valid ObjectId string.
+    Body `id` must be absent or a valid MongoDB ObjectId string.
 - Branch 2:
-  - Unsatisfied condition:
-    Required nested data is missing.
-  - Endpoint group:
-    Step 1: `POST /api/person` with `address: null`, `cars: null`, or a null car item.
+  - Preconditions:
+    - The submitted `PersonDTO` body has `address: null`, `cars: null`, or a null item inside `cars`.
   - Failure endpoint:
     `POST /api/person`
   - Why this fails:
-    DTO conversion calls `address.toAddressEntity()` and `cars.stream()`.
+    DTO conversion dereferences `address` and `cars`, and a null car item is dereferenced when the stream maps it through `CarDTO.toCarEntity()`.
   - Intentionally violated constraints:
-    `address` and `cars` must be non-null.
+    The body must include non-null `address`, non-null `cars`, and only non-null car items.
 
 Endpoint coverage:
 - Covers:
@@ -43,42 +47,44 @@ Endpoint coverage:
 - Distinct meaning:
   Creates one person document.
 
-### Behavior 2: create multiple persons
+### Function 2: create multiple persons
 
-Behavior name:
+Function name:
 create multiple persons
+
+Core endpoint(s):
+- `POST /api/persons`
+
+Preconditions:
+- None. The endpoint creates new `persons` collection documents from the submitted JSON array.
 
 Successful execution:
 - Result:
-  This behavior creates all submitted persons and returns a list of created `PersonDTO` objects with server-assigned ids.
-- Endpoint sequence:
-  Step 1: `POST /api/persons` with a JSON array of `PersonDTO` objects.
+  All submitted persons are inserted and the response returns a list of created `PersonDTO` objects with server-assigned MongoDB ObjectId strings in `id`.
+- Invocation:
+  Step 1: `POST /api/persons` with a JSON array of `PersonDTO` bodies.
 - Constraints:
-  Every array item must satisfy the same body constraints as `POST /api/person`. Request ids are overwritten with newly generated ids.
+  Every array item must satisfy the same conversion constraints as `POST /api/person`: absent or valid ObjectId `id`, non-null `address`, non-null `cars`, and no null car items. The service saves items sequentially through `personRepository.save(...)`, so each request id is overwritten with a newly generated ObjectId.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    One array item has an invalid `id`.
-  - Endpoint group:
-    Step 1: `POST /api/persons` with at least one valid item followed by an item whose `id` is not a valid ObjectId.
+  - Preconditions:
+    - At least one submitted array item has `id` set to a non-ObjectId string. Any valid items processed before that invalid item may already have been inserted because the service stream saves each converted item sequentially.
   - Failure endpoint:
     `POST /api/persons`
   - Why this fails:
-    The invalid item fails during `PersonDTO.toPersonEntity()`. Earlier valid items may already have been saved because the service saves items sequentially.
+    The invalid item fails in `PersonDTO.toPersonEntity()` when it calls `new ObjectId(id)`.
   - Intentionally violated constraints:
-    Every item `id` must be absent or a valid ObjectId string.
+    Every submitted item `id` must be absent or a valid MongoDB ObjectId string.
 - Branch 2:
-  - Unsatisfied condition:
-    One array item has null `address` or null `cars`.
-  - Endpoint group:
-    Step 1: `POST /api/persons` with an item whose `address` or `cars` is null.
+  - Preconditions:
+    - At least one submitted array item has `address: null`, `cars: null`, or a null item inside `cars`. Any valid items processed before that invalid item may already have been inserted.
   - Failure endpoint:
     `POST /api/persons`
   - Why this fails:
-    DTO conversion dereferences those fields.
+    DTO conversion dereferences the nested `address` and `cars` fields before or during repository insertion.
   - Intentionally violated constraints:
-    Each item must have non-null `address` and `cars`.
+    Every submitted item must include non-null `address`, non-null `cars`, and only non-null car items.
 
 Endpoint coverage:
 - Covers:
@@ -86,31 +92,44 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a batch of person documents.
 
-### Behavior 3: list persons
+### Function 3: list persons
 
-Behavior name:
+Function name:
 list persons
+
+Core endpoint(s):
+- `GET /api/persons`
+
+Preconditions:
+- None. The collection may be empty or populated.
 
 Successful execution:
 - Result:
-  This behavior retrieves all stored persons. It can return an empty list.
-- Endpoint sequence:
-  Step 1: `GET /api/persons`
+  The endpoint returns every stored person as a JSON array. If no persons exist, it returns an empty list.
+- Invocation:
+  Step 1: `GET /api/persons` with no path, query, body, form, or header values required by the controller.
 - Constraints:
-  No prerequisite resource is required.
+  No prerequisite person resource is required. Each stored document must be convertible to `PersonDTO`; malformed persisted documents with null nested `address` or `cars` can cause response conversion failures.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No endpoint-reproducible business condition is visible in `src`.
-  - Endpoint group:
-    Step 1: `GET /api/persons`
+  - Preconditions:
+    - The database contains a persisted person document whose `address` is null, whose `cars` list is null, or whose `cars` list contains a null car. This can be produced by direct database setup; the public creation endpoints normally fail before inserting such a document.
   - Failure endpoint:
     `GET /api/persons`
   - Why this fails:
-    Only generic runtime or database failures are documented as 500.
+    `PersonServiceImpl.findAll()` maps each `PersonEntity` to `new PersonDTO(...)`, and the DTO constructor dereferences nested `address` and `cars` values.
   - Intentionally violated constraints:
-    None visible through the documented API.
+    Stored person documents must contain nested data that can be converted to `PersonDTO`.
+- Branch 2:
+  - Preconditions:
+    - A generic database or runtime failure occurs while reading the collection.
+  - Failure endpoint:
+    `GET /api/persons`
+  - Why this fails:
+    The controller catches `RuntimeException` through its exception handler and returns `500 Internal Server Error`.
+  - Intentionally violated constraints:
+    No endpoint-reproducible API constraint is visible beyond database/runtime availability.
 
 Endpoint coverage:
 - Covers:
@@ -118,129 +137,145 @@ Endpoint coverage:
 - Distinct meaning:
   Lists the full person collection.
 
-### Behavior 4: retrieve person by id
+### Function 4: retrieve person by id
 
-Behavior name:
+Function name:
 retrieve person by id
+
+Core endpoint(s):
+- `GET /api/person/{id}`
+
+Preconditions:
+- A person exists in the `persons` collection with the desired `firstName`, `lastName`, `age`, `address`, `createdAt`, `insurance`, and `cars` values. This can be satisfied by directly inserting a valid `PersonEntity` document with non-null `address` and `cars`, or by calling `POST /api/person` with those values in a convertible JSON `PersonDTO` body.
+- The `{id}` path value used by `GET /api/person/{id}` must identify that existing person. If the API is used to establish the person, `{id}` must be obtained from the `id` field returned by `POST /api/person`.
 
 Successful execution:
 - Result:
-  This behavior retrieves the person whose id is `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/person` to create a person.
-  Step 2: `GET /api/person/{id}` using the `id` returned by Step 1.
+  The endpoint returns the `PersonDTO` for the existing person whose MongoDB `_id` equals `{id}`.
+- Invocation:
+  Step 1: `GET /api/person/{id}` with `{id}` set to the existing person id.
 - Constraints:
-  `{id}` must be the exact `id` produced by `POST /api/person`. The Swagger path omits the path-parameter definition, but the controller requires `{id}`.
+  `{id}` must be a valid MongoDB ObjectId string and must identify an existing person. The OpenAPI file omits the path parameter definition, but the controller requires `{id}`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{id}` is a valid ObjectId but does not identify an existing person.
-  - Endpoint group:
-    Step 1: `GET /api/person/{id}` with a valid ObjectId that was not produced by a creation endpoint.
+  - Preconditions:
+    - No person exists with `_id = {id}`. This can be satisfied by starting from an empty collection, deleting the person beforehand, directly omitting the document, or using a valid ObjectId that was not returned by `POST /api/person`.
   - Failure endpoint:
     `GET /api/person/{id}`
   - Why this fails:
-    The repository returns null; the service constructs `new PersonDTO(null)`, causing a runtime exception instead of the controller’s intended 404.
+    The repository returns `null`; `PersonServiceImpl.findOne()` immediately constructs `new PersonDTO(null)`, which throws before the controller can return its intended `404 Not Found`.
   - Intentionally violated constraints:
     `{id}` must identify an existing person.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not a valid ObjectId string.
-  - Endpoint group:
-    Step 1: `GET /api/person/{id}` with a malformed id.
+  - Preconditions:
+    - The `{id}` path value is not a valid MongoDB ObjectId string.
   - Failure endpoint:
     `GET /api/person/{id}`
   - Why this fails:
-    The repository constructs `new ObjectId(id)`.
+    `MongoDBPersonRepository.findOne()` constructs `new ObjectId(id)`, which throws for malformed ids.
   - Intentionally violated constraints:
-    `{id}` must be a valid ObjectId string.
+    `{id}` must be a valid MongoDB ObjectId string.
+- Branch 3:
+  - Preconditions:
+    - A person exists with `_id = {id}`, but the persisted document has null nested `address`, null `cars`, or a null car item. This can be produced by direct database setup; normal API creation rejects those shapes before insertion.
+  - Failure endpoint:
+    `GET /api/person/{id}`
+  - Why this fails:
+    The found `PersonEntity` cannot be converted to `PersonDTO` because the DTO constructor dereferences nested fields.
+  - Intentionally violated constraints:
+    The stored person selected by `{id}` must be convertible to `PersonDTO`.
 
 Endpoint coverage:
-- Covers:
-  `POST /api/person`
-- Distinct meaning:
-  Prerequisite creation of the person to retrieve.
 - Covers:
   `GET /api/person/{id}`
 - Distinct meaning:
   Reads one existing person by id.
 
-### Behavior 5: retrieve multiple persons by ids
+### Function 5: retrieve multiple persons by ids
 
-Behavior name:
+Function name:
 retrieve multiple persons by ids
+
+Core endpoint(s):
+- `GET /api/persons/{ids}`
+
+Preconditions:
+- One or more persons exist in the `persons` collection with the desired `firstName`, `lastName`, `age`, `address`, `createdAt`, `insurance`, and `cars` values. This can be satisfied by directly inserting valid `PersonEntity` documents with non-null `address` and `cars`, or by calling `POST /api/persons` with those values in a JSON array of convertible `PersonDTO` bodies.
+- The `{ids}` path value must be a comma-separated list of ids. If the API is used to establish the persons, each intended id in `{ids}` must be obtained from the corresponding `id` field returned by `POST /api/persons`.
 
 Successful execution:
 - Result:
-  This behavior retrieves the persons whose ids are listed in `{ids}`.
-- Endpoint sequence:
-  Step 1: `POST /api/persons` to create the persons.
-  Step 2: `GET /api/persons/{ids}` using a comma-separated list of ids returned by Step 1.
+  The endpoint returns the stored persons whose MongoDB `_id` values are included in `{ids}`. Valid ids that do not match any document are silently omitted.
+- Invocation:
+  Step 1: `GET /api/persons/{ids}` with `{ids}` set to comma-separated MongoDB ObjectId strings.
 - Constraints:
-  `{ids}` must contain comma-separated valid ObjectId strings. The values must come from the Step 1 response for all intended matches.
+  Every `{ids}` segment must be a valid MongoDB ObjectId string. The OpenAPI file omits the path parameter definition, but the controller requires `{ids}`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    One `{ids}` segment is not a valid ObjectId.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `GET /api/persons/{ids}` with one returned id and one malformed id.
+  - Preconditions:
+    - At least one segment in the comma-separated `{ids}` path value is not a valid MongoDB ObjectId string. Other segments may be valid ids returned by `POST /api/persons` or inserted directly.
   - Failure endpoint:
     `GET /api/persons/{ids}`
   - Why this fails:
-    The repository maps every comma-separated segment through `new ObjectId(...)`.
+    The repository maps every segment through `new ObjectId(...)` before querying.
   - Intentionally violated constraints:
-    Every `{ids}` segment must be a valid ObjectId.
+    Every `{ids}` segment must be a valid MongoDB ObjectId string.
 - Branch 2:
-  - Unsatisfied condition:
-    Some ids are valid ObjectIds but do not exist.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `GET /api/persons/{ids}` with one returned id and one unrelated valid ObjectId.
+  - Preconditions:
+    - At least one id in `{ids}` identifies an existing person, and at least one other id is a valid ObjectId that does not identify any person. The existing person can be created by direct database insertion or by `POST /api/persons`; the missing id can be produced by omitting that document or deleting it before the request.
   - Failure endpoint:
     `GET /api/persons/{ids}`
   - Why this fails:
-    It does not fail at HTTP level; it returns only matching persons, so missing ids are silently omitted.
+    It does not fail at HTTP level. MongoDB returns only matching documents, so non-existing ids are silently omitted from the response.
   - Intentionally violated constraints:
-    Every id that should appear in the result must identify an existing person.
+    Every id that the client expects in the response must identify an existing person.
+- Branch 3:
+  - Preconditions:
+    - At least one matched person document has null nested `address`, null `cars`, or a null car item. This can be produced by direct database setup; normal API creation rejects those shapes before insertion.
+  - Failure endpoint:
+    `GET /api/persons/{ids}`
+  - Why this fails:
+    The service maps found entities to `PersonDTO`, and response conversion dereferences the malformed nested fields.
+  - Intentionally violated constraints:
+    Every matched stored person must be convertible to `PersonDTO`.
 
 Endpoint coverage:
-- Covers:
-  `POST /api/persons`
-- Distinct meaning:
-  Prerequisite creation of persons to retrieve.
 - Covers:
   `GET /api/persons/{ids}`
 - Distinct meaning:
   Reads a selected subset of persons by comma-separated ids.
 
-### Behavior 6: count persons
+### Function 6: count persons
 
-Behavior name:
+Function name:
 count persons
+
+Core endpoint(s):
+- `GET /api/persons/count`
+
+Preconditions:
+- None. The collection may be empty or populated.
 
 Successful execution:
 - Result:
-  This behavior returns the number of stored person documents.
-- Endpoint sequence:
-  Step 1: `GET /api/persons/count`
+  The endpoint returns the number of documents in the `persons` collection.
+- Invocation:
+  Step 1: `GET /api/persons/count` with no path, query, body, form, or header values required by the controller.
 - Constraints:
   No prerequisite person is required; an empty collection returns `0`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No endpoint-reproducible business condition is visible in `src`.
-  - Endpoint group:
-    Step 1: `GET /api/persons/count`
+  - Preconditions:
+    - A generic database or runtime failure occurs while counting the collection.
   - Failure endpoint:
     `GET /api/persons/count`
   - Why this fails:
-    Only generic runtime or database failures are documented as 500.
+    The controller catches `RuntimeException` through its exception handler and returns `500 Internal Server Error`.
   - Intentionally violated constraints:
-    None visible through the documented API.
+    No endpoint-reproducible API constraint is visible beyond database/runtime availability.
 
 Endpoint coverage:
 - Covers:
@@ -248,281 +283,287 @@ Endpoint coverage:
 - Distinct meaning:
   Counts all stored persons.
 
-### Behavior 7: compute average age
+### Function 7: compute average age
 
-Behavior name:
+Function name:
 compute average age
+
+Core endpoint(s):
+- `GET /api/persons/averageAge`
+
+Preconditions:
+- At least one person exists in the `persons` collection with an `age` value. This can be satisfied by directly inserting a valid `PersonEntity` document with the desired `age`, or by calling `POST /api/person` with a convertible JSON `PersonDTO` body containing that `age` plus non-null `address` and `cars`; the created `id` is not used by the average endpoint.
 
 Successful execution:
 - Result:
-  This behavior returns the average `age` across stored persons.
-- Endpoint sequence:
-  Step 1: `POST /api/person` with an `age` value.
-  Step 2: `GET /api/persons/averageAge`
+  The endpoint returns the average of the `age` field across all stored persons.
+- Invocation:
+  Step 1: `GET /api/persons/averageAge` with no path, query, body, form, or header values required by the controller.
 - Constraints:
-  At least one person must exist. The average is computed over all stored persons, not only the person from Step 1.
+  At least one person must exist. The average is computed over the entire collection, not over a caller-supplied subset.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The collection is empty.
-  - Endpoint group:
-    Step 1: `DELETE /api/persons` to remove all persons.
-    Step 2: `GET /api/persons/averageAge`
+  - Preconditions:
+    - No person documents exist in the `persons` collection. This can be produced by starting from an empty database, directly clearing the collection, or calling `DELETE /api/persons` before the failing request.
   - Failure endpoint:
     `GET /api/persons/averageAge`
   - Why this fails:
-    The aggregation returns no first result, and the code calls `.averageAge()` on null.
+    The aggregation returns no first result, and `MongoDBPersonRepository.getAverageAge()` calls `.averageAge()` on `null`.
   - Intentionally violated constraints:
     At least one person must exist before computing the average.
 
 Endpoint coverage:
 - Covers:
-  `POST /api/person`
-- Distinct meaning:
-  Prerequisite creation of at least one person with an age.
-- Covers:
   `GET /api/persons/averageAge`
 - Distinct meaning:
-  Computes aggregate average age.
+  Computes aggregate average age across the person collection.
 
-### Behavior 8: replace person
+### Function 8: replace person
 
-Behavior name:
+Function name:
 replace person
+
+Core endpoint(s):
+- `PUT /api/person`
+
+Preconditions:
+- A person exists in the `persons` collection with the original values to be replaced. This can be satisfied by directly inserting a valid `PersonEntity` document with non-null `address` and `cars`, or by calling `POST /api/person` with those values in a convertible JSON `PersonDTO` body.
+- The replacement body `id` must identify that existing person. If the API is used to establish the person, the replacement body `id` must reuse the `id` value returned by `POST /api/person`.
 
 Successful execution:
 - Result:
-  This behavior replaces one existing person and returns the replaced `PersonDTO`.
-- Endpoint sequence:
-  Step 1: `POST /api/person`
-  Step 2: `PUT /api/person` with a `PersonDTO` body whose `id` equals the id returned by Step 1.
+  The endpoint replaces the existing person selected by the body `id` and returns the replaced `PersonDTO`.
+- Invocation:
+  Step 1: `PUT /api/person` with a JSON `PersonDTO` body whose `id` equals an existing person id and whose other fields contain the replacement document.
 - Constraints:
-  The update target is selected by body `id`, not by path. The body is a full replacement document, so required nested fields such as `address` and `cars` must be present.
+  The update target is selected by body `id`, not by path. The body is a full replacement document. Body `id` must be a valid MongoDB ObjectId string, must match an existing document, and required nested fields such as `address` and `cars` must be present and non-null.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The Step 1 id is not reused in the PUT body.
-  - Endpoint group:
-    Step 1: `POST /api/person`
-    Step 2: `PUT /api/person` with body `id` omitted or replaced by another valid ObjectId.
+  - Preconditions:
+    - A person exists in the collection. This can be satisfied by direct database insertion or by calling `POST /api/person`.
+    - The `PUT /api/person` body omits `id` or uses a different valid ObjectId that does not identify an existing person.
   - Failure endpoint:
     `PUT /api/person`
   - Why this fails:
-    `findOneAndReplace` finds no matching document, returns null, and the service constructs `new PersonDTO(null)`.
+    If `id` is omitted, DTO conversion generates a new ObjectId. In both cases, `findOneAndReplace` finds no matching document, returns `null`, and the service constructs `new PersonDTO(null)`.
   - Intentionally violated constraints:
-    The PUT body `id` must equal the id returned by Step 1.
+    The replacement body `id` must reuse the existing person id.
 - Branch 2:
-  - Unsatisfied condition:
-    The PUT body `id` is malformed.
-  - Endpoint group:
-    Step 1: `POST /api/person`
-    Step 2: `PUT /api/person` with body `id` set to a non-ObjectId value.
+  - Preconditions:
+    - The `PUT /api/person` body has `id` set to a non-ObjectId string.
   - Failure endpoint:
     `PUT /api/person`
   - Why this fails:
-    DTO conversion constructs `new ObjectId(id)`.
+    `PersonDTO.toPersonEntity()` constructs `new ObjectId(id)` before the repository update.
   - Intentionally violated constraints:
-    Body `id` must be a valid ObjectId string.
+    Body `id` must be a valid MongoDB ObjectId string.
 - Branch 3:
-  - Unsatisfied condition:
-    The replacement body omits required nested data.
-  - Endpoint group:
-    Step 1: `POST /api/person`
-    Step 2: `PUT /api/person` with the returned `id` but null `address` or null `cars`.
+  - Preconditions:
+    - A person exists in the collection. This can be satisfied by direct database insertion or by calling `POST /api/person`.
+    - The replacement body reuses the existing person id but has `address: null`, `cars: null`, or a null item inside `cars`.
   - Failure endpoint:
     `PUT /api/person`
   - Why this fails:
-    DTO conversion dereferences those fields before the repository update.
+    DTO conversion dereferences the nested fields before `findOneAndReplace` is called.
   - Intentionally violated constraints:
-    Replacement body must contain non-null `address` and `cars`.
+    The replacement body must contain non-null `address`, non-null `cars`, and only non-null car items.
 
 Endpoint coverage:
-- Covers:
-  `POST /api/person`
-- Distinct meaning:
-  Prerequisite creation of the person to replace.
 - Covers:
   `PUT /api/person`
 - Distinct meaning:
   Replaces one existing person selected by body id.
 
-### Behavior 9: replace multiple persons
+### Function 9: replace multiple persons
 
-Behavior name:
+Function name:
 replace multiple persons
+
+Core endpoint(s):
+- `PUT /api/persons`
+
+Preconditions:
+- Multiple persons exist in the `persons` collection with the original values to be replaced. This can be satisfied by directly inserting valid `PersonEntity` documents with non-null `address` and `cars`, or by calling `POST /api/persons` with those values in a JSON array of convertible `PersonDTO` bodies.
+- Each replacement body item `id` must identify one existing person. If the API is used to establish the persons, each item `id` must reuse an `id` value returned by `POST /api/persons`.
 
 Successful execution:
 - Result:
-  This behavior replaces multiple existing persons and returns the number of modified documents.
-- Endpoint sequence:
-  Step 1: `POST /api/persons`
-  Step 2: `PUT /api/persons` with a JSON array whose item `id` values come from Step 1.
+  The endpoint replaces all matched persons and returns MongoDB's modified document count.
+- Invocation:
+  Step 1: `PUT /api/persons` with a JSON array of `PersonDTO` bodies whose `id` values identify existing persons and whose other fields contain the replacement documents.
 - Constraints:
-  Every body item selects its target by `id`. The request is a full replacement for each matched document. To get a modified count equal to the number of submitted persons, the replacement content must actually differ from stored content.
+  Each body item selects its target by `id`. Every item must be convertible to `PersonEntity`. `replaceOne` is used without upsert, so valid ids that do not match existing documents are not inserted. To receive a modified count equal to the number of submitted persons, each id must match an existing document and each replacement must modify stored content.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    One body item has a malformed `id`.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `PUT /api/persons` with one item `id` set to a non-ObjectId value.
+  - Preconditions:
+    - Multiple persons exist in the collection. This can be satisfied by direct database insertion or by calling `POST /api/persons`.
+    - At least one replacement body item has `id` set to a non-ObjectId string.
   - Failure endpoint:
     `PUT /api/persons`
   - Why this fails:
-    DTO conversion fails before the bulk write is executed.
+    The service converts the whole request array with `personEntities.stream().map(PersonDTO::toPersonEntity).toList()` before calling the repository, so malformed ids fail before any bulk write is executed.
   - Intentionally violated constraints:
-    Every body item `id` must be a valid ObjectId string.
+    Every replacement body item `id` must be a valid MongoDB ObjectId string.
 - Branch 2:
-  - Unsatisfied condition:
-    One body item uses a valid but non-existing id.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `PUT /api/persons` with one returned id and one unrelated valid ObjectId.
+  - Preconditions:
+    - At least one replacement body item uses an id for an existing person. This can be satisfied by direct database insertion or by calling `POST /api/persons`.
+    - At least one other replacement body item uses a valid ObjectId that does not identify any existing person. This can be produced by omitting that document, deleting it before the request, or using an unrelated valid ObjectId.
   - Failure endpoint:
     `PUT /api/persons`
   - Why this fails:
-    It does not fail at HTTP level; `replaceOne` has no upsert, so unmatched ids are not updated and the modified count is lower or zero.
+    It does not fail at HTTP level. `replaceOne` has no upsert, so unmatched ids are not updated and the modified count is lower than the number of submitted items or zero.
   - Intentionally violated constraints:
-    Every intended update body `id` must come from an existing person.
+    Every intended update body `id` must identify an existing person.
+- Branch 3:
+  - Preconditions:
+    - Multiple persons exist in the collection. This can be satisfied by direct database insertion or by calling `POST /api/persons`.
+    - At least one replacement body item has `address: null`, `cars: null`, or a null item inside `cars`.
+  - Failure endpoint:
+    `PUT /api/persons`
+  - Why this fails:
+    DTO conversion dereferences nested fields before the bulk write is executed.
+  - Intentionally violated constraints:
+    Every replacement body item must contain non-null `address`, non-null `cars`, and only non-null car items.
 
 Endpoint coverage:
-- Covers:
-  `POST /api/persons`
-- Distinct meaning:
-  Prerequisite creation of persons to replace.
 - Covers:
   `PUT /api/persons`
 - Distinct meaning:
   Bulk replacement of existing persons by body ids.
 
-### Behavior 10: delete person by id
+### Function 10: delete person by id
 
-Behavior name:
+Function name:
 delete person by id
+
+Core endpoint(s):
+- `DELETE /api/person/{id}`
+
+Preconditions:
+- A person exists in the `persons` collection. This can be satisfied by directly inserting a `PersonEntity` document, or by calling `POST /api/person` with a convertible JSON `PersonDTO` body containing the person values and non-null `address` and `cars`.
+- The `{id}` path value used by `DELETE /api/person/{id}` must identify that existing person. If the API is used to establish the person, `{id}` must be obtained from the `id` field returned by `POST /api/person`.
 
 Successful execution:
 - Result:
-  This behavior deletes one existing person and returns the deleted count.
-- Endpoint sequence:
-  Step 1: `POST /api/person`
-  Step 2: `DELETE /api/person/{id}` using the `id` returned by Step 1.
+  The endpoint deletes the person whose MongoDB `_id` equals `{id}` and returns the deleted count, normally `1`.
+- Invocation:
+  Step 1: `DELETE /api/person/{id}` with `{id}` set to the existing person id.
 - Constraints:
-  `{id}` must be the exact id returned by Step 1 and must be a valid ObjectId string.
+  `{id}` must be a valid MongoDB ObjectId string. The OpenAPI file omits the path parameter definition, but the controller requires `{id}`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{id}` is valid but does not identify an existing person.
-  - Endpoint group:
-    Step 1: `POST /api/person`
-    Step 2: `DELETE /api/person/{id}` using a different valid ObjectId.
+  - Preconditions:
+    - No person exists with `_id = {id}`. This can be satisfied by starting from an empty collection, deleting the person beforehand, directly omitting the document, or using a valid ObjectId unrelated to any `POST /api/person` response.
   - Failure endpoint:
     `DELETE /api/person/{id}`
   - Why this fails:
-    It does not fail at HTTP level; MongoDB deletes zero documents and the endpoint returns `0`.
+    It does not fail at HTTP level. MongoDB deletes zero documents and the endpoint returns `0`.
   - Intentionally violated constraints:
-    `{id}` must be reused from the creation response for the person intended to be deleted.
+    `{id}` must identify the person intended to be deleted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is malformed.
-  - Endpoint group:
-    Step 1: `DELETE /api/person/{id}` with a non-ObjectId value.
+  - Preconditions:
+    - The `{id}` path value is not a valid MongoDB ObjectId string.
   - Failure endpoint:
     `DELETE /api/person/{id}`
   - Why this fails:
-    The repository constructs `new ObjectId(id)`.
+    `MongoDBPersonRepository.delete(String id)` constructs `new ObjectId(id)`.
   - Intentionally violated constraints:
-    `{id}` must be a valid ObjectId string.
+    `{id}` must be a valid MongoDB ObjectId string.
 
 Endpoint coverage:
-- Covers:
-  `POST /api/person`
-- Distinct meaning:
-  Prerequisite creation of the person to delete.
 - Covers:
   `DELETE /api/person/{id}`
 - Distinct meaning:
   Deletes one person by id.
 
-### Behavior 11: delete multiple persons by ids
+### Function 11: delete multiple persons by ids
 
-Behavior name:
+Function name:
 delete multiple persons by ids
+
+Core endpoint(s):
+- `DELETE /api/persons/{ids}`
+
+Preconditions:
+- One or more persons exist in the `persons` collection. This can be satisfied by directly inserting `PersonEntity` documents, or by calling `POST /api/persons` with a JSON array of convertible `PersonDTO` bodies containing the person values and non-null `address` and `cars`.
+- The `{ids}` path value must be a comma-separated list of ids. If the API is used to establish the persons, each intended deletion id in `{ids}` must be obtained from an `id` value returned by `POST /api/persons`.
 
 Successful execution:
 - Result:
-  This behavior deletes all persons whose ids are listed in `{ids}` and returns the deleted count.
-- Endpoint sequence:
-  Step 1: `POST /api/persons`
-  Step 2: `DELETE /api/persons/{ids}` using a comma-separated list of ids returned by Step 1.
+  The endpoint deletes all persons whose MongoDB `_id` values are included in `{ids}` and returns the deleted count.
+- Invocation:
+  Step 1: `DELETE /api/persons/{ids}` with `{ids}` set to comma-separated MongoDB ObjectId strings.
 - Constraints:
-  `{ids}` must be comma-separated valid ObjectId strings. Each intended deletion id must come from Step 1.
+  Every `{ids}` segment must be a valid MongoDB ObjectId string. The OpenAPI file omits the path parameter definition, but the controller requires `{ids}`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    One `{ids}` segment is malformed.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `DELETE /api/persons/{ids}` with one returned id and one non-ObjectId value.
+  - Preconditions:
+    - At least one segment in the comma-separated `{ids}` path value is not a valid MongoDB ObjectId string. Other segments may be valid ids returned by `POST /api/persons` or inserted directly.
   - Failure endpoint:
     `DELETE /api/persons/{ids}`
   - Why this fails:
-    The repository converts all segments to ObjectIds before deleting.
+    The repository converts all segments to ObjectIds before executing `deleteMany`.
   - Intentionally violated constraints:
-    Every `{ids}` segment must be a valid ObjectId.
+    Every `{ids}` segment must be a valid MongoDB ObjectId string.
 - Branch 2:
-  - Unsatisfied condition:
-    Some ids are valid but do not exist.
-  - Endpoint group:
-    Step 1: `POST /api/persons`
-    Step 2: `DELETE /api/persons/{ids}` with one returned id and one unrelated valid ObjectId.
+  - Preconditions:
+    - At least one id in `{ids}` identifies an existing person, and at least one other id is a valid ObjectId that does not identify any person. The existing person can be created by direct database insertion or by `POST /api/persons`; the missing id can be produced by omitting that document or deleting it before the request.
   - Failure endpoint:
     `DELETE /api/persons/{ids}`
   - Why this fails:
-    It does not fail at HTTP level; only matching documents are deleted, so the count is lower or zero.
+    It does not fail at HTTP level. MongoDB deletes only matching documents, so the returned deleted count is lower than the number of requested ids or zero.
   - Intentionally violated constraints:
     Every id intended for deletion must identify an existing person.
 
 Endpoint coverage:
 - Covers:
-  `POST /api/persons`
-- Distinct meaning:
-  Prerequisite creation of persons to delete.
-- Covers:
   `DELETE /api/persons/{ids}`
 - Distinct meaning:
   Deletes a selected subset of persons by comma-separated ids.
 
-### Behavior 12: delete all persons
+### Function 12: delete all persons
 
-Behavior name:
+Function name:
 delete all persons
+
+Core endpoint(s):
+- `DELETE /api/persons`
+
+Preconditions:
+- None. The collection may be empty or populated.
 
 Successful execution:
 - Result:
-  This behavior deletes every stored person and returns the deleted count.
-- Endpoint sequence:
-  Step 1: `DELETE /api/persons`
+  The endpoint deletes every document in the `persons` collection and returns the deleted count. If the collection is empty, it returns `0`.
+- Invocation:
+  Step 1: `DELETE /api/persons` with no path, query, body, form, or header values required by the controller.
 - Constraints:
-  No prerequisite person is required. If persons exist, they are all removed; if none exist, the result count is `0`.
+  No prerequisite person is required. The endpoint removes all stored persons in one `deleteMany` operation.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The collection is already empty.
-  - Endpoint group:
-    Step 1: `DELETE /api/persons`
-    Step 2: `DELETE /api/persons`
+  - Preconditions:
+    - The `persons` collection is already empty. This can be produced by starting from an empty database, directly clearing the collection, or calling `DELETE /api/persons` before the request.
   - Failure endpoint:
     `DELETE /api/persons`
   - Why this fails:
-    It does not fail at HTTP level; the second call deletes zero documents and returns `0`.
+    It does not fail at HTTP level. The endpoint deletes zero documents and returns `0`.
   - Intentionally violated constraints:
-    None; this is an idempotent empty-state outcome.
+    None; empty collection deletion is an idempotent zero-count outcome.
+- Branch 2:
+  - Preconditions:
+    - A generic database or runtime failure occurs while deleting the collection contents.
+  - Failure endpoint:
+    `DELETE /api/persons`
+  - Why this fails:
+    The controller catches `RuntimeException` through its exception handler and returns `500 Internal Server Error`.
+  - Intentionally violated constraints:
+    No endpoint-reproducible API constraint is visible beyond database/runtime availability.
 
 Endpoint coverage:
 - Covers:

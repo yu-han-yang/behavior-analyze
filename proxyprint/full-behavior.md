@@ -1,15 +1,19 @@
-Analyzed only `proxyprint.json` and `src`.
+### Function 1: return welcome message
 
-### Behavior 1: return welcome message
-
-Behavior name:
+Function name:
 return welcome message
+
+Core endpoint(s):
+- `GET /`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior returns the API root welcome JSON message.
-- Endpoint sequence:
-  Step 1: `GET /`
+  This function returns the API root welcome JSON message.
+- Invocation:
+  Step 1: `GET /` with required path/query/body/form/header values
 - Constraints:
   No prerequisite resource state is required.
 
@@ -22,16 +26,22 @@ Endpoint coverage:
 - Distinct meaning:
   Root discovery/welcome endpoint.
 
-### Behavior 2: answer CORS preflight
+### Function 2: answer CORS preflight
 
-Behavior name:
+Function name:
 answer CORS preflight
+
+Core endpoint(s):
+- `OPTIONS /*`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior returns `204 No Content` for wildcard OPTIONS requests.
-- Endpoint sequence:
-  Step 1: `OPTIONS /*`
+  This function returns `204 No Content` for wildcard OPTIONS requests.
+- Invocation:
+  Step 1: `OPTIONS /*` with required path/query/body/form/header values
 - Constraints:
   No prerequisite resource state is required.
 
@@ -44,26 +54,29 @@ Endpoint coverage:
 - Distinct meaning:
   Browser preflight support.
 
-### Behavior 3: verify authenticated user access
+### Function 3: verify authenticated user access
 
-Behavior name:
+Function name:
 verify authenticated user access
+
+Core endpoint(s):
+- `GET /api/secured`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns a protected message to an authenticated consumer user.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /api/secured`
+  This function returns a protected message to an authenticated consumer user.
+- Invocation:
+  Step 1: `GET /api/secured` with required path/query/body/form/header values
 - Constraints:
-  Step 1 must create a user with `ROLE_USER`; Step 2 must authenticate as that same username and password.
+  `POST /consumer/register` must create a user with `ROLE_USER`; `GET /api/secured` must authenticate as that same username and password.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The request is not authenticated as a `ROLE_USER`.
-  - Endpoint group:
-    Step 1: `GET /api/secured`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: The request is not authenticated as a `ROLE_USER`. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /api/secured`
   - Why this fails:
@@ -77,26 +90,29 @@ Endpoint coverage:
 - Distinct meaning:
   Confirms access to a secured user-only route.
 
-### Behavior 4: log in user
+### Function 4: log in user
 
-Behavior name:
+Function name:
 log in user
+
+Core endpoint(s):
+- `POST /login`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior validates submitted credentials and returns `success: true` plus the concrete user object.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /login`
+  This function validates submitted credentials and returns `success: true` plus the concrete user object.
+- Invocation:
+  Step 1: `POST /login` with form/query parameters `username` and `password`
 - Constraints:
-  Step 2 form/query parameters `username` and `password` must match the consumer created by Step 1. The implementation may also include `externalURL` for consumers outside the `heroku` profile.
+  `POST /login` form/query parameters `username` and `password` must match the consumer created by `POST /consumer/register`. The implementation may also include `externalURL` for consumers outside the `heroku` profile.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Required login fields are absent.
-  - Endpoint group:
-    Step 1: `POST /login`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Required login fields are absent. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
@@ -104,22 +120,18 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     `username` and/or `password` are omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    Password does not match.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /login`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Password does not match. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
     The user exists, but `user.getPassword().equals(password)` is false.
   - Intentionally violated constraints:
-    Step 2 reuses the username from Step 1 but sends a different password.
+    `POST /login` reuses the username from `POST /consumer/register` but sends a different password.
 - Branch 3:
-  - Unsatisfied condition:
-    User does not exist.
-  - Endpoint group:
-    Step 1: `POST /login`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: User does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
@@ -133,16 +145,22 @@ Endpoint coverage:
 - Distinct meaning:
   Credential validation; it does not issue a token in this implementation.
 
-### Behavior 5: register admin
+### Function 5: register admin
 
-Behavior name:
+Function name:
 register admin
+
+Core endpoint(s):
+- `POST /admin/register`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior creates an admin account.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
+  This function creates an admin account.
+- Invocation:
+  Step 1: `POST /admin/register` with the required registration body or request parameters
 - Constraints:
   The request body is an `Admin` object. The implementation saves it directly; a usable admin needs `username`, `password`, and `email`, although Swagger omits `password` from the visible schema.
 
@@ -155,16 +173,22 @@ Endpoint coverage:
 - Distinct meaning:
   Creates an admin user with `ROLE_ADMIN`.
 
-### Behavior 6: seed demo dataset
+### Function 6: seed demo dataset
 
-Behavior name:
+Function name:
 seed demo dataset
+
+Core endpoint(s):
+- `POST /admin/seed`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior fills the database with hardcoded demo admins, consumers, print shops, managers, registration requests, price tables, print requests, and reviews.
-- Endpoint sequence:
-  Step 1: `POST /admin/seed`
+  This function fills the database with hardcoded demo admins, consumers, print shops, managers, registration requests, price tables, print requests, and reviews.
+- Invocation:
+  Step 1: `POST /admin/seed` with required path/query/body/form/header values
 - Constraints:
   No documented input is required. This is a developer/demo data endpoint and creates broad state, not a minimal business object.
 
@@ -177,16 +201,22 @@ Endpoint coverage:
 - Distinct meaning:
   Bulk demo data creation.
 
-### Behavior 7: seed many consumers
+### Function 7: seed many consumers
 
-Behavior name:
+Function name:
 seed many consumers
+
+Core endpoint(s):
+- `POST /admin/useed`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior creates 1000 hardcoded consumer accounts with randomized coordinates and a preset balance.
-- Endpoint sequence:
-  Step 1: `POST /admin/useed`
+  This function creates 1000 hardcoded consumer accounts with randomized coordinates and a preset balance.
+- Invocation:
+  Step 1: `POST /admin/useed` with required path/query/body/form/header values
 - Constraints:
   No documented input is required.
 
@@ -199,26 +229,29 @@ Endpoint coverage:
 - Distinct meaning:
   Bulk consumer-account seeding.
 
-### Behavior 8: list print shops as admin
+### Function 8: list print shops as admin
 
-Behavior name:
+Function name:
 list print shops as admin
+
+Core endpoint(s):
+- `GET /admin/printshops`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
 
 Successful execution:
 - Result:
-  This behavior returns all registered print shops to an authenticated admin.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `GET /admin/printshops`
+  This function returns all registered print shops to an authenticated admin.
+- Invocation:
+  Step 1: `GET /admin/printshops` with required path/query/body/form/header values
 - Constraints:
-  Step 2 must authenticate as the admin created by Step 1.
+  `GET /admin/printshops` must authenticate as the admin created by `POST /admin/register`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Caller is not authenticated as an admin.
-  - Endpoint group:
-    Step 1: `GET /admin/printshops`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Caller is not authenticated as an admin. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /admin/printshops`
   - Why this fails:
@@ -232,32 +265,36 @@ Endpoint coverage:
 - Distinct meaning:
   Admin-scoped listing of all print-shop records.
 
-### Behavior 9: register consumer
+### Function 9: register consumer
 
-Behavior name:
+Function name:
 register consumer
+
+Core endpoint(s):
+- `POST /consumer/register`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior creates a consumer account and returns the created consumer with `success: true`.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
+  This function creates a consumer account and returns the created consumer with `success: true`.
+- Invocation:
+  Step 1: `POST /consumer/register` with the required registration body or request parameters
 - Constraints:
   The implementation reads request parameters `username`, `password`, `email`, `name`, `latitude`, and `longitude`. `username` must not already exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Username already exists.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/register`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Username already exists. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /consumer/register`
   - Why this fails:
-    Step 2 finds an existing consumer by the same `username` and returns `success: false`.
+    `POST /consumer/register` finds an existing consumer by the same `username` and returns `success: false`.
   - Intentionally violated constraints:
-    Step 2 repeats the `username` created by Step 1.
+    `POST /consumer/register` repeats the `username` created by `POST /consumer/register`.
 
 Endpoint coverage:
 - Covers:
@@ -265,19 +302,24 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer self-registration.
 
-### Behavior 10: retrieve consumer profile
+### Function 10: retrieve consumer profile
 
-Behavior name:
+Function name:
 retrieve consumer profile
+
+Core endpoint(s):
+- `GET /consumer/info`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns the authenticated consumer’s stored profile.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/info`
+  This function returns the authenticated consumer’s stored profile.
+- Invocation:
+  Step 1: `GET /consumer/info` with required path/query/body/form/header values
 - Constraints:
-  Step 2 must authenticate as the consumer created by Step 1. Swagger shows a `principal` body, but the implementation uses the authenticated `Principal`, not a client body.
+  `GET /consumer/info` must authenticate as the consumer created by `POST /consumer/register`. Swagger shows a `principal` body, but the implementation uses the authenticated `Principal`, not a client body.
 
 Failure or exceptional branches:
 - No reproducible controller-level failure branch is exposed through documented endpoints other than missing/invalid authentication.
@@ -288,19 +330,24 @@ Endpoint coverage:
 - Distinct meaning:
   Reads the current consumer’s account data.
 
-### Behavior 11: update consumer profile
+### Function 11: update consumer profile
 
-Behavior name:
+Function name:
 update consumer profile
+
+Core endpoint(s):
+- `PUT /consumer/info/update`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior updates the authenticated consumer’s name, username, password, and email.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `PUT /consumer/info/update`
+  This function updates the authenticated consumer’s name, username, password, and email.
+- Invocation:
+  Step 1: `PUT /consumer/info/update` with required path/query/body/form/header values
 - Constraints:
-  Step 2 must authenticate as the consumer created by Step 1 and send a JSON `Consumer` body. This differs from Swagger, which only documents a `principal` body. The implementation compares and overwrites `name`, `username`, `password`, and `email`.
+  `PUT /consumer/info/update` must authenticate as the consumer created by `POST /consumer/register` and send a JSON `Consumer` body. This differs from Swagger, which only documents a `principal` body. The implementation compares and overwrites `name`, `username`, `password`, and `email`.
 
 Failure or exceptional branches:
 - No explicit controller-level validation branch is implemented beyond returning `success: false` if the authenticated principal cannot be resolved to a consumer.
@@ -311,19 +358,24 @@ Endpoint coverage:
 - Distinct meaning:
   Mutates current consumer profile fields.
 
-### Behavior 12: retrieve consumer balance
+### Function 12: retrieve consumer balance
 
-Behavior name:
+Function name:
 retrieve consumer balance
+
+Core endpoint(s):
+- `GET /consumer/balance`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns the authenticated consumer’s balance.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/balance`
+  This function returns the authenticated consumer’s balance.
+- Invocation:
+  Step 1: `GET /consumer/balance` with required path/query/body/form/header values
 - Constraints:
-  Step 2 must authenticate as the consumer created by Step 1.
+  `GET /consumer/balance` must authenticate as the consumer created by `POST /consumer/register`.
 
 Failure or exceptional branches:
 - No reproducible controller-level failure branch is exposed through documented endpoints other than missing/invalid authentication.
@@ -334,16 +386,22 @@ Endpoint coverage:
 - Distinct meaning:
   Reads current consumer balance.
 
-### Behavior 13: request print-shop registration
+### Function 13: request print-shop registration
 
-Behavior name:
+Function name:
 request print-shop registration
+
+Core endpoint(s):
+- `POST /request/register`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior creates a pending registration request for a new print shop and manager.
-- Endpoint sequence:
-  Step 1: `POST /request/register`
+  This function creates a pending registration request for a new print shop and manager.
+- Invocation:
+  Step 1: `POST /request/register` with the required registration body or request parameters
 - Constraints:
   Body must contain `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`. The response contains the registration request `id`.
 
@@ -356,26 +414,29 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a pending print-shop registration request.
 
-### Behavior 14: list pending print-shop registration requests
+### Function 14: list pending print-shop registration requests
 
-Behavior name:
+Function name:
 list pending print-shop registration requests
+
+Core endpoint(s):
+- `GET /requests/pending`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
 
 Successful execution:
 - Result:
-  This behavior returns registration requests whose `accepted` flag is false.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `GET /requests/pending`
+  This function returns registration requests whose `accepted` flag is false.
+- Invocation:
+  Step 1: `GET /requests/pending` with the required request id, authenticated principal, and request body values
 - Constraints:
-  Step 2 must authenticate as the admin created by Step 1.
+  `GET /requests/pending` must authenticate as the admin created by `POST /admin/register`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Caller is not an admin.
-  - Endpoint group:
-    Step 1: `GET /requests/pending`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Caller is not an admin. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /requests/pending`
   - Why this fails:
@@ -389,28 +450,31 @@ Endpoint coverage:
 - Distinct meaning:
   Admin review queue for print-shop registration.
 
-### Behavior 15: accept print-shop registration request
+### Function 15: accept print-shop registration request
 
-Behavior name:
+Function name:
 accept print-shop registration request
+
+Core endpoint(s):
+- `POST /request/accept/{id}`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
 
 Successful execution:
 - Result:
-  This behavior turns a pending registration request into a manager account and a print-shop record, links them, deletes the request, and sends an acceptance email.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
+  This function turns a pending registration request into a manager account and a print-shop record, links them, deletes the request, and sends an acceptance email.
+- Invocation:
+  Step 1: `POST /request/accept/{id}` with required path/query/body/form/header values
 - Constraints:
-  Step 3 must authenticate as the admin from Step 1. `{id}` in Step 3 must be the registration request `id` returned by Step 2. The created manager credentials are copied from Step 2’s `managerUsername` and `managerPassword`; the print-shop fields are copied from Step 2’s `pShop...` fields.
+  `POST /request/accept/{id}` must authenticate as the admin from `POST /admin/register`. `{id}` in `POST /request/accept/{id}` must be the registration request `id` returned by `POST /request/register`. The created manager credentials are copied from `POST /request/register`’s `managerUsername` and `managerPassword`; the print-shop fields are copied from `POST /request/register`’s `pShop...` fields.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Registration request does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/accept/{id}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - The failing request is made against state that violates this condition: Registration request does not exist. The endpoint `POST /request/register` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /request/accept/{id}`
   - Why this fails:
@@ -424,28 +488,31 @@ Endpoint coverage:
 - Distinct meaning:
   Admin approval of print-shop onboarding.
 
-### Behavior 16: reject print-shop registration request
+### Function 16: reject print-shop registration request
 
-Behavior name:
+Function name:
 reject print-shop registration request
+
+Core endpoint(s):
+- `POST /request/reject/{printRequestID}`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
 
 Successful execution:
 - Result:
-  This behavior deletes a pending registration request and sends a rejection email with a motive.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/reject/{printRequestID}`
+  This function deletes a pending registration request and sends a rejection email with a motive.
+- Invocation:
+  Step 1: `POST /request/reject/{printRequestID}` with required path/query/body/form/header values
 - Constraints:
-  Step 3 must authenticate as the admin from Step 1. `{printRequestID}` in Step 3 must be the registration request `id` returned by Step 2. The request body is the rejection motive string.
+  `POST /request/reject/{printRequestID}` must authenticate as the admin from `POST /admin/register`. `{printRequestID}` in `POST /request/reject/{printRequestID}` must be the registration request `id` returned by `POST /request/register`. The request body is the rejection motive string.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Registration request does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/reject/{printRequestID}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - The failing request is made against state that violates this condition: Registration request does not exist. The endpoint `POST /request/register` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /request/reject/{printRequestID}`
   - Why this fails:
@@ -459,16 +526,22 @@ Endpoint coverage:
 - Distinct meaning:
   Admin rejection of print-shop onboarding.
 
-### Behavior 17: list public print shops
+### Function 17: list public print shops
 
-Behavior name:
+Function name:
 list public print shops
+
+Core endpoint(s):
+- `GET /printshops`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior returns all print shops visible through the public print-shop listing.
-- Endpoint sequence:
-  Step 1: `GET /printshops`
+  This function returns all print shops visible through the public print-shop listing.
+- Invocation:
+  Step 1: `GET /printshops` with required path/query/body/form/header values
 - Constraints:
   No specific print shop must exist; the endpoint can return an empty collection.
 
@@ -481,29 +554,32 @@ Endpoint coverage:
 - Distinct meaning:
   Public/global print-shop discovery.
 
-### Behavior 18: retrieve print shop by id
+### Function 18: retrieve print shop by id
 
-Behavior name:
+Function name:
 retrieve print shop by id
+
+Core endpoint(s):
+- `GET /printshops/{id}`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior retrieves a specific print shop by ID.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `GET /printshops/{id}`
+  This function retrieves a specific print shop by ID.
+- Invocation:
+  Step 1: `GET /printshops/{id}` with required path/query/body/form/header values
 - Constraints:
-  Step 3 uses the request `id` from Step 2 and authenticates as the admin from Step 1. Step 4 authenticates as the manager credentials supplied in Step 2 and returns the new print shop. `{id}` in Step 5 must be the print-shop ID from Step 4.
+  `POST /request/accept/{id}` uses the request `id` from `POST /request/register` and authenticates as the admin from `POST /admin/register`. `GET /printshop` authenticates as the manager credentials supplied in `POST /request/register` and returns the new print shop. `{id}` in `GET /printshops/{id}` must be the print-shop ID from `GET /printshop`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `GET /printshops/{id}`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/{id}`
   - Why this fails:
@@ -517,25 +593,29 @@ Endpoint coverage:
 - Distinct meaning:
   Resource-specific print-shop read.
 
-### Behavior 19: find nearest print shops
+### Function 19: find nearest print shops
 
-Behavior name:
+Function name:
 find nearest print shops
+
+Core endpoint(s):
+- `GET /printshops/nearest`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior returns print shops sorted by distance from the supplied coordinates.
-- Endpoint sequence:
-  Step 1: `GET /printshops/nearest`
+  This function returns print shops sorted by distance from the supplied coordinates.
+- Invocation:
+  Step 1: `GET /printshops/nearest` with query parameters `latitude` and `longitude`
 - Constraints:
   Query parameters `latitude` and `longitude` must both be present and parseable as doubles. No specific print shop must exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Missing `latitude` or `longitude`.
-  - Endpoint group:
-    Step 1: `GET /printshops/nearest`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Missing `latitude` or `longitude`. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/nearest`
   - Why this fails:
@@ -549,29 +629,32 @@ Endpoint coverage:
 - Distinct meaning:
   Location-based print-shop search.
 
-### Behavior 20: retrieve print-shop price table
+### Function 20: retrieve print-shop price table
 
-Behavior name:
+Function name:
 retrieve print-shop price table
+
+Core endpoint(s):
+- `GET /printshops/{id}/pricetable`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior returns a print shop’s paper, ring, stapling, and cover prices.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `GET /printshops/{id}/pricetable`
+  This function returns a print shop’s paper, ring, stapling, and cover prices.
+- Invocation:
+  Step 1: `GET /printshops/{id}/pricetable` with the required print-shop id and price-table body values
 - Constraints:
-  Step 5 authenticates as a `ROLE_MANAGER` or `ROLE_USER`. `{id}` in Step 5 must be the print-shop ID returned by Step 4.
+  `GET /printshops/{id}/pricetable` authenticates as a `ROLE_MANAGER` or `ROLE_USER`. `{id}` in `GET /printshops/{id}/pricetable` must be the print-shop ID returned by `GET /printshop`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `GET /printshops/{id}/pricetable`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/{id}/pricetable`
   - Why this fails:
@@ -585,21 +668,26 @@ Endpoint coverage:
 - Distinct meaning:
   Reads normalized price-table data.
 
-### Behavior 21: retrieve manager print shop
+### Function 21: retrieve manager print shop
 
-Behavior name:
+Function name:
 retrieve manager print shop
+
+Core endpoint(s):
+- `GET /printshop`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
 
 Successful execution:
 - Result:
-  This behavior returns the print shop assigned to the authenticated manager.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
+  This function returns the print shop assigned to the authenticated manager.
+- Invocation:
+  Step 1: `GET /printshop` with required path/query/body/form/header values
 - Constraints:
-  Step 3 must use the registration request `id` from Step 2. Step 4 must authenticate with the manager credentials submitted in Step 2.
+  `POST /request/accept/{id}` must use the registration request `id` from `POST /request/register`. `GET /printshop` must authenticate with the manager credentials submitted in `POST /request/register`.
 
 Failure or exceptional branches:
 - No documented endpoint creates a manager without a print shop; the visible failure branch only occurs if the authenticated manager has no linked print shop.
@@ -610,21 +698,26 @@ Endpoint coverage:
 - Distinct meaning:
   Manager-scoped print-shop lookup.
 
-### Behavior 22: retrieve print-shop statistics
+### Function 22: retrieve print-shop statistics
 
-Behavior name:
+Function name:
 retrieve print-shop statistics
+
+Core endpoint(s):
+- `GET /printshops/stats`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
 
 Successful execution:
 - Result:
-  This behavior returns counts of pending, in-progress, and finished requests, employee count, and calculated print-shop profit for the authenticated manager’s print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshops/stats`
+  This function returns counts of pending, in-progress, and finished requests, employee count, and calculated print-shop profit for the authenticated manager’s print shop.
+- Invocation:
+  Step 1: `GET /printshops/stats` with required path/query/body/form/header values
 - Constraints:
-  Step 4 authenticates as the manager created by Step 3 using credentials from Step 2.
+  `GET /printshops/stats` authenticates as the manager created by `POST /request/accept/{id}` using credentials from `POST /request/register`.
 
 Failure or exceptional branches:
 - No documented endpoint creates a manager without a print shop; otherwise the controller returns `success: false` if the manager or print shop cannot be resolved.
@@ -635,30 +728,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager dashboard statistics.
 
-### Behavior 23: list print-shop employees
+### Function 23: list print-shop employees
 
-Behavior name:
+Function name:
 list print-shop employees
+
+Core endpoint(s):
+- `GET /printshops/{printShopID}/employees`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior returns employees assigned to a print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `GET /printshops/{printShopID}/employees`
+  This function returns employees assigned to a print shop.
+- Invocation:
+  Step 1: `GET /printshops/{printShopID}/employees` with required path/query/body/form/header values
 - Constraints:
-  Step 5 authenticates as the manager created by Step 3. `{printShopID}` must be the ID returned by Step 4.
+  `GET /printshops/{printShopID}/employees` authenticates as the manager created by `POST /request/accept/{id}`. `{printShopID}` must be the ID returned by `GET /printshop`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `GET /printshops/{printShopID}/employees`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/{printShopID}/employees`
   - Why this fails:
@@ -672,40 +768,43 @@ Endpoint coverage:
 - Distinct meaning:
   Manager reads employee roster.
 
-### Behavior 24: add print-shop employee
+### Function 24: add print-shop employee
 
-Behavior name:
+Function name:
 add print-shop employee
+
+Core endpoint(s):
+- `POST /printshops/{printShopID}/employees`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior creates an employee account attached to a print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
+  This function creates an employee account attached to a print shop.
+- Invocation:
+  Step 1: `POST /printshops/{printShopID}/employees` with required path/query/body/form/header values
 - Constraints:
-  Step 5 authenticates as the manager created by Step 3. `{printShopID}` must be from Step 4. The body must contain employee `name`, `username`, and `password`; the response returns the employee `id`. Swagger omits this request body, but the implementation requires it.
+  `POST /printshops/{printShopID}/employees` authenticates as the manager created by `POST /request/accept/{id}`. `{printShopID}` must be from `GET /printshop`. The body must contain employee `name`, `username`, and `password`; the response returns the employee `id`. Swagger omits this request body, but the implementation requires it.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Employee username already exists.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `POST /printshops/{printShopID}/employees`
-    Step 6: `POST /printshops/{printShopID}/employees`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - The failing request is made against state that violates this condition: Employee username already exists. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{printShopID}/employees`
   - Why this fails:
-    Step 6 finds the employee username created in Step 5 and returns `success: false`.
+    `POST /printshops/{printShopID}/employees` finds the employee username created in `POST /printshops/{printShopID}/employees` and returns `success: false`.
   - Intentionally violated constraints:
-    Step 6 repeats Step 5’s `username`.
+    `POST /printshops/{printShopID}/employees` repeats `POST /printshops/{printShopID}/employees`’s `username`.
 
 Endpoint coverage:
 - Covers:
@@ -713,34 +812,37 @@ Endpoint coverage:
 - Distinct meaning:
   Manager creates an employee account.
 
-### Behavior 25: edit print-shop employee
+### Function 25: edit print-shop employee
 
-Behavior name:
+Function name:
 edit print-shop employee
+
+Core endpoint(s):
+- `PUT /printshops/{printShopID}/employees`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
 
 Successful execution:
 - Result:
-  This behavior updates an employee’s name, username, and password.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
-  Step 6: `PUT /printshops/{printShopID}/employees`
+  This function updates an employee’s name, username, and password.
+- Invocation:
+  Step 1: `PUT /printshops/{printShopID}/employees` with required path/query/body/form/header values
 - Constraints:
-  Step 6 authenticates as the manager. `{printShopID}` comes from Step 4. The Step 6 body must include the employee `id` returned by Step 5 plus new `name`, `username`, and `password`.
+  `PUT /printshops/{printShopID}/employees` authenticates as the manager. `{printShopID}` comes from `GET /printshop`. The `PUT /printshops/{printShopID}/employees` body must include the employee `id` returned by `POST /printshops/{printShopID}/employees` plus new `name`, `username`, and `password`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Employee ID does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `PUT /printshops/{printShopID}/employees`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - The failing request is made against state that violates this condition: Employee ID does not exist. The endpoint `POST /printshops/{printShopID}/employees` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{printShopID}/employees`
   - Why this fails:
@@ -754,34 +856,37 @@ Endpoint coverage:
 - Distinct meaning:
   Manager edits employee credentials/profile.
 
-### Behavior 26: delete print-shop employee
+### Function 26: delete print-shop employee
 
-Behavior name:
+Function name:
 delete print-shop employee
+
+Core endpoint(s):
+- `DELETE /printshops/{printShopID}/employees/{employeeID}`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
 
 Successful execution:
 - Result:
-  This behavior deletes an employee account by ID.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
-  Step 6: `DELETE /printshops/{printShopID}/employees/{employeeID}`
+  This function deletes an employee account by ID.
+- Invocation:
+  Step 1: `DELETE /printshops/{printShopID}/employees/{employeeID}` with required path/query/body/form/header values
 - Constraints:
-  `{printShopID}` comes from Step 4. `{employeeID}` comes from Step 5. The implementation only checks whether the employee exists; it does not verify the employee belongs to `{printShopID}`.
+  `{printShopID}` comes from `GET /printshop`. `{employeeID}` comes from `POST /printshops/{printShopID}/employees`. The implementation only checks whether the employee exists; it does not verify the employee belongs to `{printShopID}`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Employee ID does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `DELETE /printshops/{printShopID}/employees/{employeeID}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - The failing request is made against state that violates this condition: Employee ID does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `DELETE /printshops/{printShopID}/employees/{employeeID}`
   - Why this fails:
@@ -795,29 +900,32 @@ Endpoint coverage:
 - Distinct meaning:
   Manager deletes an employee account.
 
-### Behavior 27: add paper price rows
+### Function 27: add paper price rows
 
-Behavior name:
+Function name:
 add paper price rows
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/papers`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior inserts paper-copy price rows into a print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/papers`
+  This function inserts paper-copy price rows into a print shop’s price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/papers` with the required print-shop id and price-table body values
 - Constraints:
-  `{id}` in Step 5 is the print-shop ID from Step 4. Body is `PaperTableItem` with `colors`, `infLim`, `supLim`, and any non-default `priceA4SIMPLEX`, `priceA4DUPLEX`, `priceA3SIMPLEX`, `priceA3DUPLEX`. The implementation writes map entries keyed by format, side, color, and page range.
+  `{id}` in `POST /printshops/{id}/pricetable/papers` is the print-shop ID from `GET /printshop`. Body is `PaperTableItem` with `colors`, `infLim`, `supLim`, and any non-default `priceA4SIMPLEX`, `priceA4DUPLEX`, `priceA3SIMPLEX`, `priceA3DUPLEX`. The implementation writes map entries keyed by format, side, color, and page range.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/papers`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/papers`
   - Why this fails:
@@ -831,30 +939,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager adds paper price rows.
 
-### Behavior 28: edit paper price rows
+### Function 28: edit paper price rows
 
-Behavior name:
+Function name:
 edit paper price rows
+
+Core endpoint(s):
+- `PUT /printshops/{id}/pricetable/papers`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- Paper price rows exist in the print shop price table. This can be satisfied by directly inserting price-table entries keyed by format, side, color, and page range, or by calling `POST /printshops/{id}/pricetable/papers` with `colors`, `infLim`, `supLim`, and the applicable A4/A3 simplex/duplex price fields.
 
 Successful execution:
 - Result:
-  This behavior overwrites paper-copy price rows in a print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/papers`
-  Step 6: `PUT /printshops/{id}/pricetable/papers`
+  This function overwrites paper-copy price rows in a print shop’s price table.
+- Invocation:
+  Step 1: `PUT /printshops/{id}/pricetable/papers` with the required print-shop id and price-table body values
 - Constraints:
-  `{id}` in Steps 5 and 6 must be the same print-shop ID from Step 4. Step 6 uses a `PaperTableItem` with matching key fields for the rows being changed. Implementation logic is the same upsert operation as POST.
+  `{id}` in `POST /printshops/{id}/pricetable/papers` and `PUT /printshops/{id}/pricetable/papers` must be the same print-shop ID from `GET /printshop`. `PUT /printshops/{id}/pricetable/papers` uses a `PaperTableItem` with matching key fields for the rows being changed. Implementation logic is the same upsert operation as POST.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `PUT /printshops/{id}/pricetable/papers`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{id}/pricetable/papers`
   - Why this fails:
@@ -868,30 +979,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager edits paper price rows.
 
-### Behavior 29: delete paper price rows
+### Function 29: delete paper price rows
 
-Behavior name:
+Function name:
 delete paper price rows
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/deletepaper`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- Paper price rows exist in the print shop price table. This can be satisfied by directly inserting price-table entries keyed by format, side, color, and page range, or by calling `POST /printshops/{id}/pricetable/papers` with `colors`, `infLim`, `supLim`, and the applicable A4/A3 simplex/duplex price fields.
 
 Successful execution:
 - Result:
-  This behavior removes paper-copy price rows from a print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/papers`
-  Step 6: `POST /printshops/{id}/pricetable/deletepaper`
+  This function removes paper-copy price rows from a print shop’s price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/deletepaper` with the required print-shop id and price-table body values
 - Constraints:
-  `{id}` in Steps 5 and 6 must be the same print-shop ID. Step 6 body must describe the same paper item keys inserted in Step 5 so the corresponding map entries are removed.
+  `{id}` in `POST /printshops/{id}/pricetable/papers` and `POST /printshops/{id}/pricetable/deletepaper` must be the same print-shop ID. `POST /printshops/{id}/pricetable/deletepaper` body must describe the same paper item keys inserted in `POST /printshops/{id}/pricetable/papers` so the corresponding map entries are removed.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/deletepaper`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/deletepaper`
   - Why this fails:
@@ -905,29 +1019,32 @@ Endpoint coverage:
 - Distinct meaning:
   Manager removes paper price rows.
 
-### Behavior 30: add ring binding price
+### Function 30: add ring binding price
 
-Behavior name:
+Function name:
 add ring binding price
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/rings`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior inserts a ring-binding price into a print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/rings`
+  This function inserts a ring-binding price into a print shop’s price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/rings` with the required print-shop id and price-table body values
 - Constraints:
-  `{id}` comes from Step 4. Body is `RingTableItem` with `ringType`, `infLim`, `supLim`, and `price`.
+  `{id}` comes from `GET /printshop`. Body is `RingTableItem` with `ringType`, `infLim`, `supLim`, and `price`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/rings`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/rings`
   - Why this fails:
@@ -941,30 +1058,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager adds ring-binding price.
 
-### Behavior 31: edit ring binding price
+### Function 31: edit ring binding price
 
-Behavior name:
+Function name:
 edit ring binding price
+
+Core endpoint(s):
+- `PUT /printshops/{id}/pricetable/rings`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A ring-binding price row exists in the print shop price table. This can be satisfied by directly inserting the binding price-table key, or by calling `POST /printshops/{id}/pricetable/rings` with `ringType`, `infLim`, `supLim`, and `price`.
 
 Successful execution:
 - Result:
-  This behavior overwrites an existing ring-binding price.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/rings`
-  Step 6: `PUT /printshops/{id}/pricetable/rings`
+  This function overwrites an existing ring-binding price.
+- Invocation:
+  Step 1: `PUT /printshops/{id}/pricetable/rings` with the required print-shop id and price-table body values
 - Constraints:
-  Step 6 must use the same `{id}` and ring key fields as Step 5 to replace that price. Implementation logic is an upsert.
+  `PUT /printshops/{id}/pricetable/rings` must use the same `{id}` and ring key fields as `POST /printshops/{id}/pricetable/rings` to replace that price. Implementation logic is an upsert.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `PUT /printshops/{id}/pricetable/rings`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{id}/pricetable/rings`
   - Why this fails:
@@ -978,30 +1098,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager edits ring-binding price.
 
-### Behavior 32: delete ring binding price
+### Function 32: delete ring binding price
 
-Behavior name:
+Function name:
 delete ring binding price
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/deletering`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A ring-binding price row exists in the print shop price table. This can be satisfied by directly inserting the binding price-table key, or by calling `POST /printshops/{id}/pricetable/rings` with `ringType`, `infLim`, `supLim`, and `price`.
 
 Successful execution:
 - Result:
-  This behavior removes a ring-binding price from the price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/rings`
-  Step 6: `POST /printshops/{id}/pricetable/deletering`
+  This function removes a ring-binding price from the price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/deletering` with the required print-shop id and price-table body values
 - Constraints:
-  Step 6 must use the same print-shop ID and ring key fields inserted in Step 5. The delete endpoint converts presentation ring type strings before removing the generated key.
+  `POST /printshops/{id}/pricetable/deletering` must use the same print-shop ID and ring key fields inserted in `POST /printshops/{id}/pricetable/rings`. The delete endpoint converts presentation ring type strings before removing the generated key.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/deletering`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/deletering`
   - Why this fails:
@@ -1015,29 +1138,32 @@ Endpoint coverage:
 - Distinct meaning:
   Manager removes ring-binding price.
 
-### Behavior 33: add cover price
+### Function 33: add cover price
 
-Behavior name:
+Function name:
 add cover price
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/covers`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior inserts cover prices into the print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/covers`
+  This function inserts cover prices into the print shop’s price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/covers` with the required print-shop id and price-table body values
 - Constraints:
-  `{id}` comes from Step 4. Body is `CoverTableItem` with `coverType`, `priceA4`, and `priceA3`. The implementation converts it into one or more `CoverItem` keys.
+  `{id}` comes from `GET /printshop`. Body is `CoverTableItem` with `coverType`, `priceA4`, and `priceA3`. The implementation converts it into one or more `CoverItem` keys.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/covers`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/covers`
   - Why this fails:
@@ -1051,30 +1177,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager adds cover prices.
 
-### Behavior 34: edit cover price
+### Function 34: edit cover price
 
-Behavior name:
+Function name:
 edit cover price
+
+Core endpoint(s):
+- `PUT /printshops/{id}/pricetable/covers`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- Cover price rows exist in the print shop price table. This can be satisfied by directly inserting cover price-table keys, or by calling `POST /printshops/{id}/pricetable/covers` with `coverType`, `priceA4`, and `priceA3`.
 
 Successful execution:
 - Result:
-  This behavior overwrites cover prices in the print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/covers`
-  Step 6: `PUT /printshops/{id}/pricetable/covers`
+  This function overwrites cover prices in the print shop’s price table.
+- Invocation:
+  Step 1: `PUT /printshops/{id}/pricetable/covers` with the required print-shop id and price-table body values
 - Constraints:
-  Step 6 uses the same print-shop ID and cover key fields as Step 5. Implementation logic is the same upsert operation as POST.
+  `PUT /printshops/{id}/pricetable/covers` uses the same print-shop ID and cover key fields as `POST /printshops/{id}/pricetable/covers`. Implementation logic is the same upsert operation as POST.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `PUT /printshops/{id}/pricetable/covers`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{id}/pricetable/covers`
   - Why this fails:
@@ -1088,30 +1217,33 @@ Endpoint coverage:
 - Distinct meaning:
   Manager edits cover prices.
 
-### Behavior 35: delete cover price
+### Function 35: delete cover price
 
-Behavior name:
+Function name:
 delete cover price
+
+Core endpoint(s):
+- `POST /printshops/{id}/pricetable/deletecover`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- Cover price rows exist in the print shop price table. This can be satisfied by directly inserting cover price-table keys, or by calling `POST /printshops/{id}/pricetable/covers` with `coverType`, `priceA4`, and `priceA3`.
 
 Successful execution:
 - Result:
-  This behavior removes cover prices from the print shop’s price table.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{id}/pricetable/covers`
-  Step 6: `POST /printshops/{id}/pricetable/deletecover`
+  This function removes cover prices from the print shop’s price table.
+- Invocation:
+  Step 1: `POST /printshops/{id}/pricetable/deletecover` with the required print-shop id and price-table body values
 - Constraints:
-  Step 6 must use the same print-shop ID and cover key fields inserted in Step 5.
+  `POST /printshops/{id}/pricetable/deletecover` must use the same print-shop ID and cover key fields inserted in `POST /printshops/{id}/pricetable/covers`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /printshops/{id}/pricetable/deletecover`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/pricetable/deletecover`
   - Why this fails:
@@ -1125,29 +1257,32 @@ Endpoint coverage:
 - Distinct meaning:
   Manager removes cover prices.
 
-### Behavior 36: edit stapling price
+### Function 36: edit stapling price
 
-Behavior name:
+Function name:
 edit stapling price
+
+Core endpoint(s):
+- `PUT /printshops/{printShopID}/pricetable/editstapling`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior changes the price-table entry for stapling.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `PUT /printshops/{printShopID}/pricetable/editstapling`
+  This function changes the price-table entry for stapling.
+- Invocation:
+  Step 1: `PUT /printshops/{printShopID}/pricetable/editstapling` with the required print-shop id and price-table body values
 - Constraints:
-  `{printShopID}` comes from Step 4. The request body is the new price string, parsed as a float, and stored under key `BINDING,STAPLING,0,0`.
+  `{printShopID}` comes from `GET /printshop`. The request body is the new price string, parsed as a float, and stored under key `BINDING,STAPLING,0,0`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `PUT /printshops/{printShopID}/pricetable/editstapling`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{printShopID}/pricetable/editstapling`
   - Why this fails:
@@ -1161,29 +1296,32 @@ Endpoint coverage:
 - Distinct meaning:
   Manager edits stapling price.
 
-### Behavior 37: list print-shop reviews
+### Function 37: list print-shop reviews
 
-Behavior name:
+Function name:
 list print-shop reviews
+
+Core endpoint(s):
+- `GET /printshops/{id}/reviews`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior returns reviews for a specific print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `GET /printshops/{id}/reviews`
+  This function returns reviews for a specific print shop.
+- Invocation:
+  Step 1: `GET /printshops/{id}/reviews` with the required path values and review `review`/`rating` values when the method mutates a review
 - Constraints:
-  `{id}` in Step 5 must be the print-shop ID from Step 4. Endpoint is secured for manager, employee, or user.
+  `{id}` in `GET /printshops/{id}/reviews` must be the print-shop ID from `GET /printshop`. Endpoint is secured for manager, employee, or user.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `GET /printshops/{id}/reviews`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/{id}/reviews`
   - Why this fails:
@@ -1197,31 +1335,34 @@ Endpoint coverage:
 - Distinct meaning:
   Reads public review data for one print shop.
 
-### Behavior 38: add print-shop review
+### Function 38: add print-shop review
 
-Behavior name:
+Function name:
 add print-shop review
+
+Core endpoint(s):
+- `POST /printshops/{id}/reviews`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
 
 Successful execution:
 - Result:
-  This behavior creates a review for a print shop by the authenticated consumer and updates the shop’s average rating.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{id}/reviews`
+  This function creates a review for a print shop by the authenticated consumer and updates the shop’s average rating.
+- Invocation:
+  Step 1: `POST /printshops/{id}/reviews` with the required path values and review `review`/`rating` values when the method mutates a review
 - Constraints:
-  Step 6 authenticates as the consumer from Step 1. `{id}` comes from Step 5. Body must contain `review` text and `rating` string. The response contains the created review `id`.
+  `POST /printshops/{id}/reviews` authenticates as the consumer from `POST /consumer/register`. `{id}` comes from `GET /printshop`. Body must contain `review` text and `rating` string. The response contains the created review `id`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /printshops/{id}/reviews`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/{id}/reviews`
   - Why this fails:
@@ -1235,36 +1376,39 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer creates a print-shop review.
 
-### Behavior 39: edit print-shop review
+### Function 39: edit print-shop review
 
-Behavior name:
+Function name:
 edit print-shop review
+
+Core endpoint(s):
+- `PUT /printshops/{printShopId}/reviews/{reviewId}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- The resource state required by `POST /printshops/{printShopId}/reviews` exists. This can be satisfied by direct database setup of the same resource relationships, or by calling `POST /printshops/{printShopId}/reviews` with the path, query, body, form, and header values documented for that endpoint and reusing any response identifiers it returns.
 
 Successful execution:
 - Result:
-  This behavior changes the text and rating of an existing review owned by the authenticated consumer and recalculates the print-shop rating.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopId}/reviews`
-  Step 7: `PUT /printshops/{printShopId}/reviews/{reviewId}`
+  This function changes the text and rating of an existing review owned by the authenticated consumer and recalculates the print-shop rating.
+- Invocation:
+  Step 1: `PUT /printshops/{printShopId}/reviews/{reviewId}` with the required path values and review `review`/`rating` values when the method mutates a review
 - Constraints:
-  `{printShopId}` comes from Step 5. `{reviewId}` comes from Step 6. Step 7 must authenticate as the same consumer from Step 1. Implementation reads `review` and `rating` as request parameters, not from a JSON body as Swagger implies.
+  `{printShopId}` comes from `GET /printshop`. `{reviewId}` comes from `POST /printshops/{printShopId}/reviews`. `PUT /printshops/{printShopId}/reviews/{reviewId}` must authenticate as the same consumer from `POST /consumer/register`. Implementation reads `review` and `rating` as request parameters, not from a JSON body as Swagger implies.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Review does not exist.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `PUT /printshops/{printShopId}/reviews/{reviewId}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - The failing request is made against state that violates this condition: Review does not exist. The endpoint `POST /printshops/{printShopId}/reviews` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{printShopId}/reviews/{reviewId}`
   - Why this fails:
@@ -1272,23 +1416,21 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     `{reviewId}` was not produced by `POST /printshops/{printShopId}/reviews`.
 - Branch 2:
-  - Unsatisfied condition:
-    Authenticated consumer does not own the review.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/register`
-    Step 3: `POST /admin/register`
-    Step 4: `POST /request/register`
-    Step 5: `POST /request/accept/{id}`
-    Step 6: `GET /printshop`
-    Step 7: `POST /printshops/{printShopId}/reviews`
-    Step 8: `PUT /printshops/{printShopId}/reviews/{reviewId}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - A second consumer account exists with a distinct username and password for ownership or mismatch checks. This can be satisfied by directly inserting another `Consumer`/`User` row with `ROLE_USER`, or by calling `POST /consumer/register` again with request parameters `username`, `password`, `email`, `name`, `latitude`, and `longitude`; the response supplies that consumer's `id` when it must be reused.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - The resource state required by `POST /printshops/{printShopId}/reviews` exists. This can be satisfied by direct database setup of the same resource relationships, or by calling `POST /printshops/{printShopId}/reviews` with the path, query, body, form, and header values documented for that endpoint and reusing any response identifiers it returns.
+    - The failing request is made against state that violates this condition: Authenticated consumer does not own the review. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `PUT /printshops/{printShopId}/reviews/{reviewId}`
   - Why this fails:
-    Step 8 authenticates as the second consumer, but the review was created by the first consumer, so the controller returns `401`.
+    `PUT /printshops/{printShopId}/reviews/{reviewId}` authenticates as the second consumer, but the review was created by the first consumer, so the controller returns `401`.
   - Intentionally violated constraints:
-    The principal username in Step 8 differs from the review owner created in Step 7.
+    The principal username in `PUT /printshops/{printShopId}/reviews/{reviewId}` differs from the review owner created in `POST /printshops/{printShopId}/reviews`.
 
 Endpoint coverage:
 - Covers:
@@ -1296,42 +1438,45 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer edits their own review.
 
-### Behavior 40: delete print-shop review
+### Function 40: delete print-shop review
 
-Behavior name:
+Function name:
 delete print-shop review
+
+Core endpoint(s):
+- `DELETE /printshops/{printShopId}/reviews/{reviewId}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- The resource state required by `POST /printshops/{printShopId}/reviews` exists. This can be satisfied by direct database setup of the same resource relationships, or by calling `POST /printshops/{printShopId}/reviews` with the path, query, body, form, and header values documented for that endpoint and reusing any response identifiers it returns.
 
 Successful execution:
 - Result:
-  This behavior removes an existing review owned by the authenticated consumer from a print shop.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopId}/reviews`
-  Step 7: `DELETE /printshops/{printShopId}/reviews/{reviewId}`
+  This function removes an existing review owned by the authenticated consumer from a print shop.
+- Invocation:
+  Step 1: `DELETE /printshops/{printShopId}/reviews/{reviewId}` with the required path values and review `review`/`rating` values when the method mutates a review
 - Constraints:
-  `{printShopId}` comes from Step 5. `{reviewId}` comes from Step 6. Step 7 authenticates as the same consumer that created the review.
+  `{printShopId}` comes from `GET /printshop`. `{reviewId}` comes from `POST /printshops/{printShopId}/reviews`. `DELETE /printshops/{printShopId}/reviews/{reviewId}` authenticates as the same consumer that created the review.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Authenticated consumer does not own the review.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/register`
-    Step 3: `POST /admin/register`
-    Step 4: `POST /request/register`
-    Step 5: `POST /request/accept/{id}`
-    Step 6: `GET /printshop`
-    Step 7: `POST /printshops/{printShopId}/reviews`
-    Step 8: `DELETE /printshops/{printShopId}/reviews/{reviewId}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - A second consumer account exists with a distinct username and password for ownership or mismatch checks. This can be satisfied by directly inserting another `Consumer`/`User` row with `ROLE_USER`, or by calling `POST /consumer/register` again with request parameters `username`, `password`, `email`, `name`, `latitude`, and `longitude`; the response supplies that consumer's `id` when it must be reused.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - The resource state required by `POST /printshops/{printShopId}/reviews` exists. This can be satisfied by direct database setup of the same resource relationships, or by calling `POST /printshops/{printShopId}/reviews` with the path, query, body, form, and header values documented for that endpoint and reusing any response identifiers it returns.
+    - The failing request is made against state that violates this condition: Authenticated consumer does not own the review. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `DELETE /printshops/{printShopId}/reviews/{reviewId}`
   - Why this fails:
-    Step 8 authenticates as a different consumer, so the controller returns `401`.
+    `DELETE /printshops/{printShopId}/reviews/{reviewId}` authenticates as a different consumer, so the controller returns `401`.
   - Intentionally violated constraints:
     The deleting principal differs from the review owner.
 
@@ -1341,22 +1486,27 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer deletes their own review.
 
-### Behavior 41: list consumer printing schemas
+### Function 41: list consumer printing schemas
 
-Behavior name:
+Function name:
 list consumer printing schemas
+
+Core endpoint(s):
+- `GET /consumer/{consumerID}/printingschemas`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns the printing schemas associated with a consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/{consumerID}/printingschemas`
+  This function returns the printing schemas associated with a consumer.
+- Invocation:
+  Step 1: `GET /consumer/{consumerID}/printingschemas` with required path/query/body/form/header values
 - Constraints:
-  `{consumerID}` must be the consumer ID returned by Step 1. Endpoint is secured with `ROLE_USER`; implementation does not verify that the path ID matches the authenticated user.
+  `{consumerID}` must be the consumer ID returned by `POST /consumer/register`. Endpoint is secured with `ROLE_USER`; implementation does not verify that the path ID matches the authenticated user.
 
 Failure or exceptional branches:
-- No explicit null handling exists for a missing consumer ID; using an ID not produced by Step 1 can result in a server exception rather than a structured failure response.
+- No explicit null handling exists for a missing consumer ID; using an ID not produced by the corresponding endpoint can result in a server exception rather than a structured failure response.
 
 Endpoint coverage:
 - Covers:
@@ -1364,19 +1514,24 @@ Endpoint coverage:
 - Distinct meaning:
   Reads a consumer’s saved print recipes/schemas.
 
-### Behavior 42: add consumer printing schema
+### Function 42: add consumer printing schema
 
-Behavior name:
+Function name:
 add consumer printing schema
+
+Core endpoint(s):
+- `POST /consumer/{consumerID}/printingschemas`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior creates a printing schema and associates it with a consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{consumerID}/printingschemas`
+  This function creates a printing schema and associates it with a consumer.
+- Invocation:
+  Step 1: `POST /consumer/{consumerID}/printingschemas` with required path/query/body/form/header values
 - Constraints:
-  `{consumerID}` must be from Step 1. Body is `PrintingSchema` with at least `name` and `paperSpecs`; `bindingSpecs` and `coverSpecs` are optional strings. Response returns the new schema `id`.
+  `{consumerID}` must be from `POST /consumer/register`. Body is `PrintingSchema` with at least `name` and `paperSpecs`; `bindingSpecs` and `coverSpecs` are optional strings. Response returns the new schema `id`.
 
 Failure or exceptional branches:
 - No explicit controller-level validation branch is implemented; a missing consumer can cause a null dereference after the schema is saved.
@@ -1387,23 +1542,28 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer saves a print configuration.
 
-### Behavior 43: edit consumer printing schema
+### Function 43: edit consumer printing schema
 
-Behavior name:
+Function name:
 edit consumer printing schema
+
+Core endpoint(s):
+- `PUT /consumer/{consumerID}/printingschemas/{printingSchemaID}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
 
 Successful execution:
 - Result:
-  This behavior updates a printing schema’s name, paper specs, binding specs, and cover specs.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{consumerID}/printingschemas`
-  Step 3: `PUT /consumer/{consumerID}/printingschemas/{printingSchemaID}`
+  This function updates a printing schema’s name, paper specs, binding specs, and cover specs.
+- Invocation:
+  Step 1: `PUT /consumer/{consumerID}/printingschemas/{printingSchemaID}` with required path/query/body/form/header values
 - Constraints:
-  `{consumerID}` comes from Step 1. `{printingSchemaID}` comes from Step 2. Step 3 body supplies replacement `name`, `paperSpecs`, `bindingSpecs`, and `coverSpecs`.
+  `{consumerID}` comes from `POST /consumer/register`. `{printingSchemaID}` comes from `POST /consumer/{consumerID}/printingschemas`. `PUT /consumer/{consumerID}/printingschemas/{printingSchemaID}` body supplies replacement `name`, `paperSpecs`, `bindingSpecs`, and `coverSpecs`.
 
 Failure or exceptional branches:
-- No explicit null handling exists for a missing schema ID; using an ID not produced by Step 2 can result in a server exception.
+- No explicit null handling exists for a missing schema ID; using an ID not produced by the corresponding endpoint can result in a server exception.
 
 Endpoint coverage:
 - Covers:
@@ -1411,36 +1571,39 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer edits a saved print configuration.
 
-### Behavior 44: soft-delete consumer printing schema
+### Function 44: soft-delete consumer printing schema
 
-Behavior name:
+Function name:
 soft-delete consumer printing schema
+
+Core endpoint(s):
+- `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
 
 Successful execution:
 - Result:
-  This behavior marks a printing schema as deleted.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{consumerID}/printingschemas`
-  Step 3: `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`
+  This function marks a printing schema as deleted.
+- Invocation:
+  Step 1: `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}` with required path/query/body/form/header values
 - Constraints:
-  `{consumerID}` comes from Step 1. `{printingSchemaID}` comes from Step 2. The schema is not removed from storage; `deleted` is set true.
+  `{consumerID}` comes from `POST /consumer/register`. `{printingSchemaID}` comes from `POST /consumer/{consumerID}/printingschemas`. The schema is not removed from storage; `deleted` is set true.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Printing schema is already deleted.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/{consumerID}/printingschemas`
-    Step 3: `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`
-    Step 4: `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - The resource state required by `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}` exists. This can be satisfied by direct database setup of the same resource relationships, or by calling `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}` with the path, query, body, form, and header values documented for that endpoint and reusing any response identifiers it returns.
+    - The failing request is made against state that violates this condition: Printing schema is already deleted. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`
   - Why this fails:
     The second delete sees `ps.isDeleted()` true and returns a JSON property named `"false": true` instead of `success: false`.
   - Intentionally violated constraints:
-    Step 4 reuses a schema already deleted by Step 3.
+    `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}` reuses a schema already deleted by `DELETE /consumer/{consumerID}/printingschemas/{printingSchemaID}`.
 
 Endpoint coverage:
 - Covers:
@@ -1448,24 +1611,29 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer soft-deletes a print configuration.
 
-### Behavior 45: calculate consumer print-request budgets
+### Function 45: calculate consumer print-request budgets
 
-Behavior name:
+Function name:
 calculate consumer print-request budgets
+
+Core endpoint(s):
+- `POST /consumer/budget`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
 
 Successful execution:
 - Result:
-  This behavior uploads PDFs, creates a `PrintRequest` with documents/specs for the authenticated consumer, calculates budgets for selected print shops, and returns `printRequestID`.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /consumer/{consumerID}/printingschemas`
-  Step 7: `POST /consumer/budget`
+  This function uploads PDFs, creates a `PrintRequest` with documents/specs for the authenticated consumer, calculates budgets for selected print shops, and returns `printRequestID`.
+- Invocation:
+  Step 1: `POST /consumer/budget` with required path/query/body/form/header values
 - Constraints:
-  `{consumerID}` comes from Step 1. Step 4 uses the registration request ID from Step 3. Step 5 returns `{printShopID}`. Step 6 returns `{printingSchemaID}`. Step 7 must authenticate as the consumer from Step 1, send multipart PDF files, and include a request part named `printRequest` whose JSON `printshops` array contains `{printShopID}` and whose `files` entries match uploaded PDF filenames and refer to `{printingSchemaID}`. Swagger documents `requestJSON` form data, but the implementation expects `@RequestPart("printRequest")`.
+  `{consumerID}` comes from `POST /consumer/register`. `POST /request/accept/{id}` uses the registration request ID from `POST /request/register`. `GET /printshop` returns `{printShopID}`. `POST /consumer/{consumerID}/printingschemas` returns `{printingSchemaID}`. `POST /consumer/budget` must authenticate as the consumer from `POST /consumer/register`, send multipart PDF files, and include a request part named `printRequest` whose JSON `printshops` array contains `{printShopID}` and whose `files` entries match uploaded PDF filenames and refer to `{printingSchemaID}`. Swagger documents `requestJSON` form data, but the implementation expects `@RequestPart("printRequest")`.
 
 Failure or exceptional branches:
 - No structured controller-level failure branch is implemented for malformed multipart/JSON; errors would surface as exceptions.
@@ -1476,40 +1644,43 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a draft print request and calculates print-shop budgets.
 
-### Behavior 46: submit print request with ProxyPrint balance
+### Function 46: submit print request with ProxyPrint balance
 
-Behavior name:
+Function name:
 submit print request with ProxyPrint balance
+
+Core endpoint(s):
+- `POST /consumer/printrequest/{printRequestID}/submit`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
 
 Successful execution:
 - Result:
-  This behavior submits a calculated print request to a selected print shop, immediately pays with ProxyPrint balance, deducts the consumer balance, credits the admin balance, and sets the request status to `PENDING`.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /consumer/{consumerID}/printingschemas`
-  Step 7: `POST /consumer/budget`
-  Step 8: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 9: `POST /consumer/printrequest/{printRequestID}/submit`
+  This function submits a calculated print request to a selected print shop, immediately pays with ProxyPrint balance, deducts the consumer balance, credits the admin balance, and sets the request status to `PENDING`.
+- Invocation:
+  Step 1: `POST /consumer/printrequest/{printRequestID}/submit` with the required request id, authenticated principal, and request body values
 - Constraints:
-  Step 7 returns `{printRequestID}` and a budget for `{printShopID}` from Step 5. Step 8 must use PayPal IPN fields including `payment_status=Completed` and `mc_gross` high enough to cover the Step 9 cost. Step 9 body must include `printshopID` from Step 5, `budget`, and `paymentMethod` exactly `PROXYPRINT_PAYMENT`. The implementation trusts the submitted `budget`; it does not re-check it against Step 7.
+  `POST /consumer/budget` returns `{printRequestID}` and a budget for `{printShopID}` from `GET /printshop`. `POST /paypal/ipn/consumer/{consumerID}` must use PayPal IPN fields including `payment_status=Completed` and `mc_gross` high enough to cover the `POST /consumer/printrequest/{printRequestID}/submit` cost. `POST /consumer/printrequest/{printRequestID}/submit` body must include `printshopID` from `GET /printshop`, `budget`, and `paymentMethod` exactly `PROXYPRINT_PAYMENT`. The implementation trusts the submitted `budget`; it does not re-check it against `POST /consumer/budget`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Consumer balance is lower than submitted cost.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /consumer/{consumerID}/printingschemas`
-    Step 7: `POST /consumer/budget`
-    Step 8: `POST /consumer/printrequest/{printRequestID}/submit`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The failing request is made against state that violates this condition: Consumer balance is lower than submitted cost. The endpoint `POST /paypal/ipn/consumer/{consumerID}` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /consumer/printrequest/{printRequestID}/submit`
   - Why this fails:
@@ -1517,11 +1688,9 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     `POST /paypal/ipn/consumer/{consumerID}` is omitted or underfunded before submission.
 - Branch 2:
-  - Unsatisfied condition:
-    Print request or print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/printrequest/{printRequestID}/submit`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Print request or print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /consumer/printrequest/{printRequestID}/submit`
   - Why this fails:
@@ -1535,33 +1704,36 @@ Endpoint coverage:
 - Distinct meaning:
   Finalizes a request using internal balance payment.
 
-### Behavior 47: submit print request for PayPal payment
+### Function 47: submit print request for PayPal payment
 
-Behavior name:
+Function name:
 submit print request for PayPal payment
+
+Core endpoint(s):
+- `POST /consumer/printrequest/{printRequestID}/submit`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
 
 Successful execution:
 - Result:
-  This behavior submits a calculated print request to a print shop, marks its payment type as PayPal, leaves it awaiting payment confirmation, and returns `success: true`.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /consumer/{consumerID}/printingschemas`
-  Step 7: `POST /consumer/budget`
-  Step 8: `POST /consumer/printrequest/{printRequestID}/submit`
+  This function submits a calculated print request to a print shop, marks its payment type as PayPal, leaves it awaiting payment confirmation, and returns `success: true`.
+- Invocation:
+  Step 1: `POST /consumer/printrequest/{printRequestID}/submit` with the required request id, authenticated principal, and request body values
 - Constraints:
-  Step 8 body must include `printshopID` from Step 5, `budget`, and a `paymentMethod` value other than `PROXYPRINT_PAYMENT`. The code treats any other value as PayPal and sets `paymentType` to `PAYPAL_PAYMENT`.
+  `POST /consumer/printrequest/{printRequestID}/submit` body must include `printshopID` from `GET /printshop`, `budget`, and a `paymentMethod` value other than `PROXYPRINT_PAYMENT`. The code treats any other value as PayPal and sets `paymentType` to `PAYPAL_PAYMENT`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print request or print shop does not exist.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /consumer/printrequest/{printRequestID}/submit`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Print request or print shop does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /consumer/printrequest/{printRequestID}/submit`
   - Why this fails:
@@ -1575,52 +1747,53 @@ Endpoint coverage:
 - Distinct meaning:
   Finalizes a request for later PayPal IPN confirmation.
 
-### Behavior 48: confirm PayPal print-request payment
+### Function 48: confirm PayPal print-request payment
 
-Behavior name:
+Function name:
 confirm PayPal print-request payment
+
+Core endpoint(s):
+- `POST /paypal/ipn/{printRequestID}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
 
 Successful execution:
 - Result:
-  This behavior processes a PayPal IPN callback for a submitted PayPal print request, sets the request status to `PENDING`, stores the PayPal transaction ID, and notifies the consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /consumer/{consumerID}/printingschemas`
-  Step 7: `POST /consumer/budget`
-  Step 8: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 9: `POST /paypal/ipn/{printRequestID}`
+  This function processes a PayPal IPN callback for a submitted PayPal print request, sets the request status to `PENDING`, stores the PayPal transaction ID, and notifies the consumer.
+- Invocation:
+  Step 1: `POST /paypal/ipn/{printRequestID}` with the PayPal IPN fields required by the callback
 - Constraints:
-  Step 8 must submit with PayPal payment as described in Behavior 47. Step 9 path ID must be the `printRequestID` from Step 7. IPN body must include `payer_email`, `mc_gross` equal to the print request cost, `payment_status=Completed`, and `txn_id`.
+  `POST /consumer/printrequest/{printRequestID}/submit` must submit with PayPal payment as described in Function 47. `POST /paypal/ipn/{printRequestID}` path ID must be the `printRequestID` from `POST /consumer/budget`. IPN body must include `payer_email`, `mc_gross` equal to the print request cost, `payment_status=Completed`, and `txn_id`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    IPN amount or status does not match.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /consumer/{consumerID}/printingschemas`
-    Step 7: `POST /consumer/budget`
-    Step 8: `POST /consumer/printrequest/{printRequestID}/submit`
-    Step 9: `POST /paypal/ipn/{printRequestID}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+    - The failing request is made against state that violates this condition: IPN amount or status does not match. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /paypal/ipn/{printRequestID}`
   - Why this fails:
     The controller only updates the request when `payment_status` is PayPal completed and `mc_gross` equals the stored cost.
   - Intentionally violated constraints:
-    Step 9 sends a non-`Completed` status or an `mc_gross` different from the request cost.
+    `POST /paypal/ipn/{printRequestID}` sends a non-`Completed` status or an `mc_gross` different from the request cost.
 - Branch 2:
-  - Unsatisfied condition:
-    Print request does not exist.
-  - Endpoint group:
-    Step 1: `POST /paypal/ipn/{printRequestID}`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print request does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /paypal/ipn/{printRequestID}`
   - Why this fails:
@@ -1634,16 +1807,22 @@ Endpoint coverage:
 - Distinct meaning:
   PayPal callback that releases a PayPal-paid request to the print shop.
 
-### Behavior 49: create external print request
+### Function 49: create external print request
 
-Behavior name:
+Function name:
 create external print request
+
+Core endpoint(s):
+- `POST /printdocument`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior lets an external platform upload PDF documents and creates a print request with default print specs.
-- Endpoint sequence:
-  Step 1: `POST /printdocument`
+  This function lets an external platform upload PDF documents and creates a print request with default print specs.
+- Invocation:
+  Step 1: `POST /printdocument` with the required document path values, multipart files, or budget body values
 - Constraints:
   The implementation expects multipart PDF files, although Swagger documents no parameters. Non-PDF files are ignored. Response returns `printRequestID`.
 
@@ -1656,26 +1835,29 @@ Endpoint coverage:
 - Distinct meaning:
   External integration creates a print request with default schema.
 
-### Behavior 50: retrieve external print-request documents
+### Function 50: retrieve external print-request documents
 
-Behavior name:
+Function name:
 retrieve external print-request documents
+
+Core endpoint(s):
+- `GET /printdocument/{id}`
+
+Preconditions:
+- An external print request exists with uploaded PDF documents and default document specs. This can be satisfied by directly inserting a `PrintRequest` with linked `Document` and default `DocumentSpec` rows, or by calling `POST /printdocument` with multipart PDF files; the response supplies `{printRequestID}`.
 
 Successful execution:
 - Result:
-  This behavior returns document metadata for an external print request.
-- Endpoint sequence:
-  Step 1: `POST /printdocument`
-  Step 2: `GET /printdocument/{id}`
+  This function returns document metadata for an external print request.
+- Invocation:
+  Step 1: `GET /printdocument/{id}` with the required document path values, multipart files, or budget body values
 - Constraints:
-  `{id}` in Step 2 must be the `printRequestID` returned by Step 1.
+  `{id}` in `GET /printdocument/{id}` must be the `printRequestID` returned by `POST /printdocument`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print request does not exist.
-  - Endpoint group:
-    Step 1: `GET /printdocument/{id}`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Print request does not exist. The endpoint `POST /printdocument` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printdocument/{id}`
   - Why this fails:
@@ -1689,24 +1871,29 @@ Endpoint coverage:
 - Distinct meaning:
   External integration reads uploaded document metadata.
 
-### Behavior 51: calculate external print-request budget
+### Function 51: calculate external print-request budget
 
-Behavior name:
+Function name:
 calculate external print-request budget
+
+Core endpoint(s):
+- `POST /printdocument/{id}/budget`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An external print request exists with uploaded PDF documents and default document specs. This can be satisfied by directly inserting a `PrintRequest` with linked `Document` and default `DocumentSpec` rows, or by calling `POST /printdocument` with multipart PDF files; the response supplies `{printRequestID}`.
 
 Successful execution:
 - Result:
-  This behavior associates an external print request with the authenticated consumer and calculates budgets for selected print shops.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printdocument`
-  Step 7: `POST /printdocument/{id}/budget`
+  This function associates an external print request with the authenticated consumer and calculates budgets for selected print shops.
+- Invocation:
+  Step 1: `POST /printdocument/{id}/budget` with the required document path values, multipart files, or budget body values
 - Constraints:
-  Step 7 authenticates as the consumer from Step 1. `{id}` is the `printRequestID` from Step 6. Step 7 body is a JSON list of print-shop IDs and must include the print-shop ID returned by Step 5.
+  `POST /printdocument/{id}/budget` authenticates as the consumer from `POST /consumer/register`. `{id}` is the `printRequestID` from `POST /printdocument`. `POST /printdocument/{id}/budget` body is a JSON list of print-shop IDs and must include the print-shop ID returned by `GET /printshop`.
 
 Failure or exceptional branches:
 - No explicit null check exists before `printRequest.setConsumer(consumer)`; using a missing print-request ID can cause a server exception rather than structured `success: false`.
@@ -1717,33 +1904,36 @@ Endpoint coverage:
 - Distinct meaning:
   External integration budget calculation.
 
-### Behavior 52: load consumer balance from PayPal IPN
+### Function 52: load consumer balance from PayPal IPN
 
-Behavior name:
+Function name:
 load consumer balance from PayPal IPN
+
+Core endpoint(s):
+- `POST /paypal/ipn/consumer/{consumerID}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior processes a PayPal IPN callback for a consumer top-up, increases the consumer balance, and sends a notification.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /paypal/ipn/consumer/{consumerID}`
+  This function processes a PayPal IPN callback for a consumer top-up, increases the consumer balance, and sends a notification.
+- Invocation:
+  Step 1: `POST /paypal/ipn/consumer/{consumerID}` with the PayPal IPN fields required by the callback
 - Constraints:
-  `{consumerID}` must be the ID returned by Step 1. IPN body must include `mc_gross` and `payment_status=Completed`.
+  `{consumerID}` must be the ID returned by `POST /consumer/register`. IPN body must include `mc_gross` and `payment_status=Completed`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Payment status is not completed.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /paypal/ipn/consumer/{consumerID}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Payment status is not completed. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /paypal/ipn/consumer/{consumerID}`
   - Why this fails:
     The controller does not increase balance and instead sends a failure notification.
   - Intentionally violated constraints:
-    Step 2 sends `payment_status` other than `Completed`.
+    `POST /paypal/ipn/consumer/{consumerID}` sends `payment_status` other than `Completed`.
 
 Endpoint coverage:
 - Covers:
@@ -1751,19 +1941,24 @@ Endpoint coverage:
 - Distinct meaning:
   PayPal callback for consumer balance top-up.
 
-### Behavior 53: list consumer pending print requests
+### Function 53: list consumer pending print requests
 
-Behavior name:
+Function name:
 list consumer pending print requests
+
+Core endpoint(s):
+- `GET /consumer/requests`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns the authenticated consumer’s pending print requests.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/requests`
+  This function returns the authenticated consumer’s pending print requests.
+- Invocation:
+  Step 1: `GET /consumer/requests` with the required request id, authenticated principal, and request body values
 - Constraints:
-  Step 2 must authenticate as the consumer from Step 1. The list can be empty.
+  `GET /consumer/requests` must authenticate as the consumer from `POST /consumer/register`. The list can be empty.
 
 Failure or exceptional branches:
 - No reproducible controller-level failure branch is exposed through documented endpoints other than missing/invalid authentication.
@@ -1774,35 +1969,38 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer views active pending requests.
 
-### Behavior 54: cancel consumer pending print request
+### Function 54: cancel consumer pending print request
 
-Behavior name:
+Function name:
 cancel consumer pending print request
+
+Core endpoint(s):
+- `DELETE /consumer/requests/cancel/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
 
 Successful execution:
 - Result:
-  This behavior cancels a pending print request owned by the authenticated consumer, removes it from the print shop and consumer, and refunds the cost to the consumer balance from the admin balance.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /consumer/{consumerID}/printingschemas`
-  Step 7: `POST /consumer/budget`
-  Step 8: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 9: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 10: `DELETE /consumer/requests/cancel/{id}`
+  This function cancels a pending print request owned by the authenticated consumer, removes it from the print shop and consumer, and refunds the cost to the consumer balance from the admin balance.
+- Invocation:
+  Step 1: `DELETE /consumer/requests/cancel/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{consumerID}` comes from Step 1. `{printRequestID}` from Step 7 is used in Step 9 and as `{id}` in Step 10. Step 9 must submit with `PROXYPRINT_PAYMENT` and enough balance so status becomes `PENDING`.
+  `{consumerID}` comes from `POST /consumer/register`. `{printRequestID}` from `POST /consumer/budget` is used in `POST /consumer/printrequest/{printRequestID}/submit` and as `{id}` in `DELETE /consumer/requests/cancel/{id}`. `POST /consumer/printrequest/{printRequestID}/submit` must submit with `PROXYPRINT_PAYMENT` and enough balance so status becomes `PENDING`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Print request does not exist for the authenticated consumer.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `DELETE /consumer/requests/cancel/{id}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Print request does not exist for the authenticated consumer. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `DELETE /consumer/requests/cancel/{id}`
   - Why this fails:
@@ -1810,27 +2008,25 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     The budget and submit sequence producing `{id}` is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    Print request is no longer pending.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /printshops/{printShopID}/employees`
-    Step 7: `POST /consumer/{consumerID}/printingschemas`
-    Step 8: `POST /consumer/budget`
-    Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-    Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-    Step 11: `POST /printshops/requests/{id}`
-    Step 12: `DELETE /consumer/requests/cancel/{id}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+    - The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+    - The assigned print request has already been advanced by `POST /printshops/requests/{id}`. This can also be satisfied by directly setting the corresponding `PrintRequest.status` and employee timestamp fields in the database.
+    - The failing request is made against state that violates this condition: Print request is no longer pending. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `DELETE /consumer/requests/cancel/{id}`
   - Why this fails:
-    Step 11 advances the request from `PENDING` to `IN_PROGRESS`, and consumer cancellation only succeeds for `PENDING`.
+    `POST /printshops/requests/{id}` advances the request from `PENDING` to `IN_PROGRESS`, and consumer cancellation only succeeds for `PENDING`.
   - Intentionally violated constraints:
-    Step 12 attempts cancellation after the print shop has started processing.
+    `DELETE /consumer/requests/cancel/{id}` attempts cancellation after the print shop has started processing.
 
 Endpoint coverage:
 - Covers:
@@ -1838,19 +2034,24 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer cancels their own pending request.
 
-### Behavior 55: list consumer satisfied requests
+### Function 55: list consumer satisfied requests
 
-Behavior name:
+Function name:
 list consumer satisfied requests
+
+Core endpoint(s):
+- `GET /consumer/satisfied`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns the authenticated consumer’s finished or lifted requests with print-shop names.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/satisfied`
+  This function returns the authenticated consumer’s finished or lifted requests with print-shop names.
+- Invocation:
+  Step 1: `GET /consumer/satisfied` with required path/query/body/form/header values
 - Constraints:
-  Step 2 must authenticate as the consumer from Step 1. The list can be empty.
+  `GET /consumer/satisfied` must authenticate as the consumer from `POST /consumer/register`. The list can be empty.
 
 Failure or exceptional branches:
 - No reproducible controller-level failure branch is exposed through documented endpoints other than missing/invalid authentication.
@@ -1861,23 +2062,28 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer views completed request history.
 
-### Behavior 56: list print-shop active queue
+### Function 56: list print-shop active queue
 
-Behavior name:
+Function name:
 list print-shop active queue
+
+Core endpoint(s):
+- `GET /printshops/requests`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
 
 Successful execution:
 - Result:
-  This behavior returns pending and in-progress requests for the authenticated employee’s print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
-  Step 6: `GET /printshops/requests`
+  This function returns pending and in-progress requests for the authenticated employee’s print shop.
+- Invocation:
+  Step 1: `GET /printshops/requests` with the required request id, authenticated principal, and request body values
 - Constraints:
-  Step 6 must authenticate as the employee created by Step 5. Although the annotation allows managers, the implementation looks up the principal in `EmployeeDAO`, so a manager principal can fail at runtime.
+  `GET /printshops/requests` must authenticate as the employee created by `POST /printshops/{printShopID}/employees`. Although the annotation allows managers, the implementation looks up the principal in `EmployeeDAO`, so a manager principal can fail at runtime.
 
 Failure or exceptional branches:
 - No structured branch exists for a missing employee; it can cause a null dereference before `printshop == null` is checked.
@@ -1888,40 +2094,43 @@ Endpoint coverage:
 - Distinct meaning:
   Employee views active work queue.
 
-### Behavior 57: retrieve print-shop request detail
+### Function 57: retrieve print-shop request detail
 
-Behavior name:
+Function name:
 retrieve print-shop request detail
+
+Core endpoint(s):
+- `GET /printshops/requests/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
 
 Successful execution:
 - Result:
-  This behavior returns a specific print request assigned to the authenticated employee’s print shop, including document specs formatted for presentation.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `GET /printshops/requests/{id}`
+  This function returns a specific print request assigned to the authenticated employee’s print shop, including document specs formatted for presentation.
+- Invocation:
+  Step 1: `GET /printshops/requests/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{id}` in Step 11 must be the `printRequestID` from Step 8. Step 11 authenticates as the employee from Step 6. The print request must be assigned to the employee’s print shop in Step 10.
+  `{id}` in `GET /printshops/requests/{id}` must be the `printRequestID` from `POST /consumer/budget`. `GET /printshops/requests/{id}` authenticates as the employee from `POST /printshops/{printShopID}/employees`. The print request must be assigned to the employee’s print shop in `POST /consumer/printrequest/{printRequestID}/submit`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request is not assigned to the employee’s print shop or does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `POST /printshops/{printShopID}/employees`
-    Step 6: `GET /printshops/requests/{id}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - The failing request is made against state that violates this condition: Request is not assigned to the employee’s print shop or does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /printshops/requests/{id}`
   - Why this fails:
@@ -1935,40 +2144,43 @@ Endpoint coverage:
 - Distinct meaning:
   Employee reads one assigned request.
 
-### Behavior 58: start processing print request
+### Function 58: start processing print request
 
-Behavior name:
+Function name:
 start processing print request
+
+Core endpoint(s):
+- `POST /printshops/requests/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
 
 Successful execution:
 - Result:
-  This behavior changes a print request from `PENDING` to `IN_PROGRESS`, records the attending employee, and notifies the consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `POST /printshops/requests/{id}`
+  This function changes a print request from `PENDING` to `IN_PROGRESS`, records the attending employee, and notifies the consumer.
+- Invocation:
+  Step 1: `POST /printshops/requests/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{id}` in Step 11 is the `printRequestID` from Step 8. Step 11 authenticates as the employee from Step 6. Step 10 must make the request `PENDING`.
+  `{id}` in `POST /printshops/requests/{id}` is the `printRequestID` from `POST /consumer/budget`. `POST /printshops/requests/{id}` authenticates as the employee from `POST /printshops/{printShopID}/employees`. `POST /consumer/printrequest/{printRequestID}/submit` must make the request `PENDING`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request is not pending or not assigned to the employee’s print shop.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `POST /printshops/{printShopID}/employees`
-    Step 6: `POST /printshops/requests/{id}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - The failing request is made against state that violates this condition: Request is not pending or not assigned to the employee’s print shop. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/requests/{id}`
   - Why this fails:
@@ -1982,50 +2194,53 @@ Endpoint coverage:
 - Distinct meaning:
   First status transition: `PENDING` to `IN_PROGRESS`.
 
-### Behavior 59: finish print request
+### Function 59: finish print request
 
-Behavior name:
+Function name:
 finish print request
+
+Core endpoint(s):
+- `POST /printshops/requests/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+- The assigned print request is already `IN_PROGRESS`. This can be satisfied by directly setting `PrintRequest.status = IN_PROGRESS` and preserving its print-shop assignment, or by authenticating as the employee and calling `POST /printshops/requests/{id}` once while the request is `PENDING`.
 
 Successful execution:
 - Result:
-  This behavior changes a print request from `IN_PROGRESS` to `FINISHED`, records the finish timestamp, and notifies the consumer that it is ready for pickup.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `POST /printshops/requests/{id}`
-  Step 12: `POST /printshops/requests/{id}`
+  This function changes a print request from `IN_PROGRESS` to `FINISHED`, records the finish timestamp, and notifies the consumer that it is ready for pickup.
+- Invocation:
+  Step 1: `POST /printshops/requests/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{id}` is the `printRequestID` from Step 8. Step 11 must execute first to move the request to `IN_PROGRESS`; Step 12 then moves it to `FINISHED`.
+  `{id}` is the `printRequestID` from `POST /consumer/budget`. `POST /printshops/requests/{id}` must execute first to move the request to `IN_PROGRESS`; `POST /printshops/requests/{id}` then moves it to `FINISHED`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request has not been started.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /printshops/{printShopID}/employees`
-    Step 7: `POST /consumer/{consumerID}/printingschemas`
-    Step 8: `POST /consumer/budget`
-    Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-    Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-    Step 11: `POST /printshops/requests/{id}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+    - The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+    - The failing request is made against state that violates this condition: Request has not been started. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/requests/{id}`
-  - Why this does not finish:
-    With status still `PENDING`, the endpoint performs the start-processing behavior instead of finishing.
+  - Why this fails:
+    With status still `PENDING`, the endpoint performs the start-processing function instead of finishing.
   - Intentionally violated constraints:
     The prior `PENDING` to `IN_PROGRESS` transition is omitted.
 
@@ -2035,50 +2250,53 @@ Endpoint coverage:
 - Distinct meaning:
   Second status transition: `IN_PROGRESS` to `FINISHED`.
 
-### Behavior 60: mark print request lifted
+### Function 60: mark print request lifted
 
-Behavior name:
+Function name:
 mark print request lifted
+
+Core endpoint(s):
+- `POST /printshops/requests/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+- The assigned print request has been started and is `IN_PROGRESS`. This can be satisfied by directly setting `PrintRequest.status = IN_PROGRESS`, or by calling `POST /printshops/requests/{id}` once while the request is `PENDING`.
+- The assigned print request has been finished and is `FINISHED`. This can be satisfied by directly setting `PrintRequest.status = FINISHED`, or by calling `POST /printshops/requests/{id}` again while the request is `IN_PROGRESS`.
 
 Successful execution:
 - Result:
-  This behavior changes a finished request to `LIFTED`, records delivery employee/timestamp, and transfers the print shop’s share for ProxyPrint balance payments.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `POST /printshops/requests/{id}`
-  Step 12: `POST /printshops/requests/{id}`
-  Step 13: `POST /printshops/requests/{id}`
+  This function changes a finished request to `LIFTED`, records delivery employee/timestamp, and transfers the print shop’s share for ProxyPrint balance payments.
+- Invocation:
+  Step 1: `POST /printshops/requests/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{id}` is the `printRequestID` from Step 8. Steps 11 and 12 must move the request to `FINISHED` before Step 13. For PayPal-paid requests, Step 13 additionally depends on PayPal payout success; the sequence above uses ProxyPrint balance to avoid that external dependency.
+  `{id}` is the `printRequestID` from `POST /consumer/budget`. `POST /printshops/requests/{id}` and `POST /printshops/requests/{id}` must move the request to `FINISHED` before `POST /printshops/requests/{id}`. For PayPal-paid requests, `POST /printshops/requests/{id}` additionally depends on PayPal payout success; the sequence above uses ProxyPrint balance to avoid that external dependency.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request is not finished.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /printshops/{printShopID}/employees`
-    Step 7: `POST /consumer/{consumerID}/printingschemas`
-    Step 8: `POST /consumer/budget`
-    Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-    Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-    Step 11: `POST /printshops/requests/{id}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+    - The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+    - The failing request is made against state that violates this condition: Request is not finished. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/requests/{id}`
-  - Why this does not mark lifted:
+  - Why this fails:
     With status `PENDING`, the endpoint performs a different status transition.
   - Intentionally violated constraints:
     The required transitions to `IN_PROGRESS` and `FINISHED` are omitted.
@@ -2089,52 +2307,55 @@ Endpoint coverage:
 - Distinct meaning:
   Third status transition: `FINISHED` to `LIFTED`.
 
-### Behavior 61: cancel print-shop pending request
+### Function 61: cancel print-shop pending request
 
-Behavior name:
+Function name:
 cancel print-shop pending request
+
+Core endpoint(s):
+- `POST /printshops/requests/cancel/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
 
 Successful execution:
 - Result:
-  This behavior lets an employee cancel a pending request assigned to their print shop, remove it from the print shop and consumer, and notify the consumer with a motive.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `POST /printshops/requests/cancel/{id}`
+  This function lets an employee cancel a pending request assigned to their print shop, remove it from the print shop and consumer, and notify the consumer with a motive.
+- Invocation:
+  Step 1: `POST /printshops/requests/cancel/{id}` with the required request id, authenticated principal, and request body values
 - Constraints:
-  `{id}` in Step 11 is the `printRequestID` from Step 8. The request body is the cancellation motive. Step 11 authenticates as the employee from Step 6 and only succeeds while status is `PENDING`.
+  `{id}` in `POST /printshops/requests/cancel/{id}` is the `printRequestID` from `POST /consumer/budget`. The request body is the cancellation motive. `POST /printshops/requests/cancel/{id}` authenticates as the employee from `POST /printshops/{printShopID}/employees` and only succeeds while status is `PENDING`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request is not pending.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `POST /admin/register`
-    Step 3: `POST /request/register`
-    Step 4: `POST /request/accept/{id}`
-    Step 5: `GET /printshop`
-    Step 6: `POST /printshops/{printShopID}/employees`
-    Step 7: `POST /consumer/{consumerID}/printingschemas`
-    Step 8: `POST /consumer/budget`
-    Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-    Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-    Step 11: `POST /printshops/requests/{id}`
-    Step 12: `POST /printshops/requests/cancel/{id}`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+    - A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+    - The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+    - The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+    - The assigned print request has already been advanced by `POST /printshops/requests/{id}`. This can also be satisfied by directly setting the corresponding `PrintRequest.status` and employee timestamp fields in the database.
+    - The failing request is made against state that violates this condition: Request is not pending. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `POST /printshops/requests/cancel/{id}`
   - Why this fails:
-    Step 11 changes status to `IN_PROGRESS`; cancellation only succeeds for `PENDING`.
+    `POST /printshops/requests/{id}` changes status to `IN_PROGRESS`; cancellation only succeeds for `PENDING`.
   - Intentionally violated constraints:
-    Step 12 attempts cancellation after processing has started.
+    `POST /printshops/requests/cancel/{id}` attempts cancellation after processing has started.
 
 Endpoint coverage:
 - Covers:
@@ -2142,23 +2363,28 @@ Endpoint coverage:
 - Distinct meaning:
   Employee cancels an assigned pending request.
 
-### Behavior 62: list print-shop finished requests
+### Function 62: list print-shop finished requests
 
-Behavior name:
+Function name:
 list print-shop finished requests
+
+Core endpoint(s):
+- `GET /printshops/satisfied`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
 
 Successful execution:
 - Result:
-  This behavior returns finished requests for the authenticated employee’s print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
-  Step 6: `GET /printshops/satisfied`
+  This function returns finished requests for the authenticated employee’s print shop.
+- Invocation:
+  Step 1: `GET /printshops/satisfied` with required path/query/body/form/header values
 - Constraints:
-  Step 6 authenticates as the employee from Step 5. The list can be empty. Implementation uses `EmployeeDAO` even though `ROLE_MANAGER` is also annotated.
+  `GET /printshops/satisfied` authenticates as the employee from `POST /printshops/{printShopID}/employees`. The list can be empty. Implementation uses `EmployeeDAO` even though `ROLE_MANAGER` is also annotated.
 
 Failure or exceptional branches:
 - No structured branch exists for a non-employee principal; it can fail before returning JSON.
@@ -2169,23 +2395,28 @@ Endpoint coverage:
 - Distinct meaning:
   Print-shop view of requests ready for pickup.
 
-### Behavior 63: list print-shop lifted request history
+### Function 63: list print-shop lifted request history
 
-Behavior name:
+Function name:
 list print-shop lifted request history
+
+Core endpoint(s):
+- `GET /printshops/history`
+
+Preconditions:
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
 
 Successful execution:
 - Result:
-  This behavior returns lifted request history for the authenticated employee’s print shop.
-- Endpoint sequence:
-  Step 1: `POST /admin/register`
-  Step 2: `POST /request/register`
-  Step 3: `POST /request/accept/{id}`
-  Step 4: `GET /printshop`
-  Step 5: `POST /printshops/{printShopID}/employees`
-  Step 6: `GET /printshops/history`
+  This function returns lifted request history for the authenticated employee’s print shop.
+- Invocation:
+  Step 1: `GET /printshops/history` with required path/query/body/form/header values
 - Constraints:
-  Step 6 authenticates as the employee from Step 5. The list can be empty.
+  `GET /printshops/history` authenticates as the employee from `POST /printshops/{printShopID}/employees`. The list can be empty.
 
 Failure or exceptional branches:
 - No structured branch exists for a non-employee principal; it can fail before returning JSON.
@@ -2196,41 +2427,44 @@ Endpoint coverage:
 - Distinct meaning:
   Print-shop request history after delivery.
 
-### Behavior 64: download assigned document PDF
+### Function 64: download assigned document PDF
 
-Behavior name:
+Function name:
 download assigned document PDF
+
+Core endpoint(s):
+- `GET /documents/{id}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+- A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+- The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+- The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+- An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+- A printing schema exists for consumer `{consumerID}`. This can be satisfied by directly inserting a `PrintingSchema` row and linking it to the consumer, or by calling `POST /consumer/{consumerID}/printingschemas` with a body containing `name`, `paperSpecs`, and optional `bindingSpecs`/`coverSpecs`; the response supplies `{printingSchemaID}`.
+- A draft print request exists for the authenticated consumer with uploaded PDF documents, document specs, selected `{printShopID}`, and calculated budgets. This can be satisfied by directly inserting the linked `PrintRequest`, `Document`, and `DocumentSpec` rows, or by calling `POST /consumer/budget` with multipart PDF files and a `printRequest` JSON part whose `printshops` array contains `{printShopID}` and whose file specs reference `{printingSchemaID}`; the response supplies `{printRequestID}` and budget values.
+- The consumer balance is high enough for a ProxyPrint-balance payment. This can be satisfied by directly setting the consumer `Money` balance, or by calling `POST /paypal/ipn/consumer/{consumerID}` with IPN fields including `payment_status=Completed` and `mc_gross` at least equal to the submitted cost.
+- The draft print request has been submitted to `{printShopID}`. This can be satisfied by directly linking `{printRequestID}` to the print shop and setting its cost, payment type, and status, or by calling `POST /consumer/printrequest/{printRequestID}/submit` with body fields `printshopID`, `budget`, and `paymentMethod`; for ProxyPrint balance payment the status becomes `PENDING`, while other payment methods await PayPal confirmation.
+- The document IDs for the assigned print request are known. This can be satisfied by directly reading the `Document` rows linked to `{printRequestID}`, or by authenticating as the employee and calling `GET /printshops/requests/{id}` with `{id} = {printRequestID}`; a returned document `id` must be reused as `{documentId}`.
 
 Successful execution:
 - Result:
-  This behavior returns a PDF file for a document belonging to a request assigned to the authenticated employee’s print shop.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /admin/register`
-  Step 3: `POST /request/register`
-  Step 4: `POST /request/accept/{id}`
-  Step 5: `GET /printshop`
-  Step 6: `POST /printshops/{printShopID}/employees`
-  Step 7: `POST /consumer/{consumerID}/printingschemas`
-  Step 8: `POST /consumer/budget`
-  Step 9: `POST /paypal/ipn/consumer/{consumerID}`
-  Step 10: `POST /consumer/printrequest/{printRequestID}/submit`
-  Step 11: `GET /printshops/requests/{id}`
-  Step 12: `GET /documents/{id}`
+  This function returns a PDF file for a document belonging to a request assigned to the authenticated employee’s print shop.
+- Invocation:
+  Step 1: `GET /documents/{id}` with the required document path values, multipart files, or budget body values
 - Constraints:
-  Step 11 uses the `printRequestID` from Step 8 and returns document IDs. `{id}` in Step 12 must be a document ID from Step 11. Step 12 authenticates as the employee from Step 6. The document’s print request must belong to that employee’s print shop.
+  `GET /printshops/requests/{id}` uses the `printRequestID` from `POST /consumer/budget` and returns document IDs. `{id}` in `GET /documents/{id}` must be a document ID from `GET /printshops/requests/{id}`. `GET /documents/{id}` authenticates as the employee from `POST /printshops/{printShopID}/employees`. The document’s print request must belong to that employee’s print shop.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Document does not exist.
-  - Endpoint group:
-    Step 1: `POST /admin/register`
-    Step 2: `POST /request/register`
-    Step 3: `POST /request/accept/{id}`
-    Step 4: `GET /printshop`
-    Step 5: `POST /printshops/{printShopID}/employees`
-    Step 6: `GET /documents/{id}`
+  - Preconditions:
+    - An admin account exists with `ROLE_ADMIN` credentials. This can be satisfied by directly inserting an `Admin`/`User` row with `username = {adminUsername}`, `password = {adminPassword}`, and `email`, or by calling `POST /admin/register` with an admin JSON body; the same credentials must authenticate admin-only endpoints.
+    - A pending print-shop registration request exists. This can be satisfied by directly inserting a `RegisterRequest` row with `managerName`, `managerUsername`, `managerEmail`, `managerPassword`, `pShopAddress`, `pShopLatitude`, `pShopLongitude`, `pShopNIF`, and `pShopName`, or by calling `POST /request/register` with that JSON body; the response supplies `{registrationRequestId}`.
+    - The pending registration request has been accepted, creating a manager account and print shop linked to that manager. This can be satisfied by directly inserting the linked `Manager` and `PrintShop` rows and deleting/marking the request consumed, or by authenticating as the admin and calling `POST /request/accept/{id}` with `{id} = {registrationRequestId}`; the manager credentials are copied from the registration request.
+    - The target `{printShopID}` is known for the manager-created print shop. This can be satisfied by directly reading the `PrintShop` row linked to the manager, or by authenticating with the manager credentials and calling `GET /printshop`; the returned print-shop `id` must be reused in path or body values that reference the shop.
+    - An employee account exists for `{printShopID}`. This can be satisfied by directly inserting an `Employee` row linked to the print shop, or by authenticating as the manager and calling `POST /printshops/{printShopID}/employees` with JSON fields `name`, `username`, and `password`; the response supplies `{employeeID}` and the employee credentials for employee-scoped endpoints.
+    - The failing request is made against state that violates this condition: Document does not exist. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /documents/{id}`
   - Why this fails:
@@ -2244,22 +2478,27 @@ Endpoint coverage:
 - Distinct meaning:
   Employee retrieves the actual PDF file.
 
-### Behavior 65: send notification to consumer
+### Function 65: send notification to consumer
 
-Behavior name:
+Function name:
 send notification to consumer
+
+Core endpoint(s):
+- `POST /consumer/{id}/notify`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior creates a notification for a consumer and pushes it to active SSE subscribers.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{id}/notify`
+  This function creates a notification for a consumer and pushes it to active SSE subscribers.
+- Invocation:
+  Step 1: `POST /consumer/{id}/notify` with the required notification path values and message/read/delete parameters
 - Constraints:
-  `{id}` must be the consumer ID from Step 1. Step 2 uses request parameter `message`.
+  `{id}` must be the consumer ID from `POST /consumer/register`. `POST /consumer/{id}/notify` uses request parameter `message`.
 
 Failure or exceptional branches:
-- No explicit null handling exists for a missing consumer ID; using an ID not produced by Step 1 can cause a null dereference.
+- No explicit null handling exists for a missing consumer ID; using an ID not produced by the corresponding endpoint can cause a null dereference.
 
 Endpoint coverage:
 - Covers:
@@ -2267,26 +2506,41 @@ Endpoint coverage:
 - Distinct meaning:
   Direct notification creation for a consumer.
 
-### Behavior 66: subscribe to notification stream
+### Function 66: subscribe to notification stream
 
-Behavior name:
+Function name:
 subscribe to notification stream
+
+Core endpoint(s):
+- `GET /consumer/subscribe`
+- `HEAD /consumer/subscribe`
+- `POST /consumer/subscribe`
+- `PUT /consumer/subscribe`
+- `DELETE /consumer/subscribe`
+- `OPTIONS /consumer/subscribe`
+- `PATCH /consumer/subscribe`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior opens a server-sent-events stream for a consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/subscribe`
+  This function opens a server-sent-events stream for a consumer.
+- Invocation:
+  Step 1: `GET /consumer/subscribe` with request parameters `username` and `password`
+  Step 2: `HEAD /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
+  Step 3: `POST /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
+  Step 4: `PUT /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
+  Step 5: `DELETE /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
+  Step 6: `OPTIONS /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
+  Step 7: `PATCH /consumer/subscribe` only when using this documented HTTP method variant for the same core endpoint capability
 - Constraints:
-  Step 2 must provide `username` and `password` matching Step 1. Source code does not restrict HTTP method, so Swagger exposes GET, HEAD, POST, PUT, DELETE, OPTIONS, and PATCH for the same subscription logic.
+  `GET /consumer/subscribe` must provide `username` and `password` matching `POST /consumer/register`. Source code does not restrict HTTP method, so Swagger exposes GET, HEAD, POST, PUT, DELETE, OPTIONS, and PATCH for the same subscription logic.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Consumer username is unknown.
-  - Endpoint group:
-    Step 1: `GET /consumer/subscribe`
+  - Preconditions:
+    - The failing request is made against state that violates this condition: Consumer username is unknown. The endpoint `POST /consumer/register` is intentionally omitted, called with unrelated values, or its response value is not reused as required. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /consumer/subscribe`
   - Why this fails:
@@ -2294,37 +2548,46 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     `POST /consumer/register` is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    Password is incorrect.
-  - Endpoint group:
-    Step 1: `POST /consumer/register`
-    Step 2: `GET /consumer/subscribe`
+  - Preconditions:
+    - A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+    - The failing request is made against state that violates this condition: Password is incorrect. This can be satisfied by direct database setup or omission that produces the same missing, invalid, duplicate, mismatched, unauthorized, or cross-scoped state.
   - Failure endpoint:
     `GET /consumer/subscribe`
   - Why this fails:
     The username exists, but `consumer.getPassword().equals(password)` is false, so the endpoint returns `401`.
   - Intentionally violated constraints:
-    Step 2 reuses the username from Step 1 but sends a different password.
+    `GET /consumer/subscribe` reuses the username from `POST /consumer/register` but sends a different password.
 
 Endpoint coverage:
 - Covers:
-  `GET /consumer/subscribe`, `HEAD /consumer/subscribe`, `POST /consumer/subscribe`, `PUT /consumer/subscribe`, `DELETE /consumer/subscribe`, `OPTIONS /consumer/subscribe`, `PATCH /consumer/subscribe`
+  `GET /consumer/subscribe`
+  `HEAD /consumer/subscribe`
+  `POST /consumer/subscribe`
+  `PUT /consumer/subscribe`
+  `DELETE /consumer/subscribe`
+  `OPTIONS /consumer/subscribe`
+  `PATCH /consumer/subscribe`
 - Distinct meaning:
-  All documented methods map to the same SSE subscription behavior because the implementation omits a method restriction.
+  All documented methods map to the same SSE subscription function because the implementation omits a method restriction.
 
-### Behavior 67: list consumer notifications
+### Function 67: list consumer notifications
 
-Behavior name:
+Function name:
 list consumer notifications
+
+Core endpoint(s):
+- `GET /consumer/notifications`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior returns notifications for the authenticated consumer.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `GET /consumer/notifications`
+  This function returns notifications for the authenticated consumer.
+- Invocation:
+  Step 1: `GET /consumer/notifications` with the required notification path values and message/read/delete parameters
 - Constraints:
-  Step 2 authenticates as the consumer from Step 1. The list can be empty.
+  `GET /consumer/notifications` authenticates as the consumer from `POST /consumer/register`. The list can be empty.
 
 Failure or exceptional branches:
 - No reproducible controller-level failure branch is exposed through documented endpoints other than missing/invalid authentication.
@@ -2335,24 +2598,29 @@ Endpoint coverage:
 - Distinct meaning:
   Consumer reads their notification list.
 
-### Behavior 68: mark notification read
+### Function 68: mark notification read
 
-Behavior name:
+Function name:
 mark notification read
+
+Core endpoint(s):
+- `PUT /notifications/{notificationId}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- A notification exists for consumer `{id}`. This can be satisfied by directly inserting a `Notification` linked to the consumer, or by calling `POST /consumer/{id}/notify` with request parameter `message`; the notification can later be found through the consumer notification list.
+- The target `{notificationId}` is known. This can be satisfied by directly reading the consumer's `Notification` rows, or by authenticating as the consumer and calling `GET /consumer/notifications`; one returned notification `id` must be reused.
 
 Successful execution:
 - Result:
-  This behavior marks a single notification as read.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{id}/notify`
-  Step 3: `GET /consumer/notifications`
-  Step 4: `PUT /notifications/{notificationId}`
+  This function marks a single notification as read.
+- Invocation:
+  Step 1: `PUT /notifications/{notificationId}` with the required notification path values and message/read/delete parameters
 - Constraints:
-  `{id}` in Step 2 is the consumer ID from Step 1. Step 3 authenticates as that consumer and returns notification IDs. `{notificationId}` in Step 4 must be from Step 3. The implementation does not verify ownership in Step 4.
+  `{id}` in `POST /consumer/{id}/notify` is the consumer ID from `POST /consumer/register`. `GET /consumer/notifications` authenticates as that consumer and returns notification IDs. `{notificationId}` in `PUT /notifications/{notificationId}` must be from `GET /consumer/notifications`. The implementation does not verify ownership in `PUT /notifications/{notificationId}`.
 
 Failure or exceptional branches:
-- No explicit null handling exists for a missing notification ID; using an ID not produced by Step 3 can cause a server exception.
+- No explicit null handling exists for a missing notification ID; using an ID not produced by the corresponding endpoint can cause a server exception.
 
 Endpoint coverage:
 - Covers:
@@ -2360,21 +2628,26 @@ Endpoint coverage:
 - Distinct meaning:
   Marks one notification read.
 
-### Behavior 69: delete notification
+### Function 69: delete notification
 
-Behavior name:
+Function name:
 delete notification
+
+Core endpoint(s):
+- `DELETE /notifications/{notificationId}`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
+- A notification exists for consumer `{id}`. This can be satisfied by directly inserting a `Notification` linked to the consumer, or by calling `POST /consumer/{id}/notify` with request parameter `message`; the notification can later be found through the consumer notification list.
+- The target `{notificationId}` is known. This can be satisfied by directly reading the consumer's `Notification` rows, or by authenticating as the consumer and calling `GET /consumer/notifications`; one returned notification `id` must be reused.
 
 Successful execution:
 - Result:
-  This behavior deletes a single notification by ID.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `POST /consumer/{id}/notify`
-  Step 3: `GET /consumer/notifications`
-  Step 4: `DELETE /notifications/{notificationId}`
+  This function deletes a single notification by ID.
+- Invocation:
+  Step 1: `DELETE /notifications/{notificationId}` with the required notification path values and message/read/delete parameters
 - Constraints:
-  `{notificationId}` in Step 4 must be obtained from Step 3. The implementation deletes by ID and does not verify ownership.
+  `{notificationId}` in `DELETE /notifications/{notificationId}` must be obtained from `GET /consumer/notifications`. The implementation deletes by ID and does not verify ownership.
 
 Failure or exceptional branches:
 - No explicit controller-level failure branch is implemented.
@@ -2385,22 +2658,27 @@ Endpoint coverage:
 - Distinct meaning:
   Deletes one notification.
 
-### Behavior 70: mark all consumer notifications read
+### Function 70: mark all consumer notifications read
 
-Behavior name:
+Function name:
 mark all consumer notifications read
+
+Core endpoint(s):
+- `PUT /consumer/{username}/notifications`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior marks all notifications for a username as read.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `PUT /consumer/{username}/notifications`
+  This function marks all notifications for a username as read.
+- Invocation:
+  Step 1: `PUT /consumer/{username}/notifications` with the required notification path values and message/read/delete parameters
 - Constraints:
-  `{username}` should be the username created by Step 1. Endpoint is secured with `ROLE_USER`, but implementation does not check that the path username matches the authenticated principal.
+  `{username}` should be the username created by `POST /consumer/register`. Endpoint is secured with `ROLE_USER`, but implementation does not check that the path username matches the authenticated principal.
 
 Failure or exceptional branches:
-- No explicit null handling exists for an unknown username; using a username not produced by Step 1 can cause a null dereference.
+- No explicit null handling exists for an unknown username; using a username not produced by the corresponding endpoint can cause a null dereference.
 
 Endpoint coverage:
 - Covers:
@@ -2408,22 +2686,27 @@ Endpoint coverage:
 - Distinct meaning:
   Bulk mark notifications read.
 
-### Behavior 71: delete all consumer notifications
+### Function 71: delete all consumer notifications
 
-Behavior name:
+Function name:
 delete all consumer notifications
+
+Core endpoint(s):
+- `DELETE /consumer/{username}/notifications`
+
+Preconditions:
+- A consumer account exists with `ROLE_USER` credentials. This can be satisfied by directly inserting a `Consumer`/`User` row with `username = {consumerUsername}`, `password = {consumerPassword}`, `email`, `name`, `latitude`, and `longitude`, or by calling `POST /consumer/register` with those request parameters; the response supplies `{consumerID}` when a consumer path value is needed.
 
 Successful execution:
 - Result:
-  This behavior removes all notifications for a username.
-- Endpoint sequence:
-  Step 1: `POST /consumer/register`
-  Step 2: `DELETE /consumer/{username}/notifications`
+  This function removes all notifications for a username.
+- Invocation:
+  Step 1: `DELETE /consumer/{username}/notifications` with the required notification path values and message/read/delete parameters
 - Constraints:
-  `{username}` should be the username created by Step 1. Endpoint is secured with `ROLE_USER`, but implementation does not check that the path username matches the authenticated principal.
+  `{username}` should be the username created by `POST /consumer/register`. Endpoint is secured with `ROLE_USER`, but implementation does not check that the path username matches the authenticated principal.
 
 Failure or exceptional branches:
-- No explicit null handling exists for an unknown username; using a username not produced by Step 1 can cause a null dereference.
+- No explicit null handling exists for an unknown username; using a username not produced by the corresponding endpoint can cause a null dereference.
 
 Endpoint coverage:
 - Covers:
@@ -2431,9 +2714,9 @@ Endpoint coverage:
 - Distinct meaning:
   Bulk delete notifications.
 
-### Unclear or auxiliary endpoints
+### Auxiliary endpoints
 
-These endpoints are present in `proxyprint.json` but are not implemented by project application controllers in `src`; they appear to be generated Spring Boot Actuator or framework error endpoints, so they are auxiliary rather than domain behaviors:
+These endpoints are present in `proxyprint.json` but are not implemented by project application controllers in `src`; they appear to be generated Spring Boot Actuator or framework error endpoints, so they are auxiliary rather than domain functions:
 
 - `GET /autoconfig`, `GET /autoconfig.json`
 - `GET /beans`, `GET /beans.json`

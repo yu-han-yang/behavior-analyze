@@ -1,22 +1,27 @@
-Paths below are the Swagger paths under basePath `/api`. I only used `src` and `scout-api.json`. The Swagger file documents the REST surface, but the allowed `src` directory contains only auth/permission code, not resource controllers; therefore exact status codes and many persistence failures are not visible. Where Swagger and source disagree, I call it out.
+### Function 1: search activities
 
-### Behavior 1: search activities
-
-Behavior name:
+Function name:
 search activities
+
+Core endpoint(s):
+- `GET /v1/activities`
+- `GET /v2/activities`
+
+Preconditions:
+- None; this collection search can run without pre-existing activity state and can validly return an empty result set.
 
 Successful execution:
 - Result:
-  This behavior returns activities matching collection-level search filters.
-- Endpoint sequence:
-  Step 1: `GET /v1/activities`
+  The function returns activities matching collection-level search filters.
+- Invocation:
+  Step 1: `GET /v1/activities` with optional query values such as `attrs`, `name`, `text`, `featured`, `categories`, `age_1`, `age_2`, `participants`, `time_1`, `time_2`, `ratings_count_min`, and `ratings_average_min`
   or
-  Step 1: `GET /v2/activities`
+  Step 1: `GET /v2/activities` with optional query values such as `attrs`, `name`, `text`, `featured`, `categories`, `ages`, `participants`, `durations`, `ratings_count_min`, and `ratings_average_min`
 - Constraints:
-  `attrs` controls response attributes. `name` and `text` search activity fields and may use a leading minus to exclude words. `featured`, `participants`, `ratings_count_min`, `ratings_average_min`, and version-specific age/time filters narrow the collection. In v1, age/time filters are `age_1`, `age_2`, `time_1`, and `time_2`; in v2, they are `ages` and `durations`. This general search can succeed with an empty result set and does not require setup.
+  `attrs` controls response attributes. `name` and `text` search activity fields and may use a leading minus to exclude words. Version-specific age/time filters differ: v1 uses `age_1`, `age_2`, `time_1`, and `time_2`, while v2 uses `ages` and `durations`.
 
 Failure or exceptional branches:
-- No concrete failure branch is specified by the Swagger file or by the allowed `src` implementation for ordinary collection search.
+- No concrete failure branch is specified by Swagger or by the visible `src` implementation for ordinary collection search.
 
 Endpoint coverage:
 - Covers:
@@ -28,35 +33,39 @@ Endpoint coverage:
 - Distinct meaning:
   Search v2 activities using v2 query names.
 
-### Behavior 2: retrieve activities by identifier list
+### Function 2: retrieve activities by identifier list
 
-Behavior name:
+Function name:
 retrieve activities by identifier list
+
+Core endpoint(s):
+- `GET /v1/activities`
+- `GET /v2/activities`
+
+Preconditions:
+- One or more activities exist in the database. This can be satisfied by directly inserting activity rows with known ids or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body for each activity.
+- The `id` query value used by the collection request must contain the created activity id or comma-separated ids. If the API is used to establish the activities, those ids must be taken from the activity creation responses.
 
 Successful execution:
 - Result:
-  This behavior returns activities whose internal ids match the comma-separated `id` query value.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `GET /v1/activities`
+  The function returns activities whose internal ids match the comma-separated `id` query value.
+- Invocation:
+  Step 1: `GET /v1/activities` with query `id={id}` or `id={id1},{id2}`
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `GET /v2/activities`
+  Step 1: `GET /v2/activities` with query `id={id}` or `id={id1},{id2}`
 - Constraints:
-  The `id` returned by Step 1 must be reused in Step 2 as the `id` query value. Multiple ids are comma-separated. This is distinct from path-based single-activity lookup because the collection endpoint returns a filtered activity collection.
+  The `id` query parameter is distinct from path-based single-activity lookup because the collection endpoint returns a filtered activity collection.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The requested id does not identify an existing activity.
-  - Endpoint group:
-    Step 1: `GET /v1/activities`
+  - Preconditions:
+    - No activity exists for the requested `id` query value. This can be produced by starting from an empty database, deleting the activity beforehand, or intentionally not inserting it directly and not calling `POST /v1/activities` or `POST /v2/activities`.
   - Failure endpoint:
     `GET /v1/activities`
   - Why this fails:
-    The query asks for a specific internal activity id, but the prerequisite `POST /v1/activities` that would create that id was intentionally omitted. The Swagger does not expose the exact error/status behavior, so the visible failure may be an empty result rather than an error.
+    The query asks for a specific internal activity id, but no activity state exists for that id. Swagger does not expose the exact error/status handling, so the visible result may be an empty result rather than an error.
   - Intentionally violated constraints:
-    The `id` query value was not obtained from a documented activity creation response.
+    The `id` query value was not obtained from a documented activity creation response or another existing activity row.
 
 Endpoint coverage:
 - Covers:
@@ -68,23 +77,30 @@ Endpoint coverage:
 - Distinct meaning:
   Retrieve activities by explicit internal ids through the v2 collection endpoint.
 
-### Behavior 3: retrieve random matching activities
+### Function 3: retrieve random matching activities
 
-Behavior name:
+Function name:
 retrieve random activities
+
+Core endpoint(s):
+- `GET /v1/activities`
+- `GET /v2/activities`
+
+Preconditions:
+- None; the random collection query can run without setup and may return fewer activities than requested if the matched collection is smaller.
 
 Successful execution:
 - Result:
-  This behavior returns a requested number of random activities matching any other allowed filters.
-- Endpoint sequence:
-  Step 1: `GET /v1/activities`
+  The function returns a requested number of random activities matching any other allowed filters.
+- Invocation:
+  Step 1: `GET /v1/activities` with query `random={count}` and any compatible ordinary filters
   or
-  Step 1: `GET /v2/activities`
+  Step 1: `GET /v2/activities` with query `random={count}` and any compatible ordinary filters
 - Constraints:
-  The `random` query parameter is an integer limiting the number of random activities. It may be combined with other ordinary filters according to the Swagger description.
+  `random` is an integer limiting the number of random activities. It may be combined with other ordinary search filters according to the Swagger description.
 
 Failure or exceptional branches:
-- No concrete failure branch is specified beyond invalid query values, whose validation behavior is not visible in the allowed files.
+- No concrete failure branch is specified beyond invalid query values, whose validation handling is not visible in the allowed files.
 
 Endpoint coverage:
 - Covers:
@@ -96,33 +112,38 @@ Endpoint coverage:
 - Distinct meaning:
   Random v2 activity selection.
 
-### Behavior 4: list overall favourite activities
+### Function 4: list overall favourite activities
 
-Behavior name:
+Function name:
 list overall favourite activities
+
+Core endpoint(s):
+- `GET /v1/activities`
+- `GET /v2/activities`
+
+Preconditions:
+- None; overall favourite listing can run without setup and can validly return an empty result set.
 
 Successful execution:
 - Result:
-  This behavior returns activities sorted by how many users have marked them as favourites.
-- Endpoint sequence:
-  Step 1: `GET /v1/activities`
+  The function returns activities sorted by how many users have marked them as favourites.
+- Invocation:
+  Step 1: `GET /v1/activities` with query `favourites={count}`
   or
-  Step 1: `GET /v2/activities`
+  Step 1: `GET /v2/activities` with query `favourites={count}`
 - Constraints:
-  The `favourites` query parameter limits the number of overall favourite activities. Swagger explicitly says this parameter cannot be used together with any other filtering parameter.
+  Swagger explicitly says `favourites` cannot be used together with any other filtering parameter.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `favourites` is used together with another filtering parameter.
-  - Endpoint group:
-    Step 1: `GET /v1/activities`
+  - Preconditions:
+    - No special database state is required; the request itself combines `favourites={count}` with another filtering query value such as `name={text}`.
   - Failure endpoint:
     `GET /v1/activities`
   - Why this fails:
-    The Swagger description says `favourites` cannot be combined with other filtering parameters.
+    Swagger describes `favourites` as exclusive with other filtering parameters.
   - Intentionally violated constraints:
-    A request such as `favourites={count}` plus `name={text}` violates the documented exclusivity rule.
+    The documented exclusivity requirement for `favourites` was violated by combining it with another filter.
 
 Endpoint coverage:
 - Covers:
@@ -134,39 +155,42 @@ Endpoint coverage:
 - Distinct meaning:
   List global favourite v2 activities.
 
-### Behavior 5: list current user's favourite activities
+### Function 5: list current user's favourite activities
 
-Behavior name:
+Function name:
 list current user's favourite activities
+
+Core endpoint(s):
+- `GET /v1/activities`
+- `GET /v2/activities`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body and recording the returned `id`.
+- The authenticated user has a favourite relationship to that activity. This can be satisfied by directly inserting the user-activity favourite/rating state linked to the same user and activity, or by calling `POST /v1/favourites` with a `PutFavouritesEntity` body whose `id` array contains the activity id.
+- The request must authenticate as the same user whose favourites are being listed. The visible source shows API-key authentication resolves a user by a `UserIdentity` of type `API`; Swagger does not document the credential transport.
 
 Successful execution:
 - Result:
-  This behavior returns activity objects that the current API-key-authenticated user has marked as favourites.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/favourites`
-  Step 3: `GET /v1/activities`
+  The function returns activity objects that the current authenticated user has marked as favourites.
+- Invocation:
+  Step 1: `GET /v1/activities` with query `my_favourites=true` and a valid current-user credential
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `POST /v1/favourites`
-  Step 3: `GET /v2/activities`
+  Step 1: `GET /v2/activities` with query `my_favourites=true` and a valid current-user credential
 - Constraints:
-  Step 1 returns an activity `id`. Step 2 body `id` array must include that activity id. Step 3 must use `my_favourites=true`. The source shows API-key authentication resolves the current user by an `API` identity value; Swagger has no security definition, so the credential transport is not documented.
+  The favourite state is scoped to the authenticated user. API-key credentials must match a stored `API` identity; Google authentication is also implemented in source but no Swagger endpoint documents an authentication exchange.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/favourites`
-    Step 3: `GET /v1/activities`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities` or `POST /v2/activities`.
+    - The current user has favourite state for that activity. This can be satisfied by direct database setup or by calling `POST /v1/favourites` with body `id=[{activityId}]`.
+    - The failing request omits credentials or uses credentials that do not match a stored `UserIdentity` of type `API` and are not a valid Google id token accepted by the configured verifier.
   - Failure endpoint:
     `GET /v1/activities`
   - Why this fails:
-    The Swagger says `my_favourites` is determined by the current user's API key, and `ApiKeyAuthenticator` returns no principal when no user has the supplied API identity.
+    `my_favourites` is determined by the current user, and `ApiKeyAuthenticator` returns no principal when no user has the supplied API identity. `GoogleAuthenticator` also returns empty when the id token is invalid.
   - Intentionally violated constraints:
-    Step 3 omits a valid API key or uses one not associated with a `UserIdentity` of type `API`.
+    The current-user authentication requirement was violated.
 
 Endpoint coverage:
 - Covers:
@@ -178,20 +202,27 @@ Endpoint coverage:
 - Distinct meaning:
   Return the current user's favourite v2 activity objects.
 
-### Behavior 6: create activity
+### Function 6: create activity
 
-Behavior name:
+Function name:
 create activity
+
+Core endpoint(s):
+- `POST /v1/activities`
+- `POST /v2/activities`
+
+Preconditions:
+- None; this endpoint creates the activity state. If authentication and authorization are enforced by hidden resource code, the source defines `activity_create` as available at user level `0`, but endpoint enforcement is not visible.
 
 Successful execution:
 - Result:
-  This behavior creates a new activity and returns an `Activity` with an internal `id`.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
+  The function creates a new activity and returns an `Activity` with an internal `id`.
+- Invocation:
+  Step 1: `POST /v1/activities` with an optional `ActivityProperties` body
   or
-  Step 1: `POST /v2/activities`
+  Step 1: `POST /v2/activities` with an optional `ActivityProperties` body
 - Constraints:
-  The request body is an `ActivityProperties` object. Swagger declares the body optional and does not list required fields. The source defines `activity_create` permission at user level `0`, but the allowed source does not show endpoint-to-permission enforcement.
+  Swagger declares the body optional and does not list required fields. The visible source defines the `activity_create` permission at user level `0`, but does not show endpoint-to-permission enforcement.
 
 Failure or exceptional branches:
 - No concrete creation failure branch is specified by Swagger or visible controller code.
@@ -206,35 +237,39 @@ Endpoint coverage:
 - Distinct meaning:
   Create a v2 activity.
 
-### Behavior 7: read activity
+### Function 7: read activity
 
-Behavior name:
+Function name:
 read activity
+
+Core endpoint(s):
+- `GET /v1/activities/{id}`
+- `GET /v2/activities/{id}`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- The `{id}` path value must identify that activity. If the API is used to establish the activity, `{id}` must be taken from the activity creation response.
 
 Successful execution:
 - Result:
-  This behavior retrieves one activity by path id.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `GET /v1/activities/{id}`
+  The function retrieves one activity by path id.
+- Invocation:
+  Step 1: `GET /v1/activities/{id}` with required path `{id}` and optional query `attrs`
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `GET /v2/activities/{id}`
+  Step 1: `GET /v2/activities/{id}` with required path `{id}` and optional query `attrs`
 - Constraints:
-  The `id` returned by Step 1 must be reused as path `{id}` in Step 2. Optional `attrs` controls response attributes.
+  `{id}` must identify an existing activity.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No activity exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/activities/{id}`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by starting from an empty database, deleting the activity beforehand, or intentionally not inserting it directly and not calling `POST /v1/activities` or `POST /v2/activities`.
   - Failure endpoint:
     `GET /v1/activities/{id}`
   - Why this fails:
-    The path id targets a specific activity, but the prerequisite documented creation endpoint was intentionally omitted.
+    The path id targets a specific activity, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities` or another existing activity.
+    `{id}` does not identify an existing activity.
 
 Endpoint coverage:
 - Covers:
@@ -246,35 +281,39 @@ Endpoint coverage:
 - Distinct meaning:
   Read one v2 activity.
 
-### Behavior 8: replace activity
+### Function 8: replace activity
 
-Behavior name:
+Function name:
 replace activity
+
+Core endpoint(s):
+- `PUT /v1/activities/{id}`
+- `PUT /v2/activities/{id}`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- The `{id}` path value must identify that activity. If the API is used to establish the activity, `{id}` must be taken from the activity creation response.
 
 Successful execution:
 - Result:
-  This behavior updates an activity with new information and clears activity properties not specified in the request.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `PUT /v1/activities/{id}`
+  The function replaces an activity with new information and clears activity properties not specified in the request.
+- Invocation:
+  Step 1: `PUT /v1/activities/{id}` with required path `{id}` and an `ActivityProperties` body
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `PUT /v2/activities/{id}`
+  Step 1: `PUT /v2/activities/{id}` with required path `{id}` and an `ActivityProperties` body
 - Constraints:
-  Step 1 returns the activity `id`; Step 2 path `{id}` must reuse it. Step 2 body is `ActivityProperties`. Swagger explicitly distinguishes PUT replacement from PATCH partial update.
+  Swagger explicitly distinguishes PUT replacement from PATCH partial update. The visible source defines activity edit permissions, but endpoint enforcement is not visible.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The target activity does not exist.
-  - Endpoint group:
-    Step 1: `PUT /v1/activities/{id}`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities` or `POST /v2/activities` before replacement.
   - Failure endpoint:
     `PUT /v1/activities/{id}`
   - Why this fails:
-    Replacement targets a specific activity id, but no documented endpoint was used to create that activity first.
+    Replacement targets a specific activity id, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities`.
+    `{id}` does not identify an existing activity.
 
 Endpoint coverage:
 - Covers:
@@ -286,35 +325,39 @@ Endpoint coverage:
 - Distinct meaning:
   Full replacement of v2 activity properties.
 
-### Behavior 9: partially update activity
+### Function 9: partially update activity
 
-Behavior name:
+Function name:
 partially update activity
+
+Core endpoint(s):
+- `PATCH /v1/activities/{id}`
+- `PATCH /v2/activities/{id}`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- The `{id}` path value must identify that activity. If the API is used to establish the activity, `{id}` must be taken from the activity creation response.
 
 Successful execution:
 - Result:
-  This behavior updates only the specified properties of an existing activity.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `PATCH /v1/activities/{id}`
+  The function updates only the specified properties of an existing activity.
+- Invocation:
+  Step 1: `PATCH /v1/activities/{id}` with required path `{id}` and an `ActivityProperties` body containing the fields to update
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `PATCH /v2/activities/{id}`
+  Step 1: `PATCH /v2/activities/{id}` with required path `{id}` and an `ActivityProperties` body containing the fields to update
 - Constraints:
-  The `id` returned by Step 1 must be reused as path `{id}` in Step 2. Step 2 body is `ActivityProperties`; only supplied properties are updated.
+  Only supplied properties are updated. The visible source defines activity edit permissions, but endpoint enforcement is not visible.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The target activity does not exist.
-  - Endpoint group:
-    Step 1: `PATCH /v1/activities/{id}`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities` or `POST /v2/activities` before patching.
   - Failure endpoint:
     `PATCH /v1/activities/{id}`
   - Why this fails:
-    Patch targets a specific activity id, but no documented creation endpoint established that id.
+    Patch targets a specific activity id, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities`.
+    `{id}` does not identify an existing activity.
 
 Endpoint coverage:
 - Covers:
@@ -326,35 +369,39 @@ Endpoint coverage:
 - Distinct meaning:
   Partial update of v2 activity properties.
 
-### Behavior 10: delete activity
+### Function 10: delete activity
 
-Behavior name:
+Function name:
 delete activity
+
+Core endpoint(s):
+- `DELETE /v1/activities/{id}`
+- `DELETE /v2/activities/{id}`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- The `{id}` path value must identify that activity. If the API is used to establish the activity, `{id}` must be taken from the activity creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing activity.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `DELETE /v1/activities/{id}`
+  The function deletes an existing activity.
+- Invocation:
+  Step 1: `DELETE /v1/activities/{id}` with required path `{id}`
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `DELETE /v2/activities/{id}`
+  Step 1: `DELETE /v2/activities/{id}` with required path `{id}`
 - Constraints:
-  The activity `id` returned by Step 1 must be reused as path `{id}` in Step 2.
+  `{id}` must identify the activity to delete. The visible source defines activity edit permissions, but endpoint enforcement is not visible.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The activity does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/activities/{id}`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities` or `POST /v2/activities` before deletion.
   - Failure endpoint:
     `DELETE /v1/activities/{id}`
   - Why this fails:
-    Delete targets a specific activity id, but the prerequisite creation endpoint was intentionally omitted.
+    Delete targets a specific activity id, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities`.
+    `{id}` does not identify an existing activity.
 
 Endpoint coverage:
 - Covers:
@@ -366,47 +413,51 @@ Endpoint coverage:
 - Distinct meaning:
   Delete a v2 activity.
 
-### Behavior 11: set own activity rating or favourite flag
+### Function 11: set own activity rating or favourite flag
 
-Behavior name:
+Function name:
 set own activity rating or favourite flag
+
+Core endpoint(s):
+- `POST /v1/activities/{id}/rating`
+- `POST /v2/activities/{id}/rating`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- The `{id}` path value must identify that activity. If the API is used to establish the activity, `{id}` must be taken from the activity creation response.
+- The request must authenticate as the user whose rating or favourite flag is being set. This can be satisfied by directly inserting a `User` with a `UserIdentity` of type `API` and using that API identity value, or by using a valid Google id token accepted by the configured verifier.
 
 Successful execution:
 - Result:
-  This behavior sets the current end user's rating and/or favourite flag for an activity.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/activities/{id}/rating`
+  The function sets the current end user's rating and/or favourite flag for an activity.
+- Invocation:
+  Step 1: `POST /v1/activities/{id}/rating` with required path `{id}`, a valid current-user credential, and an `ActivityRatingAttrs` body containing `rating` and/or `favourite`
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `POST /v2/activities/{id}/rating`
+  Step 1: `POST /v2/activities/{id}/rating` with required path `{id}`, a valid current-user credential, and an `ActivityRatingAttrs` body containing `rating` and/or `favourite`
 - Constraints:
-  Step 1 returns activity `id`; Step 2 path `{id}` must reuse it. Step 2 body is `ActivityRatingAttrs` with `rating` and/or `favourite`. The source defines `rating_set_own` permission at user level `0`, and API-key authentication requires an existing `API` identity.
+  The visible source defines `rating_set_own` permission at user level `0`. API-key authentication requires an existing `API` identity; Google authentication can create a user and API key for a valid id token.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The activity does not exist.
-  - Endpoint group:
-    Step 1: `POST /v1/activities/{id}/rating`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities` or `POST /v2/activities` before rating.
+    - The request may otherwise use valid current-user credentials.
   - Failure endpoint:
     `POST /v1/activities/{id}/rating`
   - Why this fails:
-    The rating is scoped to a specific activity id, but the activity was not created first.
+    The rating is scoped to a specific activity id, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities`.
+    `{id}` does not identify an existing activity.
 - Branch 2:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/activities/{id}/rating`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities` or `POST /v2/activities`.
+    - The failing request omits credentials or uses credentials that do not match a stored `API` identity and are not a valid Google id token accepted by source authentication.
   - Failure endpoint:
     `POST /v1/activities/{id}/rating`
   - Why this fails:
-    The behavior is explicitly for the end user's rating. `ApiKeyAuthenticator` returns empty when credentials do not match a stored API identity.
+    The function is explicitly for the end user's rating. `ApiKeyAuthenticator` returns empty when credentials do not match a stored API identity, and `GoogleAuthenticator` returns empty for invalid id tokens.
   - Intentionally violated constraints:
-    Step 2 omits or uses an invalid API key/Google credential.
+    The current-user authentication requirement was violated.
 
 Endpoint coverage:
 - Covers:
@@ -418,51 +469,52 @@ Endpoint coverage:
 - Distinct meaning:
   Set the current user's v2 rating/favourite state.
 
-### Behavior 12: read own activity rating
+### Function 12: read own activity rating
 
-Behavior name:
+Function name:
 read own activity rating
+
+Core endpoint(s):
+- `GET /v1/activities/{id}/rating`
+- `GET /v2/activities/{id}/rating`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- A rating or favourite state exists for the same authenticated user and activity. This can be satisfied by directly inserting the user-activity rating row or by calling `POST /v1/activities/{id}/rating` or `POST /v2/activities/{id}/rating` with an `ActivityRatingAttrs` body using the same activity id and current-user credential.
+- The `{id}` path value must identify the activity with that user-specific rating state. If API calls are used to establish the state, reuse the activity id returned by activity creation and the same authenticated user for both setting and reading the rating.
 
 Successful execution:
 - Result:
-  This behavior retrieves the current end user's rating/favourite state for an activity.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/activities/{id}/rating`
-  Step 3: `GET /v1/activities/{id}/rating`
+  The function retrieves the current end user's rating/favourite state for an activity.
+- Invocation:
+  Step 1: `GET /v1/activities/{id}/rating` with required path `{id}`, a valid current-user credential, and optional query `attrs`
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `POST /v2/activities/{id}/rating`
-  Step 3: `GET /v2/activities/{id}/rating`
+  Step 1: `GET /v2/activities/{id}/rating` with required path `{id}`, a valid current-user credential, and optional query `attrs`
 - Constraints:
-  The activity `id` returned by Step 1 must be reused in Steps 2 and 3. The same authenticated end user must be used in Steps 2 and 3. Optional `attrs` controls response attributes.
+  The activity id and authenticated user must match the stored rating state.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No rating exists for the current user and activity.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `GET /v1/activities/{id}/rating`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities` or `POST /v2/activities`.
+    - No rating state exists for the current user and that activity. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities/{id}/rating` or `POST /v2/activities/{id}/rating` for the same user.
   - Failure endpoint:
     `GET /v1/activities/{id}/rating`
   - Why this fails:
-    The read targets the current user's rating state, but the documented rating creation/update endpoint was intentionally omitted.
+    The read targets the current user's rating state, but no rating exists for that user/activity pair.
   - Intentionally violated constraints:
-    `POST /v1/activities/{id}/rating` was not executed for the same authenticated user.
+    The required same-user rating state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/activities/{id}/rating`
-    Step 3: `GET /v1/activities/{id}/rating`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities` or `POST /v2/activities`.
+    - A rating state exists for a user and the activity. This can be satisfied by direct insertion or by calling `POST /v1/activities/{id}/rating` or `POST /v2/activities/{id}/rating`.
+    - The failing request omits credentials or uses credentials that do not identify the user owning that rating state.
   - Failure endpoint:
     `GET /v1/activities/{id}/rating`
   - Why this fails:
-    The rating is user-specific, and the source authenticator returns no principal for invalid credentials.
+    The rating is user-specific, and the source authenticators return no principal for invalid credentials.
   - Intentionally violated constraints:
-    Step 3 uses no valid current-user credential.
+    The current-user authentication and same-user rating ownership requirements were violated.
 
 Endpoint coverage:
 - Covers:
@@ -474,50 +526,51 @@ Endpoint coverage:
 - Distinct meaning:
   Read the current user's v2 activity rating.
 
-### Behavior 13: remove own activity rating
+### Function 13: remove own activity rating
 
-Behavior name:
+Function name:
 remove own activity rating
+
+Core endpoint(s):
+- `DELETE /v1/activities/{id}/rating`
+- `DELETE /v2/activities/{id}/rating`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` or `POST /v2/activities` with an `ActivityProperties` body.
+- A rating or favourite state exists for the same authenticated user and activity. This can be satisfied by directly inserting the user-activity rating row or by calling `POST /v1/activities/{id}/rating` or `POST /v2/activities/{id}/rating` with an `ActivityRatingAttrs` body using the same current-user credential.
+- The `{id}` path value must identify that activity, and the delete request must authenticate as the same user that owns the rating state.
 
 Successful execution:
 - Result:
-  This behavior removes the current end user's rating from an activity.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/activities/{id}/rating`
-  Step 3: `DELETE /v1/activities/{id}/rating`
+  The function removes the current end user's rating from an activity.
+- Invocation:
+  Step 1: `DELETE /v1/activities/{id}/rating` with required path `{id}` and a valid current-user credential
   or
-  Step 1: `POST /v2/activities`
-  Step 2: `POST /v2/activities/{id}/rating`
-  Step 3: `DELETE /v2/activities/{id}/rating`
+  Step 1: `DELETE /v2/activities/{id}/rating` with required path `{id}` and a valid current-user credential
 - Constraints:
-  The activity `id` from Step 1 must be reused in Steps 2 and 3. The same authenticated user must be used for setting and deleting the rating.
+  The stored rating state is scoped by both activity id and authenticated user.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The activity does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/activities/{id}/rating`
+  - Preconditions:
+    - No activity exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/activities` or `POST /v2/activities`.
   - Failure endpoint:
     `DELETE /v1/activities/{id}/rating`
   - Why this fails:
-    The rating deletion is scoped to a specific activity id, but the activity was not created first.
+    Rating deletion is scoped to a specific activity id, but no activity state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/activities`.
+    `{id}` does not identify an existing activity.
 - Branch 2:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/activities/{id}/rating`
-    Step 3: `DELETE /v1/activities/{id}/rating`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities` or `POST /v2/activities`.
+    - A rating state exists for a user and the activity. This can be satisfied by direct insertion or by calling `POST /v1/activities/{id}/rating` or `POST /v2/activities/{id}/rating`.
+    - The failing request omits credentials or uses credentials that do not identify the user owning that rating state.
   - Failure endpoint:
     `DELETE /v1/activities/{id}/rating`
   - Why this fails:
     The rating being removed is the current user's rating, and the source authenticator requires a valid user identity.
   - Intentionally violated constraints:
-    Step 3 uses no valid current-user credential.
+    The current-user authentication and same-user rating ownership requirements were violated.
 
 Endpoint coverage:
 - Covers:
@@ -529,35 +582,39 @@ Endpoint coverage:
 - Distinct meaning:
   Remove the current user's v2 activity rating.
 
-### Behavior 14: list favourite activity ids
+### Function 14: list favourite activity ids
 
-Behavior name:
+Function name:
 list favourite activity ids
+
+Core endpoint(s):
+- `GET /v1/favourites`
+
+Preconditions:
+- An activity exists in the database. This can be satisfied by directly inserting an activity row or by calling `POST /v1/activities` with an `ActivityProperties` body and recording the returned `id`.
+- The authenticated user has a favourite relationship to that activity. This can be satisfied by directly inserting favourite state linked to the same user and activity or by calling `POST /v1/favourites` with a `PutFavouritesEntity` body whose `id` array contains the activity id.
+- The request must authenticate as the same user whose favourite ids are being listed.
 
 Successful execution:
 - Result:
-  This behavior returns the current user's favourite activity ids.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/favourites`
-  Step 3: `GET /v1/favourites`
+  The function returns the current user's favourite activity ids.
+- Invocation:
+  Step 1: `GET /v1/favourites` with a valid current-user credential
 - Constraints:
-  Step 1 returns an activity `id`. Step 2 body `id` array must contain that id. Step 3 returns an array of integer ids. Swagger incorrectly declares a required path parameter named `id` for `/v1/favourites`, but the path has no `{id}` segment.
+  Swagger incorrectly declares a required path parameter named `id` for `/v1/favourites`, but the path has no `{id}` segment.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/favourites`
-    Step 3: `GET /v1/favourites`
+  - Preconditions:
+    - An activity exists in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities`.
+    - The current user has favourite state for that activity. This can be satisfied by direct insertion or by calling `POST /v1/favourites` with body `id=[{activityId}]`.
+    - The failing request omits credentials or uses credentials that do not match a stored `API` identity and are not a valid Google id token accepted by source authentication.
   - Failure endpoint:
     `GET /v1/favourites`
   - Why this fails:
     Favourites are user content, and the source authenticator returns no current user for invalid credentials.
   - Intentionally violated constraints:
-    Step 3 omits or uses an invalid current-user credential.
+    The current-user authentication requirement was violated.
 
 Endpoint coverage:
 - Covers:
@@ -565,33 +622,37 @@ Endpoint coverage:
 - Distinct meaning:
   Read the current user's favourite activity id list.
 
-### Behavior 15: replace favourite activity id list
+### Function 15: replace favourite activity id list
 
-Behavior name:
+Function name:
 replace favourite activity id list
+
+Core endpoint(s):
+- `POST /v1/favourites`
+
+Preconditions:
+- Each activity id that should become a favourite exists in the database. This can be satisfied by directly inserting activity rows or by calling `POST /v1/activities` with an `ActivityProperties` body for each activity and recording the returned ids.
+- The request must authenticate as the user whose favourite list is being replaced. This can be satisfied by directly inserting a `User` with a `UserIdentity` of type `API` or by using a valid Google id token accepted by source authentication.
 
 Successful execution:
 - Result:
-  This behavior replaces the current user's favourite activity id list.
-- Endpoint sequence:
-  Step 1: `POST /v1/activities`
-  Step 2: `POST /v1/favourites`
+  The function replaces the current user's favourite activity id list.
+- Invocation:
+  Step 1: `POST /v1/favourites` with a valid current-user credential and a `PutFavouritesEntity` body whose `id` field is an array of activity ids
 - Constraints:
-  Step 1 returns an activity `id`. Step 2 body is `PutFavouritesEntity`; its `id` field is an array of activity ids and must include ids intended to become favourites. Swagger's required path parameter `id` is inconsistent with the path `/v1/favourites`, which has no path variable.
+  Swagger's required path parameter `id` is inconsistent with the path `/v1/favourites`, which has no path variable.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The current user cannot be authenticated.
-  - Endpoint group:
-    Step 1: `POST /v1/activities`
-    Step 2: `POST /v1/favourites`
+  - Preconditions:
+    - One or more target activities exist in the database. This can be satisfied by direct insertion or by calling `POST /v1/activities`.
+    - The failing request omits credentials or uses credentials that do not match a stored `API` identity and are not a valid Google id token accepted by source authentication.
   - Failure endpoint:
     `POST /v1/favourites`
   - Why this fails:
     The operation modifies user-specific content, and `ApiKeyAuthenticator` only authenticates users with a matching API identity.
   - Intentionally violated constraints:
-    Step 2 uses no valid current-user credential.
+    The current-user authentication requirement was violated.
 
 Endpoint coverage:
 - Covers:
@@ -599,18 +660,24 @@ Endpoint coverage:
 - Distinct meaning:
   Replace the current user's favourite activity ids.
 
-### Behavior 16: list or search media files
+### Function 16: list or search media files
 
-Behavior name:
+Function name:
 list or search media files
+
+Core endpoint(s):
+- `GET /v1/media_files`
+
+Preconditions:
+- None; this collection query can run without pre-existing media-file state and can validly return an empty result set.
 
 Successful execution:
 - Result:
-  This behavior lists media files referenced in activities, optionally filtered by URI text.
-- Endpoint sequence:
-  Step 1: `GET /v1/media_files`
+  The function lists media files referenced in activities, optionally filtered by URI text.
+- Invocation:
+  Step 1: `GET /v1/media_files` with optional query values `uri` and `attrs`
 - Constraints:
-  Optional `uri` filters media files by case-sensitive substring match in their URI. Optional `attrs` controls response attributes. This collection query can succeed with an empty result set.
+  Optional `uri` filters media files by case-sensitive substring match in their URI. Optional `attrs` controls response attributes.
 
 Failure or exceptional branches:
 - No concrete failure branch is specified by Swagger or visible implementation.
@@ -621,18 +688,24 @@ Endpoint coverage:
 - Distinct meaning:
   List or search media-file metadata.
 
-### Behavior 17: add media file
+### Function 17: add media file
 
-Behavior name:
+Function name:
 add media file
+
+Core endpoint(s):
+- `POST /v1/media_files`
+
+Preconditions:
+- None; this endpoint creates the media-file state. If authentication and authorization are enforced by hidden resource code, the source defines media item permissions, but endpoint enforcement is not visible.
 
 Successful execution:
 - Result:
-  This behavior adds a media file to the system and returns its metadata.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
+  The function adds a media file to the system and returns its metadata.
+- Invocation:
+  Step 1: `POST /v1/media_files` with a `MediaFile` body containing a `uri` or a data URI for base64-encoded content
 - Constraints:
-  The body is `MediaFile`. Swagger says callers may specify a media file URL in `uri` or use a data URI to upload a base64-encoded file. The response returns a media-file `id`.
+  Swagger says callers may specify a media file URL in `uri` or use a data URI to upload a base64-encoded file. The response returns a media-file `id`.
 
 Failure or exceptional branches:
 - No concrete creation failure branch is specified by Swagger or visible implementation.
@@ -643,32 +716,36 @@ Endpoint coverage:
 - Distinct meaning:
   Create media-file metadata and optionally upload content via data URI.
 
-### Behavior 18: read media file metadata
+### Function 18: read media file metadata
 
-Behavior name:
+Function name:
 read media file metadata
+
+Core endpoint(s):
+- `GET /v1/media_files/{id}`
+
+Preconditions:
+- A media file exists in the database. This can be satisfied by directly inserting a media-file row or by calling `POST /v1/media_files` with a `MediaFile` body containing a URL or data URI.
+- The `{id}` path value must identify that media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior retrieves metadata for a specific media file.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `GET /v1/media_files/{id}`
+  The function retrieves metadata for a specific media file.
+- Invocation:
+  Step 1: `GET /v1/media_files/{id}` with required path `{id}` and optional query `attrs`
 - Constraints:
-  Step 1 returns media-file `id`; Step 2 path `{id}` must reuse it. Optional `attrs` controls response attributes.
+  `{id}` must identify an existing media file.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No media file exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/media_files/{id}`
+  - Preconditions:
+    - No media file exists for `{id}`. This can be produced by starting from an empty database, deleting the media file beforehand, or intentionally not inserting it directly and not calling `POST /v1/media_files`.
   - Failure endpoint:
     `GET /v1/media_files/{id}`
   - Why this fails:
-    The read targets a specific media-file id, but the creation endpoint was intentionally omitted.
+    The read targets a specific media-file id, but no media-file state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/media_files`.
+    `{id}` does not identify an existing media file.
 
 Endpoint coverage:
 - Covers:
@@ -676,32 +753,36 @@ Endpoint coverage:
 - Distinct meaning:
   Read media-file metadata.
 
-### Behavior 19: update media file metadata
+### Function 19: update media file metadata
 
-Behavior name:
+Function name:
 update media file metadata
+
+Core endpoint(s):
+- `PUT /v1/media_files/{id}`
+
+Preconditions:
+- A media file exists in the database. This can be satisfied by directly inserting a media-file row or by calling `POST /v1/media_files` with a `MediaFile` body containing a URL or data URI.
+- The `{id}` path value must identify that media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior updates metadata for an existing media file.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `PUT /v1/media_files/{id}`
+  The function updates metadata for an existing media file.
+- Invocation:
+  Step 1: `PUT /v1/media_files/{id}` with required path `{id}` and a `MediaFile` body
 - Constraints:
-  Step 1 returns media-file `id`; Step 2 path `{id}` must reuse it. Step 2 body is `MediaFile`.
+  `{id}` must identify an existing media file.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The media file does not exist.
-  - Endpoint group:
-    Step 1: `PUT /v1/media_files/{id}`
+  - Preconditions:
+    - No media file exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/media_files` before update.
   - Failure endpoint:
     `PUT /v1/media_files/{id}`
   - Why this fails:
-    The update targets a specific media-file id, but no media file was created first.
+    The update targets a specific media-file id, but no media-file state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/media_files`.
+    `{id}` does not identify an existing media file.
 
 Endpoint coverage:
 - Covers:
@@ -709,33 +790,37 @@ Endpoint coverage:
 - Distinct meaning:
   Update media-file metadata.
 
-### Behavior 20: force-delete media file
+### Function 20: force-delete media file
 
-Behavior name:
+Function name:
 force-delete media file
+
+Core endpoint(s):
+- `DELETE /v1/media_files/{id}`
+
+Preconditions:
+- A media file exists in the database. This can be satisfied by directly inserting a media-file row or by calling `POST /v1/media_files` with a `MediaFile` body and recording the returned `id`.
+- An activity references that media file. This can be satisfied by directly inserting an activity row with a relationship to the media-file id or by calling `POST /v1/activities` with an `ActivityProperties` body whose `media_files` value references that media file.
+- The `{id}` path value used by the delete request must identify the media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes a media file even when it is referenced by activities.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `POST /v1/activities`
-  Step 3: `DELETE /v1/media_files/{id}`
+  The function deletes a media file even when it is referenced by activities.
+- Invocation:
+  Step 1: `DELETE /v1/media_files/{id}` with required path `{id}` and query `verify_unused` absent or `false`
 - Constraints:
-  Step 1 returns media-file `id`. Step 2 body `media_files` should reference that media file to create the referenced state. Step 3 path `{id}` must reuse the media-file id. The Swagger says deletion defaults to deleting even if referenced, so `verify_unused` must be absent or false.
+  Swagger says deletion defaults to deleting even if referenced by activities, so `verify_unused` must be absent or false for this force-delete meaning.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The media file does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/media_files/{id}`
+  - Preconditions:
+    - No media file exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/media_files` before deletion.
   - Failure endpoint:
     `DELETE /v1/media_files/{id}`
   - Why this fails:
-    The delete targets a specific media-file id, but no media file was created first.
+    The delete targets a specific media-file id, but no media-file state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/media_files`.
+    `{id}` does not identify an existing media file.
 
 Endpoint coverage:
 - Covers:
@@ -743,34 +828,39 @@ Endpoint coverage:
 - Distinct meaning:
   Delete media without checking whether activities reference it.
 
-### Behavior 21: delete media file only when unused
+### Function 21: delete media file only when unused
 
-Behavior name:
+Function name:
 delete unused media file
+
+Core endpoint(s):
+- `DELETE /v1/media_files/{id}`
+
+Preconditions:
+- A media file exists in the database. This can be satisfied by directly inserting a media-file row or by calling `POST /v1/media_files` with a `MediaFile` body and recording the returned `id`.
+- No activity references that media file. This can be satisfied by direct database setup with no activity-media relationship, or by not creating an activity with `media_files` referencing the media-file id.
+- The `{id}` path value used by the delete request must identify the media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes a media file only after verifying it is not referenced by activities.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `DELETE /v1/media_files/{id}`
+  The function deletes a media file only after verifying it is not referenced by activities.
+- Invocation:
+  Step 1: `DELETE /v1/media_files/{id}` with required path `{id}` and query `verify_unused=true`
 - Constraints:
-  Step 1 returns media-file `id`; Step 2 path `{id}` must reuse it and use `verify_unused=true`. The media file must not be referenced by any activity.
+  The media file must not be referenced by any activity when `verify_unused=true`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The media file is referenced by an activity.
-  - Endpoint group:
-    Step 1: `POST /v1/media_files`
-    Step 2: `POST /v1/activities`
-    Step 3: `DELETE /v1/media_files/{id}`
+  - Preconditions:
+    - A media file exists in the database. This can be satisfied by directly inserting a media-file row or by calling `POST /v1/media_files`.
+    - An activity references that media file. This can be satisfied by directly inserting an activity-media relationship or by calling `POST /v1/activities` with an `ActivityProperties` body whose `media_files` includes the media-file id.
+    - The delete request uses the media-file id from that state and query `verify_unused=true`.
   - Failure endpoint:
     `DELETE /v1/media_files/{id}`
   - Why this fails:
     Swagger says `verify_unused=true` verifies the media file is not referenced before deleting it.
   - Intentionally violated constraints:
-    Step 2 creates an activity whose `media_files` includes the media-file `id`; Step 3 uses `verify_unused=true`.
+    The unused-media requirement was violated by existing activity references.
 
 Endpoint coverage:
 - Covers:
@@ -778,32 +868,36 @@ Endpoint coverage:
 - Distinct meaning:
   Conditional delete with unused verification.
 
-### Behavior 22: download media file content
+### Function 22: download media file content
 
-Behavior name:
+Function name:
 download media file content
+
+Core endpoint(s):
+- `GET /v1/media_files/{id}/file`
+
+Preconditions:
+- A media file exists in the database and has downloadable content or a resolvable URI. This can be satisfied by directly inserting a media-file row with content/URI metadata or by calling `POST /v1/media_files` with a `MediaFile` body containing a URL or data URI.
+- The `{id}` path value must identify that media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior downloads the binary content of a media file.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `GET /v1/media_files/{id}/file`
+  The function downloads the binary content of a media file.
+- Invocation:
+  Step 1: `GET /v1/media_files/{id}/file` with required path `{id}` and no `size` query
 - Constraints:
-  Step 1 returns media-file `id`; Step 2 path `{id}` must reuse it. The response produces `application/octet-stream`.
+  The response produces `application/octet-stream`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No media file exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/media_files/{id}/file`
+  - Preconditions:
+    - No media file exists for `{id}`. This can be produced by starting from an empty database, deleting the media file beforehand, or intentionally not inserting it directly and not calling `POST /v1/media_files`.
   - Failure endpoint:
     `GET /v1/media_files/{id}/file`
   - Why this fails:
-    File download targets a specific media-file id, but the media file was not created first.
+    File download targets a specific media-file id, but no media-file state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/media_files`.
+    `{id}` does not identify an existing media file.
 
 Endpoint coverage:
 - Covers:
@@ -811,19 +905,25 @@ Endpoint coverage:
 - Distinct meaning:
   Download original media content.
 
-### Behavior 23: download resized image media file
+### Function 23: download resized image media file
 
-Behavior name:
+Function name:
 download resized image media file
+
+Core endpoint(s):
+- `GET /v1/media_files/{id}/file`
+
+Preconditions:
+- An image media file exists in the database and has downloadable image content or a resolvable image URI. This can be satisfied by directly inserting a media-file row with image metadata/content or by calling `POST /v1/media_files` with a `MediaFile` body containing an image URL or image data URI.
+- The `{id}` path value must identify that image media file. If the API is used to establish the media file, `{id}` must be taken from the media-file creation response.
 
 Successful execution:
 - Result:
-  This behavior downloads an image media file resized so that width/height do not exceed the requested size; images are not enlarged.
-- Endpoint sequence:
-  Step 1: `POST /v1/media_files`
-  Step 2: `GET /v1/media_files/{id}/file`
+  The function downloads an image media file resized so that width/height do not exceed the requested size; images are not enlarged.
+- Invocation:
+  Step 1: `GET /v1/media_files/{id}/file` with required path `{id}` and query `size={integer}`
 - Constraints:
-  Step 1 must create or reference an image media file and returns media-file `id`. Step 2 path `{id}` reuses it and supplies `size={integer}`. Swagger says `size` is rounded up to the next power of two, such as 256, 512, or 1024.
+  Swagger says `size` is rounded up to the next power of two, such as 256, 512, or 1024.
 
 Failure or exceptional branches:
 - No concrete non-image or invalid-size branch is specified by Swagger or visible implementation.
@@ -834,18 +934,24 @@ Endpoint coverage:
 - Distinct meaning:
   Download resized image content using the `size` query parameter.
 
-### Behavior 24: list or search system messages
+### Function 24: list or search system messages
 
-Behavior name:
+Function name:
 list or search system messages
+
+Core endpoint(s):
+- `GET /v1/system_messages`
+
+Preconditions:
+- None; this collection query can run without pre-existing system-message state and can validly return an empty result set.
 
 Successful execution:
 - Result:
-  This behavior returns system messages, optionally filtered by key or validity.
-- Endpoint sequence:
-  Step 1: `GET /v1/system_messages`
+  The function returns system messages, optionally filtered by key or validity.
+- Invocation:
+  Step 1: `GET /v1/system_messages` with optional query values `key`, `valid`, and `attrs`
 - Constraints:
-  Optional query parameters are `key`, `valid`, and `attrs`. The source defines `system_message_read` permission at level `-100`, but endpoint security is not documented in Swagger.
+  The visible source defines `system_message_read` permission at level `-100`, but endpoint security is not documented in Swagger or visible controller code.
 
 Failure or exceptional branches:
 - No concrete failure branch is specified by Swagger or visible implementation.
@@ -856,18 +962,24 @@ Endpoint coverage:
 - Distinct meaning:
   List or filter system messages.
 
-### Behavior 25: create system message
+### Function 25: create system message
 
-Behavior name:
+Function name:
 create system message
+
+Core endpoint(s):
+- `POST /v1/system_messages`
+
+Preconditions:
+- None; this endpoint creates the system-message state. If authentication and authorization are enforced by hidden resource code, the visible source defines `system_message_manage` at administrator level `20`, but endpoint enforcement is not visible.
 
 Successful execution:
 - Result:
-  This behavior creates a system message.
-- Endpoint sequence:
-  Step 1: `POST /v1/system_messages`
+  The function creates a system message.
+- Invocation:
+  Step 1: `POST /v1/system_messages` with a `SystemMessage` body containing fields such as `key`, `value`, `valid_from`, and `valid_to`
 - Constraints:
-  The body is `SystemMessage` with fields such as `key`, `value`, `valid_from`, and `valid_to`. The source defines `system_message_manage` at administrator level `20`, but endpoint enforcement is not visible.
+  Swagger documents the body schema but no concrete required-field validation. The source defines the management permission constant but does not show endpoint enforcement.
 
 Failure or exceptional branches:
 - No concrete creation failure branch is specified by Swagger or visible implementation.
@@ -878,32 +990,36 @@ Endpoint coverage:
 - Distinct meaning:
   Create a system message.
 
-### Behavior 26: read system message
+### Function 26: read system message
 
-Behavior name:
+Function name:
 read system message
+
+Core endpoint(s):
+- `GET /v1/system_messages/{id}`
+
+Preconditions:
+- A system message exists in the database. This can be satisfied by directly inserting a system-message row or by calling `POST /v1/system_messages` with a `SystemMessage` body.
+- The `{id}` path value must identify that system message. If the API is used to establish the system message, `{id}` must be taken from the system-message creation response.
 
 Successful execution:
 - Result:
-  This behavior retrieves one system message by id.
-- Endpoint sequence:
-  Step 1: `POST /v1/system_messages`
-  Step 2: `GET /v1/system_messages/{id}`
+  The function retrieves one system message by id.
+- Invocation:
+  Step 1: `GET /v1/system_messages/{id}` with required path `{id}` and optional query `attrs`
 - Constraints:
-  Step 1 returns system-message `id`; Step 2 path `{id}` must reuse it. Optional `attrs` controls response attributes.
+  `{id}` must identify an existing system message.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No system message exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/system_messages/{id}`
+  - Preconditions:
+    - No system message exists for `{id}`. This can be produced by starting from an empty database, deleting the system message beforehand, or intentionally not inserting it directly and not calling `POST /v1/system_messages`.
   - Failure endpoint:
     `GET /v1/system_messages/{id}`
   - Why this fails:
-    The read targets a specific system-message id, but the documented creation endpoint was omitted.
+    The read targets a specific system-message id, but no system-message state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/system_messages`.
+    `{id}` does not identify an existing system message.
 
 Endpoint coverage:
 - Covers:
@@ -911,32 +1027,36 @@ Endpoint coverage:
 - Distinct meaning:
   Read one system message.
 
-### Behavior 27: update system message
+### Function 27: update system message
 
-Behavior name:
+Function name:
 update system message
+
+Core endpoint(s):
+- `PUT /v1/system_messages/{id}`
+
+Preconditions:
+- A system message exists in the database. This can be satisfied by directly inserting a system-message row or by calling `POST /v1/system_messages` with a `SystemMessage` body.
+- The `{id}` path value must identify that system message. If the API is used to establish the system message, `{id}` must be taken from the system-message creation response.
 
 Successful execution:
 - Result:
-  This behavior updates an existing system message.
-- Endpoint sequence:
-  Step 1: `POST /v1/system_messages`
-  Step 2: `PUT /v1/system_messages/{id}`
+  The function updates an existing system message.
+- Invocation:
+  Step 1: `PUT /v1/system_messages/{id}` with required path `{id}` and a `SystemMessage` body
 - Constraints:
-  Step 1 returns system-message `id`; Step 2 path `{id}` must reuse it. Step 2 body is `SystemMessage`.
+  `{id}` must identify an existing system message. If authorization is enforced by hidden resource code, the visible source defines `system_message_manage` at administrator level `20`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The system message does not exist.
-  - Endpoint group:
-    Step 1: `PUT /v1/system_messages/{id}`
+  - Preconditions:
+    - No system message exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/system_messages` before update.
   - Failure endpoint:
     `PUT /v1/system_messages/{id}`
   - Why this fails:
-    The update targets a specific system-message id, but no system message was created first.
+    The update targets a specific system-message id, but no system-message state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/system_messages`.
+    `{id}` does not identify an existing system message.
 
 Endpoint coverage:
 - Covers:
@@ -944,32 +1064,36 @@ Endpoint coverage:
 - Distinct meaning:
   Update a system message.
 
-### Behavior 28: delete system message
+### Function 28: delete system message
 
-Behavior name:
+Function name:
 delete system message
+
+Core endpoint(s):
+- `DELETE /v1/system_messages/{id}`
+
+Preconditions:
+- A system message exists in the database. This can be satisfied by directly inserting a system-message row or by calling `POST /v1/system_messages` with a `SystemMessage` body.
+- The `{id}` path value must identify that system message. If the API is used to establish the system message, `{id}` must be taken from the system-message creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing system message.
-- Endpoint sequence:
-  Step 1: `POST /v1/system_messages`
-  Step 2: `DELETE /v1/system_messages/{id}`
+  The function deletes an existing system message.
+- Invocation:
+  Step 1: `DELETE /v1/system_messages/{id}` with required path `{id}`
 - Constraints:
-  Step 1 returns system-message `id`; Step 2 path `{id}` must reuse it.
+  `{id}` must identify the system message to delete. If authorization is enforced by hidden resource code, the visible source defines `system_message_manage` at administrator level `20`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The system message does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/system_messages/{id}`
+  - Preconditions:
+    - No system message exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/system_messages` before deletion.
   - Failure endpoint:
     `DELETE /v1/system_messages/{id}`
   - Why this fails:
-    The delete targets a specific system-message id, but the creation endpoint was intentionally omitted.
+    The delete targets a specific system-message id, but no system-message state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/system_messages`.
+    `{id}` does not identify an existing system message.
 
 Endpoint coverage:
 - Covers:
@@ -977,15 +1101,21 @@ Endpoint coverage:
 - Distinct meaning:
   Delete a system message.
 
-### Behavior 29: check system health
+### Function 29: check system health
 
-Behavior name:
+Function name:
 check system health
+
+Core endpoint(s):
+- `GET /v1/system/ping`
+
+Preconditions:
+- None; no request parameters or resource state are documented.
 
 Successful execution:
 - Result:
-  This behavior checks whether the API system responds to a ping/status request.
-- Endpoint sequence:
+  The function checks whether the API system responds to a ping/status request.
+- Invocation:
   Step 1: `GET /v1/system/ping`
 - Constraints:
   No request parameters are documented.
@@ -999,18 +1129,24 @@ Endpoint coverage:
 - Distinct meaning:
   Health/status ping.
 
-### Behavior 30: list roles and permission levels
+### Function 30: list roles and permission levels
 
-Behavior name:
+Function name:
 list roles and permission levels
+
+Core endpoint(s):
+- `GET /v1/system/roles`
+
+Preconditions:
+- None; no setup endpoint or resource state is required by Swagger for this metadata request.
 
 Successful execution:
 - Result:
-  This behavior returns role and permission level metadata.
-- Endpoint sequence:
+  The function returns role and permission level metadata.
+- Invocation:
   Step 1: `GET /v1/system/roles`
 - Constraints:
-  The response schema is `RolesView`, containing `permission_levels` and `role_levels`. The source defines role levels `limited_user=-1`, `user=0`, `moderator=10`, and `administrator=20`; it also defines permissions such as `activity_create`, `rating_set_own`, `category_create`, `system_message_manage`, `auth_role_list`, and `auth_user_create`.
+  The response schema is `RolesView`, containing `permission_levels` and `role_levels`. The visible source defines role levels `limited_user=-1`, `user=0`, `moderator=10`, and `administrator=20`, and permissions such as `activity_create`, `rating_set_own`, `category_create`, `system_message_manage`, `auth_role_list`, and `auth_user_create`.
 
 Failure or exceptional branches:
 - No endpoint-specific failure branch is visible. The source defines `auth_role_list` at administrator level `20`, but the allowed files do not show that `/v1/system/roles` enforces it.
@@ -1021,20 +1157,27 @@ Endpoint coverage:
 - Distinct meaning:
   Retrieve system role and permission metadata.
 
-### Behavior 31: list or search tags/categories
+### Function 31: list or search tags/categories
 
-Behavior name:
+Function name:
 list or search tags/categories
+
+Core endpoint(s):
+- `GET /v1/categories`
+- `GET /v2/tags`
+
+Preconditions:
+- None; this collection query can run without pre-existing tag/category state and can validly return an empty result set.
 
 Successful execution:
 - Result:
-  This behavior returns tags or categories, optionally filtered by group, name, or minimum activity count.
-- Endpoint sequence:
-  Step 1: `GET /v1/categories`
+  The function returns tags or categories, optionally filtered by group, name, or minimum activity count.
+- Invocation:
+  Step 1: `GET /v1/categories` with optional query values `group`, `name`, `min_activities_count`, and `attrs`
   or
-  Step 1: `GET /v2/tags`
+  Step 1: `GET /v2/tags` with optional query values `group`, `name`, `min_activities_count`, and `attrs`
 - Constraints:
-  Both versions use the `Tag` schema. Optional filters are `group`, `name`, `min_activities_count`, and `attrs`.
+  Both versions use the `Tag` schema.
 
 Failure or exceptional branches:
 - No concrete failure branch is specified by Swagger or visible implementation.
@@ -1049,20 +1192,27 @@ Endpoint coverage:
 - Distinct meaning:
   List/search v2 tags.
 
-### Behavior 32: create tag/category
+### Function 32: create tag/category
 
-Behavior name:
+Function name:
 create tag/category
+
+Core endpoint(s):
+- `POST /v1/categories`
+- `POST /v2/tags`
+
+Preconditions:
+- None; this endpoint creates the tag/category state. If authentication and authorization are enforced by hidden resource code, the visible source defines `category_create` at moderator level `10`, but endpoint enforcement is not visible.
 
 Successful execution:
 - Result:
-  This behavior creates a tag/category.
-- Endpoint sequence:
-  Step 1: `POST /v1/categories`
+  The function creates a tag/category.
+- Invocation:
+  Step 1: `POST /v1/categories` with a `Tag` body
   or
-  Step 1: `POST /v2/tags`
+  Step 1: `POST /v2/tags` with a `Tag` body
 - Constraints:
-  The body is `Tag`, with fields such as `group`, `name`, optional `media_file`, and `activities_count`. The source defines `category_create` at moderator level `10`, but endpoint enforcement is not visible.
+  The `Tag` schema includes fields such as `group`, `name`, optional `media_file`, and `activities_count`.
 
 Failure or exceptional branches:
 - No concrete creation failure branch is specified by Swagger or visible implementation.
@@ -1077,35 +1227,39 @@ Endpoint coverage:
 - Distinct meaning:
   Create a v2 tag.
 
-### Behavior 33: read tag/category
+### Function 33: read tag/category
 
-Behavior name:
+Function name:
 read tag/category
+
+Core endpoint(s):
+- `GET /v1/categories/{id}`
+- `GET /v2/tags/{id}`
+
+Preconditions:
+- A tag/category exists in the database. This can be satisfied by directly inserting a tag/category row or by calling `POST /v1/categories` or `POST /v2/tags` with a `Tag` body.
+- The `{id}` path value must identify that tag/category. If the API is used to establish the tag/category, `{id}` must be taken from the creation response.
 
 Successful execution:
 - Result:
-  This behavior retrieves one tag/category by id.
-- Endpoint sequence:
-  Step 1: `POST /v1/categories`
-  Step 2: `GET /v1/categories/{id}`
+  The function retrieves one tag/category by id.
+- Invocation:
+  Step 1: `GET /v1/categories/{id}` with required path `{id}` and optional query `attrs`
   or
-  Step 1: `POST /v2/tags`
-  Step 2: `GET /v2/tags/{id}`
+  Step 1: `GET /v2/tags/{id}` with required path `{id}` and optional query `attrs`
 - Constraints:
-  Step 1 returns tag/category `id`; Step 2 path `{id}` must reuse it. Optional `attrs` controls response attributes.
+  `{id}` must identify an existing tag/category.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No tag/category exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/categories/{id}`
+  - Preconditions:
+    - No tag/category exists for `{id}`. This can be produced by starting from an empty database, deleting the tag/category beforehand, or intentionally not inserting it directly and not calling `POST /v1/categories` or `POST /v2/tags`.
   - Failure endpoint:
     `GET /v1/categories/{id}`
   - Why this fails:
-    The read targets a specific category id, but no category was created first.
+    The read targets a specific category id, but no category state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/categories`.
+    `{id}` does not identify an existing tag/category.
 
 Endpoint coverage:
 - Covers:
@@ -1117,35 +1271,39 @@ Endpoint coverage:
 - Distinct meaning:
   Read one v2 tag.
 
-### Behavior 34: update tag/category
+### Function 34: update tag/category
 
-Behavior name:
+Function name:
 update tag/category
+
+Core endpoint(s):
+- `PUT /v1/categories/{id}`
+- `PUT /v2/tags/{id}`
+
+Preconditions:
+- A tag/category exists in the database. This can be satisfied by directly inserting a tag/category row or by calling `POST /v1/categories` or `POST /v2/tags` with a `Tag` body.
+- The `{id}` path value must identify that tag/category. If the API is used to establish the tag/category, `{id}` must be taken from the creation response.
 
 Successful execution:
 - Result:
-  This behavior updates an existing tag/category.
-- Endpoint sequence:
-  Step 1: `POST /v1/categories`
-  Step 2: `PUT /v1/categories/{id}`
+  The function updates an existing tag/category.
+- Invocation:
+  Step 1: `PUT /v1/categories/{id}` with required path `{id}` and a `Tag` body
   or
-  Step 1: `POST /v2/tags`
-  Step 2: `PUT /v2/tags/{id}`
+  Step 1: `PUT /v2/tags/{id}` with required path `{id}` and a `Tag` body
 - Constraints:
-  Step 1 returns tag/category `id`; Step 2 path `{id}` must reuse it. Step 2 body is `Tag`.
+  `{id}` must identify an existing tag/category. If authorization is enforced by hidden resource code, the visible source defines `category_edit` at moderator level `10`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The tag/category does not exist.
-  - Endpoint group:
-    Step 1: `PUT /v1/categories/{id}`
+  - Preconditions:
+    - No tag/category exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/categories` or `POST /v2/tags` before update.
   - Failure endpoint:
     `PUT /v1/categories/{id}`
   - Why this fails:
-    The update targets a specific category id, but no category was created first.
+    The update targets a specific category id, but no category state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/categories`.
+    `{id}` does not identify an existing tag/category.
 
 Endpoint coverage:
 - Covers:
@@ -1157,35 +1315,39 @@ Endpoint coverage:
 - Distinct meaning:
   Update a v2 tag.
 
-### Behavior 35: delete tag/category
+### Function 35: delete tag/category
 
-Behavior name:
+Function name:
 delete tag/category
+
+Core endpoint(s):
+- `DELETE /v1/categories/{id}`
+- `DELETE /v2/tags/{id}`
+
+Preconditions:
+- A tag/category exists in the database. This can be satisfied by directly inserting a tag/category row or by calling `POST /v1/categories` or `POST /v2/tags` with a `Tag` body.
+- The `{id}` path value must identify that tag/category. If the API is used to establish the tag/category, `{id}` must be taken from the creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing tag/category.
-- Endpoint sequence:
-  Step 1: `POST /v1/categories`
-  Step 2: `DELETE /v1/categories/{id}`
+  The function deletes an existing tag/category.
+- Invocation:
+  Step 1: `DELETE /v1/categories/{id}` with required path `{id}`
   or
-  Step 1: `POST /v2/tags`
-  Step 2: `DELETE /v2/tags/{id}`
+  Step 1: `DELETE /v2/tags/{id}` with required path `{id}`
 - Constraints:
-  Step 1 returns tag/category `id`; Step 2 path `{id}` must reuse it.
+  `{id}` must identify the tag/category to delete. If authorization is enforced by hidden resource code, the visible source defines `category_edit` at moderator level `10`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The tag/category does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/categories/{id}`
+  - Preconditions:
+    - No tag/category exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/categories` or `POST /v2/tags` before deletion.
   - Failure endpoint:
     `DELETE /v1/categories/{id}`
   - Why this fails:
-    The delete targets a specific category id, but no category was created first.
+    The delete targets a specific category id, but no category state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/categories`.
+    `{id}` does not identify an existing tag/category.
 
 Endpoint coverage:
 - Covers:
@@ -1197,18 +1359,24 @@ Endpoint coverage:
 - Distinct meaning:
   Delete a v2 tag.
 
-### Behavior 36: list or search users
+### Function 36: list or search users
 
-Behavior name:
+Function name:
 list or search users
+
+Core endpoint(s):
+- `GET /v1/users`
+
+Preconditions:
+- None; this collection query can run without pre-existing user state and can validly return an empty result set, subject to any hidden authorization enforcement.
 
 Successful execution:
 - Result:
-  This behavior returns users, optionally filtered by name.
-- Endpoint sequence:
-  Step 1: `GET /v1/users`
+  The function returns users, optionally filtered by name.
+- Invocation:
+  Step 1: `GET /v1/users` with optional query values `name` and `attrs`
 - Constraints:
-  Optional `name` filters users. Optional `attrs` controls response attributes. The source defines user-related administrator permissions, but endpoint enforcement is not visible.
+  Optional `name` filters users. Optional `attrs` controls response attributes. The visible source defines user-related administrator permissions, but endpoint enforcement is not visible.
 
 Failure or exceptional branches:
 - No concrete failure branch is specified by Swagger or visible implementation.
@@ -1219,18 +1387,24 @@ Endpoint coverage:
 - Distinct meaning:
   List or search users.
 
-### Behavior 37: create user
+### Function 37: create user
 
-Behavior name:
+Function name:
 create user
+
+Core endpoint(s):
+- `POST /v1/users`
+
+Preconditions:
+- None; this endpoint creates the user state. If authorization is enforced by hidden resource code, the visible source defines `auth_user_create` at administrator level `20`, but endpoint enforcement is not visible.
 
 Successful execution:
 - Result:
-  This behavior creates a user.
-- Endpoint sequence:
-  Step 1: `POST /v1/users`
+  The function creates a user.
+- Invocation:
+  Step 1: `POST /v1/users` with a `User` body containing fields such as `name`, `email_address`, `authorization_level`, and `identities`
 - Constraints:
-  The body is `User`, with fields such as `name`, `email_address`, `authorization_level`, and `identities`. `UserIdentity.type` may be `API` or `GOOGLE`. The source defines `auth_user_create` at administrator level `20`, but endpoint enforcement is not visible.
+  `UserIdentity.type` may be `API` or `GOOGLE`.
 
 Failure or exceptional branches:
 - No concrete creation failure branch is specified by Swagger or visible implementation.
@@ -1241,32 +1415,36 @@ Endpoint coverage:
 - Distinct meaning:
   Create a user.
 
-### Behavior 38: read user
+### Function 38: read user
 
-Behavior name:
+Function name:
 read user
+
+Core endpoint(s):
+- `GET /v1/users/{id}`
+
+Preconditions:
+- A user exists in the database. This can be satisfied by directly inserting a user row or by calling `POST /v1/users` with a `User` body.
+- The `{id}` path value must identify that user. If the API is used to establish the user, `{id}` must be taken from the user creation response.
 
 Successful execution:
 - Result:
-  This behavior retrieves one user by id.
-- Endpoint sequence:
-  Step 1: `POST /v1/users`
-  Step 2: `GET /v1/users/{id}`
+  The function retrieves one user by id.
+- Invocation:
+  Step 1: `GET /v1/users/{id}` with required path `{id}` and optional query `attrs`
 - Constraints:
-  Step 1 returns user `id`; Step 2 path `{id}` must reuse it. Optional `attrs` controls response attributes.
+  `{id}` must identify an existing user.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No user exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /v1/users/{id}`
+  - Preconditions:
+    - No user exists for `{id}`. This can be produced by starting from an empty database, deleting the user beforehand, or intentionally not inserting it directly and not calling `POST /v1/users`.
   - Failure endpoint:
     `GET /v1/users/{id}`
   - Why this fails:
-    The read targets a specific user id, but no user was created first.
+    The read targets a specific user id, but no user state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/users`.
+    `{id}` does not identify an existing user.
 
 Endpoint coverage:
 - Covers:
@@ -1274,32 +1452,36 @@ Endpoint coverage:
 - Distinct meaning:
   Read one user.
 
-### Behavior 39: update user
+### Function 39: update user
 
-Behavior name:
+Function name:
 update user
+
+Core endpoint(s):
+- `PUT /v1/users/{id}`
+
+Preconditions:
+- A user exists in the database. This can be satisfied by directly inserting a user row or by calling `POST /v1/users` with a `User` body.
+- The `{id}` path value must identify that user. If the API is used to establish the user, `{id}` must be taken from the user creation response.
 
 Successful execution:
 - Result:
-  This behavior updates an existing user.
-- Endpoint sequence:
-  Step 1: `POST /v1/users`
-  Step 2: `PUT /v1/users/{id}`
+  The function updates an existing user.
+- Invocation:
+  Step 1: `PUT /v1/users/{id}` with required path `{id}` and a `User` body
 - Constraints:
-  Step 1 returns user `id`; Step 2 path `{id}` must reuse it. Step 2 body is `User`.
+  `{id}` must identify an existing user. If authorization is enforced by hidden resource code, the visible source defines `auth_user_edit` and role-assignment permissions.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The user does not exist.
-  - Endpoint group:
-    Step 1: `PUT /v1/users/{id}`
+  - Preconditions:
+    - No user exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/users` before update.
   - Failure endpoint:
     `PUT /v1/users/{id}`
   - Why this fails:
-    The update targets a specific user id, but no user was created first.
+    The update targets a specific user id, but no user state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/users`.
+    `{id}` does not identify an existing user.
 
 Endpoint coverage:
 - Covers:
@@ -1307,32 +1489,36 @@ Endpoint coverage:
 - Distinct meaning:
   Update a user.
 
-### Behavior 40: delete user
+### Function 40: delete user
 
-Behavior name:
+Function name:
 delete user
+
+Core endpoint(s):
+- `DELETE /v1/users/{id}`
+
+Preconditions:
+- A user exists in the database. This can be satisfied by directly inserting a user row or by calling `POST /v1/users` with a `User` body.
+- The `{id}` path value must identify that user. If the API is used to establish the user, `{id}` must be taken from the user creation response.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing user.
-- Endpoint sequence:
-  Step 1: `POST /v1/users`
-  Step 2: `DELETE /v1/users/{id}`
+  The function deletes an existing user.
+- Invocation:
+  Step 1: `DELETE /v1/users/{id}` with required path `{id}`
 - Constraints:
-  Step 1 returns user `id`; Step 2 path `{id}` must reuse it.
+  `{id}` must identify the user to delete. If authorization is enforced by hidden resource code, the visible source defines `auth_user_edit` at administrator level `20`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The user does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /v1/users/{id}`
+  - Preconditions:
+    - No user exists for `{id}`. This can be produced by direct database absence or by intentionally not calling `POST /v1/users` before deletion.
   - Failure endpoint:
     `DELETE /v1/users/{id}`
   - Why this fails:
-    The delete targets a specific user id, but no user was created first.
+    The delete targets a specific user id, but no user state exists for that id.
   - Intentionally violated constraints:
-    `{id}` was not obtained from `POST /v1/users`.
+    `{id}` does not identify an existing user.
 
 Endpoint coverage:
 - Covers:
@@ -1340,33 +1526,38 @@ Endpoint coverage:
 - Distinct meaning:
   Delete a user.
 
-### Behavior 41: retrieve authenticated user profile
+### Function 41: retrieve authenticated user profile
 
-Behavior name:
+Function name:
 retrieve authenticated user profile
+
+Core endpoint(s):
+- `GET /v1/users/profile`
+
+Preconditions:
+- A user exists with an identity usable for authentication. This can be satisfied by directly inserting a `User` row and a linked `UserIdentity` of type `API`, or by calling `POST /v1/users` with a `User` body whose `identities` includes an `API` identity value.
+- The request credential must match that user identity. For API-key authentication, the credential must equal the stored `API` identity value. For Google authentication, the id token must be valid, have the configured audience, and pass any configured accepted-application check.
+- If Google authentication is used and the user does not already exist, the visible source can create a new user from the token subject, name, and email, and add an API key if missing; Swagger does not document this authentication exchange.
 
 Successful execution:
 - Result:
-  This behavior returns the current authenticated user's profile, including role and role permissions.
-- Endpoint sequence:
-  Step 1: `POST /v1/users`
-  Step 2: `GET /v1/users/profile`
+  The function returns the current authenticated user's profile, including role and role permissions.
+- Invocation:
+  Step 1: `GET /v1/users/profile` with a valid current-user credential
 - Constraints:
-  One documented way to establish the state is for Step 1 to create a user whose `identities` includes an `API` identity value. Step 2 must authenticate with that same API identity value, because `ApiKeyAuthenticator` reads users by `IdentityType.API`. Google authentication is also implemented: a valid Google id token can create the user automatically and add an API key if missing, but no Swagger endpoint documents that authentication exchange. Swagger incorrectly declares a required path parameter `id` for `/v1/users/profile`, but the path has no `{id}` segment.
+  Swagger incorrectly declares a required path parameter `id` for `/v1/users/profile`, but the path has no `{id}` segment. `ApiKeyAuthenticator` reads users by `IdentityType.API`; `GoogleAuthenticator` verifies the token and may create missing user/API-key state.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The request has no valid current user.
-  - Endpoint group:
-    Step 1: `POST /v1/users`
-    Step 2: `GET /v1/users/profile`
+  - Preconditions:
+    - A user may exist in the database, but the failing request omits credentials or uses an API key that does not match any stored `API` identity.
+    - If Google authentication is attempted, the id token is invalid, has the wrong audience, has an unaccepted authorized party, or cannot be verified by the configured verifier.
   - Failure endpoint:
     `GET /v1/users/profile`
   - Why this fails:
-    `ApiKeyAuthenticator` returns empty when the supplied credential does not match a user `API` identity; `GoogleAuthenticator` returns empty when the Google id token is invalid.
+    `ApiKeyAuthenticator` returns empty when the supplied credential does not match a user `API` identity. `GoogleAuthenticator` returns empty when the Google id token is invalid or rejected by audience/application checks.
   - Intentionally violated constraints:
-    Step 2 omits credentials or uses an API key/Google token not associated with a valid authenticated user.
+    The request does not establish a valid current authenticated user.
 
 Endpoint coverage:
 - Covers:

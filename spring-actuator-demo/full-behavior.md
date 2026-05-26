@@ -1,103 +1,120 @@
-### Behavior 1: get default greeting
+### Function 1: get default greeting
 
-Behavior name:
+Function name:
 get default greeting
 
+Core endpoint(s):
+- `GET /`
+
+Preconditions:
+- No prerequisite database or resource state is required. The endpoint is stateless and does not depend on any setup endpoint or direct database setup.
+
 Successful execution:
 - Result:
-  This behavior returns a greeting for the default user name `Guest`.
-- Endpoint sequence:
+  The endpoint returns a plain-text greeting for the default user name `Guest`.
+- Invocation:
   Step 1: `GET /` with the `name` query parameter omitted.
 - Constraints:
-  No prerequisite resource state is required. The OpenAPI default and controller implementation both use `Guest` when `name` is omitted.
+  The `name` query parameter must be omitted to use the default value. The OpenAPI schema documents `Guest` as the default, and the controller implementation sets `@RequestParam(value = "name", defaultValue = "Guest")`.
 
 Failure or exceptional branches:
-- None identified from the OpenAPI definition or implementation logic.
+- None identified from the OpenAPI definition or implementation logic for the default-name invocation.
 
 Endpoint coverage:
 - Covers:
   `GET /`
 - Distinct meaning:
-  Uses the endpoint’s documented and implemented default `name` value.
+  This function uses the endpoint's documented and implemented default `name` value rather than a caller-supplied query value.
 
-### Behavior 2: get personalized greeting
+### Function 2: get personalized greeting
 
-Behavior name:
+Function name:
 get personalized greeting
 
+Core endpoint(s):
+- `GET /`
+
+Preconditions:
+- No prerequisite database or resource state is required. The endpoint is stateless and does not depend on any setup endpoint or direct database setup.
+
 Successful execution:
 - Result:
-  This behavior returns a greeting addressed to the caller-supplied `name` value.
-- Endpoint sequence:
+  The endpoint returns a plain-text greeting addressed to the caller-supplied `name` value.
+- Invocation:
   Step 1: `GET /` with query parameter `name={name}`.
 - Constraints:
-  No prerequisite resource state is required. The same `{name}` query value is inserted into the response text. The endpoint accepts the value as a string; no additional validation is visible in `src` or the OpenAPI file.
+  `{name}` is accepted as a string query value and is inserted directly into the returned text as `Hello {name}!!`. No additional validation, persistence requirement, authentication requirement, or resource lookup is implemented for this endpoint.
 
 Failure or exceptional branches:
-- None identified from the OpenAPI definition or implementation logic.
+- None identified from the OpenAPI definition or implementation logic for a supplied string `name` query value.
 
 Endpoint coverage:
 - Covers:
   `GET /`
 - Distinct meaning:
-  Uses the caller-provided `name` query parameter rather than the default `Guest`.
+  This function uses the same greeting endpoint with a caller-provided `name` query parameter instead of the default `Guest` value.
 
-### Behavior 3: run slow API with automatic delay
+### Function 3: run slow API with automatic delay
 
-Behavior name:
+Function name:
 run slow API with automatic delay
+
+Core endpoint(s):
+- `GET /slowApi`
+
+Preconditions:
+- No prerequisite database or resource state is required. The endpoint is stateless and does not depend on any setup endpoint or direct database setup.
 
 Successful execution:
 - Result:
-  This behavior waits for an automatically selected delay and then returns the slow API result.
-- Endpoint sequence:
-  Step 1: `GET /slowApi` with the `delay` query parameter omitted, or with `delay=0`.
+  The endpoint waits for an automatically selected delay and then returns the plain-text response `Result`.
+- Invocation:
+  Step 1: `GET /slowApi` with the `delay` query parameter omitted, or with query parameter `delay=0`.
 - Constraints:
-  No prerequisite resource state is required. The OpenAPI default for `delay` is `0`. The implementation treats `delay=0` as a request to choose a random delay from 0 through 9 seconds before returning `Result`.
+  The OpenAPI schema documents `delay` as an optional integer query parameter with default `0`. The controller implementation also uses default value `0`; when the bound integer is `0`, it selects a random integer delay from `0` through `9` seconds before sleeping and returning `Result`.
 
 Failure or exceptional branches:
-- None identified for the documented automatic-delay path when `delay` is omitted or set to integer `0`.
+- None identified from the OpenAPI definition or implementation logic for the omitted `delay` value or integer `delay=0`.
 
 Endpoint coverage:
 - Covers:
   `GET /slowApi`
 - Distinct meaning:
-  Uses the endpoint’s documented default `delay=0`, which the implementation interprets as automatic random delay selection.
+  This function uses the endpoint's documented default `delay=0`, which the implementation treats as a request for automatic random delay selection.
 
-### Behavior 4: run slow API with caller-specified delay
+### Function 4: run slow API with caller-specified delay
 
-Behavior name:
+Function name:
 run slow API with caller-specified delay
+
+Core endpoint(s):
+- `GET /slowApi`
+
+Preconditions:
+- No prerequisite database or resource state is required. The endpoint is stateless and does not depend on any setup endpoint or direct database setup.
 
 Successful execution:
 - Result:
-  This behavior waits according to the caller-supplied `delay` value and then returns the slow API result.
-- Endpoint sequence:
+  The endpoint applies the caller-supplied integer `delay` value and then returns the plain-text response `Result`.
+- Invocation:
   Step 1: `GET /slowApi` with query parameter `delay={delay}`.
 - Constraints:
-  No prerequisite resource state is required. `{delay}` must be parseable as an integer. For a visible positive wait, `{delay}` should be greater than `0`; the implementation only special-cases `0` for random delay selection and otherwise passes the integer to the sleep operation. The OpenAPI schema does not define a minimum value.
+  `{delay}` must be parseable as an integer because the controller parameter type is `Integer` and the OpenAPI schema declares the parameter as `integer` with `int32` format. If `{delay}` is a positive integer, the implementation sleeps for that many seconds. If `{delay}` is a negative integer, `TimeUnit.SECONDS.sleep(delay)` returns without sleeping and the endpoint still returns `Result`. The value `0` is reserved for the automatic random-delay function.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The `delay` query value is not parseable as an integer.
-  - Endpoint group:
-    Step 1: `GET /slowApi` with `delay` set to a non-integer value.
+  - Preconditions:
+    - No prerequisite database or resource state is required. The failing request depends only on the malformed `delay` query value.
+    - The `delay` query parameter is supplied with a value such as `{nonIntegerDelay}` that cannot be parsed as an integer.
   - Failure endpoint:
     `GET /slowApi`
   - Why this fails:
-    The controller parameter is implemented as an integer, and the OpenAPI schema also declares `delay` as an integer. A non-integer value cannot be bound to that parameter before the controller logic runs.
+    Spring must bind the `delay` query parameter to the controller's `Integer delay` argument before entering the method. A non-integer query value violates that binding requirement, so request handling fails before the endpoint can execute its delay logic.
   - Intentionally violated constraints:
-    The query parameter `delay` is supplied with a value that violates the integer type requirement.
+    The `delay` query parameter violates the integer type required by both the OpenAPI schema and the controller method signature.
 
 Endpoint coverage:
 - Covers:
   `GET /slowApi`
 - Distinct meaning:
-  Uses a caller-provided nonzero integer delay instead of the automatic random-delay branch.
-
-### Unclear or auxiliary endpoints
-
-The OpenAPI file documents only `GET /` and `GET /slowApi`, and both are covered above.
-
-The source also configures Spring Boot actuator exposure, health details, and shutdown security. However, the OpenAPI file does not define actuator endpoint paths or operations, and the actuator implementations themselves are framework-provided rather than explicitly present in this project’s `src` controller code. Under the requested rule to infer behaviors from both OpenAPI/Swagger and `src`, I did not list actuator endpoints as documented API behaviors.
+  This function uses a caller-provided integer delay value instead of the automatic random-delay path.

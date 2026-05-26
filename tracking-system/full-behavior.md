@@ -1,67 +1,77 @@
-Analyzed only `tracking-system.json` and `src`.
+Implementation notes:
 
-Implementation note: `/api/**` is explicitly `permitAll`; Swagger still lists `401/403` on most endpoints. The implementation generally returns `400 BAD_REQUEST` for handled runtime exceptions. Create/update methods mostly delegate to `JpaRepository.save`, so they behave as save/upsert operations rather than strict REST-only create/update.
+- `/api/**` is explicitly permitted by the Spring Security configuration, although the Swagger file documents `401` and `403` responses on many endpoints.
+- API exception handling maps `ObjectNotFoundException`, `ObjectAlreadyExistsException`, `UsernameNotFoundException`, `DateTimeParseException`, `NumberFormatException`, `BadCredentialsException`, and generic `RuntimeException` to `400 BAD_REQUEST`.
+- Most create and update endpoints delegate directly to `JpaRepository.save`, so they behave as save/upsert operations unless a database constraint or service dereference fails.
 
-### Behavior 1: authenticate credential
+### Function 1: authenticate credential
 
-Behavior name:
+Function name:
 authenticate credential
+
+Core endpoint(s):
+- `POST /api/authenticate`
+- `POST /api/authenticate/`
+
+Preconditions:
+- A credential with `username = {username}` exists in the database with a BCrypt password matching `{password}` and an `enabled` value. This can be satisfied by directly inserting a `user_credentials` row with the encoded password or by creating an employee through `POST /api/employees` with nested `credential.username`, `credential.password`, and `credential.role`, because employee save encodes the password and enables the credential.
 
 Successful execution:
 - Result:
-  Validates `{username}` and `{password}` and returns `{username, isEligible}`, where `isEligible` is the stored credential `enabled` value.
-- Endpoint sequence:
-  Step 1: `POST /api/authenticate`
-  Alternative Step 1: `POST /api/authenticate/`
+  The endpoint validates `{username}` and `{password}` and returns `{username, isEligible}`, where `isEligible` is the stored credential `enabled` value.
+- Invocation:
+  Step 1: `POST /api/authenticate` with a JSON body containing `username={username}` and `password={password}`
 - Constraints:
-  The request body must contain `username` and `password`. The username must identify an existing credential, and the password must match the BCrypt password used by Spring Security.
+  The username must identify an existing credential and the password must match the BCrypt value accepted by Spring Security.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username does not exist or the password is invalid.
-  - Endpoint group:
-    Step 1: `POST /api/authenticate`
+  - Preconditions:
+    - No credential exists for `{username}`, or the stored password for `{username}` does not match `{password}`. This can be produced by omitting direct insertion and not creating the credential through `POST /api/employees`, or by supplying a mismatched password.
   - Failure endpoint:
     `POST /api/authenticate`
   - Why this fails:
-    `AuthenticationManager.authenticate(...)` throws `BadCredentialsException` or user lookup throws `UsernameNotFoundException`; the API exception handler returns `400 BAD_REQUEST`.
+    `AuthenticationManager.authenticate(...)` throws `BadCredentialsException`, or credential lookup throws `UsernameNotFoundException`; the API returns `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Use a missing username or mismatched password.
+    The credential existence or password-match requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/authenticate`
   `POST /api/authenticate/`
 - Distinct meaning:
-  Login-style credential verification, not token issuance.
+  Credential verification that returns eligibility, not token issuance.
 
-### Behavior 2: list locations
+### Function 2: list locations
 
-Behavior name:
+Function name:
 list locations
+
+Core endpoint(s):
+- `GET /api/locations`
+- `GET /api/locations/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `locations` rows.
 
 Successful execution:
 - Result:
-  Returns all stored locations.
-- Endpoint sequence:
+  The endpoint returns all stored locations.
+- Invocation:
   Step 1: `GET /api/locations`
-  Alternative Step 1: `GET /api/locations/`
 - Constraints:
-  No specific existing location is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific failure branch is visible for normal input.
-  - Endpoint group:
-    Step 1: `GET /api/locations`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/locations`
   - Why this fails:
-    Only an unexpected repository/runtime failure would fail; no documented request value can intentionally trigger a business failure.
+    Only an unexpected repository or runtime failure is visible for normal input.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -70,77 +80,83 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for locations.
 
-### Behavior 3: save location
+### Function 3: save location
 
-Behavior name:
+Function name:
 save location
+
+Core endpoint(s):
+- `POST /api/locations`
+- `POST /api/locations/save`
+
+Preconditions:
+- None. The request body supplies the location state; direct database setup is not required.
 
 Successful execution:
 - Result:
-  Creates a new location when `locationId` is omitted, or persists the supplied location state through repository `save`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Alternative Step 1: `POST /api/locations/save`
+  The endpoint creates a new location when `locationId` is omitted, or persists the supplied location state through repository `save`.
+- Invocation:
+  Step 1: `POST /api/locations` with a JSON body containing location fields such as `adr`, `postalCode`, and `city`, and optionally `locationId`
 - Constraints:
-  Body fields are `adr`, `postalCode`, and `city`. Validation annotations exist, but the API controller does not use `@Valid`, so controller-level validation is not enforced by the visible code.
+  The controller does not use `@Valid`, so visible validation annotations are not enforced at controller entry. The body must still be valid JSON that Jackson can deserialize and the persistence layer can store.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request body cannot be deserialized or persistence fails.
-  - Endpoint group:
-    Step 1: `POST /api/locations`
+  - Preconditions:
+    - No existing resource state is required; the failing request body is malformed JSON or contains values the persistence layer cannot store.
   - Failure endpoint:
     `POST /api/locations`
   - Why this fails:
-    A runtime exception is handled as `400 BAD_REQUEST`.
+    Deserialization or repository/runtime exceptions are handled as `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Provide malformed JSON or values that the persistence layer cannot store.
+    The JSON deserialization or persistence requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/locations`
   `POST /api/locations/save`
 - Distinct meaning:
-  Save/upsert a location record.
+  Save or upsert a location record.
 
-### Behavior 4: retrieve location by id
+### Function 4: retrieve location by id
 
-Behavior name:
+Function name:
 retrieve location by id
+
+Core endpoint(s):
+- `GET /api/locations/{id}`
+
+Preconditions:
+- A location exists in the database with `location_id = {id}` and fields such as `adr`, `postal_code`, and `city`. This can be satisfied by directly inserting a `locations` row or by calling `POST /api/locations` with location fields.
+- The `{id}` path value used by `GET /api/locations/{id}` must be the `locationId` generated by direct insertion or returned by `POST /api/locations`.
 
 Successful execution:
 - Result:
-  Retrieves the location identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `GET /api/locations/{id}`
+  The endpoint retrieves the location identified by `{id}`.
+- Invocation:
+  Step 1: `GET /api/locations/{id}` with numeric path value `id={locationId}`
 - Constraints:
-  `{id}` in Step 2 must be the `locationId` returned by Step 1.
+  `{id}` must parse as an integer and identify an existing location.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The location id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/locations/{id}`
+  - Preconditions:
+    - No location exists with `location_id = {id}`. This can be produced by starting from an empty database, deleting the location beforehand, or intentionally not inserting it directly and not calling `POST /api/locations`.
   - Failure endpoint:
     `GET /api/locations/{id}`
   - Why this fails:
     `LocationService.findById` throws `ObjectNotFoundException`; the API returns `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Omit the prerequisite `POST /api/locations` or use an id not returned by it.
+    The required location state was omitted or the wrong id was reused.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not parseable as an integer.
-  - Endpoint group:
-    Step 1: `GET /api/locations/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/locations/{id}`
   - Why this fails:
-    The controller calls `Integer.parseInt(id)`.
+    The controller calls `Integer.parseInt(id)`, causing `NumberFormatException`.
   - Intentionally violated constraints:
-    Use a non-numeric `{id}`.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -148,34 +164,37 @@ Endpoint coverage:
 - Distinct meaning:
   Resource read for one location.
 
-### Behavior 5: update location
+### Function 5: update location
 
-Behavior name:
+Function name:
 update location
+
+Core endpoint(s):
+- `PUT /api/locations`
+- `PUT /api/locations/update`
+
+Preconditions:
+- A location exists with `location_id = {locationId}` when the intent is to replace an existing record. This can be satisfied by directly inserting a `locations` row or by calling `POST /api/locations` with location fields.
+- The update body should reuse the generated or returned `locationId`. The implementation delegates to `save`, so an unknown or absent id can be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Replaces the stored location state with the request body values.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `PUT /api/locations`
-  Alternative Step 2: `PUT /api/locations/update`
+  The endpoint persists replacement location state.
+- Invocation:
+  Step 1: `PUT /api/locations` with a JSON body containing `locationId={locationId}`, `adr`, `postalCode`, and `city`
 - Constraints:
-  The body in Step 2 must include the `locationId` produced by Step 1. The implementation does not check existence before `save`, so an unknown or absent id may be persisted rather than rejected.
+  The body must be valid JSON that can be deserialized to `Location` and saved.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Request body cannot be deserialized or persistence fails.
-  - Endpoint group:
-    Step 1: `POST /api/locations`
-    Step 2: `PUT /api/locations`
+  - Preconditions:
+    - A location may already exist with `location_id = {locationId}` through direct insertion or `POST /api/locations`, but the failing update body is malformed JSON or contains values the persistence layer rejects.
   - Failure endpoint:
     `PUT /api/locations`
   - Why this fails:
     Runtime exceptions are mapped to `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Send malformed JSON or values the persistence layer rejects.
+    The request body or persistence constraints are violated.
 
 Endpoint coverage:
 - Covers:
@@ -184,44 +203,56 @@ Endpoint coverage:
 - Distinct meaning:
   Save replacement state for a location.
 
-### Behavior 6: delete location
+### Function 6: delete location
 
-Behavior name:
+Function name:
 delete location
+
+Core endpoint(s):
+- `DELETE /api/locations/{id}`
+- `DELETE /api/locations/delete/{id}`
+
+Preconditions:
+- A location exists in the database with `location_id = {id}`. This can be satisfied by directly inserting a `locations` row or by calling `POST /api/locations`.
+- The `{id}` path value must be the `locationId` generated by direct insertion or returned by `POST /api/locations`.
 
 Successful execution:
 - Result:
-  Deletes the location identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `DELETE /api/locations/{id}`
-  Alternative Step 2: `DELETE /api/locations/delete/{id}`
+  The endpoint deletes the location identified by `{id}`.
+- Invocation:
+  Step 1: `DELETE /api/locations/{id}` with numeric path value `id={locationId}`
 - Constraints:
-  `{id}` must be the `locationId` returned by Step 1. If departments reference this location, database constraints may prevent deletion.
+  `{id}` must parse as an integer and identify an existing location. Existing departments referencing the location can cause a database constraint failure.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The location id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/locations/{id}`
+  - Preconditions:
+    - No location exists with `location_id = {id}`. This can be produced by starting from an empty database, deleting it beforehand, or intentionally not inserting it directly and not calling `POST /api/locations`.
   - Failure endpoint:
     `DELETE /api/locations/{id}`
   - Why this fails:
-    The service calls `findById` before delete and throws `ObjectNotFoundException`.
+    The service calls `findById` before deletion and throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite `POST /api/locations`.
+    The required location state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The path id is not numeric.
-  - Endpoint group:
-    Step 1: `DELETE /api/locations/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `DELETE /api/locations/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric `{id}`.
+    The numeric path-id requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - A location exists with `location_id = {id}` through direct insertion or `POST /api/locations`.
+    - At least one department row references that location through `location_id = {id}`. This can be satisfied by directly inserting a `departments` row or by calling `POST /api/departments` with `location.locationId={id}`.
+  - Failure endpoint:
+    `DELETE /api/locations/{id}`
+  - Why this fails:
+    The database foreign key from departments to locations can reject deleting a referenced location.
+  - Intentionally violated constraints:
+    The parent location is deleted while child departments still reference it.
 
 Endpoint coverage:
 - Covers:
@@ -230,32 +261,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one location.
 
-### Behavior 7: list departments
+### Function 7: list departments
 
-Behavior name:
+Function name:
 list departments
+
+Core endpoint(s):
+- `GET /api/departments`
+- `GET /api/departments/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `departments` rows.
 
 Successful execution:
 - Result:
-  Returns all stored departments.
-- Endpoint sequence:
+  The endpoint returns all stored departments.
+- Invocation:
   Step 1: `GET /api/departments`
-  Alternative Step 1: `GET /api/departments/`
 - Constraints:
-  No specific department is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific request failure is visible.
-  - Endpoint group:
-    Step 1: `GET /api/departments`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/departments`
   - Why this fails:
-    Only unexpected repository/runtime errors are visible.
+    Only unexpected repository or runtime errors are visible.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -264,79 +299,85 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for departments.
 
-### Behavior 8: save department
+### Function 8: save department
 
-Behavior name:
+Function name:
 save department
+
+Core endpoint(s):
+- `POST /api/departments`
+- `POST /api/departments/save`
+
+Preconditions:
+- A location exists with `location_id = {locationId}` for the department relationship. This can be satisfied by directly inserting a `locations` row or by calling `POST /api/locations` with `adr`, `postalCode`, and `city`.
+- The request body must reuse the generated or returned `locationId` as `location.locationId`.
 
 Successful execution:
 - Result:
-  Saves a department associated with a location.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `POST /api/departments`
-  Alternative Step 2: `POST /api/departments/save`
+  The endpoint saves a department associated with a location.
+- Invocation:
+  Step 1: `POST /api/departments` with a JSON body containing `departmentName={departmentName}` and `location.locationId={locationId}`
 - Constraints:
-  Step 2 body must include `departmentName` and `location.locationId` from Step 1.
+  The referenced location id must exist unless database constraints are disabled. The controller does not enforce bean validation before saving.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The referenced location does not exist.
-  - Endpoint group:
-    Step 1: `POST /api/departments`
+  - Preconditions:
+    - No location exists with `location_id = {locationId}`. This can be produced by intentionally not inserting the location directly and not calling `POST /api/locations`, or by using a deleted or wrong id.
   - Failure endpoint:
     `POST /api/departments`
   - Why this fails:
     The database foreign key from departments to locations can reject a missing `location_id`.
   - Intentionally violated constraints:
-    Omit `POST /api/locations` and send a nonexistent `location.locationId`.
+    The department references a nonexistent location.
 
 Endpoint coverage:
 - Covers:
   `POST /api/departments`
   `POST /api/departments/save`
 - Distinct meaning:
-  Save/upsert a department and its location relationship.
+  Save or upsert a department and its location relationship.
 
-### Behavior 9: retrieve department by id
+### Function 9: retrieve department by id
 
-Behavior name:
+Function name:
 retrieve department by id
+
+Core endpoint(s):
+- `GET /api/departments/{id}`
+
+Preconditions:
+- A location exists with `location_id = {locationId}`. This can be satisfied by direct insertion into `locations` or by calling `POST /api/locations`.
+- A department exists with `department_id = {departmentId}`, `departmentName={departmentName}`, and `location_id = {locationId}`. This can be satisfied by direct insertion into `departments` or by calling `POST /api/departments` with `location.locationId={locationId}`.
+- The `{id}` path value must be the `departmentId` generated by direct insertion or returned by `POST /api/departments`.
 
 Successful execution:
 - Result:
-  Retrieves the department identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `POST /api/departments`
-  Step 3: `GET /api/departments/{id}`
+  The endpoint retrieves the department identified by `{id}`.
+- Invocation:
+  Step 1: `GET /api/departments/{id}` with numeric path value `id={departmentId}`
 - Constraints:
-  Step 2 must use `location.locationId` from Step 1. `{id}` in Step 3 must be `departmentId` from Step 2.
+  `{id}` must parse as an integer and identify an existing department.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The department id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/departments/{id}`
+  - Preconditions:
+    - No department exists with `department_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/departments`.
   - Failure endpoint:
     `GET /api/departments/{id}`
   - Why this fails:
     `DepartmentService.findById` throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite department creation.
+    The required department state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/departments/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/departments/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -344,36 +385,39 @@ Endpoint coverage:
 - Distinct meaning:
   Resource read for one department.
 
-### Behavior 10: update department
+### Function 10: update department
 
-Behavior name:
+Function name:
 update department
+
+Core endpoint(s):
+- `PUT /api/departments`
+- `PUT /api/departments/update`
+
+Preconditions:
+- A location exists with `location_id = {locationId}` for the existing department. This can be satisfied by directly inserting a `locations` row or by calling `POST /api/locations`.
+- A department exists with `department_id = {departmentId}` and `location_id = {locationId}`. This can be satisfied by direct insertion into `departments` or by calling `POST /api/departments` with `location.locationId={locationId}`.
+- The update body should reuse the generated or returned `departmentId`; the implementation delegates to `save`, so a new id with valid relationships may be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Replaces the stored department state.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `POST /api/departments`
-  Step 3: `PUT /api/departments`
-  Alternative Step 3: `PUT /api/departments/update`
+  The endpoint persists replacement department state.
+- Invocation:
+  Step 1: `PUT /api/departments` with a JSON body containing `departmentId={departmentId}`, `departmentName={departmentName}`, and `location.locationId={locationId}`
 - Constraints:
-  Step 2 and Step 3 bodies must reference a valid `location.locationId`. Step 3 body must include `departmentId` from Step 2.
+  The referenced location id must exist. The body must be valid JSON that can be saved.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The updated body references a missing location.
-  - Endpoint group:
-    Step 1: `POST /api/locations`
-    Step 2: `POST /api/departments`
-    Step 3: `PUT /api/departments`
+  - Preconditions:
+    - A department exists with `department_id = {departmentId}` through direct insertion or `POST /api/departments`.
+    - No location exists with the updated `location.locationId = {badLocationId}` because that row was not inserted directly and `POST /api/locations` was not called for it.
   - Failure endpoint:
     `PUT /api/departments`
   - Why this fails:
-    The department-location foreign key can reject the update.
+    The department-location foreign key can reject the missing location.
   - Intentionally violated constraints:
-    Use a `location.locationId` in Step 3 that was not produced by `POST /api/locations`.
+    The updated department references a nonexistent location.
 
 Endpoint coverage:
 - Covers:
@@ -382,45 +426,57 @@ Endpoint coverage:
 - Distinct meaning:
   Save replacement state for a department.
 
-### Behavior 11: delete department
+### Function 11: delete department
 
-Behavior name:
+Function name:
 delete department
+
+Core endpoint(s):
+- `DELETE /api/departments/{id}`
+- `DELETE /api/departments/delete/{id}`
+
+Preconditions:
+- A location exists with `location_id = {locationId}`. This can be satisfied by direct insertion into `locations` or by calling `POST /api/locations`.
+- A department exists with `department_id = {id}` and `location_id = {locationId}`. This can be satisfied by direct insertion into `departments` or by calling `POST /api/departments` with `location.locationId={locationId}`.
+- The `{id}` path value must be the `departmentId` generated by direct insertion or returned by `POST /api/departments`.
 
 Successful execution:
 - Result:
-  Deletes the department identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `POST /api/departments`
-  Step 3: `DELETE /api/departments/{id}`
-  Alternative Step 3: `DELETE /api/departments/delete/{id}`
+  The endpoint deletes the department identified by `{id}`.
+- Invocation:
+  Step 1: `DELETE /api/departments/{id}` with numeric path value `id={departmentId}`
 - Constraints:
-  `{id}` must be `departmentId` from Step 2. Existing employees referencing the department may prevent deletion.
+  `{id}` must parse as an integer and identify an existing department. Existing employees referencing the department can cause a database constraint failure.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The department id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/departments/{id}`
+  - Preconditions:
+    - No department exists with `department_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/departments`.
   - Failure endpoint:
     `DELETE /api/departments/{id}`
   - Why this fails:
-    The service calls `findById` before delete.
+    The service calls `findById` before deletion and throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite department creation.
+    The required department state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `DELETE /api/departments/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `DELETE /api/departments/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - A department exists with `department_id = {id}` through direct insertion or `POST /api/departments`.
+    - At least one employee row references that department through `department_id = {id}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a manager whose department is `{id}`.
+  - Failure endpoint:
+    `DELETE /api/departments/{id}`
+  - Why this fails:
+    The employees-departments foreign key can reject deleting a referenced department.
+  - Intentionally violated constraints:
+    The parent department is deleted while employees still reference it.
 
 Endpoint coverage:
 - Covers:
@@ -429,32 +485,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one department.
 
-### Behavior 12: list projects
+### Function 12: list projects
 
-Behavior name:
+Function name:
 list projects
+
+Core endpoint(s):
+- `GET /api/projects`
+- `GET /api/projects/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `projects` rows.
 
 Successful execution:
 - Result:
-  Returns all stored projects.
-- Endpoint sequence:
+  The endpoint returns all stored projects.
+- Invocation:
   Step 1: `GET /api/projects`
-  Alternative Step 1: `GET /api/projects/`
 - Constraints:
-  No specific project is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific request failure is visible.
-  - Endpoint group:
-    Step 1: `GET /api/projects`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/projects`
   - Why this fails:
-    Only unexpected repository/runtime errors are visible.
+    Only unexpected repository or runtime errors are visible.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -463,77 +523,83 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for projects.
 
-### Behavior 13: save project
+### Function 13: save project
 
-Behavior name:
+Function name:
 save project
+
+Core endpoint(s):
+- `POST /api/projects`
+- `POST /api/projects/save`
+
+Preconditions:
+- None. The request body supplies the project state; direct database setup is not required.
 
 Successful execution:
 - Result:
-  Saves a project with title, start date, end date, and status.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Alternative Step 1: `POST /api/projects/save`
+  The endpoint saves a project with title, start date, end date, and status.
+- Invocation:
+  Step 1: `POST /api/projects` with a JSON body containing `title`, `startDate`, `endDate`, and `status`, and optionally `projectId`
 - Constraints:
-  Body fields include `title`, `startDate`, `endDate`, and `status`; dates use `dd-MM-yyyy`. The implementation delegates directly to repository `save`.
+  `startDate` and `endDate` use `dd-MM-yyyy`. The implementation delegates directly to repository `save`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Date fields cannot be deserialized or persistence fails.
-  - Endpoint group:
-    Step 1: `POST /api/projects`
+  - Preconditions:
+    - No existing resource state is required; the request uses malformed JSON or date text that cannot be deserialized as `dd-MM-yyyy`.
   - Failure endpoint:
     `POST /api/projects`
   - Why this fails:
     JSON/date/runtime exceptions are handled as `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Use invalid date text or malformed JSON.
+    The date format or request-body deserialization requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/projects`
   `POST /api/projects/save`
 - Distinct meaning:
-  Save/upsert a project.
+  Save or upsert a project.
 
-### Behavior 14: retrieve project by id
+### Function 14: retrieve project by id
 
-Behavior name:
+Function name:
 retrieve project by id
+
+Core endpoint(s):
+- `GET /api/projects/{id}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}` and fields such as `title`, `start_date`, `end_date`, and `status`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- The `{id}` path value must be the `projectId` generated by direct insertion or returned by `POST /api/projects`.
 
 Successful execution:
 - Result:
-  Retrieves the project identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `GET /api/projects/{id}`
+  The endpoint retrieves the project identified by `{id}`.
+- Invocation:
+  Step 1: `GET /api/projects/{id}` with numeric path value `id={projectId}`
 - Constraints:
-  `{id}` in Step 2 must be `projectId` returned by Step 1.
+  `{id}` must parse as an integer and identify an existing project.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The project id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/projects/{id}`
+  - Preconditions:
+    - No project exists with `project_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/projects`.
   - Failure endpoint:
     `GET /api/projects/{id}`
   - Why this fails:
     `ProjectService.findById` throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite project creation.
+    The required project state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/projects/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/projects/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -541,34 +607,37 @@ Endpoint coverage:
 - Distinct meaning:
   Resource read for one project.
 
-### Behavior 15: update project
+### Function 15: update project
 
-Behavior name:
+Function name:
 update project
+
+Core endpoint(s):
+- `PUT /api/projects`
+- `PUT /api/projects/update`
+
+Preconditions:
+- A project exists with `project_id = {projectId}` when the intent is to replace an existing project. This can be satisfied by direct insertion into `projects` or by calling `POST /api/projects`.
+- The update body should reuse the generated or returned `projectId`; the implementation delegates to `save`, so an unknown or absent id can be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Replaces the stored project state.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `PUT /api/projects`
-  Alternative Step 2: `PUT /api/projects/update`
+  The endpoint persists replacement project state.
+- Invocation:
+  Step 1: `PUT /api/projects` with a JSON body containing `projectId={projectId}`, `title`, `startDate`, `endDate`, and `status`
 - Constraints:
-  Step 2 body must include `projectId` from Step 1. Dates use `dd-MM-yyyy`. The implementation does not verify existence before save.
+  Dates use `dd-MM-yyyy`; the body must be valid JSON that can be deserialized and saved.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Date fields cannot be deserialized or persistence fails.
-  - Endpoint group:
-    Step 1: `POST /api/projects`
-    Step 2: `PUT /api/projects`
+  - Preconditions:
+    - A project may already exist through direct insertion or `POST /api/projects`, but the update body contains malformed JSON or invalid `startDate` or `endDate` text.
   - Failure endpoint:
     `PUT /api/projects`
   - Why this fails:
     Runtime exceptions are handled as `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Send invalid date text or malformed JSON.
+    The date format or request-body deserialization requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -577,44 +646,56 @@ Endpoint coverage:
 - Distinct meaning:
   Save replacement state for a project.
 
-### Behavior 16: delete project
+### Function 16: delete project
 
-Behavior name:
+Function name:
 delete project
+
+Core endpoint(s):
+- `DELETE /api/projects/{id}`
+- `DELETE /api/projects/delete/{id}`
+
+Preconditions:
+- A project exists with `project_id = {id}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- The `{id}` path value must be the `projectId` generated by direct insertion or returned by `POST /api/projects`.
 
 Successful execution:
 - Result:
-  Deletes the project identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `DELETE /api/projects/{id}`
-  Alternative Step 2: `DELETE /api/projects/delete/{id}`
+  The endpoint deletes the project identified by `{id}`.
+- Invocation:
+  Step 1: `DELETE /api/projects/{id}` with numeric path value `id={projectId}`
 - Constraints:
-  `{id}` must be `projectId` from Step 1. Existing assignments referencing the project may prevent deletion.
+  `{id}` must parse as an integer and identify an existing project. Existing assignments referencing the project can prevent deletion.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The project id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/projects/{id}`
+  - Preconditions:
+    - No project exists with `project_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/projects`.
   - Failure endpoint:
     `DELETE /api/projects/{id}`
   - Why this fails:
-    The service calls `findById` before delete.
+    The service calls `findById` before deletion and throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite project creation.
+    The required project state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `DELETE /api/projects/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `DELETE /api/projects/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - A project exists with `project_id = {id}` through direct insertion or `POST /api/projects`.
+    - At least one assignment row references that project through `project_id = {id}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with `projectId={id}`.
+  - Failure endpoint:
+    `DELETE /api/projects/{id}`
+  - Why this fails:
+    The assignments-projects foreign key can reject deleting a referenced project.
+  - Intentionally violated constraints:
+    The parent project is deleted while assignments still reference it.
 
 Endpoint coverage:
 - Covers:
@@ -623,32 +704,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one project.
 
-### Behavior 17: list credentials
+### Function 17: list credentials
 
-Behavior name:
+Function name:
 list credentials
+
+Core endpoint(s):
+- `GET /api/credentials`
+- `GET /api/credentials/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `user_credentials` rows.
 
 Successful execution:
 - Result:
-  Returns all stored credentials.
-- Endpoint sequence:
+  The endpoint returns all stored credentials.
+- Invocation:
   Step 1: `GET /api/credentials`
-  Alternative Step 1: `GET /api/credentials/`
 - Constraints:
-  No specific credential is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific request failure is visible.
-  - Endpoint group:
-    Step 1: `GET /api/credentials`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/credentials`
   - Why this fails:
-    Only unexpected repository/runtime errors are visible.
+    Only unexpected repository or runtime errors are visible.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -657,78 +742,83 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for credentials.
 
-### Behavior 18: save credential
+### Function 18: save credential
 
-Behavior name:
+Function name:
 save credential
+
+Core endpoint(s):
+- `POST /api/credentials`
+- `POST /api/credentials/save`
+
+Preconditions:
+- None. The request body supplies the credential state; direct database setup is not required.
 
 Successful execution:
 - Result:
-  Saves a credential record.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Alternative Step 1: `POST /api/credentials/save`
+  The endpoint saves a credential record.
+- Invocation:
+  Step 1: `POST /api/credentials` with a JSON body containing `username`, `password`, `enabled`, `role`, and optionally `credentialId`
 - Constraints:
-  Body fields are `username`, `password`, `enabled`, and `role`. Unlike credential updates and employee creation, this save method does not encode the password in the visible implementation.
+  `username` must remain unique. Unlike credential update and employee save, this endpoint does not encode the password in the visible implementation.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username duplicates an existing credential username.
-  - Endpoint group:
-    Step 1: `POST /api/credentials`
-    Step 2: `POST /api/credentials`
+  - Preconditions:
+    - A credential with `username = {username}` already exists. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials` once before the failing request with the same `username`.
   - Failure endpoint:
     `POST /api/credentials`
   - Why this fails:
-    The credential entity/table defines username as unique.
+    The credential entity and table define username as unique.
   - Intentionally violated constraints:
-    Use the same `username` in both bodies.
+    The credential username uniqueness requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/credentials`
   `POST /api/credentials/save`
 - Distinct meaning:
-  Save/upsert a login credential record.
+  Save or upsert a login credential record.
 
-### Behavior 19: retrieve credential by id
+### Function 19: retrieve credential by id
 
-Behavior name:
+Function name:
 retrieve credential by id
+
+Core endpoint(s):
+- `GET /api/credentials/{id}`
+
+Preconditions:
+- A credential exists with `user_id = {credentialId}` and fields such as `username`, `password`, `enabled`, and `role`. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials`.
+- The `{id}` path value must be the `credentialId` generated by direct insertion or returned by `POST /api/credentials`.
 
 Successful execution:
 - Result:
-  Retrieves the credential identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Step 2: `GET /api/credentials/{id}`
+  The endpoint retrieves the credential identified by `{id}`.
+- Invocation:
+  Step 1: `GET /api/credentials/{id}` with numeric path value `id={credentialId}`
 - Constraints:
-  `{id}` in Step 2 must be `credentialId` returned by Step 1.
+  `{id}` must parse as an integer and identify an existing credential.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The credential id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/credentials/{id}`
+  - Preconditions:
+    - No credential exists with `user_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/credentials`.
   - Failure endpoint:
     `GET /api/credentials/{id}`
   - Why this fails:
     `CredentialService.findById` throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite credential creation.
+    The required credential state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/credentials/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/credentials/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -736,32 +826,36 @@ Endpoint coverage:
 - Distinct meaning:
   Resource read for one credential.
 
-### Behavior 20: retrieve credential by username
+### Function 20: retrieve credential by username
 
-Behavior name:
+Function name:
 retrieve credential by username
+
+Core endpoint(s):
+- `GET /api/credentials/username/{username}`
+
+Preconditions:
+- A credential exists with `username = {username}`. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials` with `username={username}`.
+- The `{username}` path value must match the stored username after the controller trims surrounding whitespace. The repository query compares `LOWER(username)` to the supplied parameter, so using lowercase path values is the reliable form for mixed-case stored usernames.
 
 Successful execution:
 - Result:
-  Retrieves the credential identified by `{username}`.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Step 2: `GET /api/credentials/username/{username}`
+  The endpoint retrieves the credential identified by `{username}`.
+- Invocation:
+  Step 1: `GET /api/credentials/username/{username}` with path value `username={username}`
 - Constraints:
-  `{username}` in Step 2 must match the `username` saved in Step 1. The implementation trims username only for this lookup endpoint.
+  The username must exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/credentials/username/{username}`
+  - Preconditions:
+    - No credential exists with `username = {username}`. This can be produced by omitting direct insertion and not calling `POST /api/credentials`, or by using a different path value than the stored username.
   - Failure endpoint:
     `GET /api/credentials/username/{username}`
   - Why this fails:
     `CredentialService.findByUsername` throws `UsernameNotFoundException`.
   - Intentionally violated constraints:
-    Omit credential creation or use a different username.
+    The required credential username state was omitted or mismatched.
 
 Endpoint coverage:
 - Covers:
@@ -769,35 +863,38 @@ Endpoint coverage:
 - Distinct meaning:
   Lookup credential by username.
 
-### Behavior 21: update credential
+### Function 21: update credential
 
-Behavior name:
+Function name:
 update credential
+
+Core endpoint(s):
+- `PUT /api/credentials`
+- `PUT /api/credentials/update`
+
+Preconditions:
+- A credential exists with `user_id = {credentialId}` when the intent is to replace an existing credential. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials`.
+- The update body should reuse the generated or returned `credentialId`; the implementation delegates to `save`, so an unknown id with a unique username may be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Replaces credential state and BCrypt-encodes the supplied password before saving.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Step 2: `PUT /api/credentials`
-  Alternative Step 2: `PUT /api/credentials/update`
+  The endpoint persists credential state and BCrypt-encodes the supplied password before saving.
+- Invocation:
+  Step 1: `PUT /api/credentials` with a JSON body containing `credentialId={credentialId}`, `username`, `password`, `enabled`, and `role`
 - Constraints:
-  Step 2 body must include `credentialId` from Step 1 to update that credential. If username is changed, it must remain unique.
+  `username` must remain unique. The supplied password is encoded by the service before persistence.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The updated username duplicates another credential.
-  - Endpoint group:
-    Step 1: `POST /api/credentials`
-    Step 2: `POST /api/credentials`
-    Step 3: `PUT /api/credentials`
+  - Preconditions:
+    - A credential exists with `username = {existingUsername}`. This can be satisfied by direct insertion or by calling `POST /api/credentials`.
+    - A different credential exists with `user_id = {credentialId}`. This can be satisfied by direct insertion or by calling `POST /api/credentials` with another username.
   - Failure endpoint:
     `PUT /api/credentials`
   - Why this fails:
-    The username column is unique.
+    Updating the second credential to use `{existingUsername}` violates the unique username constraint.
   - Intentionally violated constraints:
-    Use Step 1’s username in Step 3 while updating the credential created in Step 2.
+    The credential username uniqueness requirement is violated across two credential rows.
 
 Endpoint coverage:
 - Covers:
@@ -806,44 +903,46 @@ Endpoint coverage:
 - Distinct meaning:
   Update credential fields and encode password.
 
-### Behavior 22: delete credential by id
+### Function 22: delete credential by id
 
-Behavior name:
+Function name:
 delete credential by id
+
+Core endpoint(s):
+- `DELETE /api/credentials/{id}`
+- `DELETE /api/credentials/delete/{id}`
+
+Preconditions:
+- A credential exists with `user_id = {id}`. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials`.
+- The `{id}` path value must be the `credentialId` generated by direct insertion or returned by `POST /api/credentials`.
 
 Successful execution:
 - Result:
-  Deletes the credential identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Step 2: `DELETE /api/credentials/{id}`
-  Alternative Step 2: `DELETE /api/credentials/delete/{id}`
+  The endpoint deletes the credential identified by `{id}`.
+- Invocation:
+  Step 1: `DELETE /api/credentials/{id}` with numeric path value `id={credentialId}`
 - Constraints:
-  `{id}` must be `credentialId` from Step 1.
+  `{id}` must parse as an integer and identify an existing credential.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The credential id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/credentials/{id}`
+  - Preconditions:
+    - No credential exists with `user_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/credentials`.
   - Failure endpoint:
     `DELETE /api/credentials/{id}`
   - Why this fails:
-    The service calls `findById` before delete.
+    The service calls `findById` before deletion and throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit the prerequisite credential creation.
+    The required credential state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `DELETE /api/credentials/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `DELETE /api/credentials/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -852,32 +951,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one credential by numeric id.
 
-### Behavior 23: delete credential by username
+### Function 23: delete credential by username
 
-Behavior name:
+Function name:
 delete credential by username
+
+Core endpoint(s):
+- `DELETE /api/credentials/username/{username}`
+
+Preconditions:
+- A credential exists with `username = {username}`. This can be satisfied by directly inserting a `user_credentials` row or by calling `POST /api/credentials` with `username={username}`.
+- The `{username}` path value must match the stored username. Unlike the get-by-username endpoint, this controller method does not trim the path value before lookup.
 
 Successful execution:
 - Result:
-  Deletes the credential identified by `{username}`.
-- Endpoint sequence:
-  Step 1: `POST /api/credentials`
-  Step 2: `DELETE /api/credentials/username/{username}`
+  The endpoint deletes the credential identified by `{username}`.
+- Invocation:
+  Step 1: `DELETE /api/credentials/username/{username}` with path value `username={username}`
 - Constraints:
-  `{username}` must match the username saved in Step 1.
+  The username must exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/credentials/username/{username}`
+  - Preconditions:
+    - No credential exists with `username = {username}`. This can be produced by omitting direct insertion and not calling `POST /api/credentials`, or by using a different path value than the stored username.
   - Failure endpoint:
     `DELETE /api/credentials/username/{username}`
   - Why this fails:
     `CredentialService.findByUsername` throws `UsernameNotFoundException`.
   - Intentionally violated constraints:
-    Omit credential creation or use a different username.
+    The required credential username state was omitted or mismatched.
 
 Endpoint coverage:
 - Covers:
@@ -885,32 +988,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one credential by username.
 
-### Behavior 24: list employees
+### Function 24: list employees
 
-Behavior name:
+Function name:
 list employees
+
+Core endpoint(s):
+- `GET /api/employees`
+- `GET /api/employees/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `employees` rows.
 
 Successful execution:
 - Result:
-  Returns all stored employees.
-- Endpoint sequence:
+  The endpoint returns all stored employees.
+- Invocation:
   Step 1: `GET /api/employees`
-  Alternative Step 1: `GET /api/employees/`
 - Constraints:
-  No specific employee is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific request failure is visible.
-  - Endpoint group:
-    Step 1: `GET /api/employees`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/employees`
   - Why this fails:
-    Only unexpected repository/runtime errors are visible.
+    Only unexpected repository or runtime errors are visible.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -919,89 +1026,96 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for employees.
 
-### Behavior 25: save employee with credential
+### Function 25: save employee with credential
 
-Behavior name:
+Function name:
 save employee with credential
+
+Core endpoint(s):
+- `POST /api/employees`
+- `POST /api/employees/save`
+
+Preconditions:
+- A manager employee exists with `employee_id = {managerId}` and a non-null `department_id`. This can be satisfied by direct database insertion into `employees` linked to a department, by using seeded manager data, or by calling `POST /api/employees` only after an existing manager is already available.
+- A department exists for the manager's `department_id`. This can be satisfied by directly inserting a `departments` row linked to a location or by calling `POST /api/departments` with a valid `location.locationId`.
+- The request body must reference the manager as `manager.employeeId={managerId}` and include enough nested manager data for `manager.department` to be non-null after deserialization.
 
 Successful execution:
 - Result:
-  Saves an employee and cascades a credential; the service sets the employee department from the manager department, encodes the credential password, enables the credential, normalizes the role to start with `ROLE_`, and links the credential back to the employee.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Alternative Step 1: `POST /api/employees/save`
+  The endpoint saves an employee and cascades a credential. The service sets the employee department from the manager department, encodes the credential password, enables the credential, normalizes the role to start with `ROLE_`, and links the credential back to the employee.
+- Invocation:
+  Step 1: `POST /api/employees` with a JSON body containing employee fields, `manager` with a usable `department`, and nested `credential.username`, `credential.password`, and `credential.role`
 - Constraints:
-  Body must include `manager` with a usable `department`, and `credential` with `username`, `password`, and `role`. The API has no documented bootstrap endpoint for creating the first manager without already having a manager, so the first successful employee save relies on an existing manager record, such as seeded data.
+  `manager`, `manager.department`, and `credential` must be present. Nested credential username must be unique. `hiredate` uses `dd-MM-yyyy` when supplied.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `manager` or `credential` is missing.
-  - Endpoint group:
-    Step 1: `POST /api/employees`
+  - Preconditions:
+    - No valid manager object with a non-null department is present in the request body, or no credential object is present in the request body.
   - Failure endpoint:
     `POST /api/employees`
   - Why this fails:
     The service dereferences `employee.getManager().getDepartment()` and `employee.getCredential()`, causing a runtime exception handled as `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Omit `manager`, `manager.department`, or `credential`.
+    The required manager, manager department, or credential state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    Credential username duplicates an existing credential.
-  - Endpoint group:
-    Step 1: `POST /api/employees`
-    Step 2: `POST /api/employees`
+  - Preconditions:
+    - A credential with `username = {username}` already exists. This can be satisfied by direct insertion into `user_credentials`, by calling `POST /api/credentials`, or by calling `POST /api/employees` once with nested `credential.username={username}`.
+    - The failing employee body uses nested `credential.username={username}`.
   - Failure endpoint:
     `POST /api/employees`
   - Why this fails:
-    Employee save cascades credential persistence and credential username is unique.
+    Employee save cascades credential persistence, and credential username is unique.
   - Intentionally violated constraints:
-    Use the same nested `credential.username` in both employee bodies.
+    The nested credential username uniqueness requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/employees`
   `POST /api/employees/save`
 - Distinct meaning:
-  Save/upsert an employee and nested login credential.
+  Save or upsert an employee and nested login credential.
 
-### Behavior 26: retrieve employee by id
+### Function 26: retrieve employee by id
 
-Behavior name:
+Function name:
 retrieve employee by id
+
+Core endpoint(s):
+- `GET /api/employees/{id}`
+
+Preconditions:
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row with valid referenced department and manager ids when needed, or by calling `POST /api/employees` with a valid manager and nested credential.
+- If the employee was created through the API, an existing manager with non-null department must have been available for `POST /api/employees`.
+- The `{id}` path value must be the `employeeId` generated by direct insertion or returned by `POST /api/employees`.
 
 Successful execution:
 - Result:
-  Retrieves the employee identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Step 2: `GET /api/employees/{id}`
+  The endpoint retrieves the employee identified by `{id}`.
+- Invocation:
+  Step 1: `GET /api/employees/{id}` with numeric path value `id={employeeId}`
 - Constraints:
-  `{id}` in Step 2 must be `employeeId` returned by Step 1. Step 1 itself requires an existing manager as described above.
+  `{id}` must parse as an integer and identify an existing employee.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The employee id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/employees/{id}`
+  - Preconditions:
+    - No employee exists with `employee_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/employees`.
   - Failure endpoint:
     `GET /api/employees/{id}`
   - Why this fails:
     `EmployeeService.findById` throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit employee creation.
+    The required employee state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/employees/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/employees/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1009,32 +1123,36 @@ Endpoint coverage:
 - Distinct meaning:
   Resource read for one employee.
 
-### Behavior 27: retrieve employee by username
+### Function 27: retrieve employee by username
 
-Behavior name:
+Function name:
 retrieve employee by username
+
+Core endpoint(s):
+- `GET /api/employees/username/{username}`
+
+Preconditions:
+- An employee exists and is linked to a credential with `username = {username}`. This can be satisfied by directly inserting linked `employees` and `user_credentials` rows or by calling `POST /api/employees` with nested `credential.username={username}`.
+- If the employee was created through the API, an existing manager with non-null department must have been available for `POST /api/employees`.
 
 Successful execution:
 - Result:
-  Retrieves the employee associated with `{username}`.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Step 2: `GET /api/employees/username/{username}`
+  The endpoint retrieves the employee associated with `{username}`.
+- Invocation:
+  Step 1: `GET /api/employees/username/{username}` with path value `username={username}`
 - Constraints:
-  `{username}` must match the nested `credential.username` saved in Step 1.
+  The username must identify a credential whose `employee_id` links to an employee.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/employees/username/{username}`
+  - Preconditions:
+    - No credential exists with `username = {username}`, or the credential is not linked to an employee. This can be produced by omitting direct insertion and not calling `POST /api/employees`, or by creating an unlinked credential with `POST /api/credentials`.
   - Failure endpoint:
     `GET /api/employees/username/{username}`
   - Why this fails:
-    Employee lookup delegates to credential lookup, which throws `UsernameNotFoundException`.
+    Credential lookup throws `UsernameNotFoundException` when the username is missing; an unlinked credential can lead to a null employee result.
   - Intentionally violated constraints:
-    Omit employee/credential creation or use a different username.
+    The required employee-credential linkage is missing or mismatched.
 
 Endpoint coverage:
 - Covers:
@@ -1042,34 +1160,48 @@ Endpoint coverage:
 - Distinct meaning:
   Lookup employee through credential username.
 
-### Behavior 28: update employee with credential
+### Function 28: update employee with credential
 
-Behavior name:
+Function name:
 update employee with credential
+
+Core endpoint(s):
+- `PUT /api/employees`
+- `PUT /api/employees/update`
+
+Preconditions:
+- An employee exists with `employee_id = {employeeId}` and a linked credential when the intent is to replace an existing employee. This can be satisfied by directly inserting linked `employees` and `user_credentials` rows or by calling `POST /api/employees` with a valid manager and nested credential.
+- A manager employee exists with a non-null department. This can be satisfied by direct insertion, seeded data, or a previous successful `POST /api/employees` after a manager was available.
+- The update body should reuse `employeeId={employeeId}` and include `manager.department` and `credential`; the implementation delegates to `save`, so a new employee with valid relationships may be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Replaces employee state and nested credential state; password is encoded, credential is enabled, role is normalized if needed, and department is set from the manager department.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Step 2: `PUT /api/employees`
-  Alternative Step 2: `PUT /api/employees/update`
+  The endpoint persists employee and nested credential state. The service encodes the password, enables the credential, normalizes the role if needed, links the credential to the employee, and sets the employee department from the manager department.
+- Invocation:
+  Step 1: `PUT /api/employees` with a JSON body containing `employeeId={employeeId}`, employee fields, `manager` with a usable `department`, and nested `credential`
 - Constraints:
-  Step 2 body must include `employeeId` from Step 1, a non-null `manager.department`, and a non-null `credential`. Username uniqueness still applies.
+  `manager`, `manager.department`, and `credential` must be present. Nested credential username must remain unique. `hiredate` uses `dd-MM-yyyy` when supplied.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `manager` or `credential` is missing in the update body.
-  - Endpoint group:
-    Step 1: `POST /api/employees`
-    Step 2: `PUT /api/employees`
+  - Preconditions:
+    - An employee may exist through direct insertion or `POST /api/employees`, but the update body omits `manager`, `manager.department`, or `credential`.
   - Failure endpoint:
     `PUT /api/employees`
   - Why this fails:
     The service dereferences those objects before saving.
   - Intentionally violated constraints:
-    Omit `manager`, `manager.department`, or `credential` from Step 2.
+    The required manager, manager department, or credential object is omitted.
+- Branch 2:
+  - Preconditions:
+    - A credential with `username = {existingUsername}` already exists and belongs to another employee. This can be satisfied by direct insertion or by a prior `POST /api/employees`.
+    - The failing update body uses nested `credential.username={existingUsername}` for `{employeeId}`.
+  - Failure endpoint:
+    `PUT /api/employees`
+  - Why this fails:
+    Cascaded credential persistence can violate the unique username constraint.
+  - Intentionally violated constraints:
+    The nested credential username uniqueness requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1078,44 +1210,57 @@ Endpoint coverage:
 - Distinct meaning:
   Update employee and nested credential state.
 
-### Behavior 29: delete employee by id
+### Function 29: delete employee by id
 
-Behavior name:
+Function name:
 delete employee by id
+
+Core endpoint(s):
+- `DELETE /api/employees/{id}`
+- `DELETE /api/employees/delete/{id}`
+
+Preconditions:
+- An employee exists with `employee_id = {id}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- If the employee was created through the API, an existing manager with non-null department must have been available for `POST /api/employees`.
+- The `{id}` path value must be the `employeeId` generated by direct insertion or returned by `POST /api/employees`.
 
 Successful execution:
 - Result:
-  Deletes the employee identified by `{id}`.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Step 2: `DELETE /api/employees/{id}`
-  Alternative Step 2: `DELETE /api/employees/delete/{id}`
+  The endpoint deletes the employee identified by `{id}`.
+- Invocation:
+  Step 1: `DELETE /api/employees/{id}` with numeric path value `id={employeeId}`
 - Constraints:
-  `{id}` must be `employeeId` from Step 1. Existing assignments, credentials, or managed employees may affect database deletion behavior.
+  `{id}` must parse as an integer and identify an existing employee. Existing assignments, credentials, or managed employees can affect database deletion outcomes.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The employee id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/employees/{id}`
+  - Preconditions:
+    - No employee exists with `employee_id = {id}`. This can be produced by omitting direct insertion and not calling `POST /api/employees`.
   - Failure endpoint:
     `DELETE /api/employees/{id}`
   - Why this fails:
-    The service calls `findById` before delete.
+    The service calls `findById` before deletion and throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit employee creation.
+    The required employee state was omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{id}` is not numeric.
-  - Endpoint group:
-    Step 1: `DELETE /api/employees/{id}`
+  - Preconditions:
+    - The path value `{id}` is not parseable as an integer.
   - Failure endpoint:
     `DELETE /api/employees/{id}`
   - Why this fails:
-    The controller parses `{id}` as an integer.
+    The controller parses `{id}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric path-id requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - An employee exists with `employee_id = {id}` through direct insertion or `POST /api/employees`.
+    - Another row references that employee as `manager_id`, or an assignment references that employee through `employee_id`. This can be satisfied by direct insertion or by using `POST /api/employees` or `POST /api/assignments` to create the dependent state.
+  - Failure endpoint:
+    `DELETE /api/employees/{id}`
+  - Why this fails:
+    Employee self-references or assignment foreign keys can reject deleting a referenced employee.
+  - Intentionally violated constraints:
+    The employee is deleted while dependent rows still reference it.
 
 Endpoint coverage:
 - Covers:
@@ -1124,32 +1269,36 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one employee by numeric id.
 
-### Behavior 30: delete employee by username
+### Function 30: delete employee by username
 
-Behavior name:
+Function name:
 delete employee by username
+
+Core endpoint(s):
+- `DELETE /api/employees/username/{username}`
+
+Preconditions:
+- An employee exists and is linked to a credential with `username = {username}`. This can be satisfied by directly inserting linked `employees` and `user_credentials` rows or by calling `POST /api/employees` with nested `credential.username={username}`.
+- If the employee was created through the API, an existing manager with non-null department must have been available for `POST /api/employees`.
 
 Successful execution:
 - Result:
-  Deletes the employee associated with `{username}`.
-- Endpoint sequence:
-  Step 1: `POST /api/employees`
-  Step 2: `DELETE /api/employees/username/{username}`
+  The endpoint deletes the employee associated with `{username}`.
+- Invocation:
+  Step 1: `DELETE /api/employees/username/{username}` with path value `username={username}`
 - Constraints:
-  `{username}` must match the nested credential username saved in Step 1.
+  The username must identify a credential whose `employee_id` links to an employee.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The username does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/employees/username/{username}`
+  - Preconditions:
+    - No credential exists with `username = {username}`, or the credential is not linked to an employee. This can be produced by omitting direct insertion and not calling `POST /api/employees`, or by creating only an unlinked credential with `POST /api/credentials`.
   - Failure endpoint:
     `DELETE /api/employees/username/{username}`
   - Why this fails:
-    Employee deletion by username delegates to credential lookup.
+    Employee deletion by username delegates to credential lookup and then deletes the linked employee; missing username throws `UsernameNotFoundException`, and missing linkage prevents a valid employee delete.
   - Intentionally violated constraints:
-    Omit employee/credential creation or use a different username.
+    The required employee-credential linkage is missing or mismatched.
 
 Endpoint coverage:
 - Covers:
@@ -1157,33 +1306,37 @@ Endpoint coverage:
 - Distinct meaning:
   Delete employee through credential username.
 
-### Behavior 31: list employees by department
+### Function 31: list employees by department
 
-Behavior name:
+Function name:
 list employees by department
+
+Core endpoint(s):
+- `GET /api/employees/data/department/{departmentId}`
+
+Preconditions:
+- A location exists with `location_id = {locationId}` if a department is created through the API. This can be satisfied by direct insertion into `locations` or by calling `POST /api/locations`.
+- A department exists with `department_id = {departmentId}` and `location_id = {locationId}` when the expected result should include department-scoped employees. This can be satisfied by direct insertion into `departments` or by calling `POST /api/departments` with `location.locationId={locationId}`.
+- Employees may exist with `department_id = {departmentId}`. This can be satisfied by direct insertion into `employees` or by calling `POST /api/employees` with a manager whose department is `{departmentId}`.
 
 Successful execution:
 - Result:
-  Returns employees whose `department_id` equals `{departmentId}`.
-- Endpoint sequence:
-  Step 1: `POST /api/locations`
-  Step 2: `POST /api/departments`
-  Step 3: `GET /api/employees/data/department/{departmentId}`
+  The endpoint returns employees whose `department_id` equals `{departmentId}`. If no department or employees exist for that id, the implementation can return an empty list rather than failing.
+- Invocation:
+  Step 1: `GET /api/employees/data/department/{departmentId}` with numeric path value `departmentId={departmentId}`
 - Constraints:
-  Step 2 must use `location.locationId` from Step 1. `{departmentId}` in Step 3 should be `departmentId` from Step 2. Implementation does not verify the department exists; a missing department id can return an empty list.
+  `{departmentId}` must parse as an integer.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{departmentId}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/employees/data/department/{departmentId}`
+  - Preconditions:
+    - The path value `{departmentId}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/employees/data/department/{departmentId}`
   - Why this fails:
-    The controller parses `{departmentId}` as an integer.
+    The controller parses `{departmentId}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric department id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1191,34 +1344,38 @@ Endpoint coverage:
 - Distinct meaning:
   Filter employees by department id.
 
-### Behavior 32: list projects assigned to employee
+### Function 32: list projects assigned to employee
 
-Behavior name:
+Function name:
 list projects assigned to employee
+
+Core endpoint(s):
+- `GET /api/employees/data/employee-project-data/{employeeId}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row with valid references or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists linking `employee_id = {employeeId}` to `project_id = {projectId}` with `commitDate={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with `employeeId={employeeId}`, `projectId={projectId}`, and `commitDate={commitDate}`.
+- The `{employeeId}` path value must reuse the employee id in the assignment.
 
 Successful execution:
 - Result:
-  Returns project summary rows for projects assigned to `{employeeId}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/employees/data/employee-project-data/{employeeId}`
+  The endpoint returns project summary rows for projects assigned to `{employeeId}`.
+- Invocation:
+  Step 1: `GET /api/employees/data/employee-project-data/{employeeId}` with numeric path value `employeeId={employeeId}`
 - Constraints:
-  Step 3 body must use `projectId` from Step 1 and `employeeId` from Step 2. `{employeeId}` in Step 4 must be the same employee id. Step 2 requires an existing manager as described for employee save.
+  `{employeeId}` must parse as an integer. Missing assignment rows produce an empty list rather than a not-found error.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{employeeId}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/employees/data/employee-project-data/{employeeId}`
+  - Preconditions:
+    - The path value `{employeeId}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/employees/data/employee-project-data/{employeeId}`
   - Why this fails:
-    The controller parses `{employeeId}` as an integer.
+    The controller parses `{employeeId}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric employee id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1226,34 +1383,38 @@ Endpoint coverage:
 - Distinct meaning:
   Employee-facing assigned project list.
 
-### Behavior 33: list projects managed by employee
+### Function 33: list projects managed by employee
 
-Behavior name:
+Function name:
 list projects managed by employee
+
+Core endpoint(s):
+- `GET /api/employees/data/manager-project-data/{employeeId}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- A subordinate employee exists with `employee_id = {subordinateEmployeeId}` and `manager_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with `manager.employeeId={employeeId}` after a manager exists.
+- An assignment exists linking `employee_id = {subordinateEmployeeId}` to `project_id = {projectId}` with `commitDate={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with `employeeId={subordinateEmployeeId}`, `projectId={projectId}`, and `commitDate={commitDate}`.
+- The `{employeeId}` path value must be the manager id referenced by the subordinate employee.
 
 Successful execution:
 - Result:
-  Returns project summary rows for projects assigned to employees managed by `{employeeId}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/employees/data/manager-project-data/{employeeId}`
+  The endpoint returns project summary rows for projects assigned to employees managed by `{employeeId}`.
+- Invocation:
+  Step 1: `GET /api/employees/data/manager-project-data/{employeeId}` with numeric path value `employeeId={managerId}`
 - Constraints:
-  `{employeeId}` in Step 4 is a manager id. Step 2 must create or use a subordinate employee whose `manager.employeeId` equals that manager id, and Step 3 must assign that subordinate employee to the project. The API cannot bootstrap the first manager without existing employee data.
+  `{employeeId}` must parse as an integer. Missing subordinate assignment rows produce an empty list.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{employeeId}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/employees/data/manager-project-data/{employeeId}`
+  - Preconditions:
+    - The path value `{employeeId}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/employees/data/manager-project-data/{employeeId}`
   - Why this fails:
-    The controller parses `{employeeId}` as an integer.
+    The controller parses `{employeeId}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric manager id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1261,32 +1422,36 @@ Endpoint coverage:
 - Distinct meaning:
   Manager-facing assigned project list.
 
-### Behavior 34: list assignments
+### Function 34: list assignments
 
-Behavior name:
+Function name:
 list assignments
+
+Core endpoint(s):
+- `GET /api/assignments`
+- `GET /api/assignments/`
+
+Preconditions:
+- None. The collection can be empty or contain any number of `assignments` rows.
 
 Successful execution:
 - Result:
-  Returns all stored assignment records.
-- Endpoint sequence:
+  The endpoint returns all stored assignment records.
+- Invocation:
   Step 1: `GET /api/assignments`
-  Alternative Step 1: `GET /api/assignments/`
 - Constraints:
-  No specific assignment is required.
+  No request values are required.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No implementation-specific request failure is visible.
-  - Endpoint group:
-    Step 1: `GET /api/assignments`
+  - Preconditions:
+    - No request-controlled invalid state is visible in the implementation.
   - Failure endpoint:
     `GET /api/assignments`
   - Why this fails:
-    Only unexpected repository/runtime errors are visible.
+    Only unexpected repository or runtime errors are visible.
   - Intentionally violated constraints:
-    None visible in allowed files.
+    None visible in the implementation.
 
 Endpoint coverage:
 - Covers:
@@ -1295,94 +1460,116 @@ Endpoint coverage:
 - Distinct meaning:
   Collection read for assignments.
 
-### Behavior 35: save assignment
+### Function 35: save assignment
 
-Behavior name:
+Function name:
 save assignment
+
+Core endpoint(s):
+- `POST /api/assignments`
+- `POST /api/assignments/save`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row with valid references or by calling `POST /api/employees` with a valid manager and nested credential.
+- The assignment body must reuse `projectId={projectId}` and `employeeId={employeeId}` from those rows, and must include `commitDate={commitDate}` formatted as `dd-MM-yyyyHH:mm:ss`.
 
 Successful execution:
 - Result:
-  Saves an assignment keyed by employee id, project id, and commit date.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Alternative Step 3: `POST /api/assignments/save`
+  The endpoint saves an assignment keyed by employee id, project id, and commit date.
+- Invocation:
+  Step 1: `POST /api/assignments` with a JSON body containing `employeeId={employeeId}`, `projectId={projectId}`, `commitDate={commitDate}`, and optional commit descriptions
 - Constraints:
-  Step 3 body must use `projectId` from Step 1, `employeeId` from Step 2, and `commitDate` formatted as `dd-MM-yyyyHH:mm:ss`. The assignment table has foreign keys to projects and employees.
+  The employee and project foreign keys must exist. The composite key is `(employeeId, projectId, commitDate)`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Employee or project id does not exist.
-  - Endpoint group:
-    Step 1: `POST /api/assignments`
+  - Preconditions:
+    - No employee exists with `employee_id = {employeeId}`, or no project exists with `project_id = {projectId}`. This can be produced by intentionally not inserting the missing row directly and not calling `POST /api/employees` or `POST /api/projects`.
   - Failure endpoint:
     `POST /api/assignments`
   - Why this fails:
     Assignment foreign keys require existing employee and project rows.
   - Intentionally violated constraints:
-    Omit `POST /api/projects` or `POST /api/employees` and use nonexistent ids.
+    The assignment references a nonexistent employee or project.
 - Branch 2:
-  - Unsatisfied condition:
-    `commitDate` cannot be deserialized.
-  - Endpoint group:
-    Step 1: `POST /api/projects`
-    Step 2: `POST /api/employees`
-    Step 3: `POST /api/assignments`
+  - Preconditions:
+    - A project exists with `project_id = {projectId}` through direct insertion or `POST /api/projects`.
+    - An employee exists with `employee_id = {employeeId}` through direct insertion or `POST /api/employees`.
+    - The failing assignment body contains a `commitDate` value not deserializable as `dd-MM-yyyyHH:mm:ss`.
   - Failure endpoint:
     `POST /api/assignments`
   - Why this fails:
     Assignment `commitDate` is a `LocalDateTime` using `dd-MM-yyyyHH:mm:ss`.
   - Intentionally violated constraints:
-    Use a different date format.
+    The assignment commit-date format requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - An assignment already exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting the `assignments` row or by calling `POST /api/assignments` once with the same composite key.
+  - Failure endpoint:
+    `POST /api/assignments`
+  - Why this fails:
+    The assignment table primary key is `(employee_id, project_id, commit_date)`, so a duplicate composite key can be rejected.
+  - Intentionally violated constraints:
+    The assignment composite-key uniqueness requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/assignments`
   `POST /api/assignments/save`
 - Distinct meaning:
-  Save/upsert an assignment or commit record.
+  Save or upsert an assignment or commit record.
 
-### Behavior 36: retrieve assignment by composite id
+### Function 36: retrieve assignment by composite id
 
-Behavior name:
+Function name:
 retrieve assignment by composite id
+
+Core endpoint(s):
+- `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- The path values must match the assignment composite key exactly, and `{commitDate}` must use `dd-MM-yyyyHH:mm:ss`.
 
 Successful execution:
 - Result:
-  Retrieves the assignment matching `{employeeId}`, `{projectId}`, and `{commitDate}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  The endpoint retrieves the assignment matching `{employeeId}`, `{projectId}`, and `{commitDate}`.
+- Invocation:
+  Step 1: `GET /api/assignments/{employeeId}/{projectId}/{commitDate}` with numeric `employeeId`, numeric `projectId`, and formatted `commitDate`
 - Constraints:
-  Step 3 must use ids from Steps 1 and 2. Step 4 path values must match Step 3 body values exactly. `{commitDate}` uses `dd-MM-yyyyHH:mm:ss`.
+  Both ids must parse as integers; `commitDate` must parse as `dd-MM-yyyyHH:mm:ss`; the composite key must exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The composite assignment id does not exist.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - No assignment exists with the composite key `{employeeId}`, `{projectId}`, and `{commitDate}`. This can be produced by omitting direct insertion and not calling `POST /api/assignments`, or by using mismatched path values.
   - Failure endpoint:
     `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
     `AssignmentService.findById` throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit assignment creation or use mismatched path values.
+    The required assignment composite key state is missing or mismatched.
 - Branch 2:
-  - Unsatisfied condition:
-    `{commitDate}` has the wrong format.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - The `{commitDate}` path value is not parseable as `dd-MM-yyyyHH:mm:ss`.
   - Failure endpoint:
     `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
-    The controller parses the date with `dd-MM-yyyyHH:mm:ss`.
+    The controller parses the date with `DateTimeFormatter.ofPattern("dd-MM-yyyyHH:mm:ss")`.
   - Intentionally violated constraints:
-    Use a different date format.
+    The commit-date path format requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - `{employeeId}` or `{projectId}` is not parseable as an integer.
+  - Failure endpoint:
+    `GET /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Why this fails:
+    The controller parses both ids with `Integer.parseInt`.
+  - Intentionally violated constraints:
+    The numeric assignment id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1390,35 +1577,50 @@ Endpoint coverage:
 - Distinct meaning:
   Read the raw assignment entity by composite key.
 
-### Behavior 37: update assignment
+### Function 37: update assignment
 
-Behavior name:
+Function name:
 update assignment
+
+Core endpoint(s):
+- `PUT /api/assignments`
+- `PUT /api/assignments/update`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}` when the intent is to replace an existing assignment. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- The update body should reuse the same composite key. The implementation delegates to `save`, so a new composite key with valid foreign keys may be inserted rather than rejected.
 
 Successful execution:
 - Result:
-  Saves replacement assignment values for an existing composite assignment key.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `PUT /api/assignments`
-  Alternative Step 4: `PUT /api/assignments/update`
+  The endpoint saves replacement assignment values for a composite assignment key.
+- Invocation:
+  Step 1: `PUT /api/assignments` with a JSON body containing `employeeId={employeeId}`, `projectId={projectId}`, `commitDate={commitDate}`, and updated commit descriptions
 - Constraints:
-  Step 4 body should use the same `employeeId`, `projectId`, and `commitDate` as Step 3 to update that assignment. The implementation delegates to `save`, so a new composite key with valid foreign keys may be inserted instead of rejected.
+  Employee and project ids must exist. `commitDate` must deserialize as `dd-MM-yyyyHH:mm:ss`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Employee or project id does not exist.
-  - Endpoint group:
-    Step 1: `PUT /api/assignments`
+  - Preconditions:
+    - No employee exists with `employee_id = {employeeId}`, or no project exists with `project_id = {projectId}`. This can be produced by omitting direct insertion and not calling `POST /api/employees` or `POST /api/projects`.
   - Failure endpoint:
     `PUT /api/assignments`
   - Why this fails:
     Assignment foreign keys require existing employee and project rows.
   - Intentionally violated constraints:
-    Use nonexistent `employeeId` or `projectId`.
+    The assignment references a nonexistent employee or project.
+- Branch 2:
+  - Preconditions:
+    - A project exists with `project_id = {projectId}` through direct insertion or `POST /api/projects`.
+    - An employee exists with `employee_id = {employeeId}` through direct insertion or `POST /api/employees`.
+    - The failing update body contains `commitDate` text not deserializable as `dd-MM-yyyyHH:mm:ss`.
+  - Failure endpoint:
+    `PUT /api/assignments`
+  - Why this fails:
+    Assignment `commitDate` is a `LocalDateTime` using `dd-MM-yyyyHH:mm:ss`.
+  - Intentionally violated constraints:
+    The assignment commit-date format requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1427,46 +1629,57 @@ Endpoint coverage:
 - Distinct meaning:
   Update or upsert an assignment record.
 
-### Behavior 38: delete assignment
+### Function 38: delete assignment
 
-Behavior name:
+Function name:
 delete assignment
+
+Core endpoint(s):
+- `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
+- `DELETE /api/assignments/delete/{employeeId}/{projectId}/{commitDate}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- The path values must match the assignment composite key exactly, and `{commitDate}` must use `dd-MM-yyyyHH:mm:ss`.
 
 Successful execution:
 - Result:
-  Deletes the assignment matching `{employeeId}`, `{projectId}`, and `{commitDate}`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
-  Alternative Step 4: `DELETE /api/assignments/delete/{employeeId}/{projectId}/{commitDate}`
+  The endpoint deletes the assignment matching `{employeeId}`, `{projectId}`, and `{commitDate}`.
+- Invocation:
+  Step 1: `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}` with numeric ids and formatted `commitDate`
 - Constraints:
-  Step 4 path values must match the composite key saved in Step 3. `{commitDate}` uses `dd-MM-yyyyHH:mm:ss`.
+  Both ids must parse as integers; `commitDate` must parse as `dd-MM-yyyyHH:mm:ss`; the composite key must exist.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The composite assignment id does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - No assignment exists with the composite key `{employeeId}`, `{projectId}`, and `{commitDate}`. This can be produced by omitting direct insertion and not calling `POST /api/assignments`, or by using mismatched path values.
   - Failure endpoint:
     `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
     Delete calls `findById` first, which throws `ObjectNotFoundException`.
   - Intentionally violated constraints:
-    Omit assignment creation or use mismatched path values.
+    The required assignment composite key state is missing or mismatched.
 - Branch 2:
-  - Unsatisfied condition:
-    `{commitDate}` has the wrong format.
-  - Endpoint group:
-    Step 1: `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - The `{commitDate}` path value is not parseable as `dd-MM-yyyyHH:mm:ss`.
   - Failure endpoint:
     `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
-    The controller parses the date with `dd-MM-yyyyHH:mm:ss`.
+    The controller parses the date with `DateTimeFormatter.ofPattern("dd-MM-yyyyHH:mm:ss")`.
   - Intentionally violated constraints:
-    Use a different date format.
+    The commit-date path format requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - `{employeeId}` or `{projectId}` is not parseable as an integer.
+  - Failure endpoint:
+    `DELETE /api/assignments/{employeeId}/{projectId}/{commitDate}`
+  - Why this fails:
+    The controller parses both ids with `Integer.parseInt`.
+  - Intentionally violated constraints:
+    The numeric assignment id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1475,34 +1688,38 @@ Endpoint coverage:
 - Distinct meaning:
   Delete one assignment by composite key.
 
-### Behavior 39: list project commits for project
+### Function 39: list project commits for project
 
-Behavior name:
+Function name:
 list project commits for project
+
+Core endpoint(s):
+- `GET /api/assignments/data/project-commit/{projectId}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- To appear in the result, the assignment must have `commit_emp_desc` not null or `LOWER(commit_mgr_desc) != 'init'`.
 
 Successful execution:
 - Result:
-  Returns commit projection rows for `{projectId}`, excluding rows where employee description is null and manager description is `init`.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/assignments/data/project-commit/{projectId}`
+  The endpoint returns commit projection rows for `{projectId}`, excluding rows where employee description is null and manager description is `init`.
+- Invocation:
+  Step 1: `GET /api/assignments/data/project-commit/{projectId}` with numeric path value `projectId={projectId}`
 - Constraints:
-  Step 3 must use `projectId` from Step 1 and `employeeId` from Step 2. Step 4 must reuse Step 1’s `projectId`. To appear in the result, the assignment must have `commitEmpDesc` not null or `commitMgrDesc` not equal to `init` case-insensitively.
+  `{projectId}` must parse as an integer. Missing matching rows produce an empty list.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{projectId}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/data/project-commit/{projectId}`
+  - Preconditions:
+    - The path value `{projectId}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/assignments/data/project-commit/{projectId}`
   - Why this fails:
-    The controller parses `{projectId}` as an integer.
+    The controller parses `{projectId}` with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric path value.
+    The numeric project id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1510,34 +1727,38 @@ Endpoint coverage:
 - Distinct meaning:
   Project-level commit report.
 
-### Behavior 40: list project commits for employee and project
+### Function 40: list project commits for employee and project
 
-Behavior name:
+Function name:
 list project commits for employee and project
+
+Core endpoint(s):
+- `GET /api/assignments/data/project-commit/{employeeId}/{projectId}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- To appear in the result, the assignment must have `commit_emp_desc` not null or `LOWER(commit_mgr_desc) != 'init'`.
 
 Successful execution:
 - Result:
-  Returns commit projection rows for one employee on one project, excluding initial-only rows.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}`
+  The endpoint returns commit projection rows for one employee on one project, excluding initial-only rows.
+- Invocation:
+  Step 1: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}` with numeric path values `employeeId={employeeId}` and `projectId={projectId}`
 - Constraints:
-  Step 4 must reuse `employeeId` from Step 2 and `projectId` from Step 1. Step 3 must create the matching assignment. To appear in the result, the assignment must have `commitEmpDesc` not null or `commitMgrDesc` not equal to `init`.
+  Both ids must parse as integers. Missing matching rows produce an empty list.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{employeeId}` or `{projectId}` is not numeric.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}`
+  - Preconditions:
+    - `{employeeId}` or `{projectId}` is not parseable as an integer.
   - Failure endpoint:
     `GET /api/assignments/data/project-commit/{employeeId}/{projectId}`
   - Why this fails:
-    The controller parses both values as integers.
+    The controller parses both values with `Integer.parseInt`.
   - Intentionally violated constraints:
-    Use a non-numeric employee or project id.
+    The numeric employee or project id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1545,45 +1766,56 @@ Endpoint coverage:
 - Distinct meaning:
   Employee-and-project commit report.
 
-### Behavior 41: retrieve one projected project commit
+### Function 41: retrieve one projected project commit
 
-Behavior name:
+Function name:
 retrieve one projected project commit
+
+Core endpoint(s):
+- `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
+
+Preconditions:
+- A project exists with `project_id = {projectId}`. This can be satisfied by directly inserting a `projects` row or by calling `POST /api/projects`.
+- An employee exists with `employee_id = {employeeId}`. This can be satisfied by directly inserting an `employees` row or by calling `POST /api/employees` with a valid manager and nested credential.
+- An assignment exists with `employee_id={employeeId}`, `project_id={projectId}`, and `commit_date={commitDate}`. This can be satisfied by directly inserting an `assignments` row or by calling `POST /api/assignments` with those values.
+- The path values must match the assignment composite key exactly, and `{commitDate}` must use `dd-MM-yyyyHH:mm:ss`.
 
 Successful execution:
 - Result:
-  Returns a projected commit row for one employee, project, and commit date.
-- Endpoint sequence:
-  Step 1: `POST /api/projects`
-  Step 2: `POST /api/employees`
-  Step 3: `POST /api/assignments`
-  Step 4: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
+  The endpoint returns a projected commit row for one employee, project, and commit date.
+- Invocation:
+  Step 1: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}` with numeric ids and formatted `commitDate`
 - Constraints:
-  Step 4 path values must reuse `employeeId`, `projectId`, and `commitDate` from Step 3. `{commitDate}` uses `dd-MM-yyyyHH:mm:ss`.
+  Both ids must parse as integers; `commitDate` must parse as `dd-MM-yyyyHH:mm:ss`; the projected commit query must find a row.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No projected commit exists for the composite values.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - No projected commit exists for `{employeeId}`, `{projectId}`, and `{commitDate}`. This can be produced by omitting direct insertion and not calling `POST /api/assignments`, or by using mismatched path values.
   - Failure endpoint:
     `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
     Repository lookup returns empty and the service throws `NoSuchElementException`, handled as `400 BAD_REQUEST`.
   - Intentionally violated constraints:
-    Omit assignment creation or use mismatched path values.
+    The required projected commit row is missing or mismatched.
 - Branch 2:
-  - Unsatisfied condition:
-    `{commitDate}` has the wrong format.
-  - Endpoint group:
-    Step 1: `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
+  - Preconditions:
+    - The `{commitDate}` path value is not parseable as `dd-MM-yyyyHH:mm:ss`.
   - Failure endpoint:
     `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
   - Why this fails:
-    The controller parses the date with `dd-MM-yyyyHH:mm:ss`.
+    The controller parses the date with `DateTimeFormatter.ofPattern("dd-MM-yyyyHH:mm:ss")`.
   - Intentionally violated constraints:
-    Use a different date format.
+    The commit-date path format requirement is violated.
+- Branch 3:
+  - Preconditions:
+    - `{employeeId}` or `{projectId}` is not parseable as an integer.
+  - Failure endpoint:
+    `GET /api/assignments/data/project-commit/{employeeId}/{projectId}/{commitDate}`
+  - Why this fails:
+    The controller parses both ids with `Integer.parseInt`.
+  - Intentionally violated constraints:
+    The numeric employee or project id requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -1591,6 +1823,6 @@ Endpoint coverage:
 - Distinct meaning:
   Read one commit report projection, not the raw assignment entity.
 
-### Unclear or auxiliary endpoints
+### Auxiliary endpoint without reliable implemented function
 
-`GET /api/assignments/{employeeId}/{projectId}` is documented in Swagger as `findAllByEmployeeIdAndManagerId`, but the implementation returns `new ResponseEntity<>(null, null)` and contains a TODO saying the method still needs to be created. It does not call a service method and does not implement a reliable user-visible behavior.
+`GET /api/assignments/{employeeId}/{projectId}` appears in Swagger and in `AssignmentResource`, but the implementation returns `new ResponseEntity<>(null, null)` and contains a TODO stating that the method still needs to be created. It does not call a service method and does not implement a reliable function-level capability.

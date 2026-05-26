@@ -1,164 +1,170 @@
-Analyzed `swagger-petstore.json`, `src/main/webapp/openapi.yaml`, and the implementation under `src/main/java/io/swagger/petstore`. Where Swagger and source disagree, I prioritized the controller/data-store behavior.
+### Function 1: create pet
 
-### Behavior 1: create pet
-
-Behavior name:
+Function name:
 create pet
+
+Core endpoint(s):
+- `POST /pet`
+
+Preconditions:
+- No existing pet with `id={petId}` is present in the in-memory pet store if the call is intended to create a new pet. This can be satisfied by directly seeding the `PetData` collection without that id or by not calling `POST /pet` previously with the same `id`.
 
 Successful execution:
 - Result:
-  This behavior stores a new pet.
-- Endpoint sequence:
-  Step 1: `POST /pet` with a non-null Pet body containing `id={petId}`.
+  Stores the supplied Pet object as a pet resource.
+- Invocation:
+  Step 1: `POST /pet` with a non-null Pet body containing `id={petId}` and any supplied `name`, `photoUrls`, `category`, `tags`, and `status` values.
 - Constraints:
-  For this to be creation, `{petId}` must not already identify an existing pet. Swagger requires `name` and `photoUrls`, but the implementation only checks that the Pet body is non-null.
+  The Pet body must be non-null. Swagger requires `name` and `photoUrls`, but the implementation only checks that the body is non-null. `PetData.addPet` removes any existing pet with the same id before storing the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    A Pet body must be supplied.
-  - Endpoint group:
-    Step 1: `POST /pet` with no Pet body or a body that deserializes to null.
+  - Preconditions:
+    - No Pet request body is supplied, or the request body deserializes to null.
   - Failure endpoint:
     `POST /pet`
   - Why this fails:
     `PetController.addPet` returns bad request when `pet == null`.
   - Intentionally violated constraints:
-    The required Pet request body is omitted.
+    The implementation-required Pet request body is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    `{petId}` must be new for this behavior to be creation.
-  - Endpoint group:
-    Step 1: `POST /pet` with body `id={petId}`.
-    Step 2: `POST /pet` again with body `id={petId}`.
+  - Preconditions:
+    - A pet with `id={petId}` already exists in the in-memory pet store. This can be satisfied by direct fixture insertion into `PetData` or by calling `POST /pet` once with a Pet body whose `id` is `{petId}`.
   - Failure endpoint:
     `POST /pet`
   - Why this fails:
-    The second call does not create a second independent pet; `PetData.addPet` removes the existing pet with the same id and stores the new one.
+    The request succeeds, but it does not create an additional independent pet; `PetData.addPet` removes the existing pet with the same id and stores the new body.
   - Intentionally violated constraints:
-    The second request reuses an already-existing pet id.
+    The submitted id is reused for a create-only interpretation of the endpoint.
 
 Endpoint coverage:
 - Covers:
   `POST /pet`
 - Distinct meaning:
-  Creates a pet when the submitted `id` is not already present.
+  Adds a pet when the submitted id is not already present.
 
-### Behavior 2: replace pet through create endpoint
+### Function 2: replace pet through create endpoint
 
-Behavior name:
+Function name:
 replace pet through create endpoint
+
+Core endpoint(s):
+- `POST /pet`
+
+Preconditions:
+- A pet with `id={petId}` already exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}`.
 
 Successful execution:
 - Result:
-  This behavior replaces the stored pet with the same `id`.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}`.
-  Step 2: `POST /pet` with another non-null Pet body whose `id` is the same `{petId}`.
+  Replaces the stored pet that has the same id as the submitted Pet body.
+- Invocation:
+  Step 1: `POST /pet` with a non-null replacement Pet body whose `id` is `{petId}`.
 - Constraints:
-  Step 2 must reuse the same `id` as Step 1. The implementation removes the previous pet with that id and adds the new body.
+  The replacement body must be non-null and must reuse the id of an existing pet. `PetData.addPet` deletes any current pet with that id and stores the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    A pet with `{petId}` must already exist for this to be replacement.
-  - Endpoint group:
-    Step 1: `POST /pet` with body `id={petId}` while no existing pet with `{petId}` was created first.
+  - Preconditions:
+    - No pet with `id={petId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` before the replacement request.
   - Failure endpoint:
     `POST /pet`
   - Why this fails:
-    The call succeeds, but it performs Behavior 1, creation, rather than replacement.
+    The request succeeds as a new pet creation instead of replacing an existing pet.
   - Intentionally violated constraints:
-    The prerequisite existing pet state was intentionally omitted.
+    The existing pet state required for replacement is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The replacement Pet body must be supplied.
-  - Endpoint group:
-    Step 1: `POST /pet` with body `id={petId}`.
-    Step 2: `POST /pet` with no Pet body.
+  - Preconditions:
+    - A pet with `id={petId}` already exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with that id or by calling `POST /pet` with `id={petId}`.
+    - No replacement Pet request body is supplied, or the body deserializes to null.
   - Failure endpoint:
     `POST /pet`
   - Why this fails:
     `PetController.addPet` rejects a null Pet body.
   - Intentionally violated constraints:
-    Step 2 omits the required replacement body.
+    The replacement body is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /pet`
 - Distinct meaning:
-  Replaces an existing pet when the submitted `id` already exists.
+  Overwrites an existing pet when the submitted id already exists.
 
-### Behavior 3: update existing pet by body
+### Function 3: update existing pet by body
 
-Behavior name:
+Function name:
 update existing pet by body
 
+Core endpoint(s):
+- `PUT /pet`
+
+Preconditions:
+- A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}`.
+- The `id` in the `PUT /pet` body must be `{petId}`, matching the existing pet to be replaced.
+
 Successful execution:
 - Result:
-  This behavior updates an existing pet using the Pet body.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}`.
-  Step 2: `PUT /pet` with a non-null Pet body whose `id` is `{petId}`.
+  Replaces the existing pet identified by the id in the submitted Pet body.
+- Invocation:
+  Step 1: `PUT /pet` with a non-null Pet body whose `id` is `{petId}`.
 - Constraints:
-  Step 2 body `id` must match the pet created by Step 1. The implementation requires the existing pet to be found before replacing it.
+  The body must be non-null. The implementation looks up the body id before replacing the pet. Swagger requires `name` and `photoUrls`, but the implementation does not validate those fields.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The update body must be supplied.
-  - Endpoint group:
-    Step 1: `PUT /pet` with no Pet body.
+  - Preconditions:
+    - No Pet update body is supplied, or the body deserializes to null.
   - Failure endpoint:
     `PUT /pet`
   - Why this fails:
-    `PetController.updatePet` returns bad request for `pet == null`.
+    `PetController.updatePet` returns bad request when `pet == null`.
   - Intentionally violated constraints:
-    The required Pet body is omitted.
+    The implementation-required Pet update body is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    A pet with the body `id` must already exist.
-  - Endpoint group:
-    Step 1: `PUT /pet` with body `id={missingPetId}`, where `{missingPetId}` was not created and is not one of the seeded pet ids.
+  - Preconditions:
+    - No pet with `id={missingPetId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` with `id={missingPetId}`.
+    - The `PUT /pet` body uses `id={missingPetId}`.
   - Failure endpoint:
     `PUT /pet`
   - Why this fails:
-    The controller looks up the body `id`, finds no existing pet, and returns not found.
+    The controller looks up the body id, finds no existing pet, and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /pet` for `{missingPetId}` is intentionally omitted.
+    The required existing pet state for the body id is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /pet`
   `PUT /pet`
 - Distinct meaning:
-  `POST /pet` establishes the pet; `PUT /pet` replaces an existing pet by body id.
+  Replaces an existing pet by the id carried in the request body.
 
-### Behavior 4: find pets by status
+### Function 4: find pets by status
 
-Behavior name:
+Function name:
 find pets by status
+
+Core endpoint(s):
+- `GET /pet/findByStatus`
+
+Preconditions:
+- None.
 
 Successful execution:
 - Result:
-  This behavior returns pets whose `status` equals one of the supplied comma-separated status values.
-- Endpoint sequence:
+  Returns pets whose `status` equals one of the supplied comma-separated status values.
+- Invocation:
   Step 1: `GET /pet/findByStatus` with query `status={status}`.
 - Constraints:
-  `{status}` must be non-null. Swagger lists `available`, `pending`, and `sold`, but the implementation does not enforce that enum; an unmatched non-null status returns an empty list.
+  The `status` query value must be non-null. Swagger marks `status` optional with default `available` and documents enum values `available`, `pending`, and `sold`, but the implementation requires a non-null string and does not enforce the enum. Unmatched non-null values return an empty list.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The `status` query value must be provided.
-  - Endpoint group:
-    Step 1: `GET /pet/findByStatus` without `status`.
+  - Preconditions:
+    - The request omits the `status` query value.
   - Failure endpoint:
     `GET /pet/findByStatus`
   - Why this fails:
-    The implementation returns bad request when `status == null`.
+    `PetController.findPetsByStatus` returns bad request when `status == null`.
   - Intentionally violated constraints:
-    The query value is omitted. This differs from Swagger, which marks `status` optional with default `available`.
+    The implementation-required `status` query value is omitted, despite Swagger documenting it as optional.
 
 Endpoint coverage:
 - Covers:
@@ -166,31 +172,35 @@ Endpoint coverage:
 - Distinct meaning:
   Searches the pet collection by status.
 
-### Behavior 5: find pets by tags
+### Function 5: find pets by tags
 
-Behavior name:
+Function name:
 find pets by tags
+
+Core endpoint(s):
+- `GET /pet/findByTags`
+
+Preconditions:
+- None.
 
 Successful execution:
 - Result:
-  This behavior returns pets that have at least one tag whose name matches the supplied tag values.
-- Endpoint sequence:
-  Step 1: `GET /pet/findByTags` with query `tags={tagName}`.
+  Returns pets that have at least one tag whose `name` matches one of the supplied tag values.
+- Invocation:
+  Step 1: `GET /pet/findByTags` with query `tags={tagName}` or multiple `tags` values.
 - Constraints:
-  The `tags` query list must be non-null and non-empty. The implementation returns an empty list when no pet tag matches.
+  The `tags` query list must be non-null and non-empty. Swagger marks the query parameter optional, but the implementation rejects null or empty tag lists. Non-empty values with no matches return an empty list.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    At least one tag value must be supplied.
-  - Endpoint group:
-    Step 1: `GET /pet/findByTags` without `tags`, or with an empty tag list.
+  - Preconditions:
+    - The request omits `tags` or supplies an empty tag list.
   - Failure endpoint:
     `GET /pet/findByTags`
   - Why this fails:
     `PetController.findPetsByTags` returns bad request when the tag list is null or empty.
   - Intentionally violated constraints:
-    The required implementation-level tag list is omitted, although Swagger marks the query parameter optional.
+    The implementation-required tag list is omitted or empty.
 
 Endpoint coverage:
 - Covers:
@@ -198,178 +208,194 @@ Endpoint coverage:
 - Distinct meaning:
   Searches the pet collection by tag name.
 
-### Behavior 6: get pet by id
+### Function 6: get pet by id
 
-Behavior name:
+Function name:
 get pet by id
+
+Core endpoint(s):
+- `GET /pet/{petId}`
+
+Preconditions:
+- A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}`.
+- The `{petId}` path value used by `GET /pet/{petId}` must equal the id of the stored pet.
 
 Successful execution:
 - Result:
-  This behavior retrieves one existing pet by id.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}`.
-  Step 2: `GET /pet/{petId}` using `{petId}` from the Step 1 response body.
+  Retrieves the existing pet identified by the path id.
+- Invocation:
+  Step 1: `GET /pet/{petId}` with path `{petId}`.
 - Constraints:
-  The path `{petId}` in Step 2 must equal the `id` stored by Step 1.
+  The path id must be non-null and must identify an existing pet. Swagger documents `api_key` or OAuth security, but the implementation does not enforce authentication or authorization.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The requested pet must exist.
-  - Endpoint group:
-    Step 1: `GET /pet/{petId}` with `{petId}={missingPetId}`, where `{missingPetId}` was not created and is not seeded.
+  - Preconditions:
+    - No pet with `id={missingPetId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` with `id={missingPetId}`.
   - Failure endpoint:
     `GET /pet/{petId}`
   - Why this fails:
-    The controller cannot find the pet and returns not found.
+    `PetController.getPetById` cannot find the pet and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /pet` for `{missingPetId}` is intentionally omitted.
+    The required pet state for the requested path id is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /pet`
   `GET /pet/{petId}`
 - Distinct meaning:
-  `POST /pet` creates the readable pet; `GET /pet/{petId}` reads it.
+  Reads one pet by id.
 
-### Behavior 7: update pet name and status by path id
+### Function 7: update pet name and status by path id
 
-Behavior name:
+Function name:
 update pet name and status by path id
+
+Core endpoint(s):
+- `POST /pet/{petId}`
+
+Preconditions:
+- A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}`.
+- The `{petId}` path value used by `POST /pet/{petId}` must equal the id of the stored pet.
 
 Successful execution:
 - Result:
-  This behavior updates an existing pet’s `name` and `status` using the path id and query values.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}`.
-  Step 2: `POST /pet/{petId}` with path `{petId}` from Step 1 and query `name={newName}`; query `status={newStatus}` may also be supplied.
+  Updates the existing pet's `name` and sets its `status` to the supplied value, which may be null.
+- Invocation:
+  Step 1: `POST /pet/{petId}` with path `{petId}`, query `name={newName}`, and optional query `status={newStatus}`.
 - Constraints:
-  Step 2 path `{petId}` must identify the pet created by Step 1. `name` is required by the implementation even though Swagger marks it optional. `status` may be null.
+  The path id must be non-null and identify an existing pet. The `name` query value is required by the implementation even though Swagger marks it optional. `status` is not required and is not validated against Swagger's enum.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The `name` query value must be supplied.
-  - Endpoint group:
-    Step 1: `POST /pet` with body `id={petId}`.
-    Step 2: `POST /pet/{petId}` without `name`.
+  - Preconditions:
+    - A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by direct fixture insertion into `PetData` or by calling `POST /pet` with `id={petId}`.
+    - The update request omits the `name` query value.
   - Failure endpoint:
     `POST /pet/{petId}`
   - Why this fails:
-    The controller returns bad request when `name == null`.
+    `PetController.updatePetWithForm` returns bad request when `name == null`.
   - Intentionally violated constraints:
     The implementation-required `name` query value is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The pet must already exist.
-  - Endpoint group:
-    Step 1: `POST /pet/{petId}` with `{petId}={missingPetId}` and query `name={newName}`.
+  - Preconditions:
+    - No pet with `id={missingPetId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` with `id={missingPetId}`.
+    - The request supplies query `name={newName}`.
   - Failure endpoint:
     `POST /pet/{petId}`
   - Why this fails:
-    The controller cannot find the existing pet and returns not found.
+    The controller cannot find the existing pet and returns not found. Swagger does not document this 404 branch for this endpoint.
   - Intentionally violated constraints:
-    The prerequisite `POST /pet` for `{missingPetId}` is intentionally omitted. Swagger does not document this 404 branch for this endpoint.
+    The required pet state for the requested path id is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /pet`
   `POST /pet/{petId}`
 - Distinct meaning:
-  `POST /pet` creates the target pet; `POST /pet/{petId}` changes its name/status fields.
+  Updates mutable fields of an existing pet selected by path id.
 
-### Behavior 8: delete pet
+### Function 8: delete pet
 
-Behavior name:
+Function name:
 delete pet
+
+Core endpoint(s):
+- `DELETE /pet/{petId}`
+
+Preconditions:
+- A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}`.
+- The `{petId}` path value used by `DELETE /pet/{petId}` must equal the id of the stored pet.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing pet.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}`.
-  Step 2: `DELETE /pet/{petId}` using `{petId}` from the Step 1 response body.
+  Deletes the pet identified by the path id and returns the success message `Pet deleted`.
+- Invocation:
+  Step 1: `DELETE /pet/{petId}` with path `{petId}` and optional header `api_key={apiKey}`.
 - Constraints:
-  The path `{petId}` in Step 2 must equal the created pet id. Header `api_key` is documented but not used by the implementation.
+  The path id must be non-null. The `api_key` header is documented by Swagger but ignored by the implementation.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The pet should exist for this to be an actual deletion.
-  - Endpoint group:
-    Step 1: `DELETE /pet/{petId}` with `{petId}={missingPetId}`, where `{missingPetId}` was not created and is not seeded.
+  - Preconditions:
+    - No pet with `id={missingPetId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` with `id={missingPetId}`.
   - Failure endpoint:
     `DELETE /pet/{petId}`
   - Why this fails:
-    It does not fail at HTTP level; the implementation deletes nothing and still returns the success message `Pet deleted`.
+    It does not fail at HTTP level. `PetData.deletePetById` removes nothing, the follow-up lookup returns null, and the controller still returns the success message `Pet deleted`.
   - Intentionally violated constraints:
-    The prerequisite `POST /pet` for `{missingPetId}` is intentionally omitted.
+    The required pet state for an actual deletion is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /pet`
   `DELETE /pet/{petId}`
 - Distinct meaning:
   Deletes a pet when it exists; absent ids are treated as successful no-op deletes.
 
-### Behavior 9: upload image for pet
+### Function 9: upload image for pet
 
-Behavior name:
+Function name:
 upload image for pet
+
+Core endpoint(s):
+- `POST /pet/{petId}/uploadImage`
+
+Preconditions:
+- A pet with `id={petId}` exists in the in-memory pet store and has a non-null `photoUrls` list. This can be satisfied by directly inserting a `Pet` fixture with `id={petId}` and initialized `photoUrls` into `PetData` or by calling `POST /pet` with a non-null Pet body containing `id={petId}` and `photoUrls=[...]`.
+- The `{petId}` path value used by `POST /pet/{petId}/uploadImage` must equal the id of the stored pet.
 
 Successful execution:
 - Result:
-  This behavior appends the uploaded file path to an existing pet’s `photoUrls`.
-- Endpoint sequence:
-  Step 1: `POST /pet` with body `id={petId}` and a non-null `photoUrls` list.
-  Step 2: `POST /pet/{petId}/uploadImage` using `{petId}` from Step 1 and a binary file body.
+  Appends the uploaded file's absolute path to the existing pet's `photoUrls` list and returns the updated Pet.
+- Invocation:
+  Step 1: `POST /pet/{petId}/uploadImage` with path `{petId}` and a binary file body.
 - Constraints:
-  Step 2 path `{petId}` must identify the pet created by Step 1. A file body must be supplied. Swagger documents `additionalMetadata`, but the implementation ignores it. Swagger says the response is `ApiResponse`; the implementation returns the updated Pet.
+  The path id and file body must be non-null, and the pet must exist. Swagger documents query `additionalMetadata` and an `ApiResponse` response body, but the implementation ignores `additionalMetadata` and returns the updated Pet. The implementation assumes `photoUrls` is non-null before appending the file path.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    A file must be supplied.
-  - Endpoint group:
-    Step 1: `POST /pet` with body `id={petId}`.
-    Step 2: `POST /pet/{petId}/uploadImage` without a file body.
+  - Preconditions:
+    - A pet with `id={petId}` exists in the in-memory pet store. This can be satisfied by direct fixture insertion into `PetData` or by calling `POST /pet` with `id={petId}`.
+    - No file body is supplied.
   - Failure endpoint:
     `POST /pet/{petId}/uploadImage`
   - Why this fails:
-    The controller returns bad request when `file == null`.
+    `PetController.uploadFile` returns bad request when `file == null`.
   - Intentionally violated constraints:
-    The binary upload body is omitted.
+    The implementation-required binary upload body is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The pet must exist before upload.
-  - Endpoint group:
-    Step 1: `POST /pet/{petId}/uploadImage` with `{petId}={missingPetId}` and a file body.
+  - Preconditions:
+    - No pet with `id={missingPetId}` exists in the in-memory pet store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /pet` with `id={missingPetId}`.
+    - A file body is supplied.
   - Failure endpoint:
     `POST /pet/{petId}/uploadImage`
   - Why this fails:
     The controller cannot find the pet and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /pet` for `{missingPetId}` is intentionally omitted.
+    The required pet state for the upload target is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /pet`
   `POST /pet/{petId}/uploadImage`
 - Distinct meaning:
-  `POST /pet` creates the pet; `POST /pet/{petId}/uploadImage` attaches an uploaded file path to it.
+  Attaches an uploaded file path to an existing pet.
 
-### Behavior 10: get order inventory
+### Function 10: get order inventory
 
-Behavior name:
+Function name:
 get order inventory
+
+Core endpoint(s):
+- `GET /store/inventory`
+
+Preconditions:
+- None.
 
 Successful execution:
 - Result:
-  This behavior returns a map from order status to the sum of order quantities for that status.
-- Endpoint sequence:
+  Returns a map from order status to the sum of order quantities for that status.
+- Invocation:
   Step 1: `GET /store/inventory`.
 - Constraints:
-  No specific order needs to be created first. The implementation aggregates the current in-memory orders by `status`.
+  No order needs to be created first. The implementation aggregates the current in-memory `OrderData` collection by each order's `status`.
 
 Failure or exceptional branches:
 None identified in implementation logic.
@@ -380,296 +406,328 @@ Endpoint coverage:
 - Distinct meaning:
   Reads aggregate store inventory by order status.
 
-### Behavior 11: place order
+### Function 11: place order
 
-Behavior name:
+Function name:
 place order
+
+Core endpoint(s):
+- `POST /store/order`
+
+Preconditions:
+- No existing order with `id={orderId}` is present in the in-memory order store if the call is intended to create a new order. This can be satisfied by directly seeding the `OrderData` collection without that id or by not calling `POST /store/order` previously with the same `id`.
 
 Successful execution:
 - Result:
-  This behavior stores a new order.
-- Endpoint sequence:
-  Step 1: `POST /store/order` with a non-null Order body containing `id={orderId}`.
+  Stores the supplied Order object as an order resource.
+- Invocation:
+  Step 1: `POST /store/order` with a non-null Order body containing `id={orderId}` and any supplied `petId`, `quantity`, `shipDate`, `status`, and `complete` values.
 - Constraints:
-  For this to be creation, `{orderId}` must not already identify an existing order. Swagger describes this as an order for a pet, but the implementation does not validate that `petId` refers to an existing pet.
+  The Order body must be non-null. Swagger describes the order as being for a pet, but the implementation does not validate that `petId` identifies an existing pet. `OrderData.addOrder` removes any existing order with the same id before storing the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    An Order body must be supplied.
-  - Endpoint group:
-    Step 1: `POST /store/order` with no Order body.
+  - Preconditions:
+    - No Order request body is supplied, or the request body deserializes to null.
   - Failure endpoint:
     `POST /store/order`
   - Why this fails:
     `OrderController.placeOrder` returns bad request when `order == null`.
   - Intentionally violated constraints:
-    The Order body is omitted.
+    The implementation-required Order request body is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /store/order`
 - Distinct meaning:
-  Creates an order when the submitted `id` is not already present.
+  Adds an order when the submitted id is not already present.
 
-### Behavior 12: replace order through place-order endpoint
+### Function 12: replace order through place-order endpoint
 
-Behavior name:
+Function name:
 replace order through place-order endpoint
+
+Core endpoint(s):
+- `POST /store/order`
+
+Preconditions:
+- An order with `id={orderId}` already exists in the in-memory order store. This can be satisfied by directly inserting an `Order` fixture with `id={orderId}` into `OrderData` or by calling `POST /store/order` with a non-null Order body containing `id={orderId}`.
 
 Successful execution:
 - Result:
-  This behavior replaces an existing order with a new Order body using the same id.
-- Endpoint sequence:
-  Step 1: `POST /store/order` with body `id={orderId}`.
-  Step 2: `POST /store/order` with another Order body whose `id` is the same `{orderId}`.
+  Replaces the stored order that has the same id as the submitted Order body.
+- Invocation:
+  Step 1: `POST /store/order` with a non-null replacement Order body whose `id` is `{orderId}`.
 - Constraints:
-  Step 2 must reuse the same order `id` as Step 1. `OrderData.addOrder` removes an existing order with the same id before adding the new one.
+  The replacement body must be non-null and must reuse the id of an existing order. `OrderData.addOrder` deletes any current order with that id and stores the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    An existing order with `{orderId}` is required for replacement.
-  - Endpoint group:
-    Step 1: `POST /store/order` with body `id={orderId}` while no order with `{orderId}` was created first.
+  - Preconditions:
+    - No order with `id={orderId}` exists in the in-memory order store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /store/order` before the replacement request.
   - Failure endpoint:
     `POST /store/order`
   - Why this fails:
-    It succeeds as Behavior 11, creation, rather than replacement.
+    The request succeeds as a new order creation instead of replacing an existing order.
   - Intentionally violated constraints:
-    The prerequisite existing order state is omitted.
+    The existing order state required for replacement is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /store/order`
 - Distinct meaning:
-  Replaces an order when the submitted `id` already exists.
+  Overwrites an existing order when the submitted id already exists.
 
-### Behavior 13: get order by id
+### Function 13: get order by id
 
-Behavior name:
+Function name:
 get order by id
+
+Core endpoint(s):
+- `GET /store/order/{orderId}`
+
+Preconditions:
+- An order with `id={orderId}` exists in the in-memory order store. This can be satisfied by directly inserting an `Order` fixture with `id={orderId}` into `OrderData` or by calling `POST /store/order` with a non-null Order body containing `id={orderId}`.
+- The `{orderId}` path value used by `GET /store/order/{orderId}` must equal the id of the stored order.
 
 Successful execution:
 - Result:
-  This behavior retrieves one existing order by id.
-- Endpoint sequence:
-  Step 1: `POST /store/order` with body `id={orderId}`.
-  Step 2: `GET /store/order/{orderId}` using `{orderId}` from the Step 1 response body.
+  Retrieves the existing order identified by the path id.
+- Invocation:
+  Step 1: `GET /store/order/{orderId}` with path `{orderId}`.
 - Constraints:
-  The path `{orderId}` in Step 2 must equal the stored order id. Swagger mentions special id ranges, but the implementation only checks whether the id exists.
+  The path id must be non-null and must identify an existing order. Swagger mentions special valid id ranges, but the implementation only checks whether the id exists.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The requested order must exist.
-  - Endpoint group:
-    Step 1: `GET /store/order/{orderId}` with `{orderId}={missingOrderId}`, where `{missingOrderId}` was not created and is not seeded.
+  - Preconditions:
+    - No order with `id={missingOrderId}` exists in the in-memory order store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /store/order` with `id={missingOrderId}`.
   - Failure endpoint:
     `GET /store/order/{orderId}`
   - Why this fails:
-    The controller cannot find the order and returns not found.
+    `OrderController.getOrderById` cannot find the order and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /store/order` for `{missingOrderId}` is intentionally omitted.
+    The required order state for the requested path id is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /store/order`
   `GET /store/order/{orderId}`
 - Distinct meaning:
-  `POST /store/order` creates the readable order; `GET /store/order/{orderId}` reads it.
+  Reads one order by id.
 
-### Behavior 14: delete order
+### Function 14: delete order
 
-Behavior name:
+Function name:
 delete order
+
+Core endpoint(s):
+- `DELETE /store/order/{orderId}`
+
+Preconditions:
+- An order with `id={orderId}` exists in the in-memory order store. This can be satisfied by directly inserting an `Order` fixture with `id={orderId}` into `OrderData` or by calling `POST /store/order` with a non-null Order body containing `id={orderId}`.
+- The `{orderId}` path value used by `DELETE /store/order/{orderId}` must equal the id of the stored order.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing order.
-- Endpoint sequence:
-  Step 1: `POST /store/order` with body `id={orderId}`.
-  Step 2: `DELETE /store/order/{orderId}` using `{orderId}` from the Step 1 response body.
+  Deletes the order identified by the path id and returns a successful response with a null entity.
+- Invocation:
+  Step 1: `DELETE /store/order/{orderId}` with path `{orderId}`.
 - Constraints:
-  The path `{orderId}` in Step 2 must equal the created order id.
+  The path id must be non-null. Swagger documents 404 for missing orders, but the implementation treats missing ids as successful no-op deletes.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The order should exist for this to be an actual deletion.
-  - Endpoint group:
-    Step 1: `DELETE /store/order/{orderId}` with `{orderId}={missingOrderId}`, where `{missingOrderId}` was not created and is not seeded.
+  - Preconditions:
+    - No order with `id={missingOrderId}` exists in the in-memory order store. This can be produced by direct fixture setup without that id, by deleting it beforehand, or by not calling `POST /store/order` with `id={missingOrderId}`.
   - Failure endpoint:
     `DELETE /store/order/{orderId}`
   - Why this fails:
-    It does not fail at HTTP level; the implementation deletes nothing and returns success with a null entity. This differs from Swagger, which documents a 404 branch.
+    It does not fail at HTTP level. `OrderData.deleteOrderById` removes nothing, the follow-up lookup returns null, and the controller returns success with a null entity.
   - Intentionally violated constraints:
-    The prerequisite `POST /store/order` for `{missingOrderId}` is intentionally omitted.
+    The required order state for an actual deletion is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /store/order`
   `DELETE /store/order/{orderId}`
 - Distinct meaning:
   Deletes an order when it exists; absent ids are treated as successful no-op deletes.
 
-### Behavior 15: create user
+### Function 15: create user
 
-Behavior name:
+Function name:
 create user
+
+Core endpoint(s):
+- `POST /user`
+
+Preconditions:
+- No existing user with `username={username}` is present in the in-memory user store if the call is intended to create a new user. This can be satisfied by directly seeding the `UserData` collection without that username or by not calling `POST /user` previously with the same `username`.
 
 Successful execution:
 - Result:
-  This behavior stores a new user.
-- Endpoint sequence:
-  Step 1: `POST /user` with a non-null User body containing `username={username}`.
+  Stores the supplied User object as a user resource.
+- Invocation:
+  Step 1: `POST /user` with a non-null User body containing `username={username}` and any supplied profile fields.
 - Constraints:
-  For this to be creation, `{username}` must not already identify an existing user. The implementation checks only that the User body is non-null.
+  The User body must be non-null. The implementation does not require authentication despite Swagger's description that creation can only be done by the logged-in user. `UserData.addUser` removes any existing user with the same username before storing the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    A User body must be supplied.
-  - Endpoint group:
-    Step 1: `POST /user` with no User body.
+  - Preconditions:
+    - No User request body is supplied, or the request body deserializes to null.
   - Failure endpoint:
     `POST /user`
   - Why this fails:
     `UserController.createUser` returns bad request when `user == null`.
   - Intentionally violated constraints:
-    The User body is omitted.
+    The implementation-required User request body is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /user`
 - Distinct meaning:
-  Creates a user when the submitted `username` is not already present.
+  Adds a user when the submitted username is not already present.
 
-### Behavior 16: replace user through create endpoint
+### Function 16: replace user through create endpoint
 
-Behavior name:
+Function name:
 replace user through create endpoint
+
+Core endpoint(s):
+- `POST /user`
+
+Preconditions:
+- A user with `username={username}` already exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={username}` into `UserData` or by calling `POST /user` with a non-null User body containing `username={username}`.
 
 Successful execution:
 - Result:
-  This behavior replaces an existing user with a new User body using the same username.
-- Endpoint sequence:
-  Step 1: `POST /user` with body `username={username}`.
-  Step 2: `POST /user` with another User body whose `username` is the same `{username}`.
+  Replaces the stored user that has the same username as the submitted User body.
+- Invocation:
+  Step 1: `POST /user` with a non-null replacement User body whose `username` is `{username}`.
 - Constraints:
-  Step 2 must reuse the same `username` as Step 1. `UserData.addUser` removes an existing user with that username before adding the new one.
+  The replacement body must be non-null and must reuse an existing username. `UserData.addUser` deletes any current user with that username and stores the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    An existing user with `{username}` is required for replacement.
-  - Endpoint group:
-    Step 1: `POST /user` with body `username={username}` while no user with `{username}` was created first.
+  - Preconditions:
+    - No user with `username={username}` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user` before the replacement request.
   - Failure endpoint:
     `POST /user`
   - Why this fails:
-    It succeeds as Behavior 15, creation, rather than replacement.
+    The request succeeds as a new user creation instead of replacing an existing user.
   - Intentionally violated constraints:
-    The prerequisite existing user state is omitted.
+    The existing user state required for replacement is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /user`
 - Distinct meaning:
-  Replaces a user when the submitted `username` already exists.
+  Overwrites an existing user when the submitted username already exists.
 
-### Behavior 17: create users from list
+### Function 17: create users from list
 
-Behavior name:
+Function name:
 create users from list
+
+Core endpoint(s):
+- `POST /user/createWithList`
+
+Preconditions:
+- No existing users with the submitted usernames are present in the in-memory user store if the call is intended to create only new users. This can be satisfied by directly seeding the `UserData` collection without those usernames or by not calling `POST /user` or `POST /user/createWithList` previously with those usernames.
 
 Successful execution:
 - Result:
-  This behavior stores multiple users from an input array.
-- Endpoint sequence:
+  Stores every User object from the submitted array and returns the submitted array.
+- Invocation:
   Step 1: `POST /user/createWithList` with a non-empty JSON array of User objects.
 - Constraints:
-  For pure creation, each submitted `username` must not already identify an existing user. Swagger’s response schema is a single User, but the implementation returns the submitted array.
+  The user array must be non-null and non-empty. Swagger's response schema is a single User, but the implementation returns the submitted array. Each submitted username replaces any existing user with the same username.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The user array must be non-null and non-empty.
-  - Endpoint group:
-    Step 1: `POST /user/createWithList` with no array or an empty array.
+  - Preconditions:
+    - No user array is supplied, or the submitted array is empty.
   - Failure endpoint:
     `POST /user/createWithList`
   - Why this fails:
     `UserController.createUsersWithListInput` returns bad request when the array is null or empty.
   - Intentionally violated constraints:
-    The required non-empty user list is omitted.
+    The implementation-required non-empty user array is omitted or empty.
 
 Endpoint coverage:
 - Covers:
   `POST /user/createWithList`
 - Distinct meaning:
-  Creates multiple users when submitted usernames are new.
+  Adds multiple users when the submitted usernames are new.
 
-### Behavior 18: replace users from list
+### Function 18: replace users from list
 
-Behavior name:
+Function name:
 replace users from list
+
+Core endpoint(s):
+- `POST /user/createWithList`
+
+Preconditions:
+- At least one user with `username={username}` already exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={username}` into `UserData` or by calling `POST /user/createWithList` with a non-empty array containing that username.
 
 Successful execution:
 - Result:
-  This behavior replaces existing users whose usernames appear in the submitted array.
-- Endpoint sequence:
-  Step 1: `POST /user/createWithList` with an array containing a user `username={username}`.
-  Step 2: `POST /user/createWithList` with another array containing a user whose `username` is the same `{username}`.
+  Replaces existing users whose usernames appear in the submitted array.
+- Invocation:
+  Step 1: `POST /user/createWithList` with a non-empty JSON array containing a replacement User whose `username` is `{username}`.
 - Constraints:
-  Step 2 must reuse at least one username created by Step 1. Each reused username is removed and re-added with the new body values.
+  The submitted array must be non-null and non-empty. A reused username is removed from `UserData` and then re-added with the submitted values. Usernames in the same array that do not already exist are created rather than replaced.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Existing usernames are required for replacement.
-  - Endpoint group:
-    Step 1: `POST /user/createWithList` with an array of users whose usernames were not created first.
+  - Preconditions:
+    - No user with `username={username}` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user/createWithList` before the replacement request.
+    - The submitted array contains a User whose `username` is `{username}`.
   - Failure endpoint:
     `POST /user/createWithList`
   - Why this fails:
-    It succeeds as Behavior 17, creation, rather than replacement.
+    The request succeeds as user creation for that username instead of replacement.
   - Intentionally violated constraints:
-    The prerequisite existing user state is omitted.
+    The existing user state required for replacement is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The replacement array must be non-null and non-empty.
-  - Endpoint group:
-    Step 1: `POST /user/createWithList` with an array containing `username={username}`.
-    Step 2: `POST /user/createWithList` with an empty array.
+  - Preconditions:
+    - A user with `username={username}` already exists in the in-memory user store. This can be satisfied by direct fixture insertion into `UserData` or by calling `POST /user/createWithList` with an array containing that username.
+    - The replacement request supplies an empty user array.
   - Failure endpoint:
     `POST /user/createWithList`
   - Why this fails:
-    The controller rejects an empty array.
+    `UserController.createUsersWithListInput` rejects an empty array.
   - Intentionally violated constraints:
-    Step 2 omits replacement user entries.
+    The implementation-required replacement user entries are omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /user/createWithList`
 - Distinct meaning:
-  Replaces users in bulk when submitted usernames already exist.
+  Overwrites users in bulk when submitted usernames already exist.
 
-### Behavior 19: log in user
+### Function 19: log in user
 
-Behavior name:
+Function name:
 log in user
+
+Core endpoint(s):
+- `GET /user/login`
+
+Preconditions:
+- None.
 
 Successful execution:
 - Result:
-  This behavior returns a login session message plus `X-Rate-Limit` and `X-Expires-After` headers.
-- Endpoint sequence:
+  Returns a login session string with `X-Rate-Limit` and `X-Expires-After` headers.
+- Invocation:
   Step 1: `GET /user/login` with optional query `username={username}` and optional query `password={password}`.
 - Constraints:
-  No existing user is required. The implementation does not validate the username or password and always returns a generated session string.
+  No existing user is required. The implementation does not validate the username or password and always returns a generated session string. Swagger documents invalid-credential failure, but the controller does not implement it.
 
 Failure or exceptional branches:
-None identified in implementation logic. Swagger documents invalid-credential failure, but the controller does not implement it.
+None identified in implementation logic.
 
 Endpoint coverage:
 - Covers:
@@ -677,15 +735,21 @@ Endpoint coverage:
 - Distinct meaning:
   Produces a login-style response without credential validation.
 
-### Behavior 20: log out user
+### Function 20: log out user
 
-Behavior name:
+Function name:
 log out user
+
+Core endpoint(s):
+- `GET /user/logout`
+
+Preconditions:
+- None.
 
 Successful execution:
 - Result:
-  This behavior returns a logout confirmation message.
-- Endpoint sequence:
+  Returns a logout confirmation message.
+- Invocation:
   Step 1: `GET /user/logout`.
 - Constraints:
   No prior `GET /user/login` call is required. The implementation does not track or invalidate session state.
@@ -699,165 +763,172 @@ Endpoint coverage:
 - Distinct meaning:
   Returns logout confirmation.
 
-### Behavior 21: get user by username
+### Function 21: get user by username
 
-Behavior name:
+Function name:
 get user by username
+
+Core endpoint(s):
+- `GET /user/{username}`
+
+Preconditions:
+- A user with `username={username}` exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={username}` into `UserData` or by calling `POST /user` with a non-null User body containing `username={username}`.
+- The `{username}` path value used by `GET /user/{username}` must equal the stored user's username.
 
 Successful execution:
 - Result:
-  This behavior retrieves one existing user by username.
-- Endpoint sequence:
-  Step 1: `POST /user` with body `username={username}`.
-  Step 2: `GET /user/{username}` using `{username}` from the Step 1 response body.
+  Retrieves the existing user identified by the path username.
+- Invocation:
+  Step 1: `GET /user/{username}` with path `{username}`.
 - Constraints:
-  The path `{username}` in Step 2 must equal the stored username.
+  The path username must be non-null and must identify an existing user.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The requested user must exist.
-  - Endpoint group:
-    Step 1: `GET /user/{username}` with `{username}=missing-user`, where that username was not created and is not seeded.
+  - Preconditions:
+    - No user with `username=missing-user` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user` with `username=missing-user`.
   - Failure endpoint:
     `GET /user/{username}`
   - Why this fails:
-    The controller cannot find the user and returns not found.
+    `UserController.getUserByName` cannot find the user and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /user` for `missing-user` is intentionally omitted.
+    The required user state for the requested path username is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /user`
   `GET /user/{username}`
 - Distinct meaning:
-  `POST /user` creates the readable user; `GET /user/{username}` reads it.
+  Reads one user by username.
 
-### Behavior 22: update user without changing username
+### Function 22: update user without changing username
 
-Behavior name:
+Function name:
 update user without changing username
+
+Core endpoint(s):
+- `PUT /user/{username}`
+
+Preconditions:
+- A user with `username={username}` exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={username}` into `UserData` or by calling `POST /user` with a non-null User body containing `username={username}`.
+- The `{username}` path value and the update body `username` must both be `{username}`.
 
 Successful execution:
 - Result:
-  This behavior updates an existing user while keeping the same username.
-- Endpoint sequence:
-  Step 1: `POST /user` with body `username={username}`.
-  Step 2: `PUT /user/{username}` using path `{username}` from Step 1 and a non-null User body whose `username` is also `{username}`.
+  Updates the existing user while keeping the same username.
+- Invocation:
+  Step 1: `PUT /user/{username}` with path `{username}` and a non-null User body whose `username` is also `{username}`.
 - Constraints:
-  The path username must identify an existing user. To keep the username unchanged, the Step 2 body `username` must equal the path `{username}`.
+  The path username and body must be non-null. The path username must identify an existing user. Swagger's description implies a logged-in user requirement, but the implementation does not enforce authentication or authorization.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The update body must be supplied.
-  - Endpoint group:
-    Step 1: `POST /user` with body `username={username}`.
-    Step 2: `PUT /user/{username}` with no User body.
+  - Preconditions:
+    - A user with `username={username}` exists in the in-memory user store. This can be satisfied by direct fixture insertion into `UserData` or by calling `POST /user` with `username={username}`.
+    - No User update body is supplied, or the body deserializes to null.
   - Failure endpoint:
     `PUT /user/{username}`
   - Why this fails:
     `UserController.updateUser` returns bad request when `user == null`.
   - Intentionally violated constraints:
-    The User update body is omitted.
+    The implementation-required User update body is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The path username must already exist.
-  - Endpoint group:
-    Step 1: `PUT /user/{username}` with `{username}=missing-user` and a non-null User body.
+  - Preconditions:
+    - No user with `username=missing-user` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user` with `username=missing-user`.
+    - A non-null User update body is supplied.
   - Failure endpoint:
     `PUT /user/{username}`
   - Why this fails:
-    The controller cannot find the existing user and returns not found.
+    The controller cannot find the existing user selected by the path username and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /user` for `missing-user` is intentionally omitted.
+    The required user state for the path username is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /user`
   `PUT /user/{username}`
 - Distinct meaning:
-  `POST /user` creates the target user; `PUT /user/{username}` updates that same username.
+  Updates a user while retaining the same username.
 
-### Behavior 23: rename user through update endpoint
+### Function 23: rename user through update endpoint
 
-Behavior name:
+Function name:
 rename user through update endpoint
+
+Core endpoint(s):
+- `PUT /user/{username}`
+
+Preconditions:
+- A user with `username={oldUsername}` exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={oldUsername}` into `UserData` or by calling `POST /user` with a non-null User body containing `username={oldUsername}`.
+- The `{username}` path value must be `{oldUsername}`, and the update body must contain `username={newUsername}`.
 
 Successful execution:
 - Result:
-  This behavior deletes the user at the path username and stores the body user under a different username.
-- Endpoint sequence:
-  Step 1: `POST /user` with body `username={oldUsername}`.
-  Step 2: `PUT /user/{username}` with path `{username}={oldUsername}` and body `username={newUsername}`.
+  Deletes the user selected by the path username and stores the submitted body user under the new username.
+- Invocation:
+  Step 1: `PUT /user/{username}` with path `{username}={oldUsername}` and a non-null User body whose `username` is `{newUsername}`.
 - Constraints:
-  Step 2 path `{oldUsername}` must exist. `{newUsername}` must differ from `{oldUsername}` for this to be a rename. The implementation deletes the old username and adds the body user.
+  The path username and body must be non-null. The path username must identify an existing user. `{newUsername}` must differ from `{oldUsername}` for this to be a rename. If `{newUsername}` already exists, `UserData.addUser` removes that existing user and stores the submitted body.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The old path username must exist.
-  - Endpoint group:
-    Step 1: `PUT /user/{username}` with `{username}=missing-user` and body `username={newUsername}`.
+  - Preconditions:
+    - No user with `username=missing-user` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user` with `username=missing-user`.
+    - A non-null User body with `username={newUsername}` is supplied.
   - Failure endpoint:
     `PUT /user/{username}`
   - Why this fails:
-    The controller cannot find the old user and returns not found.
+    The controller cannot find the old user selected by the path username and returns not found.
   - Intentionally violated constraints:
-    The prerequisite `POST /user` for `missing-user` is intentionally omitted.
+    The required old-user state for the path username is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    The body username must differ from the path username for this to be a rename.
-  - Endpoint group:
-    Step 1: `POST /user` with body `username={username}`.
-    Step 2: `PUT /user/{username}` with path `{username}` and body `username={username}`.
+  - Preconditions:
+    - A user with `username={username}` exists in the in-memory user store. This can be satisfied by direct fixture insertion into `UserData` or by calling `POST /user` with `username={username}`.
+    - The request body also uses `username={username}`.
   - Failure endpoint:
     `PUT /user/{username}`
   - Why this fails:
-    It succeeds, but it performs Behavior 22, ordinary update, rather than rename.
+    The request succeeds, but it performs an ordinary same-username update instead of a rename.
   - Intentionally violated constraints:
     The body username intentionally matches the path username.
 
 Endpoint coverage:
 - Covers:
-  `POST /user`
   `PUT /user/{username}`
 - Distinct meaning:
-  `POST /user` creates the old user; `PUT /user/{username}` removes the old username and stores the body username.
+  Renames a user by deleting the path username and storing the body username.
 
-### Behavior 24: delete user
+### Function 24: delete user
 
-Behavior name:
+Function name:
 delete user
+
+Core endpoint(s):
+- `DELETE /user/{username}`
+
+Preconditions:
+- A user with `username={username}` exists in the in-memory user store. This can be satisfied by directly inserting a `User` fixture with `username={username}` into `UserData` or by calling `POST /user` with a non-null User body containing `username={username}`.
+- The `{username}` path value used by `DELETE /user/{username}` must equal the stored user's username.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing user.
-- Endpoint sequence:
-  Step 1: `POST /user` with body `username={username}`.
-  Step 2: `DELETE /user/{username}` using `{username}` from the Step 1 response body.
+  Deletes the user identified by the path username and returns a successful response with a null entity.
+- Invocation:
+  Step 1: `DELETE /user/{username}` with path `{username}`.
 - Constraints:
-  The path `{username}` in Step 2 must equal the created username.
+  The path username must be non-null. Swagger documents 404 for missing users, but the implementation treats missing usernames as successful no-op deletes.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The user should exist for this to be an actual deletion.
-  - Endpoint group:
-    Step 1: `DELETE /user/{username}` with `{username}=missing-user`, where that username was not created and is not seeded.
+  - Preconditions:
+    - No user with `username=missing-user` exists in the in-memory user store. This can be produced by direct fixture setup without that username, by deleting it beforehand, or by not calling `POST /user` with `username=missing-user`.
   - Failure endpoint:
     `DELETE /user/{username}`
   - Why this fails:
-    It does not fail at HTTP level; the implementation deletes nothing and returns success with a null entity. This differs from Swagger, which documents a 404 branch.
+    It does not fail at HTTP level. `UserData.deleteUser` removes nothing, the follow-up lookup returns null, and the controller returns success with a null entity.
   - Intentionally violated constraints:
-    The prerequisite `POST /user` for `missing-user` is intentionally omitted.
+    The required user state for an actual deletion is omitted.
 
 Endpoint coverage:
 - Covers:
-  `POST /user`
   `DELETE /user/{username}`
 - Distinct meaning:
   Deletes a user when it exists; absent usernames are treated as successful no-op deletes.
-
-Unclear or auxiliary endpoints:
-None. Every Swagger path operation is covered above.

@@ -1,478 +1,515 @@
-Analyzed only `src` and `spring-rest-example.json`.
+### Function 1: create project
 
-### Behavior 1: create project
-
-Behavior name:
+Function name:
 create project
+
+Core endpoint(s):
+- `POST /api/project`
+
+Preconditions:
+- No prerequisite resource state is required. The caller supplies a JSON request body with `title`; any supplied `code` value is ignored by the implementation.
 
 Successful execution:
 - Result:
-  This behavior creates a new project with a server-generated six-character `code` and the supplied `title`.
-- Endpoint sequence:
+  Creates a new `Project` row with the supplied `title` and a server-generated six-character `code`.
+- Invocation:
   Step 1: `POST /api/project` with JSON body containing `title`.
 - Constraints:
-  `title` must be non-null and at least 5 characters long. The implementation ignores any request body `code` and constructs a new `Project(title)`, which generates `code` internally. The response is `201 Created`, not the `200` shown in Swagger, and it does not expose the generated `code`.
+  `title` must be non-null and at least 5 characters long. The `Project` entity also requires a non-null `title` no longer than 200 characters and a unique `code` no longer than 6 characters. OpenAPI documents a `200` response, but the implementation returns `201 Created` with an empty body. The generated `code` is not returned in the response body, and the generated `Location` is built from the current request rather than from the new code.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `title` is shorter than 5 characters.
-  - Endpoint group:
-    Step 1: `POST /api/project`
+  - Preconditions:
+    - The request body contains a `title` value shorter than 5 characters.
   - Failure endpoint:
     `POST /api/project`
   - Why this fails:
-    `ProjectController.createProject` throws `DataFormatException`.
+    `ProjectController.createProject` checks `title.length() < 5` and throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Body `title` length is less than 5.
+    The minimum title length required by the create endpoint is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    `title` is missing or null.
-  - Endpoint group:
-    Step 1: `POST /api/project`
+  - Preconditions:
+    - The request body omits `title` or sets `title` to null.
   - Failure endpoint:
     `POST /api/project`
   - Why this fails:
-    The implementation calls `title.length()` before a null check, causing an unhandled null failure rather than the documented validation response.
+    The controller calls `title.length()` before checking for null, so a null title causes an unhandled null dereference rather than the documented validation response.
   - Intentionally violated constraints:
-    Body omits required `title`.
+    The required non-null `title` value is omitted.
+- Branch 3:
+  - Preconditions:
+    - A project already exists with the same randomly generated `code`. This can be satisfied only by direct database setup or by chance through earlier `POST /api/project` calls, because the create endpoint does not accept a caller-controlled code.
+  - Failure endpoint:
+    `POST /api/project`
+  - Why this fails:
+    `Project.code` is unique in the database. `projectService.saveProject` catches the persistence exception and the controller returns `400 Bad Request` with the persistence error text.
+  - Intentionally violated constraints:
+    The generated project code uniqueness requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/project`
 - Distinct meaning:
-  Creates a project. Request body `code` is not user-controlled despite appearing in the schema.
+  This endpoint directly creates a project. Source code shows that request body `code` is not user-controlled even though it appears in the OpenAPI schema.
 
-### Behavior 2: retrieve project by code
+### Function 2: retrieve project by code
 
-Behavior name:
+Function name:
 retrieve project by code
+
+Core endpoint(s):
+- `GET /api/project/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- The `{code}` used by `GET /api/project/{code}` must equal the existing project code. If the API is used to create the project, the generated code must be obtained outside the documented create response, because `POST /api/project` returns no response body containing the code.
 
 Successful execution:
 - Result:
-  This behavior retrieves the project whose `code` matches `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `GET /api/project/{code}`
+  Returns the project whose persisted `code` matches `{code}`.
+- Invocation:
+  Step 1: `GET /api/project/{code}` with `{code}` in the path.
 - Constraints:
-  `{code}` in Step 2 must equal the server-generated project code from Step 1. The implementation requires length at least 6, while Swagger describes a six-character code. Contract gap: `POST /api/project` creates the required code but does not return it in the body or a useful `Location`, so a documented client has no reliable way to obtain `{code}` from Step 1.
+  `{code}` must be non-empty and at least 6 characters long. OpenAPI describes the code as a six-character alphanumeric value, while the implementation only checks that length is at least 6 before querying the database.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `GET /api/project/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `GET /api/project/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProjectController.getProject` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    No project exists with the supplied syntactically valid `{code}`.
-  - Endpoint group:
-    Step 1: `GET /api/project/{code}`
+  - Preconditions:
+    - No project with `code = {code}` exists in the database. This can be produced by starting from an empty database, deleting the project beforehand, directly omitting the row, or not calling `POST /api/project` for that code.
   - Failure endpoint:
     `GET /api/project/{code}`
   - Why this fails:
-    `projectRepository.getProject(code)` returns null and the controller throws `ResourceNotFoundException`.
+    `projectRepository.getProject(code)` returns null and the controller throws `ResourceNotFoundException`, which is mapped to `404 Not Found`.
   - Intentionally violated constraints:
-    The required `POST /api/project` setup for this `{code}` is omitted, or a wrong code is used.
+    The required project state for `{code}` is omitted or a wrong code is used.
 
 Endpoint coverage:
 - Covers:
   `GET /api/project/{code}`
 - Distinct meaning:
-  Reads one existing project by code.
+  This endpoint directly reads one existing project by code.
 
-### Behavior 3: update project title
+### Function 3: update project title
 
-Behavior name:
+Function name:
 update project title
+
+Core endpoint(s):
+- `PUT /api/project/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- The `{code}` used by `PUT /api/project/{code}` must identify that project. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior changes the `title` of the project identified by `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `PUT /api/project/{code}`
+  Replaces the persisted `title` of the project identified by `{code}`.
+- Invocation:
+  Step 1: `PUT /api/project/{code}` with `{code}` in the path and a JSON body containing replacement `title`.
 - Constraints:
-  `{code}` in Step 2 must identify the project created in Step 1. The request body supplies the replacement `title`. The update endpoint does not enforce the create endpoint’s minimum title length, but persistence still requires a non-null title. The generated code needed for Step 2 is not exposed by Step 1.
+  `{code}` must be non-empty and at least 6 characters long. The update endpoint does not enforce the create endpoint's minimum title length, but persistence still requires `Project.title` to be non-null and no longer than 200 characters.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `PUT /api/project/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `PUT /api/project/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProjectController.updateProject` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    No project exists with `{code}`.
-  - Endpoint group:
-    Step 1: `PUT /api/project/{code}`
+  - Preconditions:
+    - No project with `code = {code}` exists in the database. This can be produced by direct database omission or by not calling `POST /api/project` for that code.
   - Failure endpoint:
     `PUT /api/project/{code}`
   - Why this fails:
-    The lookup throws `ResourceNotFoundException`.
+    The controller looks up the project before updating it. A missing row causes `ResourceNotFoundException`, which is mapped to `404 Not Found`.
   - Intentionally violated constraints:
-    The required `POST /api/project` setup is omitted, or a wrong code is used.
+    The required target project state is omitted or a wrong code is used.
 - Branch 3:
-  - Unsatisfied condition:
-    Replacement `title` is null or invalid for persistence.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `PUT /api/project/{code}`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - The update request body omits `title`, sets `title` to null, or supplies a value invalid for `Project.title` persistence.
   - Failure endpoint:
     `PUT /api/project/{code}`
   - Why this fails:
-    The controller sets the persisted project title from the request body and then flushes it; null or persistence-invalid values can fail during `saveAndFlush`.
+    The controller assigns `project.getTitle()` to the persisted project and calls `projectRepository.saveAndFlush`. Null or persistence-invalid values can fail during flush; the service does not catch that exception.
   - Intentionally violated constraints:
-    Body `title` is null or violates entity persistence constraints.
+    The replacement project title violates persistence constraints.
 
 Endpoint coverage:
 - Covers:
   `PUT /api/project/{code}`
 - Distinct meaning:
-  Replaces the title of an existing project.
+  This endpoint directly updates the title of an existing project.
 
-### Behavior 4: delete project
+### Function 4: delete project
 
-Behavior name:
+Function name:
 delete project
+
+Core endpoint(s):
+- `DELETE /api/project/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- The `{code}` used by `DELETE /api/project/{code}` must identify that project. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior deletes the project identified by `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `DELETE /api/project/{code}`
+  Deletes the project identified by `{code}`. Because `Project.problems` is mapped with remove cascade and orphan removal, deleting a managed project can also remove its associated problem rows.
+- Invocation:
+  Step 1: `DELETE /api/project/{code}` with `{code}` in the path.
 - Constraints:
-  `{code}` in Step 2 must identify the project created in Step 1. The controller only validates code length and delegates to `deleteByCode`; it does not explicitly fetch the project first. The generated code needed for Step 2 is not exposed by Step 1.
+  `{code}` must be non-empty and at least 6 characters long. The controller delegates to `projectRepository.deleteByCode(code)` and does not fetch the project first.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `DELETE /api/project/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `DELETE /api/project/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProjectController.deleteProject` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    The supplied code does not identify a project.
-  - Endpoint group:
-    Step 1: `DELETE /api/project/{code}`
+  - Preconditions:
+    - No project with `code = {code}` exists in the database. This can be produced by direct database omission or by not calling `POST /api/project` for that code.
   - Failure endpoint:
     `DELETE /api/project/{code}`
   - Why this fails:
-    The implementation has no explicit existence check. If `deleteByCode` throws, the controller returns `404`; otherwise the endpoint may report `200 OK` even though no project was deleted.
+    The service catches exceptions from `deleteByCode` and returns false, causing `404 Not Found`. If the repository delete affects zero rows without throwing, the endpoint can instead return `200 OK` as a no-op because the implementation does not check an affected-row count.
   - Intentionally violated constraints:
-    The required `POST /api/project` setup is omitted, or a wrong code is used.
+    The required target project state is omitted or a wrong code is used.
 
 Endpoint coverage:
 - Covers:
   `DELETE /api/project/{code}`
 - Distinct meaning:
-  Deletes a project by code.
+  This endpoint directly deletes a project by code.
 
-### Behavior 5: create problem for project
+### Function 5: create problem for project
 
-Behavior name:
+Function name:
 create problem for project
+
+Core endpoint(s):
+- `POST /api/problem/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- The `{code}` used by `POST /api/problem/{code}` must identify that project. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior creates a problem attached to the project identified by `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `POST /api/problem/{code}`
+  Creates a `Problem` row linked to the project identified by `{code}`.
+- Invocation:
+  Step 1: `POST /api/problem/{code}` with `{code}` in the path and a JSON body containing problem `title`.
 - Constraints:
-  `{code}` in Step 2 must equal the project code generated in Step 1. The problem request body must contain a non-null `title`; request body project linkage is overwritten by the path code lookup. The project creation response does not expose `{code}`.
+  `{code}` must be non-empty and at least 6 characters long. The request body must contain a non-null `title`; request body project linkage is overwritten by the project found from the path code. OpenAPI documents a `200` response, but the implementation returns `201 Created` with an empty body and a `Location` based on the current request.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `POST /api/problem/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `POST /api/problem/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProblemController.saveProblem` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    No project exists with `{code}`.
-  - Endpoint group:
-    Step 1: `POST /api/problem/{code}`
+  - Preconditions:
+    - No project with `code = {code}` exists in the database. This can be produced by direct database omission or by not calling `POST /api/project` for that code.
   - Failure endpoint:
     `POST /api/problem/{code}`
   - Why this fails:
-    The project lookup fails and throws `ResourceNotFoundException`.
+    The controller must find the parent project before saving the problem. A missing project causes `ResourceNotFoundException`, which is mapped to `404 Not Found`.
   - Intentionally violated constraints:
-    The required `POST /api/project` setup is omitted, or a wrong code is used.
+    The required parent project state is omitted or a wrong code is used.
 - Branch 3:
-  - Unsatisfied condition:
-    Problem `title` is null.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `POST /api/problem/{code}`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - The problem request body omits `title` or sets `title` to null.
   - Failure endpoint:
     `POST /api/problem/{code}`
   - Why this fails:
-    `ProblemServiceImpl.saveProblem` returns false when `problem.getTitle() == null`, and the controller returns `400`.
+    `ProblemServiceImpl.saveProblem` returns false when `problem.getTitle() == null`, and the controller returns `400 Bad Request` with an error JSON body.
   - Intentionally violated constraints:
-    Problem body omits `title` or sets it to null.
+    The required non-null problem title is omitted.
 
 Endpoint coverage:
 - Covers:
   `POST /api/problem/{code}`
 - Distinct meaning:
-  Adds a problem under an existing project code.
+  This endpoint directly adds a problem under an existing project code.
 
-### Behavior 6: retrieve problems for project code
+### Function 6: retrieve problems for project code
 
-Behavior name:
+Function name:
 retrieve problems for project code
+
+Core endpoint(s):
+- `GET /api/problem/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- At least one `Problem` row exists with foreign key `code = {code}`. This can be satisfied by directly inserting a problem row linked to the project code, or by calling `POST /api/problem/{code}` with a JSON body containing non-null `title`.
+- The `{code}` used by `GET /api/problem/{code}` must match the code on the existing problem rows. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior retrieves the collection of problems whose project code matches `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `POST /api/problem/{code}`
-  Step 3: `GET /api/problem/{code}`
+  Returns the collection of problem rows whose project code matches `{code}`.
+- Invocation:
+  Step 1: `GET /api/problem/{code}` with `{code}` in the path.
 - Constraints:
-  The `{code}` used in Steps 2 and 3 must be the same generated project code from Step 1. At least one problem row must exist for that code. The implementation queries problems directly by `code`; it does not separately check whether the project exists.
+  `{code}` must be non-empty and at least 6 characters long. The implementation queries the `problem` table directly by code and does not separately verify that a project row still exists.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `GET /api/problem/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `GET /api/problem/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProblemController.getProblemByCode` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    No problem rows exist for `{code}`.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `GET /api/problem/{code}`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - No problem row exists with `code = {code}`. This can be produced by direct database omission or by intentionally not calling `POST /api/problem/{code}` before the read.
   - Failure endpoint:
     `GET /api/problem/{code}`
   - Why this fails:
-    The problem query returns an empty collection and the controller throws `ElementNullException`, mapped to `501 Not Implemented`.
+    The repository query returns an empty collection and the controller throws `ElementNullException`, which is mapped to `501 Not Implemented`.
   - Intentionally violated constraints:
-    `POST /api/problem/{code}` is intentionally omitted before the read.
+    The required problem state for the requested code is omitted.
+- Branch 3:
+  - Preconditions:
+    - No problem row exists with `code = {code}`. A project row may also be absent because this endpoint does not check project existence separately.
+  - Failure endpoint:
+    `GET /api/problem/{code}`
+  - Why this fails:
+    The endpoint only checks whether the problem query result is empty. Missing project state is therefore observed as an empty problem collection and mapped to `501 Not Implemented`, not `404 Not Found`.
+  - Intentionally violated constraints:
+    The required problem collection for `{code}` is omitted or a wrong code is used.
 
 Endpoint coverage:
 - Covers:
   `GET /api/problem/{code}`
 - Distinct meaning:
-  Lists existing problems associated with a code.
+  This endpoint directly lists existing problems associated with a project code.
 
-### Behavior 7: delete problem rows for code without subproblem cleanup
+### Function 7: delete problem rows for code
 
-Behavior name:
+Function name:
 delete problem rows for code
+
+Core endpoint(s):
+- `DELETE /api/problem/{code}`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- At least one `Problem` row exists with foreign key `code = {code}`. This can be satisfied by directly inserting a problem row linked to the project code, or by calling `POST /api/problem/{code}` with a JSON body containing non-null `title`.
+- The `{code}` used by `DELETE /api/problem/{code}` must match the code on the problem rows. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior deletes problem rows whose `code` matches `{code}`. Swagger says “delete recent problem,” but the implementation calls `deleteAllProblemByCodeInQuery`, so it deletes all matching problems, not only the most recent one.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `POST /api/problem/{code}`
-  Step 3: `DELETE /api/problem/{code}`
+  Deletes problem rows whose `code` matches `{code}`. OpenAPI describes this as deleting the recent problem, but source code calls `deleteAllProblemByCodeInQuery`, so the runtime effect is bulk deletion by code.
+- Invocation:
+  Step 1: `DELETE /api/problem/{code}` with `{code}` in the path.
 - Constraints:
-  `{code}` in Steps 2 and 3 must be the same project code from Step 1. For a clean successful deletion, matching problems should not have subproblems, because this endpoint does not delete subproblems first. The controller ignores the service return value and returns `200 OK` after format validation.
+  `{code}` must be non-empty and at least 6 characters long. For clean deletion, matching problems should not have dependent subproblem rows because this endpoint does not delete subproblems first. The controller ignores the service return value and returns `200 OK` after format validation.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `DELETE /api/problem/{code}`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `DELETE /api/problem/{code}`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProblemController.deleteProblem` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    Matching problems have subproblems.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `POST /api/problem/{code}`
-    Step 3: `GET /api/problem/{code}`
-    Step 4: `POST /api/subproblem`
-    Step 5: `DELETE /api/problem/{code}`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - A problem row exists with `code = {code}`. This can be satisfied by direct insertion or by calling `POST /api/problem/{code}` with a non-null problem `title`.
+    - The problem's `idx` is known. This can be satisfied by direct database lookup or by calling `GET /api/problem/{code}` and reading the returned problem `idx`.
+    - A `subproblem` row exists with `pro_idx` equal to that problem `idx`. This can be satisfied by direct insertion or by calling `POST /api/subproblem` with JSON body containing `pro_idx` and `content` of at least 10 characters.
   - Failure endpoint:
     `DELETE /api/problem/{code}`
   - Why this fails:
-    The native delete removes `problem` rows without first deleting `subproblem` rows. A foreign-key failure can occur, the service catches it, and the controller still returns `200 OK`, so the visible response can falsely indicate success.
+    The native delete removes rows from `problem` without first deleting rows from `subproblem`. A foreign-key failure can occur inside `ProblemServiceImpl.deleteAllProblemWithCode`, but the controller ignores the false return value and still returns `200 OK`, so the response can falsely indicate success.
   - Intentionally violated constraints:
-    A subproblem is intentionally left attached to the problem before using the non-recursive delete endpoint.
+    A dependent subproblem is intentionally left attached before using the non-recursive problem delete endpoint.
+- Branch 3:
+  - Preconditions:
+    - No problem row exists with `code = {code}`. This can be produced by direct database omission or by intentionally not calling `POST /api/problem/{code}`.
+  - Failure endpoint:
+    `DELETE /api/problem/{code}`
+  - Why this fails:
+    The service does not report affected-row count to the controller. A zero-row delete can still result in `200 OK`, making the endpoint a no-op instead of a visible failure.
+  - Intentionally violated constraints:
+    The target problem state for `{code}` is omitted.
 
 Endpoint coverage:
 - Covers:
   `DELETE /api/problem/{code}`
 - Distinct meaning:
-  Implementation-backed meaning is bulk problem deletion by code, not “delete latest problem” as described by Swagger.
+  This endpoint directly performs bulk deletion of problem rows by code, despite the OpenAPI summary implying deletion of only the recent problem.
 
-### Behavior 8: delete problems and subproblems for code
+### Function 8: delete problems and subproblems for code
 
-Behavior name:
+Function name:
 delete problems and subproblems for code
+
+Core endpoint(s):
+- `DELETE /api/problem/{code}/all`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- A single `Problem` row exists with foreign key `code = {code}`. This can be satisfied by directly inserting one problem row linked to the project code, or by calling `POST /api/problem/{code}` once with a JSON body containing non-null `title`.
+- The problem `idx` for that code is known. This can be satisfied by direct database lookup or by calling `GET /api/problem/{code}` and reading the returned problem `idx`.
+- A `subproblem` row exists with `pro_idx` equal to that problem `idx`. This can be satisfied by directly inserting a `subproblem` row linked to the problem, or by calling `POST /api/subproblem` with JSON body containing `pro_idx` and `content` of at least 10 characters.
+- The `{code}` used by `DELETE /api/problem/{code}/all` must match the single problem row and its parent project. If the API is used to establish the project, the server-generated code must be obtained outside the documented create response because `POST /api/project` does not expose it.
 
 Successful execution:
 - Result:
-  This behavior deletes subproblems for the matching problem and then deletes problem rows for `{code}`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `POST /api/problem/{code}`
-  Step 3: `GET /api/problem/{code}`
-  Step 4: `POST /api/subproblem`
-  Step 5: `DELETE /api/problem/{code}/all`
+  Deletes subproblem rows for the problem selected by `{code}`, then deletes problem rows whose `code` matches `{code}`.
+- Invocation:
+  Step 1: `DELETE /api/problem/{code}/all` with `{code}` in the path.
 - Constraints:
-  `{code}` in Steps 2, 3, and 5 must match the generated project code from Step 1. Step 3 must provide a problem `idx`; Step 4 must send that value as `pro_idx`. The subproblem `content` must be at least 10 characters. Implementation detail: the subproblem delete query uses `pro_idx = (SELECT idx FROM problem WHERE code=?1)`, so it assumes the code maps to a single problem row.
+  `{code}` must be non-empty and at least 6 characters long. The subproblem delete query is `DELETE FROM subproblem WHERE pro_idx = (SELECT idx FROM problem WHERE code=?1)`, so it assumes the code maps to a single problem `idx`.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `{code}` is shorter than 6 characters.
-  - Endpoint group:
-    Step 1: `DELETE /api/problem/{code}/all`
+  - Preconditions:
+    - The supplied path `{code}` is empty or shorter than 6 characters.
   - Failure endpoint:
     `DELETE /api/problem/{code}/all`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `ProblemController.deleteAllProblem` throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Path `{code}` length is less than 6.
+    The project code format requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    More than one problem exists for the same code.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `POST /api/problem/{code}`
-    Step 3: `POST /api/problem/{code}`
-    Step 4: `DELETE /api/problem/{code}/all`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - More than one `Problem` row exists with `code = {code}`. This can be satisfied by directly inserting duplicate problem rows for the same code or by calling `POST /api/problem/{code}` more than once with valid problem bodies.
   - Failure endpoint:
     `DELETE /api/problem/{code}/all`
   - Why this fails:
-    The native subproblem delete query is written as a scalar subquery. Multiple problem rows for one code can make the subquery return multiple `idx` values, causing the service to return false and the controller to throw `ResourceNotFoundException`.
+    The native subproblem delete uses a scalar subquery for `idx`. Multiple problem rows for the same code can make the subquery return multiple values, causing a database exception. The service catches the exception and returns false, and the controller throws `ResourceNotFoundException`, mapped to `404 Not Found`.
   - Intentionally violated constraints:
-    The sequence creates multiple problems for the same code before calling the `/all` delete endpoint.
+    The one-problem-per-code assumption of the recursive delete query is violated.
 - Branch 3:
-  - Unsatisfied condition:
-    No matching problem exists.
-  - Endpoint group:
-    Step 1: `DELETE /api/problem/{code}/all`
+  - Preconditions:
+    - No problem row exists with `code = {code}`. This can be produced by direct database omission or by intentionally not calling `POST /api/problem/{code}`.
   - Failure endpoint:
     `DELETE /api/problem/{code}/all`
   - Why this fails:
-    The endpoint is intended to report `404` when deletion fails, but the service does not check row counts. Native deletes that affect zero rows can still return success, so this may become a no-op `200 OK`.
+    The endpoint is intended to report `404 Not Found` when deletion fails, but the service does not inspect affected-row counts. Native deletes affecting zero rows may still return success, so this can become a no-op `200 OK`.
   - Intentionally violated constraints:
-    The required `POST /api/project` and `POST /api/problem/{code}` setup is omitted.
+    The required problem state for recursive deletion is omitted.
+- Branch 4:
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - A problem row exists with `code = {code}`. This can be satisfied by direct insertion or by calling `POST /api/problem/{code}` with a non-null problem `title`.
+    - No subproblem row exists for the matching problem. This can be produced by direct database omission or by intentionally not calling `POST /api/subproblem`.
+  - Failure endpoint:
+    `DELETE /api/problem/{code}/all`
+  - Why this fails:
+    The subproblem delete can affect zero rows and still allow the following problem delete to run. The endpoint may return `200 OK`, so the missing subproblem setup is not necessarily visible as a failure even though the recursive cleanup state is absent.
+  - Intentionally violated constraints:
+    The expected dependent subproblem state is omitted.
 
 Endpoint coverage:
 - Covers:
   `DELETE /api/problem/{code}/all`
 - Distinct meaning:
-  Attempts recursive cleanup of subproblems before deleting problems for a code.
+  This endpoint directly attempts recursive cleanup of subproblems before deleting problems for a code.
 
-### Behavior 9: create subproblem for problem
+### Function 9: create subproblem for problem
 
-Behavior name:
+Function name:
 create subproblem for problem
+
+Core endpoint(s):
+- `POST /api/subproblem`
+
+Preconditions:
+- A project with `code = {code}` exists in the database. This can be satisfied by directly inserting a `Project` row with `code = {code}` and a non-null `title`, or by calling `POST /api/project` with a valid `title`.
+- A `Problem` row exists under that project code. This can be satisfied by directly inserting a problem row linked to the project, or by calling `POST /api/problem/{code}` with the generated `{code}` and a JSON body containing non-null `title`.
+- The target problem `idx` is known. This can be satisfied by direct database lookup or by calling `GET /api/problem/{code}` and reading the returned problem `idx`.
+- The `pro_idx` value in the `POST /api/subproblem` body must equal the target problem `idx`. If the API is used to establish the problem, `idx` must be taken from `GET /api/problem/{code}` because problem creation returns no body containing the new `idx`.
 
 Successful execution:
 - Result:
-  This behavior creates a subproblem attached to an existing problem identified by `pro_idx`.
-- Endpoint sequence:
-  Step 1: `POST /api/project`
-  Step 2: `POST /api/problem/{code}`
-  Step 3: `GET /api/problem/{code}`
-  Step 4: `POST /api/subproblem`
+  Creates a `subproblem` row linked to the existing problem identified by `pro_idx`.
+- Invocation:
+  Step 1: `POST /api/subproblem` with JSON body containing `pro_idx` and `content`.
 - Constraints:
-  `{code}` in Steps 2 and 3 must identify the project from Step 1. Step 3 returns problem objects; the `idx` of the intended problem must be reused as `pro_idx` in Step 4. Step 4 body must include `content` with length at least 10. Problem creation does not return `idx`, so Step 3 is required to obtain it through the documented API.
+  `content` must be non-null and at least 10 characters long. The `subProblem` entity also requires non-null `content` no longer than 200 characters. `pro_idx` must identify an existing problem row.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    `content` is empty or shorter than 10 characters.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `POST /api/problem/{code}`
-    Step 3: `GET /api/problem/{code}`
-    Step 4: `POST /api/subproblem`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - A problem row exists under that project code. This can be satisfied by direct insertion or by calling `POST /api/problem/{code}` with a non-null problem `title`.
+    - The target problem `idx` is known. This can be satisfied by direct database lookup or by calling `GET /api/problem/{code}` and reading the returned problem `idx`.
+    - The subproblem request body uses that valid `pro_idx` but supplies `content` shorter than 10 characters or an empty string.
   - Failure endpoint:
     `POST /api/subproblem`
   - Why this fails:
-    The controller throws `DataFormatException`.
+    `subProblemController.saveSubProblem` checks `problemBody.getContent().length() < 10` or empty content and throws `DataFormatException`, which is mapped to `400 Bad Request`.
   - Intentionally violated constraints:
-    Step 4 uses valid `pro_idx` but invalid `content`.
+    The subproblem content minimum length requirement is violated.
 - Branch 2:
-  - Unsatisfied condition:
-    `pro_idx` does not identify an existing problem.
-  - Endpoint group:
-    Step 1: `POST /api/subproblem`
+  - Preconditions:
+    - No problem row exists with `idx = {pro_idx}`. This can be produced by direct database omission, by not calling `POST /api/problem/{code}` and `GET /api/problem/{code}` to obtain a valid id, or by supplying a wrong or stale `pro_idx`.
   - Failure endpoint:
     `POST /api/subproblem`
   - Why this fails:
-    `problemService.getProblemById(pro_idx)` returns empty and the controller throws `ResourceNotFoundException`.
+    `problemService.getProblemById(pro_idx)` returns empty and the controller throws `ResourceNotFoundException`, which is mapped to `404 Not Found`.
   - Intentionally violated constraints:
-    The required `POST /api/problem/{code}` and `GET /api/problem/{code}` sequence to obtain a valid problem `idx` is omitted, or the wrong `pro_idx` is supplied.
+    The required parent problem id is missing, wrong, or stale.
 - Branch 3:
-  - Unsatisfied condition:
-    `content` is null.
-  - Endpoint group:
-    Step 1: `POST /api/subproblem`
+  - Preconditions:
+    - The subproblem request body omits `content` or sets `content` to null.
   - Failure endpoint:
     `POST /api/subproblem`
   - Why this fails:
-    The implementation calls `problemBody.getContent().length()` before a null check, causing an unhandled null failure.
+    The controller calls `problemBody.getContent().length()` before checking for null, causing an unhandled null dereference rather than a controlled validation response.
   - Intentionally violated constraints:
-    Body omits `content` or sets it to null.
+    The required non-null subproblem content value is omitted.
 - Branch 4:
-  - Unsatisfied condition:
-    `content` exceeds the entity maximum length.
-  - Endpoint group:
-    Step 1: `POST /api/project`
-    Step 2: `POST /api/problem/{code}`
-    Step 3: `GET /api/problem/{code}`
-    Step 4: `POST /api/subproblem`
+  - Preconditions:
+    - A project with `code = {code}` exists in the database. This can be satisfied by direct insertion or by calling `POST /api/project` with a valid `title` and reusing the generated code.
+    - A problem row exists under that project code. This can be satisfied by direct insertion or by calling `POST /api/problem/{code}` with a non-null problem `title`.
+    - The target problem `idx` is known. This can be satisfied by direct database lookup or by calling `GET /api/problem/{code}` and reading the returned problem `idx`.
+    - The subproblem request body uses that valid `pro_idx` but supplies `content` longer than 200 characters.
   - Failure endpoint:
     `POST /api/subproblem`
   - Why this fails:
-    `subProblem.content` has `@Size(max=200)` and persistence can reject longer content; the service returns false and the controller returns `500`.
+    `subProblem.content` has `@Size(max=200)`. Persistence can reject longer content, `subProblemServiceImpl.saveSubProblem` returns false, and the controller returns `500 Internal Server Error`.
   - Intentionally violated constraints:
-    Step 4 uses valid `pro_idx` but body `content` is longer than 200 characters.
+    The subproblem content maximum persistence length is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /api/subproblem`
 - Distinct meaning:
-  Adds a subproblem to an existing problem by `pro_idx`.
-
-### Unclear or auxiliary endpoints
-
-None. Every endpoint in `spring-rest-example.json` maps to at least one behavior above.
+  This endpoint directly adds a subproblem to an existing problem by `pro_idx`.

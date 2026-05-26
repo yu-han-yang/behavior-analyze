@@ -1,25 +1,30 @@
-Source/OpenAPI discrepancies observed: the implementation returns `201 Created` for several create/update/association endpoints where the Swagger file also lists `200 OK`; the salt endpoint returns `201 Created` in code while Swagger documents `200 OK`. Swagger does not mark request-body fields as required, but the implementation validates several fields and database schema requires others.
+Source/OpenAPI discrepancies observed: the implementation returns `201 Created` for several create, update, and association endpoints where Swagger also lists `200 OK`; `GET /users/rbac/salt` returns `201 Created` in the implementation while Swagger documents `200 OK`. Swagger does not mark most model fields as required, but the implementation validates passwords, email addresses, phone numbers, genders, unique usernames, unique emails, unique role names, and unique permission keys; the database schema also requires user `username`, `password`, `name`, `surname`, and contact `email`.
 
-### Behavior 1: authenticate user
+### Function 1: authenticate user
 
-Behavior name:
+Function name:
 authenticate user
+
+Core endpoint(s):
+- `POST /login`
+
+Preconditions:
+- An enabled user exists with a unique `username`, encrypted password, valid email contact, `gender` equal to `MALE` or `FEMALE`, and a default role. This can be satisfied by directly inserting rows into `users`, `contacts`, `addresses`, and `users_roles`, or by calling `POST /users/register` with `username`, plaintext `password`, valid `email`, `name`, `surname`, and `gender`.
+- The plaintext `password` used by `POST /login` must match the password originally supplied to `POST /users/register` or the value encrypted into the database with the configured application salt.
+- If the API establishes the user, the `username` returned by or supplied to `POST /users/register` must be reused in the login body.
 
 Successful execution:
 - Result:
-  This behavior logs in an enabled user and returns that user’s presentation data, including roles and enabled permissions. The login timestamp is updated.
-- Endpoint sequence:
-  Step 1: `POST /users/register` with a unique `username`, valid `password`, valid `email`, `gender` equal to `MALE` or `FEMALE`, and non-null user identity fields.
-  Step 2: `POST /login` with `username` and plaintext `password` matching the values from Step 1.
+  The core endpoint logs in an enabled user, updates the user's `loginDt`, and returns user presentation data with roles and enabled permissions.
+- Invocation:
+  Step 1: `POST /login` with JSON body fields `username` and plaintext `password`
 - Constraints:
-  The user created by Step 1 must be enabled. Registration sets `enabled=true`. The login password is compared against the stored encrypted password using the configured application salt. The `username` from Step 1 must be reused in Step 2.
+  `username` and `password` must be non-empty. The user must exist, must be enabled, and the provided plaintext password must validate against the stored encrypted password using the configured salt.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Username or password is null or empty.
-  - Endpoint group:
-    Step 1: `POST /login` with missing or empty `username` or `password`.
+  - Preconditions:
+    - The login request has a missing, null, or empty `username` or `password`; no database setup is required because validation fails before user lookup.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
@@ -27,60 +32,59 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     Required login credentials are omitted or empty.
 - Branch 2:
-  - Unsatisfied condition:
-    No user exists for the supplied username.
-  - Endpoint group:
-    Step 1: `POST /login` with a `username` that was not created by `POST /users/register` or `POST /users`.
+  - Preconditions:
+    - No user exists for `{username}` in the `users` table. This can be produced by starting from an empty database, deleting the user beforehand, or intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
-    The implementation cannot find a user by username and raises an invalid-login error.
+    The user lookup by username returns null and the service raises an invalid-login error.
   - Intentionally violated constraints:
-    The prerequisite user creation endpoint is intentionally omitted.
+    The required existing user state is omitted.
 - Branch 3:
-  - Unsatisfied condition:
-    Password does not match the stored encrypted password.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /login` with the same `username` but a different valid plaintext `password`.
+  - Preconditions:
+    - A user exists for `{username}` with an encrypted password derived from `{originalPassword}`. This can be satisfied by direct database insertion using the application salt or by calling `POST /users/register` with `{username}` and `{originalPassword}`.
+    - The login body reuses `{username}` but supplies `{differentPassword}` instead of `{originalPassword}`.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
-    The password hash comparison fails.
+    The stored encrypted password comparison fails.
   - Intentionally violated constraints:
-    Step 2 does not reuse the plaintext password supplied in Step 1.
+    The login request does not reuse the plaintext password that matches the stored credential.
 - Branch 4:
-  - Unsatisfied condition:
-    User exists but is disabled.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `PUT /users/{id}` using the `id` returned by Step 1 and a valid full user body with `enabled=false`.
-    Step 3: `POST /login` with the updated user’s `username` and `password`.
+  - Preconditions:
+    - A user exists for `{username}` with a valid encrypted password and `enabled=false`. This can be satisfied by direct database insertion or by calling `POST /users/register` and then `PUT /users/{id}` with the returned `id`, a valid full user body, and `enabled=false`.
+    - If the API creates and disables the user, the `{id}` returned by registration must be reused in `PUT /users/{id}`, and `{username}` plus the matching plaintext password must be reused in the login request.
   - Failure endpoint:
     `POST /login`
   - Why this fails:
-    The implementation rejects login for users whose `enabled` flag is false.
+    Password validation succeeds, but the service rejects users whose `enabled` flag is false.
   - Intentionally violated constraints:
-    The user is intentionally put into a disabled state before login.
+    The user is intentionally placed in a disabled state before authentication.
 
 Endpoint coverage:
 - Covers:
   `POST /login`
 - Distinct meaning:
-  Authenticates an existing enabled user and updates login metadata.
+  Authenticates an enabled user and updates login metadata.
 
-### Behavior 2: list users
+### Function 2: list users
 
-Behavior name:
+Function name:
 list users
+
+Core endpoint(s):
+- `GET /users`
+
+Preconditions:
+- No prerequisite user state is required. The database may contain zero or more rows in `users`.
 
 Successful execution:
 - Result:
-  This behavior retrieves the presentation list of all users currently stored by the service.
-- Endpoint sequence:
+  The core endpoint returns a `UserListDTO` containing presentation data for all stored users.
+- Invocation:
   Step 1: `GET /users`
 - Constraints:
-  No specific user must already exist. The result may be an empty or populated `UserListDTO`.
+  The endpoint performs a global read and does not require a user id, request body, or prior setup endpoint.
 
 Failure or exceptional branches:
 - None identified from the OpenAPI definition or implementation logic.
@@ -91,55 +95,53 @@ Endpoint coverage:
 - Distinct meaning:
   Reads the global user collection.
 
-### Behavior 3: create full user
+### Function 3: create full user
 
-Behavior name:
+Function name:
 create full user
+
+Core endpoint(s):
+- `POST /users`
+
+Preconditions:
+- The default role with `id = 1` and `role = USER` exists because user creation always assigns `Role.USER`. This can be satisfied by `src/main/resources/data.sql` or by directly inserting the row into `roles`; an ordinary `POST /users/rbac/roles` call cannot reliably satisfy the exact `id = 1` requirement unless the database sequence produces that id.
 
 Successful execution:
 - Result:
-  This behavior creates a full user account with credentials, identity data, contact data, address data, enabled status, secured flag, and the default `USER` role.
-- Endpoint sequence:
-  Step 1: `POST /users`
+  The core endpoint creates a complete user with encrypted credentials, identity fields, contact data, address data, `enabled=true`, the requested `secured` value, and the default `USER` role.
+- Invocation:
+  Step 1: `POST /users` with JSON body fields including unique `username`, valid `password`, unique valid `email`, valid non-empty `phone`, `name`, `surname`, `gender`, optional profile/contact/address fields, and optional `secured`
 - Constraints:
-  The body must contain a unique `username`, unique valid `email`, valid `password`, valid non-empty `phone`, and `gender` equal to `MALE` or `FEMALE`. `name` and `surname` must satisfy the non-null database columns. The implementation always sets `enabled=true` during creation, regardless of the request body’s `enabled` value. The request body’s `secured` value is stored. The seeded role with id `1` (`Role.USER`) must already exist; `src/main/resources/data.sql` creates it.
+  `password` must be 8 to 60 characters with a digit, uppercase letter, lowercase letter, special character, and no spaces. `email` must be non-empty, valid, and at most 255 characters. `phone` must match the international phone pattern and be at most 50 characters. `gender` must be `MALE` or `FEMALE`. `username` and `email` must be unused. The implementation sets `enabled=true` regardless of the request body's `enabled` value.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The request body is missing or required validated fields are invalid.
-  - Endpoint group:
-    Step 1: `POST /users` with a null body, invalid password, invalid email, missing or invalid phone, or unsupported `gender`.
+  - Preconditions:
+    - The request body is missing or contains invalid required values, such as null data, invalid `password`, invalid `email`, missing or invalid `phone`, missing `name` or `surname`, or unsupported `gender`; no database setup is required for this validation failure.
   - Failure endpoint:
     `POST /users`
   - Why this fails:
-    The service validates the DTO, password, email, phone, and gender before saving.
+    The service validates the DTO, password, email, phone, and gender before saving; database constraints also require core user and contact fields.
   - Intentionally violated constraints:
-    Required body values or format rules are intentionally violated.
+    Required body values or format rules are violated.
 - Branch 2:
-  - Unsatisfied condition:
-    Username is already used.
-  - Endpoint group:
-    Step 1: `POST /users`
-    Step 2: `POST /users` with the same `username` as Step 1.
+  - Preconditions:
+    - A user with `{username}` already exists. This can be satisfied by directly inserting a `users` row with `username = {username}` and matching contact/address state, or by calling `POST /users` once with that `username`.
   - Failure endpoint:
     `POST /users`
   - Why this fails:
-    The service looks up the username and rejects duplicates.
+    The service looks up the username and rejects duplicate usernames before saving.
   - Intentionally violated constraints:
-    Step 2 reuses the unique `username` from Step 1.
+    The unique username requirement is violated.
 - Branch 3:
-  - Unsatisfied condition:
-    Email is already used.
-  - Endpoint group:
-    Step 1: `POST /users`
-    Step 2: `POST /users` with a different `username` but the same `email` as Step 1.
+  - Preconditions:
+    - A contact with `{email}` already exists for another user. This can be satisfied by directly inserting rows into `users` and `contacts`, or by calling `POST /users` once with that `email`.
   - Failure endpoint:
     `POST /users`
   - Why this fails:
-    The service looks up contact email and rejects duplicates.
+    The service looks up the contact email and rejects duplicate emails before saving.
   - Intentionally violated constraints:
-    Step 2 reuses the unique `email` from Step 1.
+    The unique email requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -147,88 +149,90 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a complete user record with contact, address, credentials, default role, and secured flag.
 
-### Behavior 4: register minimal user account
+### Function 4: register minimal user account
 
-Behavior name:
+Function name:
 register minimal user account
+
+Core endpoint(s):
+- `POST /users/register`
+
+Preconditions:
+- The default role with `id = 1` and `role = USER` exists because registration always assigns `Role.USER`. This can be satisfied by `src/main/resources/data.sql` or by directly inserting the row into `roles`; an ordinary `POST /users/rbac/roles` call cannot reliably satisfy the exact `id = 1` requirement unless the database sequence produces that id.
 
 Successful execution:
 - Result:
-  This behavior creates a minimal user account with username, encrypted password, identity fields, email contact, an empty address, `enabled=true`, `secured=false`, and the default `USER` role.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
+  The core endpoint creates a minimal user account with encrypted password, identity fields, email contact, empty address, `enabled=true`, `secured=false`, and the default `USER` role.
+- Invocation:
+  Step 1: `POST /users/register` with JSON body fields `username`, `password`, `email`, `name`, `surname`, and `gender`
 - Constraints:
-  The body must contain a unique `username`, unique valid `email`, valid `password`, and `gender` equal to `MALE` or `FEMALE`. `name` and `surname` must satisfy the non-null database columns. The seeded role with id `1` (`Role.USER`) must already exist; `src/main/resources/data.sql` creates it.
+  `username` and `email` must be unused. `password` must satisfy the password validator. `email` must satisfy the email validator. `gender` must be `MALE` or `FEMALE`. `name` and `surname` must satisfy non-null user columns.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    The request body is missing or required validated fields are invalid.
-  - Endpoint group:
-    Step 1: `POST /users/register` with a null body, invalid password, invalid email, or unsupported `gender`.
+  - Preconditions:
+    - The registration body is missing or contains invalid required values, such as invalid `password`, invalid `email`, missing `name` or `surname`, or unsupported `gender`; no database setup is required for this validation failure.
   - Failure endpoint:
     `POST /users/register`
   - Why this fails:
     The service validates registration data before creating the account.
   - Intentionally violated constraints:
-    Required registration fields or format rules are intentionally violated.
+    Required registration values or format rules are violated.
 - Branch 2:
-  - Unsatisfied condition:
-    Username is already used.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/register` with the same `username` as Step 1.
+  - Preconditions:
+    - A user with `{username}` already exists. This can be satisfied by directly inserting a `users` row with `username = {username}` and required related rows, or by calling `POST /users/register` once with that `username`.
   - Failure endpoint:
     `POST /users/register`
   - Why this fails:
     The service rejects duplicate usernames.
   - Intentionally violated constraints:
-    Step 2 reuses the unique `username` from Step 1.
+    The unique username requirement is violated.
 - Branch 3:
-  - Unsatisfied condition:
-    Email is already used.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/register` with a different `username` but the same `email` as Step 1.
+  - Preconditions:
+    - A contact with `{email}` already exists for another user. This can be satisfied by directly inserting rows into `users` and `contacts`, or by calling `POST /users/register` once with that `email`.
   - Failure endpoint:
     `POST /users/register`
   - Why this fails:
     The service rejects duplicate contact emails.
   - Intentionally violated constraints:
-    Step 2 reuses the unique `email` from Step 1.
+    The unique email requirement is violated.
 
 Endpoint coverage:
 - Covers:
   `POST /users/register`
 - Distinct meaning:
-  Creates a reduced user account for self-registration.
+  Creates a reduced account for self-registration.
 
-### Behavior 5: retrieve user by id
+### Function 5: retrieve user by id
 
-Behavior name:
+Function name:
 retrieve user by id
+
+Core endpoint(s):
+- `GET /users/{id}`
+
+Preconditions:
+- A user exists with `{id}`. This can be satisfied by directly inserting rows into `users`, `contacts`, optional `addresses`, and role association tables, or by calling `POST /users/register` and using the returned user `id`.
+- If the API establishes the user, the generated `id` from the creation response must be reused as `{id}`.
 
 Successful execution:
 - Result:
-  This behavior retrieves the user presentation data for a specific user id.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
-  Step 2: `GET /users/{id}` using the `id` returned by Step 1.
+  The core endpoint returns presentation data for the selected user.
+- Invocation:
+  Step 1: `GET /users/{id}` with `{id}` set to an existing user id
 - Constraints:
-  `{id}` in Step 2 must be the user id produced by Step 1.
+  `{id}` must be non-null and must identify a stored user.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    No user exists for `{id}`.
-  - Endpoint group:
-    Step 1: `GET /users/{id}` with an id not returned by any prior documented user creation endpoint.
+  - Preconditions:
+    - No user exists with `{id}`. This can be produced by starting from an empty database, deleting the user beforehand, or intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `GET /users/{id}`
   - Why this fails:
-    The user repository lookup by id returns empty.
+    The repository lookup by id returns empty.
   - Intentionally violated constraints:
-    The prerequisite `POST /users/register` or `POST /users` is intentionally omitted.
+    The required existing user state is omitted or the wrong generated id is used.
 
 Endpoint coverage:
 - Covers:
@@ -236,70 +240,66 @@ Endpoint coverage:
 - Distinct meaning:
   Reads one specific user resource.
 
-### Behavior 6: update user
+### Function 6: update user
 
-Behavior name:
+Function name:
 update user
+
+Core endpoint(s):
+- `PUT /users/{id}`
+
+Preconditions:
+- A user exists with `{id}` and has contact state available for update. This can be satisfied by directly inserting rows into `users`, `contacts`, optional `addresses`, and role association tables, or by calling `POST /users/register` and using the returned user `id`.
+- If the API establishes the user, the generated `id` from the creation response must be reused as `{id}`.
 
 Successful execution:
 - Result:
-  This behavior updates an existing user’s username, password, identity fields, gender, birth date, enabled flag, note, contact fields, address fields, and update timestamp.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
-  Step 2: `PUT /users/{id}` using the `id` returned by Step 1 and a valid full `CreateOrUpdateUserDTO` body.
+  The core endpoint updates editable user profile fields, encrypted password, gender, birth date, enabled flag, note, contact fields, address fields, and `updatedDt`.
+- Invocation:
+  Step 1: `PUT /users/{id}` with `{id}` set to an existing user id and a valid full `CreateOrUpdateUserDTO` JSON body
 - Constraints:
-  `{id}` in Step 2 must come from Step 1. The update body must contain a valid password, valid email, valid non-empty phone, and `gender` equal to `MALE` or `FEMALE`. The updated `username` and `email` may match the same user’s existing values but must not belong to another user. The `secured` field is not updated by this endpoint.
+  The body must contain a valid password, valid email, valid non-empty phone, and `gender` equal to `MALE` or `FEMALE`. The updated `username` and `email` may match the same user but must not belong to another user. The endpoint does not update the `secured` flag.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Target user does not exist.
-  - Endpoint group:
-    Step 1: `PUT /users/{id}` with an id not returned by any prior documented user creation endpoint.
+  - Preconditions:
+    - No user exists with `{id}`. This can be produced by starting from an empty database, deleting the user beforehand, or intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `PUT /users/{id}`
   - Why this fails:
-    The service looks up the user id before applying updates.
+    The service looks up the user id before applying updates and cannot find it.
   - Intentionally violated constraints:
-    The prerequisite user creation endpoint is intentionally omitted.
+    The required target user state is omitted or the wrong generated id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Update body is missing or contains invalid validated fields.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `PUT /users/{id}` using the id from Step 1 but a null body, invalid password, invalid email, missing or invalid phone, or unsupported `gender`.
+  - Preconditions:
+    - A user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned `id`.
+    - The update body is null or contains invalid data, such as invalid `password`, invalid `email`, missing or invalid `phone`, or unsupported `gender`.
   - Failure endpoint:
     `PUT /users/{id}`
   - Why this fails:
     The service validates the update DTO before saving.
   - Intentionally violated constraints:
-    Step 2 provides invalid update data.
+    The request targets an existing user but violates update body validation rules.
 - Branch 3:
-  - Unsatisfied condition:
-    Updated username belongs to another user.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/register`
-    Step 3: `PUT /users/{id}` using the id from Step 1 but the `username` from Step 2.
+  - Preconditions:
+    - A target user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned `id`.
+    - A different user already owns `{otherUsername}`. This can be satisfied by direct database insertion or by calling `POST /users/register` for another account and taking its `username`.
   - Failure endpoint:
     `PUT /users/{id}`
   - Why this fails:
-    The service permits the current user’s own username but rejects another user’s username.
+    The service permits the current user's own username but rejects a username owned by a different user id.
   - Intentionally violated constraints:
-    Step 3 reuses another user’s unique `username`.
+    The update body reuses another user's unique `username`.
 - Branch 4:
-  - Unsatisfied condition:
-    Updated email belongs to another user.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/register`
-    Step 3: `PUT /users/{id}` using the id from Step 1 but the `email` from Step 2.
+  - Preconditions:
+    - A target user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned `id`.
+    - A different user's contact already owns `{otherEmail}`. This can be satisfied by direct database insertion or by calling `POST /users/register` for another account and taking its `email`.
   - Failure endpoint:
     `PUT /users/{id}`
   - Why this fails:
-    The service permits the current user’s own email but rejects another user’s email.
+    The service permits the current user's own email but rejects an email owned by a different user id.
   - Intentionally violated constraints:
-    Step 3 reuses another user’s unique `email`.
+    The update body reuses another user's unique `email`.
 
 Endpoint coverage:
 - Covers:
@@ -307,44 +307,45 @@ Endpoint coverage:
 - Distinct meaning:
   Replaces editable user profile, contact, address, credential, and enabled-state fields.
 
-### Behavior 7: delete non-secured user
+### Function 7: delete non-secured user
 
-Behavior name:
+Function name:
 delete non-secured user
+
+Core endpoint(s):
+- `DELETE /users/{id}`
+
+Preconditions:
+- A non-secured user exists with `{id}`. This can be satisfied by directly inserting a `users` row with `secured=false` plus required related rows, or by calling `POST /users/register` and using the returned user `id`; registration creates `secured=false`.
+- If the API establishes the user, the generated `id` from the creation response must be reused as `{id}`.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing user whose `secured` flag is false.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
-  Step 2: `DELETE /users/{id}` using the `id` returned by Step 1.
+  The core endpoint deletes the selected user when `secured=false`.
+- Invocation:
+  Step 1: `DELETE /users/{id}` with `{id}` set to an existing non-secured user id
 - Constraints:
-  `{id}` in Step 2 must identify the user from Step 1. Registration creates `secured=false`, which satisfies the delete precondition.
+  `{id}` must identify an existing user and that user must not be secured.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Target user does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /users/{id}` with an id not returned by any prior documented user creation endpoint.
+  - Preconditions:
+    - No user exists with `{id}`. This can be produced by starting from an empty database, deleting the user beforehand, or intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `DELETE /users/{id}`
   - Why this fails:
     The service cannot find the user by id.
   - Intentionally violated constraints:
-    The prerequisite user creation endpoint is intentionally omitted.
+    The required target user state is omitted or the wrong generated id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Target user is secured.
-  - Endpoint group:
-    Step 1: `POST /users` with a valid full user body and `secured=true`.
-    Step 2: `DELETE /users/{id}` using the `id` returned by Step 1.
+  - Preconditions:
+    - A secured user exists with `{id}` and `secured=true`. This can be satisfied by directly inserting the user with `secured=true`, or by calling `POST /users` with a valid full user body and `secured=true` and using the returned `id`.
   - Failure endpoint:
     `DELETE /users/{id}`
   - Why this fails:
     The service explicitly refuses to delete secured users.
   - Intentionally violated constraints:
-    Step 1 intentionally creates a secured user.
+    The target user is intentionally secured before deletion.
 
 Endpoint coverage:
 - Covers:
@@ -352,46 +353,48 @@ Endpoint coverage:
 - Distinct meaning:
   Removes a user only when the user is not secured.
 
-### Behavior 8: assign role to user
+### Function 8: assign role to user
 
-Behavior name:
+Function name:
 assign role to user
+
+Core endpoint(s):
+- `POST /users/{id}/roles/{roleId}`
+
+Preconditions:
+- A user exists with `{id}`. This can be satisfied by directly inserting rows into `users`, `contacts`, optional `addresses`, and role association tables, or by calling `POST /users/register` and using the returned user `id`.
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- If the API establishes these resources, the generated user `id` and role `id` must be reused in the path.
 
 Successful execution:
 - Result:
-  This behavior associates an existing role with an existing user and returns the updated user presentation.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
-  Step 2: `POST /users/rbac/roles`
-  Step 3: `POST /users/{id}/roles/{roleId}` using the user `id` returned by Step 1 and the `roleId` returned by Step 2.
+  The core endpoint associates the existing role with the existing user and returns the updated user presentation.
+- Invocation:
+  Step 1: `POST /users/{id}/roles/{roleId}` with `{id}` set to an existing user id and `{roleId}` set to an existing role id
 - Constraints:
-  `{id}` must identify an existing user. `{roleId}` must identify an existing role. If the role is already assigned, the set prevents a duplicate and the call still succeeds.
+  Both path ids must identify existing resources. If the role is already assigned, the `Set<Role>` prevents an additional duplicate and the call still succeeds.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    User does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `POST /users/{id}/roles/{roleId}` using the role id from Step 1 but a user id not returned by any user creation endpoint.
+  - Preconditions:
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion, by using a seeded role, or by calling `POST /users/rbac/roles` and reusing the returned `id`.
+    - No user exists with `{id}`. This can be produced by intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `POST /users/{id}/roles/{roleId}`
   - Why this fails:
     The service validates the user before validating or saving the role association.
   - Intentionally violated constraints:
-    The prerequisite user creation endpoint is intentionally omitted.
+    The required target user state is omitted or the wrong generated user id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/{id}/roles/{roleId}` using the user id from Step 1 but a role id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - A user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned `id`.
+    - No role exists with `{roleId}`. This can be produced by intentionally not inserting the role directly, not using a seeded role id, and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `POST /users/{id}/roles/{roleId}`
   - Why this fails:
     The service cannot find the role by id.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 
 Endpoint coverage:
 - Covers:
@@ -399,47 +402,49 @@ Endpoint coverage:
 - Distinct meaning:
   Adds or ensures a role association on a user.
 
-### Behavior 9: remove role from user
+### Function 9: remove role from user
 
-Behavior name:
+Function name:
 remove role from user
+
+Core endpoint(s):
+- `DELETE /users/{id}/roles/{roleId}`
+
+Preconditions:
+- A user exists with `{id}`. This can be satisfied by directly inserting rows into `users`, `contacts`, optional `addresses`, and role association tables, or by calling `POST /users/register` and using the returned user `id`.
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- The user-role association exists in `users_roles` for `{id}` and `{roleId}` when the intended effect is visible removal. This can be satisfied by directly inserting the association row or by calling `POST /users/{id}/roles/{roleId}` after the user and role exist.
+- If the API establishes these resources, the generated user `id` and role `id` must be reused in both the association setup request and the delete path.
 
 Successful execution:
 - Result:
-  This behavior removes an existing role association from an existing user and returns the updated user presentation.
-- Endpoint sequence:
-  Step 1: `POST /users/register`
-  Step 2: `POST /users/rbac/roles`
-  Step 3: `POST /users/{id}/roles/{roleId}` using the user `id` from Step 1 and the `roleId` from Step 2.
-  Step 4: `DELETE /users/{id}/roles/{roleId}` using the same `id` and `roleId`.
+  The core endpoint removes the role association from the existing user and returns the updated user presentation.
+- Invocation:
+  Step 1: `DELETE /users/{id}/roles/{roleId}` with `{id}` set to an existing user id and `{roleId}` set to an existing role id
 - Constraints:
-  The user and role must exist. Step 3 is required when the intended visible action is removal of an assigned role. If the role exists but is not assigned, the implementation still succeeds and leaves the user’s role set unchanged.
+  Both path ids must identify existing resources. If the role exists but is not assigned to the user, the implementation still succeeds and leaves the role set unchanged.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    User does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `DELETE /users/{id}/roles/{roleId}` using the role id from Step 1 but a user id not returned by any user creation endpoint.
+  - Preconditions:
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion, by using a seeded role, or by calling `POST /users/rbac/roles` and reusing the returned `id`.
+    - No user exists with `{id}`. This can be produced by intentionally not inserting the user directly and not calling `POST /users/register` or `POST /users`.
   - Failure endpoint:
     `DELETE /users/{id}/roles/{roleId}`
   - Why this fails:
     The service validates the user before removing a role.
   - Intentionally violated constraints:
-    The prerequisite user creation endpoint is intentionally omitted.
+    The required target user state is omitted or the wrong generated user id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `DELETE /users/{id}/roles/{roleId}` using the user id from Step 1 but a role id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - A user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned `id`.
+    - No role exists with `{roleId}`. This can be produced by intentionally not inserting the role directly, not using a seeded role id, and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `DELETE /users/{id}/roles/{roleId}`
   - Why this fails:
     The service cannot find the role by id.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 
 Endpoint coverage:
 - Covers:
@@ -447,18 +452,24 @@ Endpoint coverage:
 - Distinct meaning:
   Removes or ensures absence of a role association on a user.
 
-### Behavior 10: list roles
+### Function 10: list roles
 
-Behavior name:
+Function name:
 list roles
+
+Core endpoint(s):
+- `GET /users/rbac/roles`
+
+Preconditions:
+- No prerequisite role state is required. The database may contain zero or more rows in `roles`.
 
 Successful execution:
 - Result:
-  This behavior retrieves all roles with their associated permissions.
-- Endpoint sequence:
+  The core endpoint returns all roles with their associated permissions.
+- Invocation:
   Step 1: `GET /users/rbac/roles`
 - Constraints:
-  No specific role must already exist. The result may be empty or populated.
+  The endpoint performs a global read and does not require a role id or request body.
 
 Failure or exceptional branches:
 - None identified from the OpenAPI definition or implementation logic.
@@ -469,25 +480,29 @@ Endpoint coverage:
 - Distinct meaning:
   Reads the global role collection.
 
-### Behavior 11: create role
+### Function 11: create role
 
-Behavior name:
+Function name:
 create role
+
+Core endpoint(s):
+- `POST /users/rbac/roles`
+
+Preconditions:
+- No prerequisite role state is required beyond the absence of the requested role name.
 
 Successful execution:
 - Result:
-  This behavior creates a new role with a unique role name and no permissions.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles` with a non-empty string body containing the role name.
+  The core endpoint creates a new role with a unique role name and no permissions.
+- Invocation:
+  Step 1: `POST /users/rbac/roles` with a non-empty string request body containing the role name
 - Constraints:
-  The role name must be non-null, non-empty, and not already used.
+  The role-name string must be non-null, non-empty, and not already used in the `roles` table.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role name is null or empty.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles` with an empty or missing string body.
+  - Preconditions:
+    - The request body omits the role-name string or provides a null or empty role name; no database setup is required for this validation failure.
   - Failure endpoint:
     `POST /users/rbac/roles`
   - Why this fails:
@@ -495,17 +510,14 @@ Failure or exceptional branches:
   - Intentionally violated constraints:
     Required role name is omitted or empty.
 - Branch 2:
-  - Unsatisfied condition:
-    Role name already exists.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `POST /users/rbac/roles` with the same role name as Step 1.
+  - Preconditions:
+    - A role with `{roleName}` already exists. This can be satisfied by directly inserting a `roles` row with `role = {roleName}`, by using a seeded role name, or by calling `POST /users/rbac/roles` once with the same request body.
   - Failure endpoint:
     `POST /users/rbac/roles`
   - Why this fails:
-    The role repository finds an existing role with that name.
+    The repository finds an existing role with that name and the service raises `RoleInUseException`.
   - Intentionally violated constraints:
-    Step 2 reuses the unique role name from Step 1.
+    The unique role-name requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -513,32 +525,36 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a new RBAC role.
 
-### Behavior 12: retrieve role by id
+### Function 12: retrieve role by id
 
-Behavior name:
+Function name:
 retrieve role by id
+
+Core endpoint(s):
+- `GET /users/rbac/roles/{roleId}`
+
+Preconditions:
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- If the API establishes the role, the generated role `id` must be reused as `{roleId}`.
 
 Successful execution:
 - Result:
-  This behavior retrieves a specific role and its permissions by role id.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles`
-  Step 2: `GET /users/rbac/roles/{roleId}` using the `id` returned by Step 1.
+  The core endpoint returns the selected role and its permissions.
+- Invocation:
+  Step 1: `GET /users/rbac/roles/{roleId}` with `{roleId}` set to an existing role id
 - Constraints:
-  `{roleId}` in Step 2 must be the role id produced by Step 1.
+  `{roleId}` must be non-null and must identify a stored role.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `GET /users/rbac/roles/{roleId}` with an id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - No role exists with `{roleId}`. This can be produced by starting from an empty `roles` table, choosing an id that was not seeded, deleting the role beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `GET /users/rbac/roles/{roleId}`
   - Why this fails:
     The service cannot find the role by id.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 
 Endpoint coverage:
 - Covers:
@@ -546,46 +562,48 @@ Endpoint coverage:
 - Distinct meaning:
   Reads one specific role resource.
 
-### Behavior 13: delete unused role
+### Function 13: delete unused role
 
-Behavior name:
+Function name:
 delete unused role
+
+Core endpoint(s):
+- `DELETE /users/rbac/roles/{roleId}`
+
+Preconditions:
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- No `users_roles` row references `{roleId}`. This can be satisfied by direct database setup that leaves the association table empty for the role or by creating a new role through `POST /users/rbac/roles` and not assigning it to any user.
+- If the API establishes the role, the generated role `id` must be reused as `{roleId}`.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing role that is not assigned to any user.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles`
-  Step 2: `DELETE /users/rbac/roles/{roleId}` using the `id` returned by Step 1.
+  The core endpoint deletes the selected role when it is not assigned to any user.
+- Invocation:
+  Step 1: `DELETE /users/rbac/roles/{roleId}` with `{roleId}` set to an existing unused role id
 - Constraints:
-  `{roleId}` must identify an existing role. The role must have zero rows in the `users_roles` association table.
+  The role must exist and `roleRepository.countRoleUsage(roleId)` must return zero.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /users/rbac/roles/{roleId}` with an id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - No role exists with `{roleId}`. This can be produced by choosing an id that was not seeded, deleting the role beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `DELETE /users/rbac/roles/{roleId}`
   - Why this fails:
     The service cannot find the role before deletion.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Role is assigned to at least one user.
-  - Endpoint group:
-    Step 1: `POST /users/register`
-    Step 2: `POST /users/rbac/roles`
-    Step 3: `POST /users/{id}/roles/{roleId}` using the user id from Step 1 and role id from Step 2.
-    Step 4: `DELETE /users/rbac/roles/{roleId}` using the same role id from Step 2.
+  - Preconditions:
+    - A user exists with `{id}`. This can be satisfied by direct database insertion or by calling `POST /users/register` and reusing the returned user `id`.
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/roles` and reusing the returned role `id`.
+    - The role is assigned to the user through a `users_roles` row for `{id}` and `{roleId}`. This can be satisfied by direct database insertion or by calling `POST /users/{id}/roles/{roleId}` after the user and role exist.
   - Failure endpoint:
     `DELETE /users/rbac/roles/{roleId}`
   - Why this fails:
-    The service counts role usage in `users_roles` and rejects deletion when usage is greater than zero.
+    The service counts rows in `users_roles` and rejects deletion when the role is in use.
   - Intentionally violated constraints:
-    Step 3 intentionally makes the role in use before Step 4.
+    The role is intentionally placed in use before deletion.
 
 Endpoint coverage:
 - Covers:
@@ -593,18 +611,24 @@ Endpoint coverage:
 - Distinct meaning:
   Deletes a role only if no user currently uses it.
 
-### Behavior 14: list permissions
+### Function 14: list permissions
 
-Behavior name:
+Function name:
 list permissions
+
+Core endpoint(s):
+- `GET /users/rbac/permissions`
+
+Preconditions:
+- No prerequisite permission state is required. The database may contain zero or more rows in `permissions`.
 
 Successful execution:
 - Result:
-  This behavior retrieves all permissions.
-- Endpoint sequence:
+  The core endpoint returns all permissions.
+- Invocation:
   Step 1: `GET /users/rbac/permissions`
 - Constraints:
-  No specific permission must already exist. The result may be empty or populated.
+  The endpoint performs a global read and does not require a permission key or request body.
 
 Failure or exceptional branches:
 - None identified from the OpenAPI definition or implementation logic.
@@ -615,43 +639,44 @@ Endpoint coverage:
 - Distinct meaning:
   Reads the global permission collection.
 
-### Behavior 15: create permission
+### Function 15: create permission
 
-Behavior name:
+Function name:
 create permission
+
+Core endpoint(s):
+- `POST /users/rbac/permissions`
+
+Preconditions:
+- No prerequisite permission state is required beyond the absence of the requested permission key.
 
 Successful execution:
 - Result:
-  This behavior creates a new permission with a unique permission key, enabled flag, and optional note.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/permissions`
+  The core endpoint creates a new permission with a unique permission key, enabled flag, and optional note.
+- Invocation:
+  Step 1: `POST /users/rbac/permissions` with a `PermissionDTO` JSON body containing non-empty unique `permission`, optional `enabled`, and optional `note`
 - Constraints:
-  The body must be a `PermissionDTO` with a non-empty unique `permission` value. The implementation stores `permission`, `enabled`, and `note`; the request `id` is not used for creation.
+  The request body must not be null. `permission` must be non-null, non-empty, and unused. The request body `id` is ignored for creation.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Permission body is missing or `permission` is null or empty.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/permissions` with a null body or empty `permission`.
+  - Preconditions:
+    - The request body is missing or `permission` is null or empty; no database setup is required for this validation failure.
   - Failure endpoint:
     `POST /users/rbac/permissions`
   - Why this fails:
-    The permission service validates the DTO and key before saving.
+    The permission service validates the DTO and permission key before saving.
   - Intentionally violated constraints:
     Required permission key is omitted or empty.
 - Branch 2:
-  - Unsatisfied condition:
-    Permission key already exists.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/permissions`
-    Step 2: `POST /users/rbac/permissions` with the same `permission` key as Step 1.
+  - Preconditions:
+    - A permission with `{permissionKey}` already exists. This can be satisfied by directly inserting a `permissions` row with `permission = {permissionKey}`, by using a seeded permission, or by calling `POST /users/rbac/permissions` once with that key.
   - Failure endpoint:
     `POST /users/rbac/permissions`
   - Why this fails:
     The service finds an existing permission with the same key. Implementation detail: it throws `PermissionNotFoundException` for this duplicate case, so the global handler maps it like a not-found error even though the message says the permission already exists.
   - Intentionally violated constraints:
-    Step 2 reuses the unique permission key from Step 1.
+    The unique permission-key requirement is violated.
 
 Endpoint coverage:
 - Covers:
@@ -659,32 +684,36 @@ Endpoint coverage:
 - Distinct meaning:
   Creates a standalone permission resource.
 
-### Behavior 16: retrieve permission by key
+### Function 16: retrieve permission by key
 
-Behavior name:
+Function name:
 retrieve permission by key
+
+Core endpoint(s):
+- `GET /users/rbac/permissions/{permissionKey}`
+
+Preconditions:
+- A permission exists with key `{permissionKey}`. This can be satisfied by directly inserting a row into `permissions`, by using a seeded permission from `data.sql`, by calling `POST /users/rbac/permissions` with `permission = {permissionKey}`, or by calling `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` with a missing key so the implementation creates it implicitly.
+- If the API establishes the permission, the created or supplied permission key must be reused as `{permissionKey}`.
 
 Successful execution:
 - Result:
-  This behavior retrieves a specific permission by its permission key.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/permissions`
-  Step 2: `GET /users/rbac/permissions/{permissionKey}` using the `permission` value from Step 1 as `{permissionKey}`.
+  The core endpoint returns the selected permission by key.
+- Invocation:
+  Step 1: `GET /users/rbac/permissions/{permissionKey}` with `{permissionKey}` set to an existing permission key
 - Constraints:
-  `{permissionKey}` must equal the permission key created in Step 1.
+  `{permissionKey}` must be non-null, non-empty, and must identify a stored permission.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Permission does not exist.
-  - Endpoint group:
-    Step 1: `GET /users/rbac/permissions/{permissionKey}` with a key not created by `POST /users/rbac/permissions` and not implicitly created by role-permission assignment.
+  - Preconditions:
+    - No permission exists with `{permissionKey}`. This can be produced by choosing a key that was not seeded, deleting the permission beforehand, or intentionally not inserting it directly, not calling `POST /users/rbac/permissions`, and not causing implicit creation through `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`.
   - Failure endpoint:
     `GET /users/rbac/permissions/{permissionKey}`
   - Why this fails:
     The permission repository cannot find a permission by key.
   - Intentionally violated constraints:
-    The prerequisite permission creation endpoint is intentionally omitted.
+    The required permission state is omitted or the wrong permission key is used.
 
 Endpoint coverage:
 - Covers:
@@ -692,56 +721,55 @@ Endpoint coverage:
 - Distinct meaning:
   Reads one specific permission resource by key.
 
-### Behavior 17: update permission
+### Function 17: update permission
 
-Behavior name:
+Function name:
 update permission
+
+Core endpoint(s):
+- `PUT /users/rbac/permissions`
+
+Preconditions:
+- A permission exists with `{permissionId}`. This can be satisfied by directly inserting a row into `permissions`, by using a seeded permission from `data.sql`, or by calling `POST /users/rbac/permissions` and using the returned permission `id`.
+- If the API establishes the permission, the generated `id` from the creation response must be supplied in the update body as `id`.
 
 Successful execution:
 - Result:
-  This behavior updates an existing permission’s key, enabled flag, and note.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/permissions`
-  Step 2: `PUT /users/rbac/permissions` with body `id` equal to the `id` returned by Step 1 and `permission` either unchanged or changed to another unused key.
+  The core endpoint updates an existing permission's key, enabled flag, and note.
+- Invocation:
+  Step 1: `PUT /users/rbac/permissions` with a `PermissionDTO` JSON body containing `id = {permissionId}`, `permission`, `enabled`, and optional `note`
 - Constraints:
-  The update body must include an `id` for an existing permission. If `permission` changes, the new key must not already belong to a different permission.
+  The body must not be null and `id` must identify an existing permission. If `permission` changes, the new key must not already belong to a different permission.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Permission body is missing.
-  - Endpoint group:
-    Step 1: `PUT /users/rbac/permissions` with no body.
+  - Preconditions:
+    - The update body is omitted; no database setup is required because the service rejects a null `PermissionDTO`.
   - Failure endpoint:
     `PUT /users/rbac/permissions`
   - Why this fails:
-    The service rejects a null `PermissionDTO`.
+    The service rejects a null permission update body.
   - Intentionally violated constraints:
     Required update body is omitted.
 - Branch 2:
-  - Unsatisfied condition:
-    Permission id does not identify an existing permission.
-  - Endpoint group:
-    Step 1: `PUT /users/rbac/permissions` with an `id` not returned by `POST /users/rbac/permissions`.
+  - Preconditions:
+    - No permission exists with `{permissionId}`. This can be produced by choosing an id that was not seeded, deleting the permission beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/permissions`.
   - Failure endpoint:
     `PUT /users/rbac/permissions`
   - Why this fails:
-    The service looks up the permission by id before updating it.
+    The service looks up the permission by body `id` before updating it.
   - Intentionally violated constraints:
-    The prerequisite permission creation endpoint is intentionally omitted.
+    The required permission id state is omitted or the wrong generated id is used.
 - Branch 3:
-  - Unsatisfied condition:
-    New permission key belongs to a different permission.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/permissions`
-    Step 2: `POST /users/rbac/permissions`
-    Step 3: `PUT /users/rbac/permissions` with `id` from Step 1 and `permission` key from Step 2.
+  - Preconditions:
+    - A target permission exists with `{permissionId}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/permissions` and reusing the returned `id`.
+    - A different permission already owns `{otherPermissionKey}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/permissions` for another key.
   - Failure endpoint:
     `PUT /users/rbac/permissions`
   - Why this fails:
     The service detects another permission with the requested key and rejects the update.
   - Intentionally violated constraints:
-    Step 3 reuses another permission’s unique key.
+    The update body reuses another permission's unique key.
 
 Endpoint coverage:
 - Covers:
@@ -749,46 +777,48 @@ Endpoint coverage:
 - Distinct meaning:
   Updates an existing permission resource by body id.
 
-### Behavior 18: delete unused permission
+### Function 18: delete unused permission
 
-Behavior name:
+Function name:
 delete unused permission
+
+Core endpoint(s):
+- `DELETE /users/rbac/permissions/{permissionKey}`
+
+Preconditions:
+- A permission exists with key `{permissionKey}`. This can be satisfied by directly inserting a row into `permissions`, by using a seeded permission from `data.sql`, by calling `POST /users/rbac/permissions`, or by implicit creation through `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`.
+- No `permissions_roles` row references the permission id for `{permissionKey}`. This can be satisfied by direct database setup that leaves the association table empty for the permission or by creating a new permission and not assigning it to any role.
+- If the API establishes the permission, the created or supplied permission key must be reused as `{permissionKey}`.
 
 Successful execution:
 - Result:
-  This behavior deletes an existing permission when it is not associated with any role.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/permissions`
-  Step 2: `DELETE /users/rbac/permissions/{permissionKey}` using the `permission` value from Step 1 as `{permissionKey}`.
+  The core endpoint deletes the selected permission when it is not associated with any role.
+- Invocation:
+  Step 1: `DELETE /users/rbac/permissions/{permissionKey}` with `{permissionKey}` set to an existing unused permission key
 - Constraints:
-  `{permissionKey}` must identify an existing permission. The permission must have zero rows in the `permissions_roles` association table.
+  `{permissionKey}` must be non-empty, must identify an existing permission, and `permissionRepository.countPermissionUsage(permission.id)` must return zero.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Permission does not exist.
-  - Endpoint group:
-    Step 1: `DELETE /users/rbac/permissions/{permissionKey}` with a key not created by `POST /users/rbac/permissions` and not implicitly created by role-permission assignment.
+  - Preconditions:
+    - No permission exists with `{permissionKey}`. This can be produced by choosing a key that was not seeded, deleting the permission beforehand, or intentionally not inserting it directly, not calling `POST /users/rbac/permissions`, and not causing implicit creation through role-permission assignment.
   - Failure endpoint:
     `DELETE /users/rbac/permissions/{permissionKey}`
   - Why this fails:
     The service cannot find the permission by key.
   - Intentionally violated constraints:
-    The prerequisite permission creation endpoint is intentionally omitted.
+    The required permission state is omitted or the wrong permission key is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Permission is associated with at least one role.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `POST /users/rbac/permissions`
-    Step 3: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 and permission key from Step 2.
-    Step 4: `DELETE /users/rbac/permissions/{permissionKey}` using the same permission key from Step 2.
+  - Preconditions:
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/roles` and reusing the returned `id`.
+    - A permission exists with `{permissionKey}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/permissions` and reusing the request's `permission` value.
+    - The permission is associated with the role through a `permissions_roles` row. This can be satisfied by direct database insertion or by calling `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` after the role and permission exist.
   - Failure endpoint:
     `DELETE /users/rbac/permissions/{permissionKey}`
   - Why this fails:
-    The service counts permission usage in `permissions_roles` and rejects deletion when usage is greater than zero.
+    The service counts rows in `permissions_roles` and rejects deletion when the permission is in use.
   - Intentionally violated constraints:
-    Step 3 intentionally makes the permission in use before Step 4.
+    The permission is intentionally placed in use before deletion.
 
 Endpoint coverage:
 - Covers:
@@ -796,129 +826,139 @@ Endpoint coverage:
 - Distinct meaning:
   Deletes a permission only if no role currently uses it.
 
-### Behavior 19: add existing permission to role
+### Function 19: add existing permission to role
 
-Behavior name:
+Function name:
 add existing permission to role
+
+Core endpoint(s):
+- `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
+
+Preconditions:
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- A permission exists with key `{permissionKey}`. This can be satisfied by directly inserting a row into `permissions`, by using a seeded permission from `data.sql`, or by calling `POST /users/rbac/permissions` with `permission = {permissionKey}`.
+- The role does not already contain the permission in `permissions_roles`. This can be satisfied by direct database setup that omits the association row or by creating the role and permission independently without calling the association endpoint.
+- If the API establishes these resources, the generated role `id` and the permission key from the creation body must be reused in the path.
 
 Successful execution:
 - Result:
-  This behavior associates an already existing permission with an existing role and returns the updated role.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles`
-  Step 2: `POST /users/rbac/permissions`
-  Step 3: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 and permission key from Step 2.
+  The core endpoint associates the existing permission with the existing role and returns the updated role.
+- Invocation:
+  Step 1: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` with `{roleId}` set to an existing role id and `{permissionKey}` set to an existing permission key
 - Constraints:
-  `{roleId}` must identify an existing role. `{permissionKey}` must identify an existing permission. The permission must not already be associated with the role.
+  `{roleId}` must identify an existing role, `{permissionKey}` must be non-empty, and the role must not already contain that permission.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/permissions`
-    Step 2: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the permission key from Step 1 but a role id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - A permission exists with key `{permissionKey}`. This can be satisfied by direct database insertion, by using a seeded permission, or by calling `POST /users/rbac/permissions`.
+    - No role exists with `{roleId}`. This can be produced by choosing an id that was not seeded, deleting the role beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
   - Why this fails:
-    The service validates role existence before adding the permission.
+    The service validates role existence before adding or creating the permission association.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Permission is already associated with the role.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `POST /users/rbac/permissions`
-    Step 3: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 and permission key from Step 2.
-    Step 4: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` repeating the same role id and permission key.
+  - Preconditions:
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/roles` and reusing the returned `id`.
+    - A permission exists with key `{permissionKey}`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/permissions` and reusing the permission key.
+    - The role already contains that permission in `permissions_roles`. This can be satisfied by direct database insertion or by calling `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` once before the failing request.
   - Failure endpoint:
     `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
   - Why this fails:
     The service detects that the role already contains the permission and rejects the duplicate association.
   - Intentionally violated constraints:
-    Step 4 repeats the association created in Step 3.
+    The role-permission uniqueness requirement is violated by repeating an existing association.
 
 Endpoint coverage:
 - Covers:
   `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
 - Distinct meaning:
-  Associates an existing permission with a role.
+  Associates an already existing permission with a role.
 
-### Behavior 20: create missing permission while adding it to role
+### Function 20: create missing permission while adding it to role
 
-Behavior name:
+Function name:
 create missing permission while adding it to role
+
+Core endpoint(s):
+- `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
+
+Preconditions:
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- No permission exists with key `{permissionKey}`. This can be satisfied by direct database setup that omits that key from `permissions`, by choosing an unused key, or by intentionally not calling `POST /users/rbac/permissions` for that key.
+- If the API establishes the role, the generated role `id` must be reused in the path.
 
 Successful execution:
 - Result:
-  This behavior creates a permission implicitly when `{permissionKey}` does not exist, then associates that new permission with the existing role.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles`
-  Step 2: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 and a permission key that has not been created by `POST /users/rbac/permissions`.
+  The core endpoint creates a missing permission with `{permissionKey}` and associates that new permission with the existing role.
+- Invocation:
+  Step 1: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` with `{roleId}` set to an existing role id and `{permissionKey}` set to a non-empty unused permission key
 - Constraints:
-  `{roleId}` must identify an existing role. `{permissionKey}` must be non-empty and unused. The implementation creates a new `Permission` with that key and then adds it to the role. This is a distinct implementation behavior of the same endpoint used to add existing permissions.
+  `{roleId}` must identify an existing role. `{permissionKey}` must be non-empty and unused. The implementation creates a new `Permission` with that key before adding it to the role.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` with a non-empty new permission key but a role id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - No role exists with `{roleId}`. This can be produced by choosing an id that was not seeded, deleting the role beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/roles`.
+    - No permission exists with key `{permissionKey}` because the request is attempting implicit creation, not association of an existing permission.
   - Failure endpoint:
     `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
   - Why this fails:
     The service validates the role before creating or associating the permission.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 
 Endpoint coverage:
 - Covers:
   `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}`
 - Distinct meaning:
-  Creates a missing permission as a side effect, then assigns it to a role.
+  Creates a missing permission as a side effect and then assigns it to a role.
 
-### Behavior 21: remove permission from role
+### Function 21: remove permission from role
 
-Behavior name:
+Function name:
 remove permission from role
+
+Core endpoint(s):
+- `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}`
+
+Preconditions:
+- A role exists with `{roleId}`. This can be satisfied by directly inserting a row into `roles`, by using a seeded role from `data.sql`, or by calling `POST /users/rbac/roles` with a non-empty unique role-name string and using the returned role `id`.
+- A permission exists with key `{permissionKey}`. This can be satisfied by directly inserting a row into `permissions`, by using a seeded permission from `data.sql`, or by calling `POST /users/rbac/permissions` with `permission = {permissionKey}`.
+- The role-permission association exists in `permissions_roles` when the intended effect is visible removal. This can be satisfied by directly inserting the association row or by calling `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` after the role and permission exist.
+- If the API establishes these resources, the generated role `id` and the permission key from the creation body must be reused in both the association setup request and the delete path.
 
 Successful execution:
 - Result:
-  This behavior removes an existing permission from an existing role and returns the updated role.
-- Endpoint sequence:
-  Step 1: `POST /users/rbac/roles`
-  Step 2: `POST /users/rbac/permissions`
-  Step 3: `POST /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 and permission key from Step 2.
-  Step 4: `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the same role id and permission key.
+  The core endpoint removes the permission association from the existing role and returns the updated role.
+- Invocation:
+  Step 1: `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}` with `{roleId}` set to an existing role id and `{permissionKey}` set to an existing permission key
 - Constraints:
-  The role and permission must exist. Step 3 is required when the intended visible action is removal of an assigned permission. If the permission exists but is not assigned to the role, the implementation still succeeds and leaves the role permissions unchanged.
+  `{roleId}` must identify an existing role and `{permissionKey}` must identify an existing permission. If the permission exists but is not assigned to the role, the implementation still succeeds and leaves the permission list unchanged.
 
 Failure or exceptional branches:
 - Branch 1:
-  - Unsatisfied condition:
-    Role does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/permissions`
-    Step 2: `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the permission key from Step 1 but a role id not returned by `POST /users/rbac/roles` and not seeded.
+  - Preconditions:
+    - A permission exists with key `{permissionKey}`. This can be satisfied by direct database insertion, by using a seeded permission, or by calling `POST /users/rbac/permissions`.
+    - No role exists with `{roleId}`. This can be produced by choosing an id that was not seeded, deleting the role beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/roles`.
   - Failure endpoint:
     `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}`
   - Why this fails:
     The service validates role existence before removing the permission.
   - Intentionally violated constraints:
-    The prerequisite role creation endpoint is intentionally omitted.
+    The required role state is omitted or the wrong generated role id is used.
 - Branch 2:
-  - Unsatisfied condition:
-    Permission does not exist.
-  - Endpoint group:
-    Step 1: `POST /users/rbac/roles`
-    Step 2: `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}` using the role id from Step 1 but a permission key not created by `POST /users/rbac/permissions` and not implicitly created by role-permission assignment.
+  - Preconditions:
+    - A role exists with `{roleId}`. This can be satisfied by direct database insertion, by using a seeded role, or by calling `POST /users/rbac/roles`.
+    - No permission exists with `{permissionKey}`. This can be produced by choosing a key that was not seeded, deleting the permission beforehand, or intentionally not inserting it directly and not calling `POST /users/rbac/permissions` or the implicit-creation association endpoint.
   - Failure endpoint:
     `DELETE /users/rbac/roles/{roleId}/permissions/{permissionKey}`
   - Why this fails:
     Unlike the add endpoint, the remove endpoint does not create missing permissions.
   - Intentionally violated constraints:
-    The prerequisite permission creation endpoint is intentionally omitted.
+    The required permission state is omitted or the wrong permission key is used.
 
 Endpoint coverage:
 - Covers:
@@ -926,18 +966,24 @@ Endpoint coverage:
 - Distinct meaning:
   Removes or ensures absence of a permission association on a role.
 
-### Behavior 22: generate password salt
+### Function 22: generate password salt
 
-Behavior name:
+Function name:
 generate password salt
+
+Core endpoint(s):
+- `GET /users/rbac/salt`
+
+Preconditions:
+- No prerequisite resource state is required.
 
 Successful execution:
 - Result:
-  This behavior returns a newly generated 32-character salt string using alphanumeric characters.
-- Endpoint sequence:
+  The core endpoint returns a newly generated 32-character alphanumeric salt string.
+- Invocation:
   Step 1: `GET /users/rbac/salt`
 - Constraints:
-  No prerequisite resource state is required. Implementation returns `201 Created`, while Swagger documents `200 OK`.
+  No path values, query values, or request body are required. The implementation returns `201 Created`, while Swagger documents `200 OK`.
 
 Failure or exceptional branches:
 - None identified from the OpenAPI definition or implementation logic.

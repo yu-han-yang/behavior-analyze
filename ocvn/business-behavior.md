@@ -2,9605 +2,1041 @@
 
 ## Domain Summary
 
-The `ocvn` service is described by its OpenAPI contract as: These endpoints are used to feed the open contracting dashboard
+The service is an Open Contracting dashboard API for Vietnam procurement data. It exposes read-only dashboard, lookup, risk-flag, and Excel export functions over MongoDB OCDS release data. Main domain resources are releases, release packages, tenders, awards, procurement plans, organizations, procuring entities, buyers, suppliers, locations, item classifications, procurement methods, bid selection methods, and computed corruption-risk flags.
 
-The core business concepts are:
+`full-behavior.md` is empty in this workspace, so there are no literal function names available from that file. The function names below use the OpenAPI `operationId` values from `ocvn.json`, verified against controller method names in source. This is an input/source discrepancy: the required function source is present but contains no content.
 
-- average-tender-and-award-periods-controller: endpoint group for average tender and award periods controller behavior.
-- average-number-of-tenderers-controller: endpoint group for average number of tenderers controller behavior.
-- tender-percentages-controller: endpoint group for tender percentages controller behavior.
-- tenders-awards-value-intervals: endpoint group for tenders awards value intervals behavior.
-- cost-effectiveness-visuals-controller: endpoint group for cost effectiveness visuals controller behavior.
-- count-plans-tenders-awards-controller: endpoint group for count plans tenders awards controller behavior.
-- flag-i-003-release-search-controller: endpoint group for flag i 003 release search controller behavior.
-- flag-i-003-stats-controller: endpoint group for flag i 003 stats controller behavior.
-- flag-i-004-release-search-controller: endpoint group for flag i 004 release search controller behavior.
-- flag-i-004-stats-controller: endpoint group for flag i 004 stats controller behavior.
-- flag-i-007-release-search-controller: endpoint group for flag i 007 release search controller behavior.
-- flag-i-007-stats-controller: endpoint group for flag i 007 stats controller behavior.
-- flag-i-019-release-search-controller: endpoint group for flag i 019 release search controller behavior.
-- flag-i-019-stats-controller: endpoint group for flag i 019 stats controller behavior.
-- flag-i-038-release-search-controller: endpoint group for flag i 038 release search controller behavior.
-- flag-i-038-stats-controller: endpoint group for flag i 038 stats controller behavior.
-- flag-i-077-release-search-controller: endpoint group for flag i 077 release search controller behavior.
-- flag-i-077-stats-controller: endpoint group for flag i 077 stats controller behavior.
-- flag-i-180-release-search-controller: endpoint group for flag i 180 release search controller behavior.
-- flag-i-180-stats-controller: endpoint group for flag i 180 stats controller behavior.
-- frequent-suppliers-time-interval-controller: endpoint group for frequent suppliers time interval controller behavior.
-- frequent-tenderers-controller: endpoint group for frequent tenderers controller behavior.
-- funding-by-location-controller: endpoint group for funding by location controller behavior.
-- average-number-of-tenderers-excel-controller: endpoint group for average number of tenderers excel controller behavior.
-- Additional endpoint groups: 27 more groups declared in the API contract.
-
-Contract-level limits: this document captures externally visible business behavior from the API contract. Implementation-only validation, persistence side effects, authorization rules, and asynchronous processing details may be stricter than what is visible here.
+The documented API does not expose create, update, delete, import, authentication, or state-transition endpoints. All supported behaviors start from pre-existing imported MongoDB data.
 
 ## Available Function Inventory
 
-### average-number-of-tenderers-controller
+### OCDS release and package access
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers` | `GET /api/averageNumberOfTenderers` | Calculate average number of tenderers, by year. . |
-| `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers` | `POST /api/averageNumberOfTenderers` | Calculate average number of tenderers, by year. . |
+| `ocdsReleasesUsingGET` / `ocdsReleasesUsingPOST` | `GET/POST /api/ocds/release/all` | List releases filtered by year and common dashboard filters. |
+| `ocdsByOcidUsingGET` / `ocdsByOcidUsingPOST` | `GET/POST /api/ocds/release/ocid/{ocid}` | Retrieve one release by OCID. |
+| `ocdsByProjectIdUsingGET` / `ocdsByProjectIdUsingPOST` | `GET/POST /api/ocds/release/budgetProjectId/{projectId}` | Retrieve one release by `planning.budget.projectID`. |
+| `ocdsByPlanningBidNoUsingGET` / `ocdsByPlanningBidNoUsingPOST` | `GET/POST /api/ocds/release/planningBidNo/{bidNo}` | Retrieve one release by `planning.bidNo`. |
+| `ocdsPackagesUsingGET` / `ocdsPackagesUsingPOST` | `GET/POST /api/ocds/package/all` | List releases wrapped as OCDS release packages. |
+| `ocdsPackageByOcidUsingGET` / `ocdsPackageByOcidUsingPOST` | `GET/POST /api/ocds/package/ocid/{ocid}` | Retrieve one release package by OCID. |
+| `packagedReleaseByProjectIdUsingGET` / `packagedReleaseByProjectIdUsingPOST` | `GET/POST /api/ocds/package/budgetProjectId/{projectId}` | Retrieve one release package by budget project id. |
+| `packagedReleaseByPlanningBidNoUsingGET` / `packagedReleaseByPlanningBidNoUsingPOST` | `GET/POST /api/ocds/package/planningBidNo/{bidNo}` | Retrieve one release package by planning bid number. |
 
-### average-number-of-tenderers-excel-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports average number of bids dashboard in excel format` | `GET /api/ocds/averageNumberBidsExcelChart` | Exports *Average number of bids* dashboard in Excel format. |
-| `exports average number of bids dashboard in excel format` | `POST /api/ocds/averageNumberBidsExcelChart` | Exports *Average number of bids* dashboard in Excel format. |
-
-### average-tender-and-award-periods-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active` | `GET /api/averageAwardPeriod` | Calculates the average award period, per each year. . |
-| `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active` | `POST /api/averageAwardPeriod` | Calculates the average award period, per each year. . |
-| `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date` | `GET /api/averageTenderPeriod` | Calculates the average tender period, per each year. . |
-| `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date` | `POST /api/averageTenderPeriod` | Calculates the average tender period, per each year. . |
-| `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system` | `GET /api/qualityAverageAwardPeriod` | Quality indicator for averageAwardPeriod endpoint, showing the percentage of awards that have start and end dates vs the total tenders in the system. |
-| `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system` | `POST /api/qualityAverageAwardPeriod` | Quality indicator for averageAwardPeriod endpoint, showing the percentage of awards that have start and end dates vs the total tenders in the system. |
-| `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system` | `GET /api/qualityAverageTenderPeriod` | Quality indicator for averageTenderPeriod endpoint, showing the percentage of tenders that have start and end dates vs the total tenders in the system. |
-| `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system` | `POST /api/qualityAverageTenderPeriod` | Quality indicator for averageTenderPeriod endpoint, showing the percentage of tenders that have start and end dates vs the total tenders in the system. |
-
-### average-tender-and-awards-excel-controller
+### Organization and reference lookup
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `exports bid timeline dashboard in excel format` | `GET /api/ocds/bidTimelineExcelChart` | Exports *Bid Timeline* dashboard in Excel format. |
-| `exports bid timeline dashboard in excel format` | `POST /api/ocds/bidTimelineExcelChart` | Exports *Bid Timeline* dashboard in Excel format. |
+| `searchTextUsingGET_1` / `searchTextUsingPOST_1` | `GET/POST /api/ocds/organization/all` | List/search all organizations by name text. |
+| `byIdUsingGET_1` / `byIdUsingPOST_1` | `GET/POST /api/ocds/organization/id/{id}` | Retrieve any organization by id. |
+| `byIdCollectionUsingGET` / `byIdCollectionUsingPOST` | `GET/POST /api/ocds/organization/ids` | Retrieve organizations by repeated `id` query values. |
+| `searchTextUsingGET_2` / `searchTextUsingPOST_2` | `GET/POST /api/ocds/organization/procuringEntity/all` | List/search procuring entities. |
+| `byIdUsingGET_2` / `byIdUsingPOST_2` | `GET/POST /api/ocds/organization/procuringEntity/id/{id}` | Retrieve procuring entity by id. |
+| `searchTextUsingGET_3` / `searchTextUsingPOST_3` | `GET/POST /api/ocds/organization/supplier/all` | List/search suppliers. |
+| `byIdUsingGET_3` / `byIdUsingPOST_3` | `GET/POST /api/ocds/organization/supplier/id/{id}` | Retrieve supplier by id. |
+| `searchTextUsingGET` / `searchTextUsingPOST` | `GET/POST /api/ocds/organization/buyer/all` | List/search buyers. |
+| `byIdUsingGET` / `byIdUsingPOST` | `GET/POST /api/ocds/organization/buyer/id/{id}` | Retrieve buyer by id. |
+| `bidSelectionMethodsUsingGET` / `bidSelectionMethodsUsingPOST` | `GET/POST /api/ocds/bidSelectionMethod/all` | List distinct `tender.procurementMethodDetails`. |
+| `procurementMethodsUsingGET` / `procurementMethodsUsingPOST` | `GET/POST /api/ocds/procurementMethod/all` | List distinct `tender.procurementMethod`. |
+| `bidTypesUsingGET` / `bidTypesUsingPOST` | `GET/POST /api/ocds/bidType/all` | List item classifications used as bid types. |
+| `contrMethodsUsingGET` / `contrMethodsUsingPOST` | `GET/POST /api/ocds/contrMethod/all` | List contract methods. |
+| `locationsAllUsingGET` / `locationsAllUsingPOST` | `GET/POST /api/ocds/location/all` | List locations. |
+| `locationsSearchUsingGET` / `locationsSearchUsingPOST` | `GET/POST /api/ocds/location/search` | Search locations. |
+| `orgCitiesUsingGET` / `orgCitiesUsingPOST` | `GET/POST /api/ocds/city/all` | List procuring-entity cities. |
+| `citiesSearchUsingGET` / `citiesSearchUsingPOST` | `GET/POST /api/ocds/city/search` | Search cities. |
+| `orgDepartmentsUsingGET` / `orgDepartmentsUsingPOST` | `GET/POST /api/ocds/orgDepartment/all` | List organization departments. |
+| `departmentSearchUsingGET` / `departmentSearchUsingPOST` | `GET/POST /api/ocds/orgDepartment/search` | Search departments. |
+| `orgGroupsUsingGET` / `orgGroupsUsingPOST` | `GET/POST /api/ocds/orgGroup/all` | List organization groups. |
+| `groupsSearchUsingGET` / `groupsSearchUsingPOST` | `GET/POST /api/ocds/orgGroup/search` | Search groups. |
 
-### bid-selection-method-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `display the available bid selection methods these are taken from tender procurement method details` | `GET /api/ocds/bidSelectionMethod/all` | Display the available bid selection methods. . |
-| `display the available bid selection methods these are taken from tender procurement method details` | `POST /api/ocds/bidSelectionMethod/all` | Display the available bid selection methods. . |
-
-### bid-types-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `display the available bid types these are the classification entities in ocds` | `GET /api/ocds/bidType/all` | Display the available bid types. . |
-| `display the available bid types these are the classification entities in ocds` | `POST /api/ocds/bidType/all` | Display the available bid types. . |
-
-### buyer-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter` | `GET /api/ocds/organization/buyer/all` | Lists all buyers in the database. . |
-| `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter` | `POST /api/ocds/organization/buyer/all` | Lists all buyers in the database. . |
-| `finds buyer entity by the given id` | `GET /api/ocds/organization/buyer/id/{id}` | Finds buyer entity by the given id. |
-| `finds buyer entity by the given id` | `POST /api/ocds/organization/buyer/id/{id}` | Finds buyer entity by the given id. |
-
-### city-search-controller
+### Procurement activity and timing analytics
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `org cities` | `GET /api/ocds/city/all` | orgCities. |
-| `org cities` | `POST /api/ocds/city/all` | orgCities. |
-| `cities search` | `GET /api/ocds/city/search` | citiesSearch. |
-| `cities search` | `POST /api/ocds/city/search` | citiesSearch. |
+| `countTendersByYearUsingGET` / `countTendersByYearUsingPOST` | `GET/POST /api/countTendersByYear` | Count tenders by tender start year/month. |
+| `countAwardsByYearUsingGET` / `countAwardsByYearUsingPOST` | `GET/POST /api/countAwardsByYear` | Count awards by award date year/month. |
+| `countBidPlansByYearUsingGET` / `countBidPlansByYearUsingPOST` | `GET/POST /api/countBidPlansByYear` | Count bid plans by plan approval year/month. |
+| `tendersAwardsYearsUsingGET` / `tendersAwardsYearsUsingPOST` | `GET/POST /api/tendersAwardsYears` | List all years appearing in tenders, awards, or bid plans. |
+| `averageTenderPeriodUsingGET` / `averageTenderPeriodUsingPOST` | `GET/POST /api/averageTenderPeriod` | Average tender duration by year/month. |
+| `averageAwardPeriodUsingGET` / `averageAwardPeriodUsingPOST` | `GET/POST /api/averageAwardPeriod` | Average time from tender close to active award date. |
+| `qualityAverageTenderPeriodUsingGET` / `qualityAverageTenderPeriodUsingPOST` | `GET/POST /api/qualityAverageTenderPeriod` | Percentage of tenders with tender period start and end dates. |
+| `qualityAverageAwardPeriodUsingGET` / `qualityAverageAwardPeriodUsingPOST` | `GET/POST /api/qualityAverageAwardPeriod` | Percentage of awards with award date and tender end date. |
+| `avgTimeFromPlanToTenderPhaseUsingGET` / `avgTimeFromPlanToTenderPhaseUsingPOST` | `GET/POST /api/avgTimeFromPlanToTenderPhase` | Average days from plan approval to tender start. |
 
-### contr-method-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `contr methods` | `GET /api/ocds/contrMethod/all` | contrMethods. |
-| `contr methods` | `POST /api/ocds/contrMethod/all` | contrMethods. |
-
-### cost-effectiveness-excel-controller
+### Competition, e-procurement, cancellation, and value analytics
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `exports cost effectiveness dashboard in excel format` | `GET /api/ocds/costEffectivenessExcelChart` | Exports *Cost effectiveness* dashboard in Excel format. |
-| `exports cost effectiveness dashboard in excel format` | `POST /api/ocds/costEffectivenessExcelChart` | Exports *Cost effectiveness* dashboard in Excel format. |
+| `averageNumberOfTenderersUsingGET` / `averageNumberOfTenderersUsingPOST` | `GET/POST /api/averageNumberOfTenderers` | Average number of tenderers by tender year/month. |
+| `percentTendersWithTwoOrMoreTenderersUsingGET` / `percentTendersWithTwoOrMoreTenderersUsingPOST` | `GET/POST /api/percentTendersWithTwoOrMoreTenderers` | Share of tenders with more than one tenderer. |
+| `percentTendersAwardedUsingGET` / `percentTendersAwardedUsingPOST` | `GET/POST /api/percentTendersAwardedWithTwoOrMoreTenderers` | Share of awarded tenders with more than one tenderer. |
+| `percentTendersUsingEBidUsingGET` / `percentTendersUsingEBidUsingPOST` | `GET/POST /api/percentTendersUsingEBid` | Share of active-award tenders using electronic submission. |
+| `percentTendersUsingEgpUsingGET` / `percentTendersUsingEgpUsingPOST` | `GET/POST /api/percentTendersUsingEgp` | Share of tenders using `publicationMethod=eGP`. |
+| `percentTendersWithLinkedProcurementPlanUsingGET` / `percentTendersWithLinkedProcurementPlanUsingPOST` | `GET/POST /api/percentTendersWithLinkedProcurementPlan` | Share of tenders with linked plan budget amount. |
+| `percentTendersCancelledUsingGET` / `percentTendersCancelledUsingPOST` | `GET/POST /api/percentTendersCancelled` | Share and count of cancelled tenders by year/month. |
+| `totalCancelledTendersByYearUsingGET` / `totalCancelledTendersByYearUsingPOST` | `GET/POST /api/totalCancelledTendersByYear` | Total cancelled tender value by year/month. |
+| `totalCancelledTendersByYearByRationaleUsingGET` / `totalCancelledTendersByYearByRationaleUsingPOST` | `GET/POST /api/totalCancelledTendersByYearByRationale` | Cancelled tender value by year/month and rationale. |
+| `tenderValueIntervalUsingGET` / `tenderValueIntervalUsingPOST` | `GET/POST /api/tenderValueInterval` | Minimum and maximum tender value. |
+| `awardValueIntervalUsingGET` / `awardValueIntervalUsingPOST` | `GET/POST /api/awardValueInterval` | Minimum and maximum award value. |
+| `tenderPriceByProcurementMethodUsingGET` / `tenderPriceByProcurementMethodUsingPOST` | `GET/POST /api/tenderPriceByProcurementMethod` | Tender value by OCDS procurement method. |
+| `tenderPriceByBidSelectionMethodUsingGET` / `tenderPriceByBidSelectionMethodUsingPOST` | `GET/POST /api/tenderPriceByBidSelectionMethod` | Tender value by local bid selection method. |
+| `tenderPriceByAllBidSelectionMethodsUsingGET` / `tenderPriceByAllBidSelectionMethodsUsingPOST` | `GET/POST /api/tenderPriceByAllBidSelectionMethods` | Tender value by all known bid selection methods, adding zero rows. |
+| `costEffectivenessAwardAmountUsingGET` / `costEffectivenessAwardAmountUsingPOST` | `GET/POST /api/costEffectivenessAwardAmount` | Active award value by tender year/month. |
+| `costEffectivenessTenderAmountUsingGET` / `costEffectivenessTenderAmountUsingPOST` | `GET/POST /api/costEffectivenessTenderAmount` | Active tender value with active awards by year/month or group. |
+| `costEffectivenessTenderAwardAmountUsingGET` / `costEffectivenessTenderAwardAmountUsingPOST` | `GET/POST /api/costEffectivenessTenderAwardAmount` | Combined tender-vs-award value, difference, and percentages. |
+| `tendersByItemClassificationUsingGET` / `tendersByItemClassificationUsingPOST` | `GET/POST /api/tendersByItemClassification` | Tender count and value by item classification. |
+| `fundingByTenderDeliveryLocationUsingGET` / `fundingByTenderDeliveryLocationUsingPOST` | `GET/POST /api/fundingByTenderDeliveryLocation` | Tender funding by delivery location and year/month. |
+| `plannedFundingByLocationUsingGET` / `plannedFundingByLocationUsingPOST` | `GET/POST /api/plannedFundingByLocation` | Planned budget by project location and year/month. |
+| `qualityFundingByTenderDeliveryLocationUsingGET` / `qualityFundingByTenderDeliveryLocationUsingPOST` | `GET/POST /api/qualityFundingByTenderDeliveryLocation` | Share of started tenders with delivery location. |
+| `qualityPlannedFundingByLocationUsingGET` / `qualityPlannedFundingByLocationUsingPOST` | `GET/POST /api/qualityPlannedFundingByLocation` | Share of budgeted plans with project location. |
+| `topTenLargestTendersUsingGET` / `topTenLargestTendersUsingPOST` | `GET/POST /api/topTenLargestTenders` | Top ten largest tenders by tender value. |
+| `topTenLargestAwardsUsingGET` / `topTenLargestAwardsUsingPOST` | `GET/POST /api/topTenLargestAwards` | Top ten largest active awards by award value. |
+| `topTenLargestSuppliersUsingGET` / `topTenLargestSuppliersUsingPOST` | `GET/POST /api/topTenSuppliers` | Top suppliers by active award value. |
 
-### cost-effectiveness-visuals-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date` | `GET /api/costEffectivenessAwardAmount` | Cost effectiveness of Awards: Displays the total amount of active awards grouped by year.The tender entity, for each award, has to have amount value. . |
-| `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date` | `POST /api/costEffectivenessAwardAmount` | Cost effectiveness of Awards: Displays the total amount of active awards grouped by year.The tender entity, for each award, has to have amount value. . |
-| `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date` | `GET /api/costEffectivenessTenderAmount` | Cost effectiveness of Tenders: Displays the total amount of the active tenders that have active awards, grouped by year. . |
-| `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date` | `POST /api/costEffectivenessTenderAmount` | Cost effectiveness of Tenders: Displays the total amount of the active tenders that have active awards, grouped by year. . |
-| `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters` | `GET /api/costEffectivenessTenderAwardAmount` | Aggregated version of /api/costEffectivenessTenderAmount and /api/costEffectivenessAwardAmount.This endpoint aggregates the responses from the specified endpoints, per year. . |
-| `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters` | `POST /api/costEffectivenessTenderAwardAmount` | Aggregated version of /api/costEffectivenessTenderAmount and /api/costEffectivenessAwardAmount.This endpoint aggregates the responses from the specified endpoints, per year. . |
-
-### count-plans-tenders-awards-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `count the awards and group the results by year the year is calculated from the awards date field` | `GET /api/countAwardsByYear` | Count the awards and group the results by year. . |
-| `count the awards and group the results by year the year is calculated from the awards date field` | `POST /api/countAwardsByYear` | Count the awards and group the results by year. . |
-| `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve` | `GET /api/countBidPlansByYear` | Count of bid plans, by year. . |
-| `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve` | `POST /api/countBidPlansByYear` | Count of bid plans, by year. . |
-| `count the tenders and group the results by year the year is calculated from tender tender period start date` | `GET /api/countTendersByYear` | Count the tenders and group the results by year. . |
-| `count the tenders and group the results by year the year is calculated from tender tender period start date` | `POST /api/countTendersByYear` | Count the tenders and group the results by year. . |
-
-### excel-export-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `export releases in excel format` | `GET /api/ocds/excelExport` | Export releases in Excel format. |
-| `export releases in excel format` | `POST /api/ocds/excelExport` | Export releases in Excel format. |
-
-### flag-i-003-release-search-controller
+### Risk indicators and relationship signals
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `search releases by flag i003` | `GET /api/flags/i003/releases` | Search releases by flag i003. |
-| `search releases by flag i003` | `POST /api/flags/i003/releases` | Search releases by flag i003. |
+| `releaseFlagSearchUsingGET` / `releaseFlagSearchUsingPOST` | `GET/POST /api/flags/i003/releases` | List releases flagged by indicator I003. |
+| `flagStatsUsingGET` / `flagStatsUsingPOST` | `GET/POST /api/flags/i003/stats` | Stats for indicator I003. |
+| `releaseFlagSearchUsingGET_1` / `releaseFlagSearchUsingPOST_1` | `GET/POST /api/flags/i004/releases` | List releases flagged by indicator I004. |
+| `flagStatsUsingGET_1` / `flagStatsUsingPOST_1` | `GET/POST /api/flags/i004/stats` | Stats for indicator I004. |
+| `releaseFlagSearchUsingGET_2` / `releaseFlagSearchUsingPOST_2` | `GET/POST /api/flags/i007/releases` | List releases flagged by indicator I007. |
+| `flagStatsUsingGET_2` / `flagStatsUsingPOST_2` | `GET/POST /api/flags/i007/stats` | Stats for indicator I007. |
+| `releaseFlagSearchUsingGET_3` / `releaseFlagSearchUsingPOST_3` | `GET/POST /api/flags/i019/releases` | List releases flagged by indicator I019. |
+| `flagStatsUsingGET_3` / `flagStatsUsingPOST_3` | `GET/POST /api/flags/i019/stats` | Stats for indicator I019. |
+| `releaseFlagSearchUsingGET_4` / `releaseFlagSearchUsingPOST_4` | `GET/POST /api/flags/i038/releases` | List releases flagged by indicator I038. |
+| `flagStatsUsingGET_4` / `flagStatsUsingPOST_4` | `GET/POST /api/flags/i038/stats` | Stats for indicator I038. |
+| `releaseFlagSearchUsingGET_5` / `releaseFlagSearchUsingPOST_5` | `GET/POST /api/flags/i077/releases` | List releases flagged by indicator I077. |
+| `flagStatsUsingGET_5` / `flagStatsUsingPOST_5` | `GET/POST /api/flags/i077/stats` | Stats for indicator I077. |
+| `releaseFlagSearchUsingGET_6` / `releaseFlagSearchUsingPOST_6` | `GET/POST /api/flags/i180/releases` | List releases flagged by indicator I180. |
+| `flagStatsUsingGET_6` / `flagStatsUsingPOST_6` | `GET/POST /api/flags/i180/stats` | Stats for indicator I180. |
+| `frequentSuppliersTimeIntervalUsingGET` / `frequentSuppliersTimeIntervalUsingPOST` | `GET/POST /api/frequentSuppliersTimeInterval` | Detect frequent supplier awards by procuring entity and time interval. |
+| `frequentTenderersUsingGET` / `frequentTenderersUsingPOST` | `GET/POST /api/frequentTenderers` | Detect repeated supplier/tenderer pairings. |
+| `percentageAwardsNarrowPublicationDatesUsingGET` / `percentageAwardsNarrowPublicationDatesUsingPOST` | `GET/POST /api/percentageAwardsNarrowPublicationDates` | Share of awards published within seven days of award date. |
 
-### flag-i-003-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i003` | `GET /api/flags/i003/stats` | Stats for flag i003. |
-| `stats for flag i003` | `POST /api/flags/i003/stats` | Stats for flag i003. |
-
-### flag-i-004-release-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `search releases by flag i004` | `GET /api/flags/i004/releases` | Search releases by flag i004. |
-| `search releases by flag i004` | `POST /api/flags/i004/releases` | Search releases by flag i004. |
-
-### flag-i-004-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i004` | `GET /api/flags/i004/stats` | Stats for flag i004. |
-| `stats for flag i004` | `POST /api/flags/i004/stats` | Stats for flag i004. |
-
-### flag-i-007-release-search-controller
+### Excel export
 
 | Function | Core endpoint(s) | Domain meaning |
 |---|---|---|
-| `search releases by flag i007` | `GET /api/flags/i007/releases` | Search releases by flag i007. |
-| `search releases by flag i007` | `POST /api/flags/i007/releases` | Search releases by flag i007. |
-
-### flag-i-007-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i007` | `GET /api/flags/i007/stats` | Stats for flag i007. |
-| `stats for flag i007` | `POST /api/flags/i007/stats` | Stats for flag i007. |
-
-### flag-i-019-release-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `search releases by flag i019` | `GET /api/flags/i019/releases` | Search releases by flag i019. |
-| `search releases by flag i019` | `POST /api/flags/i019/releases` | Search releases by flag i019. |
-
-### flag-i-019-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i019` | `GET /api/flags/i019/stats` | Stats for flag i019. |
-| `stats for flag i019` | `POST /api/flags/i019/stats` | Stats for flag i019. |
-
-### flag-i-038-release-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `search releases by flag i038` | `GET /api/flags/i038/releases` | Search releases by flag i038. |
-| `search releases by flag i038` | `POST /api/flags/i038/releases` | Search releases by flag i038. |
-
-### flag-i-038-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i038` | `GET /api/flags/i038/stats` | Stats for flag i038. |
-| `stats for flag i038` | `POST /api/flags/i038/stats` | Stats for flag i038. |
-
-### flag-i-077-release-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `search releases by flag i077` | `GET /api/flags/i077/releases` | Search releases by flag i077. |
-| `search releases by flag i077` | `POST /api/flags/i077/releases` | Search releases by flag i077. |
-
-### flag-i-077-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i077` | `GET /api/flags/i077/stats` | Stats for flag i077. |
-| `stats for flag i077` | `POST /api/flags/i077/stats` | Stats for flag i077. |
-
-### flag-i-180-release-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `search releases by flag i180` | `GET /api/flags/i180/releases` | Search releases by flag i180. |
-| `search releases by flag i180` | `POST /api/flags/i180/releases` | Search releases by flag i180. |
-
-### flag-i-180-stats-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `stats for flag i180` | `GET /api/flags/i180/stats` | Stats for flag i180. |
-| `stats for flag i180` | `POST /api/flags/i180/stats` | Stats for flag i180. |
-
-### frequent-suppliers-time-interval-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365` | `GET /api/frequentSuppliersTimeInterval` | Returns the frequent suppliers of a procuringEntity split by a time interval. . |
-| `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365` | `POST /api/frequentSuppliersTimeInterval` | Returns the frequent suppliers of a procuringEntity split by a time interval. . |
-
-### frequent-tenderers-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options` | `GET /api/frequentTenderers` | Detect frequent pairs of tenderers that apply together to bids.We are only showing pairs if they applied to more than one bid together.We are sorting the results after the number of occurences, descending.You can use all the filters that ar. |
-| `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options` | `POST /api/frequentTenderers` | Detect frequent pairs of tenderers that apply together to bids.We are only showing pairs if they applied to more than one bid together.We are sorting the results after the number of occurences, descending.You can use all the filters that ar. |
-
-### funding-by-location-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date` | `GET /api/fundingByTenderDeliveryLocation` | Total estimated funding (tender.value) grouped by tender.items.deliveryLocation and also grouped by year. . |
-| `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date` | `POST /api/fundingByTenderDeliveryLocation` | Total estimated funding (tender.value) grouped by tender.items.deliveryLocation and also grouped by year. . |
-| `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id` | `GET /api/plannedFundingByLocation` | Planned funding by location by year. . |
-| `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id` | `POST /api/plannedFundingByLocation` | Planned funding by location by year. . |
-| `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist` | `GET /api/qualityFundingByTenderDeliveryLocation` | Calculates percentage of releases with tender with at least one specified delivery location, that is the array tender.items.deliveryLocation has to have items.Filters out stub tenders, therefore tender.tenderPeriod.startDate has to exist. |
-| `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist` | `POST /api/qualityFundingByTenderDeliveryLocation` | Calculates percentage of releases with tender with at least one specified delivery location, that is the array tender.items.deliveryLocation has to have items.Filters out stub tenders, therefore tender.tenderPeriod.startDate has to exist. |
-| `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id` | `GET /api/qualityPlannedFundingByLocation` | Calculates percentage of releases with planning with at least one specified location, that is the array planning.budget.projectLocation has to be initialzied.Filters out stub planning, therefore planning.budget.amount has to exist.Responds . |
-| `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id` | `POST /api/qualityPlannedFundingByLocation` | Calculates percentage of releases with planning with at least one specified location, that is the array planning.budget.projectLocation has to be initialzied.Filters out stub planning, therefore planning.budget.amount has to exist.Responds . |
-
-### location-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `locations all` | `GET /api/ocds/location/all` | locationsAll. |
-| `locations all` | `POST /api/ocds/location/all` | locationsAll. |
-| `locations search` | `GET /api/ocds/location/search` | locationsSearch. |
-| `locations search` | `POST /api/ocds/location/search` | locationsSearch. |
-
-### ocds-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself` | `GET /api/ocds/package/all` | Returns all available packages, filtered by the given criteria.This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself` | `POST /api/ocds/package/all` | Returns all available packages, filtered by the given criteria.This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself` | `GET /api/ocds/package/budgetProjectId/{projectId}` | Returns a release package for the given project id. . |
-| `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself` | `POST /api/ocds/package/budgetProjectId/{projectId}` | Returns a release package for the given project id. . |
-| `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` | `GET /api/ocds/package/ocid/{ocid}` | Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` | `POST /api/ocds/package/ocid/{ocid}` | Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` | `GET /api/ocds/package/planningBidNo/{bidNo}` | Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` | `POST /api/ocds/package/planningBidNo/{bidNo}` | Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself. |
-| `resturns all available releases filtered by the given criteria` | `GET /api/ocds/release/all` | Resturns all available releases, filtered by the given criteria. |
-| `resturns all available releases filtered by the given criteria` | `POST /api/ocds/release/all` | Resturns all available releases, filtered by the given criteria. |
-| `returns a release entity for the given project id the project id is read from planning budget project id` | `GET /api/ocds/release/budgetProjectId/{projectId}` | Returns a release entity for the given project id. . |
-| `returns a release entity for the given project id the project id is read from planning budget project id` | `POST /api/ocds/release/budgetProjectId/{projectId}` | Returns a release entity for the given project id. . |
-| `returns a release entity for the given open contracting id ocid` | `GET /api/ocds/release/ocid/{ocid}` | Returns a release entity for the given open contracting id (OCID). |
-| `returns a release entity for the given open contracting id ocid` | `POST /api/ocds/release/ocid/{ocid}` | Returns a release entity for the given open contracting id (OCID). |
-| `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no` | `GET /api/ocds/release/planningBidNo/{bidNo}` | Returns a release entity for the given Planning Bid Number.The planning bid number is taken from planning.bidNo. |
-| `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no` | `POST /api/ocds/release/planningBidNo/{bidNo}` | Returns a release entity for the given Planning Bid Number.The planning bid number is taken from planning.bidNo. |
-
-### org-department-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `org departments` | `GET /api/ocds/orgDepartment/all` | orgDepartments. |
-| `org departments` | `POST /api/ocds/orgDepartment/all` | orgDepartments. |
-| `department search` | `GET /api/ocds/orgDepartment/search` | departmentSearch. |
-| `department search` | `POST /api/ocds/orgDepartment/search` | departmentSearch. |
-
-### org-group-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `org groups` | `GET /api/ocds/orgGroup/all` | orgGroups. |
-| `org groups` | `POST /api/ocds/orgGroup/all` | orgGroups. |
-| `groups search` | `GET /api/ocds/orgGroup/search` | groupsSearch. |
-| `groups search` | `POST /api/ocds/orgGroup/search` | groupsSearch. |
-
-### organization-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `lists all organizations in the database allows full text search using the text parameter` | `GET /api/ocds/organization/all` | Lists all organizations in the database. . |
-| `lists all organizations in the database allows full text search using the text parameter` | `POST /api/ocds/organization/all` | Lists all organizations in the database. . |
-| `finds organization entity by the given id` | `GET /api/ocds/organization/id/{id}` | Finds organization entity by the given id. |
-| `finds organization entity by the given id` | `POST /api/ocds/organization/id/{id}` | Finds organization entity by the given id. |
-| `finds organization entities by the given list of ids comma separated` | `GET /api/ocds/organization/ids` | Finds organization entities by the given list of ids, comma separated. |
-| `finds organization entities by the given list of ids comma separated` | `POST /api/ocds/organization/ids` | Finds organization entities by the given list of ids, comma separated. |
-
-### percentage-awards-narrow-publication-dates
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date` | `GET /api/percentageAwardsNarrowPublicationDates` | Percentage of awards where award publication date - award.date is less than 7 days. . |
-| `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date` | `POST /api/percentageAwardsNarrowPublicationDates` | Percentage of awards where award publication date - award.date is less than 7 days. . |
-
-### procurement-activity-by-year-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports procurement activity by year dashboard in excel format` | `GET /api/ocds/procurementActivityExcelChart` | Exports *Procurement activity by year* dashboard in Excel format. |
-| `exports procurement activity by year dashboard in excel format` | `POST /api/ocds/procurementActivityExcelChart` | Exports *Procurement activity by year* dashboard in Excel format. |
-
-### procurement-method-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `display the available procurement methods these are taken from tender procurement method` | `GET /api/ocds/procurementMethod/all` | Display the available procurement methods. . |
-| `display the available procurement methods these are taken from tender procurement method` | `POST /api/ocds/procurementMethod/all` | Display the available procurement methods. . |
-
-### procuring-entity-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter` | `GET /api/ocds/organization/procuringEntity/all` | Lists all procuring entities in the database. . |
-| `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter` | `POST /api/ocds/organization/procuringEntity/all` | Lists all procuring entities in the database. . |
-| `finds procuring entities by the given id` | `GET /api/ocds/organization/procuringEntity/id/{id}` | Finds procuringEntities by the given id. |
-| `finds procuring entities by the given id` | `POST /api/ocds/organization/procuringEntity/id/{id}` | Finds procuringEntities by the given id. |
-
-### supplier-search-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter` | `GET /api/ocds/organization/supplier/all` | Lists all suppliers in the database. . |
-| `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter` | `POST /api/ocds/organization/supplier/all` | Lists all suppliers in the database. . |
-| `finds supplier by the given id` | `GET /api/ocds/organization/supplier/id/{id}` | Finds supplier by the given id. |
-| `finds supplier by the given id` | `POST /api/ocds/organization/supplier/id/{id}` | Finds supplier by the given id. |
-
-### tender-percentages-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date` | `GET /api/avgTimeFromPlanToTenderPhase` | For all tenders that have both tender.tenderPeriod.startDate and planning.bidPlanProjectDateApprovecalculates the number o days from planning.bidPlanProjectDateApprove to tender.tenderPeriod.startDateand creates the average. . |
-| `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date` | `POST /api/avgTimeFromPlanToTenderPhase` | For all tenders that have both tender.tenderPeriod.startDate and planning.bidPlanProjectDateApprovecalculates the number o days from planning.bidPlanProjectDateApprove to tender.tenderPeriod.startDateand creates the average. . |
-| `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year` | `GET /api/percentTendersAwardedWithTwoOrMoreTenderers` | Percent of awarded tenders with >1 tenderer/bidderCount of tenders with numberOfTenderers >1 divided by total count of tenders with numberOfTenderers >0This endpoint uses tender.tenderPeriod.startDate to calculate the tender year. |
-| `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year` | `POST /api/percentTendersAwardedWithTwoOrMoreTenderers` | Percent of awarded tenders with >1 tenderer/bidderCount of tenders with numberOfTenderers >1 divided by total count of tenders with numberOfTenderers >0This endpoint uses tender.tenderPeriod.startDate to calculate the tender year. |
-| `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year` | `GET /api/percentTendersCancelled` | Returns the percent of tenders that were cancelled, grouped by year. . |
-| `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year` | `POST /api/percentTendersCancelled` | Returns the percent of tenders that were cancelled, grouped by year. . |
-| `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission` | `GET /api/percentTendersUsingEBid` | Returns the percent of tenders with active awards, with tender.submissionMethod='electronicSubmission'.The endpoint also returns the total tenderds with active awards and the count of tenders with tender.submissionMethod='electronicSubmissi. |
-| `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission` | `POST /api/percentTendersUsingEBid` | Returns the percent of tenders with active awards, with tender.submissionMethod='electronicSubmission'.The endpoint also returns the total tenderds with active awards and the count of tenders with tender.submissionMethod='electronicSubmissi. |
-| `returns the percent of tenders that are using e procurement this is read from tender publication method e gp` | `GET /api/percentTendersUsingEgp` | Returns the percent of tenders that are using eProcurement. . |
-| `returns the percent of tenders that are using e procurement this is read from tender publication method e gp` | `POST /api/percentTendersUsingEgp` | Returns the percent of tenders that are using eProcurement. . |
-| `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year` | `GET /api/percentTendersWithLinkedProcurementPlan` | Percentage of tenders that are associated in releases that have the planning.budget.amount non empty,meaning there really is a planning entity correlated with the tender entity.This endpoint uses tender.tenderPeriod.startDate to calculate t. |
-| `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year` | `POST /api/percentTendersWithLinkedProcurementPlan` | Percentage of tenders that are associated in releases that have the planning.budget.amount non empty,meaning there really is a planning entity correlated with the tender entity.This endpoint uses tender.tenderPeriod.startDate to calculate t. |
-| `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year` | `GET /api/percentTendersWithTwoOrMoreTenderers` | Percentage of tenders with >1 tenderer/bidder): Count of tenders with numberOfTenderers >1 divided by total count of tenders.This endpoint uses tender.tenderPeriod.startDate to calculate the tender year. |
-| `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year` | `POST /api/percentTendersWithTwoOrMoreTenderers` | Percentage of tenders with >1 tenderer/bidder): Count of tenders with numberOfTenderers >1 divided by total count of tenders.This endpoint uses tender.tenderPeriod.startDate to calculate the tender year. |
-
-### tender-percentages-excel-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports cancelled funding percentage dashboard in excel format` | `GET /api/ocds/cancelledFundingPercentageExcelChart` | Exports *Cancelled funding (percentage)* dashboard in Excel format. |
-| `exports cancelled funding percentage dashboard in excel format` | `POST /api/ocds/cancelledFundingPercentageExcelChart` | Exports *Cancelled funding (percentage)* dashboard in Excel format. |
-| `exports number of cancelled bids dashboard in excel format` | `GET /api/ocds/numberCancelledFundingExcelChart` | Exports *Number of cancelled bids* dashboard in Excel format. |
-| `exports number of cancelled bids dashboard in excel format` | `POST /api/ocds/numberCancelledFundingExcelChart` | Exports *Number of cancelled bids* dashboard in Excel format. |
-| `exports number of e bid awards dashboard in excel format` | `GET /api/ocds/numberTendersUsingEBidExcelChart` | Exports *Number of eBid Awards* dashboard in Excel format. |
-| `exports number of e bid awards dashboard in excel format` | `POST /api/ocds/numberTendersUsingEBidExcelChart` | Exports *Number of eBid Awards* dashboard in Excel format. |
-| `exports percent of tenders using e bid dashboard in excel format` | `GET /api/ocds/percentTendersUsingEBidExcelChart` | Exports *Percent of Tenders Using e-Bid* dashboard in Excel format. |
-| `exports percent of tenders using e bid dashboard in excel format` | `POST /api/ocds/percentTendersUsingEBidExcelChart` | Exports *Percent of Tenders Using e-Bid* dashboard in Excel format. |
-| `exports percent of tenders using e procurement dashboard in excel format` | `GET /api/ocds/percentTendersUsingEgpExcelChart` | Exports *Percent of Tenders Using e-Procurement* dashboard in Excel format. |
-| `exports percent of tenders using e procurement dashboard in excel format` | `POST /api/ocds/percentTendersUsingEgpExcelChart` | Exports *Percent of Tenders Using e-Procurement* dashboard in Excel format. |
-| `exports percentage of plans with tender dashboard in excel format` | `GET /api/ocds/tendersWithLinkedProcurementPlanExcelChart` | Exports *Percentage of plans with tender* dashboard in Excel format. |
-| `exports percentage of plans with tender dashboard in excel format` | `POST /api/ocds/tendersWithLinkedProcurementPlanExcelChart` | Exports *Percentage of plans with tender* dashboard in Excel format. |
-
-### tender-price-by-type-year-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals` | `GET /api/tenderPriceByAllBidSelectionMethods` | Same as /api/tenderPriceByBidSelectionMethod, but it always returns all bidSelectionMethods (it adds the missing bid selection methods with zero totals. |
-| `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals` | `POST /api/tenderPriceByAllBidSelectionMethods` | Same as /api/tenderPriceByBidSelectionMethod, but it always returns all bidSelectionMethods (it adds the missing bid selection methods with zero totals. |
-| `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount` | `GET /api/tenderPriceByBidSelectionMethod` | Returns the tender price by Vietnam type (procurementMethodDetails), by year. . |
-| `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount` | `POST /api/tenderPriceByBidSelectionMethod` | Returns the tender price by Vietnam type (procurementMethodDetails), by year. . |
-| `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount` | `GET /api/tenderPriceByProcurementMethod` | Returns the tender price by OCDS type (procurementMethod), by year. . |
-| `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount` | `POST /api/tenderPriceByProcurementMethod` | Returns the tender price by OCDS type (procurementMethod), by year. . |
-
-### tender-price-excel-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports bid selection dashboard in excel format` | `GET /api/ocds/bidSelectionExcelChart` | Exports *Bid selection* dashboard in Excel format. |
-| `exports bid selection dashboard in excel format` | `POST /api/ocds/bidSelectionExcelChart` | Exports *Bid selection* dashboard in Excel format. |
-| `exports procurement method dashboard in excel format` | `GET /api/ocds/procurementMethodExcelChart` | Exports *Procurement method* dashboard in Excel format. |
-| `exports procurement method dashboard in excel format` | `POST /api/ocds/procurementMethodExcelChart` | Exports *Procurement method* dashboard in Excel format. |
-
-### tenders-awards-value-intervals
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `returns the min and max of awards value amount` | `GET /api/awardValueInterval` | Returns the min and max of awards.value.amount. |
-| `returns the min and max of awards value amount` | `POST /api/awardValueInterval` | Returns the min and max of awards.value.amount. |
-| `returns the min and max of tender value amount` | `GET /api/tenderValueInterval` | Returns the min and max of tender.value.amount. |
-| `returns the min and max of tender value amount` | `POST /api/tenderValueInterval` | Returns the min and max of tender.value.amount. |
-
-### tenders-awards-years
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `computes all available years from awards date tender tender period start dateand planning bid plan project date approve` | `GET /api/tendersAwardsYears` | Computes all available years from awards.date, tender.tenderPeriod.startDateand planning.bidPlanProjectDateApprove. |
-| `computes all available years from awards date tender tender period start dateand planning bid plan project date approve` | `POST /api/tendersAwardsYears` | Computes all available years from awards.date, tender.tenderPeriod.startDateand planning.bidPlanProjectDateApprove. |
-
-### tenders-by-item-classification
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date` | `GET /api/tendersByItemClassification` | This should show the number of tenders per tender.items.classification.The tender date is taken from tender.tenderPeriod.startDate. |
-| `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date` | `POST /api/tendersByItemClassification` | This should show the number of tenders per tender.items.classification.The tender date is taken from tender.tenderPeriod.startDate. |
-
-### tenders-by-item-excel-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports number of bids by item dashboard in excel format` | `GET /api/ocds/tendersByItemExcelChart` | Exports *Number of bids by item* dashboard in Excel format. |
-| `exports number of bids by item dashboard in excel format` | `POST /api/ocds/tendersByItemExcelChart` | Exports *Number of bids by item* dashboard in Excel format. |
-
-### top-ten-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any` | `GET /api/topTenLargestAwards` | Returns the top ten largest active awards. . |
-| `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any` | `POST /api/topTenLargestAwards` | Returns the top ten largest active awards. . |
-| `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name` | `GET /api/topTenLargestTenders` | Returns the top ten largest active tenders. . |
-| `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name` | `POST /api/topTenLargestTenders` | Returns the top ten largest active tenders. . |
-| `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field` | `GET /api/topTenSuppliers` | This endpoint should return the following data for the Top 10 suppliers (by award value).Returns supplier id, total awarded amount of all awarded contracts, count of awarded contracts,Ids of the procuring entities from which they have received an award, and their count. . |
-| `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field` | `POST /api/topTenSuppliers` | This endpoint should return the following data for the Top 10 suppliers (by award value).Returns supplier id, total awarded amount of all awarded contracts, count of awarded contracts,Ids of the procuring entities from which they have received an award, and their count. . |
-
-### total-cancelled-tenders-by-year-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date` | `GET /api/totalCancelledTendersByYear` | Total Cancelled tenders by year. . |
-| `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date` | `POST /api/totalCancelledTendersByYear` | Total Cancelled tenders by year. . |
-| `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale` | `GET /api/totalCancelledTendersByYearByRationale` | Total Cancelled tenders by year by cancel reason. . |
-| `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale` | `POST /api/totalCancelledTendersByYearByRationale` | Total Cancelled tenders by year by cancel reason. . |
-
-### total-cancelled-tenders-excel-controller
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `exports cancelled funding dashboard in excel format` | `GET /api/ocds/cancelledFundingExcelChart` | Exports *Cancelled funding* dashboard in Excel format. |
-| `exports cancelled funding dashboard in excel format` | `POST /api/ocds/cancelledFundingExcelChart` | Exports *Cancelled funding* dashboard in Excel format. |
-| `exports cancelled funding by reason dashboard in excel format` | `GET /api/ocds/cancelledTendersByYearByRationaleExcelChart` | Exports *Cancelled funding by reason* dashboard in Excel format. |
-| `exports cancelled funding by reason dashboard in excel format` | `POST /api/ocds/cancelledTendersByYearByRationaleExcelChart` | Exports *Cancelled funding by reason* dashboard in Excel format. |
+| `excelExportUsingGET` / `excelExportUsingPOST` | `GET/POST /api/ocds/excelExport` | Export filtered releases to Excel. |
+| `procurementActivityExcelChartUsingGET` / `procurementActivityExcelChartUsingPOST` | `GET/POST /api/ocds/procurementActivityExcelChart` | Export procurement activity chart. |
+| `averageNumberBidsExcelChartUsingGET` / `averageNumberBidsExcelChartUsingPOST` | `GET/POST /api/ocds/averageNumberBidsExcelChart` | Export average bids chart. |
+| `bidTimelineExcelChartUsingGET` / `bidTimelineExcelChartUsingPOST` | `GET/POST /api/ocds/bidTimelineExcelChart` | Export tender/award timeline chart. |
+| `bidSelectionExcelChartUsingGET` / `bidSelectionExcelChartUsingPOST` | `GET/POST /api/ocds/bidSelectionExcelChart` | Export bid selection chart. |
+| `procurementMethodExcelChartUsingGET` / `procurementMethodExcelChartUsingPOST` | `GET/POST /api/ocds/procurementMethodExcelChart` | Export procurement method chart. |
+| `costEffectivenessExcelChartUsingGET` / `costEffectivenessExcelChartUsingPOST` | `GET/POST /api/ocds/costEffectivenessExcelChart` | Export cost effectiveness chart. |
+| `cancelledFundingExcelChartUsingGET` / `cancelledFundingExcelChartUsingPOST` | `GET/POST /api/ocds/cancelledFundingExcelChart` | Export cancelled funding chart. |
+| `cancelledTendersByYearByRationaleExcelChartUsingGET` / `cancelledTendersByYearByRationaleExcelChartUsingPOST` | `GET/POST /api/ocds/cancelledTendersByYearByRationaleExcelChart` | Export cancelled funding by reason chart. |
+| `cancelledFundingPercentageExcelChartUsingGET` / `cancelledFundingPercentageExcelChartUsingPOST` | `GET/POST /api/ocds/cancelledFundingPercentageExcelChart` | Export cancellation percentage chart. |
+| `numberCancelledFundingExcelChartUsingGET` / `numberCancelledFundingExcelChartUsingPOST` | `GET/POST /api/ocds/numberCancelledFundingExcelChart` | Export number of cancelled bids chart. |
+| `percentTendersUsingEBidExcelChartUsingGET` / `percentTendersUsingEBidExcelChartUsingPOST` | `GET/POST /api/ocds/percentTendersUsingEBidExcelChart` | Export e-bid percentage chart. |
+| `numberTendersUsingEBidExcelChartUsingGET` / `numberTendersUsingEBidExcelChartUsingPOST` | `GET/POST /api/ocds/numberTendersUsingEBidExcelChart` | Export number of e-bid awards chart. |
+| `percentTendersUsingEgpExcelChartUsingGET` / `percentTendersUsingEgpExcelChartUsingPOST` | `GET/POST /api/ocds/percentTendersUsingEgpExcelChart` | Export e-procurement percentage chart. |
+| `tendersWithLinkedProcurementPlanExcelChartUsingGET` / `tendersWithLinkedProcurementPlanExcelChartUsingPOST` | `GET/POST /api/ocds/tendersWithLinkedProcurementPlanExcelChart` | Export linked plan percentage chart. |
+| `numberOfTendersByItemExcelChartUsingGET` / `numberOfTendersByItemExcelChartUsingPOST` | `GET/POST /api/ocds/tendersByItemExcelChart` | Export tenders by item chart. |
 
 ## Supported Business Behaviors
 
-### Behavior 1: Calculates The Average Award Period Per Each Year The Year Is Taken From Awards Date And The Duration Is Taken By Counting The Daysbetween Tender Tender Period End Date And Tender Tender Period Start Date The Award Has To Be Active
+### Behavior 1: Browse OCDS Releases and Release Packages
 
 Business goal:
-Calculates the average award period, per each year. .
+Allow a dashboard or data consumer to retrieve raw procurement releases or OCDS release packages by filters or public identifiers.
 
 Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `GET /api/averageAwardPeriod`.
+Releases are the source record for tenders, awards, planning data, organizations, locations, and flags. Packages add publisher, license, URI, and published date metadata around releases.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing imported MongoDB release data. No documented API function can create the release state.
 
 Required execution workflow:
-1. Use function `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active` (`GET /api/averageAwardPeriod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with optional query values `year=2020`, `month=1`, `monthly=false`, `pageNumber=0`, `pageSize=300`, and common filters such as `procuringEntityId=PE1`, `supplierId=SUP1`, `bidTypeId=CLASS1`, `minTenderValue=1000`, `maxTenderValue=1000000` to list matching releases.
+2. Alternatively, use function `ocdsByOcidUsingGET` (`GET /api/ocds/release/ocid/{ocid}`) with `ocid=ocds-example-1`, or `ocdsByProjectIdUsingGET` (`GET /api/ocds/release/budgetProjectId/{projectId}`) with `projectId=PROJECT1`, or `ocdsByPlanningBidNoUsingGET` (`GET /api/ocds/release/planningBidNo/{bidNo}`) with `bidNo=BID1` to retrieve one release.
+3. To retrieve packaged releases, use `ocdsPackagesUsingGET` (`GET /api/ocds/package/all`) with the same filter values, or `ocdsPackageByOcidUsingGET`, `packagedReleaseByProjectIdUsingGET`, or `packagedReleaseByPlanningBidNoUsingGET` with the same identifier values.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with `pageNumber=0` and narrow identifier-related filters to inspect that the same release appears in list form.
+2. Use function `ocdsPackagesUsingGET` (`GET /api/ocds/package/all`) with the same query values to verify package wrapping for the same result set.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Direct database fixtures can insert `release` documents with the desired `ocid`, `planning.budget.projectID`, and `planning.bidNo`.
+- If the release already exists, identifier lookup steps can be used directly.
+- The identifier value must match the field used by the selected function; `ocid`, `projectId`, and `bidNo` are not interchangeable.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- `ocid` in `/api/ocds/release/ocid/{ocid}` and `/api/ocds/package/ocid/{ocid}` must equal `release.ocid`.
+- `projectId` must equal `planning.budget.projectID`.
+- `bidNo` must equal `planning.bidNo`.
+- Filter ids bind to nested release fields: `procuringEntityId` to `tender.procuringEntity._id`, `supplierId` to `awards.suppliers._id`, `bidTypeId` to `tender.items.classification._id`, `tenderLoc` to `tender.items.deliveryLocation._id`, and `planningLoc` to `planning.budget.projectLocation._id`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+No service state changes. The caller receives raw releases or release packages. Package responses derive metadata at request time: license, publication policy, URI, publisher name, publisher scheme, and publisher UID from the release OCID.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `projectId` and `bidNo` path patterns allow only alphanumeric values in the implementation.
+- List pagination defaults to `pageNumber=0`, `pageSize=300`, with `pageSize` capped at 1000.
+- Year filters accept 1900 through 2200. Month filters work only when exactly one year is supplied.
+- Package creation assumes a non-null release.
 
 Failure and exceptional cases:
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `ocdsPackageByOcidUsingGET`
+  - Failure condition: `ocid` does not match any release.
+  - Why it fails: implementation calls `createReleasePackage(release)` and dereferences `release.getDate()` and `release.getOcid()`.
+  - Violated prerequisite or constraint: a matching release must exist before package wrapping.
+- Failing function: `ocdsByProjectIdUsingGET`
+  - Failure condition: `projectId` contains non-alphanumeric characters.
+  - Why it fails: the route pattern restricts the path variable.
+  - Violated prerequisite or constraint: `projectId` must match the controller route pattern.
+- Failing function: `ocdsReleasesUsingGET`
+  - Failure condition: `pageSize=0`, `pageSize>1000`, `pageNumber<0`, `year<1900`, `year>2200`, `month<1`, or `month>12`.
+  - Why it fails: bean validation constraints are applied to the request model.
+  - Violated prerequisite or constraint: dashboard paging and date filter bounds.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The OpenAPI description says package lookup by `planningBidNo` returns by OCID, but the controller actually retrieves by `planning.bidNo`. Release package URIs are hard-coded to `http://ocvn.developmentgateway.org`.
 
-### Behavior 2: Calculates The Average Award Period Per Each Year The Year Is Taken From Awards Date And The Duration Is Taken By Counting The Daysbetween Tender Tender Period End Date And Tender Tender Period Start Date The Award Has To Be Active
+### Behavior 2: Discover Organizations and Filter Dimensions
 
 Business goal:
-Calculates the average award period, per each year. .
+Allow users to find organizations and reference values that can be reused as dashboard filters.
 
 Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `POST /api/averageAwardPeriod`.
+Most analytics can be scoped by procuring entity, supplier, buyer, location, city, department, group, bid type, procurement method, bid selection method, or contract method.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing imported organization and release-derived reference data.
 
 Required execution workflow:
-1. Use function `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active` (`POST /api/averageAwardPeriod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `searchTextUsingGET_1` (`GET /api/ocds/organization/all`) with `text=water`, `pageNumber=0`, `pageSize=300` to search organizations, or omit `text` to list.
+2. Use function `searchTextUsingGET_2` (`GET /api/ocds/organization/procuringEntity/all`) with `text=ministry` to find procuring entities, then capture an organization `_id`.
+3. Use function `searchTextUsingGET_3` (`GET /api/ocds/organization/supplier/all`) with `text=construction` to find suppliers, then capture an organization `_id`.
+4. Use function `byIdUsingGET_1` (`GET /api/ocds/organization/id/{id}`) with `id=ORG1`, or role-specific `byIdUsingGET_2`, `byIdUsingGET_3`, or `byIdUsingGET` to retrieve a selected organization.
+5. Use function `bidSelectionMethodsUsingGET` (`GET /api/ocds/bidSelectionMethod/all`), `procurementMethodsUsingGET` (`GET /api/ocds/procurementMethod/all`), `bidTypesUsingGET` (`GET /api/ocds/bidType/all`), `contrMethodsUsingGET` (`GET /api/ocds/contrMethod/all`), `locationsAllUsingGET`, `orgCitiesUsingGET`, `orgDepartmentsUsingGET`, or `orgGroupsUsingGET` to collect filter values for analytics.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with captured `procuringEntityId=ORG1`, `supplierId=SUP1`, `bidSelectionMethod=METHOD1`, `procurementMethod=open`, or `tenderLoc=LOC1` to inspect records matching the chosen dimensions.
+2. Use function `byIdCollectionUsingGET` (`GET /api/ocds/organization/ids`) with repeated query values `id=ORG1&id=SUP1` to verify multiple selected organizations.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If organization ids or reference ids are known from a database fixture or external catalog, discovery functions can be skipped.
+- Direct database setup must preserve role membership: supplier, buyer, and procuring-entity lookups require the matching organization role/type in stored organization data.
+- Release-derived reference lists can be skipped only if the chosen values actually appear in the nested release fields that downstream filters query.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Captured organization `_id` from procuring-entity search is reused as `procuringEntityId` in analytics.
+- Captured supplier `_id` is reused as `supplierId`.
+- Captured location `_id` from location search is reused as `tenderLoc` or `planningLoc` depending on whether the later behavior analyzes tender delivery location or planning project location.
+- Bid selection values from `bidSelectionMethodsUsingGET` bind to `tender.procurementMethodDetails`; procurement methods bind to `tender.procurementMethod`.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller obtains domain identifiers and labels that scope later dashboard behaviors. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Text search `text` must be 3 to 30 characters.
+- Organization role-specific retrieval is stricter than generic retrieval: supplier/procuring-entity/buyer lookup requires both id and role.
+- The implementation searches organization `name` with a case-insensitive regex, despite OpenAPI saying full-text search.
 
 Failure and exceptional cases:
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average award period per each year the year is taken from awards date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date the award has to be active`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `searchTextUsingGET_1`
+  - Failure condition: `text` is shorter than 3 or longer than 30 characters.
+  - Why it fails: `TextSearchRequest` uses `@Size(min=3,max=30)`.
+  - Violated prerequisite or constraint: search text length.
+- Failing function: `byIdUsingGET_2`
+  - Failure condition: id exists as an organization but not as a procuring entity.
+  - Why it fails: role-specific repository lookup filters by organization type.
+  - Violated prerequisite or constraint: requested id must have the requested domain role.
+- Failing function: `contrMethodsUsingGET` or later filters using `contrMethod`
+  - Failure condition: a non-ObjectId-like `contrMethod` value is supplied later.
+  - Why it fails: the filter code converts values to Mongo `ObjectId`.
+  - Violated prerequisite or constraint: contract method filter values must be valid ObjectId strings in practice, although API documentation only says alphanumeric.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+OpenAPI descriptions for buyer and supplier mention `organization.types`, while source filters `roles`. The implementation is role-based.
 
-### Behavior 3: Calculate Average Number Of Tenderers By Year The Endpoint Can Be Filteredby Year Read From Tender Tender Period Start Date The Number Of Tenderers Are Read From Tender Number Of Tenderers
+### Behavior 3: Establish Dashboard Year and Value Filter Bounds
 
 Business goal:
-Calculate average number of tenderers, by year. .
+Let a client discover available years and numeric value intervals before applying filters to dashboard analytics.
 
 Domain context:
-This behavior belongs to the `average-number-of-tenderers-controller` capability area and operates through `GET /api/averageNumberOfTenderers`.
+Dashboard filters are user-facing controls. Years, tender value ranges, and award value ranges need discoverable bounds.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing imported releases with tender dates, award dates, plan approval dates, tender values, or award values.
 
 Required execution workflow:
-1. Use function `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers` (`GET /api/averageNumberOfTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `tendersAwardsYearsUsingGET` (`GET /api/tendersAwardsYears`) with no required parameters to get distinct years from `awards.date`, `tender.tenderPeriod.startDate`, and `planning.bidPlanProjectDateApprove`.
+2. Use function `tenderValueIntervalUsingGET` (`GET /api/tenderValueInterval`) with optional `year=2020`, `procuringEntityId=PE1`, `supplierId=SUP1`, `bidTypeId=CLASS1`, `pageNumber=0`, `pageSize=300` to get `minTenderValue` and `maxTenderValue`.
+3. Use function `awardValueIntervalUsingGET` (`GET /api/awardValueInterval`) with the same relevant filters to get `minAwardValue` and `maxAwardValue`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with `year=2020`, `minTenderValue={minTenderValue}`, and `maxTenderValue={maxTenderValue}` to inspect releases inside the computed range.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- If the UI or database already has the available years and value limits, these discovery steps can be skipped.
+- The reused values must still match the same filter scope; a global min/max is not equivalent to a procuring-entity-specific min/max.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Years returned by `tendersAwardsYearsUsingGET` are reused as `year` query values in all year-filterable functions.
+- `minTenderValue` and `maxTenderValue` returned by `tenderValueIntervalUsingGET` are reused as `minTenderValue` and `maxTenderValue`.
+- `minAwardValue` and `maxAwardValue` returned by `awardValueIntervalUsingGET` are reused as `minAwardValue` and `maxAwardValue`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The client can render bounded year and value filters without mutating service state.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `tenderValueIntervalUsingGET` filters by tender start date.
+- `awardValueIntervalUsingGET` unwinds awards and filters by award date.
+- Empty backing data returns empty result sets rather than creating default bounds.
 
 Failure and exceptional cases:
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `tenderValueIntervalUsingGET`
+  - Failure condition: invalid `year`, `month`, `pageNumber`, or `pageSize`.
+  - Why it fails: request validation applies shared paging/year constraints.
+  - Violated prerequisite or constraint: valid dashboard filter bounds.
+- Failing function: `awardValueIntervalUsingGET`
+  - Failure condition: a filter such as `contrMethod` is syntactically accepted by OpenAPI but cannot be converted to `ObjectId`.
+  - Why it fails: implementation converts `contrMethod` strings to `ObjectId`.
+  - Violated prerequisite or constraint: valid contract method identifier representation.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+`pageNumber` and `pageSize` are accepted by the request model for interval functions but do not materially affect the single aggregate min/max output.
 
-### Behavior 4: Calculate Average Number Of Tenderers By Year The Endpoint Can Be Filteredby Year Read From Tender Tender Period Start Date The Number Of Tenderers Are Read From Tender Number Of Tenderers
+### Behavior 4: Measure Procurement Activity Over Time
 
 Business goal:
-Calculate average number of tenderers, by year. .
+Show how many procurement plans, tenders, and awards exist by year or month.
 
 Domain context:
-This behavior belongs to the `average-number-of-tenderers-controller` capability area and operates through `POST /api/averageNumberOfTenderers`.
+Procurement activity volume is a core overview dashboard metric and is also used by exported activity charts.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing imported releases with plan approval dates, tender start dates, or award dates.
 
 Required execution workflow:
-1. Use function `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers` (`POST /api/averageNumberOfTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `countBidPlansByYearUsingGET` (`GET /api/countBidPlansByYear`) with `year=2020`, `monthly=false`, `pageNumber=0`, `pageSize=300`, and optional common filters to count releases with `planning.bidPlanProjectDateApprove`.
+2. Use function `countTendersByYearUsingGET` (`GET /api/countTendersByYear`) with the same `year`, `monthly`, and filter values to count tenders by `tender.tenderPeriod.startDate`.
+3. Use function `countAwardsByYearUsingGET` (`GET /api/countAwardsByYear`) with the same `year`, `monthly`, and filter values to count awards by `awards.date`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `tendersAwardsYearsUsingGET` (`GET /api/tendersAwardsYears`) to verify that the requested `year` exists in at least one date source.
+2. Use function `procurementActivityExcelChartUsingGET` (`GET /api/ocds/procurementActivityExcelChart`) with `language=en_US`, the same `year`, and the same filters to verify the counts through an exported chart.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If equivalent counts have already been computed in a cache or database fixture, the count functions can be skipped for display, but exporting still invokes its export function.
+- Direct database setup must include the correct date fields; a tender date does not satisfy bid-plan count, and an award date does not satisfy tender count.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- The same `year`, `month`, `monthly`, organization, supplier, classification, procurement method, location, and value filters should be reused across the three count functions to compare the same scope.
+- Date binding differs intentionally: bid plan count uses plan approval date, tender count uses tender start date, and award count uses award date.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller receives count series for bid plans, tenders, and awards. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `month` is applied only when a single `year` is supplied.
+- Monthly grouping is controlled separately by `monthly=true`.
+- Count-awards unwinds awards, so one release with multiple awards contributes multiple award counts.
 
 Failure and exceptional cases:
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculate average number of tenderers by year the endpoint can be filteredby year read from tender tender period start date the number of tenderers are read from tender number of tenderers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `countBidPlansByYearUsingGET`
+  - Failure condition: no `planning.bidPlanProjectDateApprove` exists in the selected scope.
+  - Why it fails by domain expectation but not implementation: the function returns an empty list rather than an error.
+  - Violated prerequisite or constraint: data must contain plan approval dates for non-empty output.
+- Failing function: `countAwardsByYearUsingGET`
+  - Failure condition: `year` outside 1900-2200.
+  - Why it fails: validation rejects out-of-range year.
+  - Violated prerequisite or constraint: valid supported year range.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The Excel export controller calls the three count functions internally and aligns categories across all returned series.
 
-### Behavior 5: Calculates The Average Tender Period Per Each Year The Year Is Taken From Tender Tender Period Start Date And The Duration Is Taken By Counting The Daysbetween Tender Tender Period End Date And Tender Tender Period Start Date
+### Behavior 5: Analyze Tender, Award, and Plan-to-Tender Timing
 
 Business goal:
-Calculates the average tender period, per each year. .
+Measure procurement cycle duration and data completeness for timing metrics.
 
 Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `GET /api/averageTenderPeriod`.
+Tender periods, award periods, and time from procurement plan approval to tender start are operational performance indicators.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing imported releases with relevant date fields.
 
 Required execution workflow:
-1. Use function `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date` (`GET /api/averageTenderPeriod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `averageTenderPeriodUsingGET` (`GET /api/averageTenderPeriod`) with `year=2020`, `monthly=false`, and optional filters to calculate average days between `tender.tenderPeriod.startDate` and `tender.tenderPeriod.endDate`.
+2. Use function `qualityAverageTenderPeriodUsingGET` (`GET /api/qualityAverageTenderPeriod`) with the same non-year common filters to calculate the percentage of tenders with both tender period dates.
+3. Use function `averageAwardPeriodUsingGET` (`GET /api/averageAwardPeriod`) with `year=2020` and the same filters to calculate average days between tender period end and active award date.
+4. Use function `qualityAverageAwardPeriodUsingGET` (`GET /api/qualityAverageAwardPeriod`) with the same non-year common filters to calculate award-date/tender-end-date completeness.
+5. Use function `avgTimeFromPlanToTenderPhaseUsingGET` (`GET /api/avgTimeFromPlanToTenderPhase`) with `year=2020` and the same filters to calculate average days from `planning.bidPlanProjectDateApprove` to tender start.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `bidTimelineExcelChartUsingGET` (`GET /api/ocds/bidTimelineExcelChart`) with `language=en_US`, `year=2020`, and the same filters to verify the timeline data through an Excel chart.
+2. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with the same filters to inspect raw date fields.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- If date completeness is already known, quality functions can be skipped, but the timing metric function must still be called to compute the displayed behavior.
+- Direct database setup must include the exact date pairs consumed by each metric.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Reuse the same `year`, `month`, `monthly`, and common filter values when comparing timing functions.
+- `averageTenderPeriodUsingGET` and `avgTimeFromPlanToTenderPhaseUsingGET` bind `year` to tender start date.
+- `averageAwardPeriodUsingGET` binds `year` to award date.
+- Quality functions do not use `YearFilterPagingRequest`; they use default filters and assess all matching records in the selected non-year scope.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The caller receives timing averages and completeness percentages. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Average award period only includes active awards.
+- Average tender period requires both tender start and end dates.
+- Plan-to-tender average requires tender start, planning budget amount, and plan approval date.
+- Negative durations are not explicitly rejected; if dates are reversed, the arithmetic can produce negative day values.
 
 Failure and exceptional cases:
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `averageTenderPeriodUsingGET`
+  - Failure condition: tender start or end date missing.
+  - Why it fails by domain expectation but not implementation: records are excluded from the aggregate rather than rejected.
+  - Violated prerequisite or constraint: complete tender period dates are required for inclusion.
+- Failing function: `averageAwardPeriodUsingGET`
+  - Failure condition: award is not active, award date is missing, or tender end date is missing.
+  - Why it fails by domain expectation but not implementation: records are filtered out.
+  - Violated prerequisite or constraint: active award with complete dates.
+- Failing function: `avgTimeFromPlanToTenderPhaseUsingGET`
+  - Failure condition: `planning.budget.amount` is missing even if plan approval date exists.
+  - Why it fails by implementation: the match requires `planning.budget.amount`.
+  - Violated prerequisite or constraint: the implementation treats budget amount as proof of a real planning entity.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The average award OpenAPI description says duration is counted between tender end and tender start, but source calculates `awards.date - tender.tenderPeriod.endDate`. Source should be treated as authoritative.
 
-### Behavior 6: Calculates The Average Tender Period Per Each Year The Year Is Taken From Tender Tender Period Start Date And The Duration Is Taken By Counting The Daysbetween Tender Tender Period End Date And Tender Tender Period Start Date
+### Behavior 6: Analyze Competition and E-Procurement Adoption
 
 Business goal:
-Calculates the average tender period, per each year. .
+Assess bidder participation, awarded competition, and electronic procurement adoption.
 
 Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `POST /api/averageTenderPeriod`.
+Competition and e-procurement indicators support market openness, efficiency, and risk assessment.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing releases with tenderer counts, tender submission method, publication method, active awards, and linked planning data.
 
 Required execution workflow:
-1. Use function `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date` (`POST /api/averageTenderPeriod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `averageNumberOfTenderersUsingGET` (`GET /api/averageNumberOfTenderers`) with `year=2020`, `monthly=false`, and optional filters to calculate average `tender.numberOfTenderers`.
+2. Use function `percentTendersWithTwoOrMoreTenderersUsingGET` (`GET /api/percentTendersWithTwoOrMoreTenderers`) with the same filters to calculate the share of all tenders with more than one tenderer.
+3. Use function `percentTendersAwardedUsingGET` (`GET /api/percentTendersAwardedWithTwoOrMoreTenderers`) with the same filters to calculate the share among tenders with at least one tenderer.
+4. Use function `percentTendersUsingEBidUsingGET` (`GET /api/percentTendersUsingEBid`) with the same filters to calculate the share of active-award tenders whose `tender.submissionMethod` includes `electronicSubmission`.
+5. Use function `percentTendersUsingEgpUsingGET` (`GET /api/percentTendersUsingEgp`) with the same filters to calculate the share of tenders with `tender.publicationMethod=eGP`.
+6. Use function `percentTendersWithLinkedProcurementPlanUsingGET` (`GET /api/percentTendersWithLinkedProcurementPlan`) with the same filters to calculate the share with `planning.budget.amount`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `averageNumberBidsExcelChartUsingGET` (`GET /api/ocds/averageNumberBidsExcelChart`) with `language=en_US` and the same filters to verify average bid counts in Excel.
+2. Use `percentTendersUsingEBidExcelChartUsingGET`, `numberTendersUsingEBidExcelChartUsingGET`, `percentTendersUsingEgpExcelChartUsingGET`, or `tendersWithLinkedProcurementPlanExcelChartUsingGET` with the same filters to verify exported dashboard views.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If only one competition indicator is needed, the unrelated metric functions can be skipped.
+- Direct database setup must preserve the specific consumed fields: `numberOfTenderers`, `submissionMethod`, `publicationMethod`, active award status, and `planning.budget.amount`.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Use the same filter set across all functions for comparable results.
+- `year` binds to `tender.tenderPeriod.startDate` for these functions.
+- `electronicSubmission=true` can be used as a filter in shared filter logic, but the `percentTendersUsingEBidUsingGET` metric itself computes electronic submission count and percentage.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller receives competition and e-procurement percentage/count series. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Awarded-competition percentage excludes tenders with `numberOfTenderers <= 0` from the denominator.
+- E-bid percentage requires active awards and at least one submission method.
+- EGP percentage is a strict string equality on `publicationMethod=eGP`.
+- Linked-plan percentage uses presence of `planning.budget.amount`, not a separate plan relationship table.
 
 Failure and exceptional cases:
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates the average tender period per each year the year is taken from tender tender period start date and the duration is taken by counting the daysbetween tender tender period end date and tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `percentTendersAwardedUsingGET`
+  - Failure condition: all matching tenders have `numberOfTenderers <= 0`.
+  - Why it fails by domain expectation but not implementation: no matching denominator records are returned.
+  - Violated prerequisite or constraint: at least one tenderer is required for denominator inclusion.
+- Failing function: `percentTendersUsingEBidUsingGET`
+  - Failure condition: active award status is absent even when tender submission method exists.
+  - Why it fails by implementation: the match requires `awards.status=active`.
+  - Violated prerequisite or constraint: e-bid adoption is measured over active-award tenders only.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The function name `percentTendersAwardedUsingGET` is less descriptive than its endpoint; it refers to `/api/percentTendersAwardedWithTwoOrMoreTenderers`.
 
-### Behavior 7: For All Tenders That Have Both Tender Tender Period Start Date And Planning Bid Plan Project Date Approvecalculates The Number O Days From Planning Bid Plan Project Date Approve To Tender Tender Period Start Dateand Creates The Average Groups Results By Tender Year Calculatedfrom Tender Tender Period Start Date
+### Behavior 7: Analyze Procurement Value, Cost Effectiveness, and Price Distribution
 
 Business goal:
-For all tenders that have both tender.tenderPeriod.startDate and planning.bidPlanProjectDateApprovecalculates the number o days from planning.bidPlanProjectDateApprove to tender.tenderPeriod.startDateand creates the average. .
+Compare tender values, award values, procurement methods, and value differences between tenders and awards.
 
 Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/avgTimeFromPlanToTenderPhase`.
+Value analytics show how funds are planned, tendered, awarded, and distributed by procurement method and supplier.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing releases with tender values, award values, methods, active awards, and tender dates.
 
 Required execution workflow:
-1. Use function `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date` (`GET /api/avgTimeFromPlanToTenderPhase`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `tenderPriceByProcurementMethodUsingGET` (`GET /api/tenderPriceByProcurementMethod`) with `year=2020` and optional filters to total tender value by `tender.procurementMethod`.
+2. Use function `tenderPriceByBidSelectionMethodUsingGET` (`GET /api/tenderPriceByBidSelectionMethod`) with the same filters to total tender value by `tender.procurementMethodDetails`.
+3. Use function `tenderPriceByAllBidSelectionMethodsUsingGET` (`GET /api/tenderPriceByAllBidSelectionMethods`) with the same filters to include zero-valued rows for missing bid selection methods.
+4. Use function `costEffectivenessTenderAmountUsingGET` (`GET /api/costEffectivenessTenderAmount`) with `year=2020`, `groupByCategory=bidSelectionMethod` or omitted, and optional filters to total active tender value with active awards.
+5. Use function `costEffectivenessAwardAmountUsingGET` (`GET /api/costEffectivenessAwardAmount`) with the same filters to total active award value.
+6. Use function `costEffectivenessTenderAwardAmountUsingGET` (`GET /api/costEffectivenessTenderAwardAmount`) with the same filters to receive combined tender amount, award amount, difference, award percentage, and difference percentage.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `bidSelectionExcelChartUsingGET` (`GET /api/ocds/bidSelectionExcelChart`) with `language=en_US` and the same filters.
+2. Use function `procurementMethodExcelChartUsingGET` (`GET /api/ocds/procurementMethodExcelChart`) with `language=en_US` and the same filters.
+3. Use function `costEffectivenessExcelChartUsingGET` (`GET /api/ocds/costEffectivenessExcelChart`) with `language=en_US` and the same filters.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- If only method totals are needed, cost-effectiveness functions can be skipped.
+- If the client only needs combined tender/award comparison, calling `costEffectivenessTenderAwardAmountUsingGET` is enough; it invokes tender and award amount logic internally.
+- Direct database setup must include active award records and tender values for inclusion in cost-effectiveness calculations.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Reuse `year`, `month`, `monthly`, and filters across tender and award amount functions to compare the same scope.
+- `groupByCategory` is only meaningful for cost-effectiveness tender amount and combined cost effectiveness; supported values are `bidSelectionMethod`, `bidTypeId`, and `procuringEntityId`.
+- `tenderPriceByAllBidSelectionMethodsUsingGET` reuses bid selection method values from `bidSelectionMethodsUsingGET` and adds zero totals where absent.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The caller receives procurement value totals by method and cost-effectiveness comparison metrics. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Tender price by procurement method requires active awards and tender value.
+- Tender price by bid selection method applies default filters after year filtering.
+- Combined cost effectiveness calculates missing tender or award totals as zero when one side lacks a matching year/month key.
+- Percentage calculations use `0` when tender total is zero.
 
 Failure and exceptional cases:
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `costEffectivenessTenderAwardAmountUsingGET`
+  - Failure condition: internal tender or award aggregate throws an exception.
+  - Why it fails: implementation wraps `InterruptedException` or `ExecutionException` from async internal calls in `RuntimeException`.
+  - Violated prerequisite or constraint: both internal aggregate computations must complete.
+- Failing function: `tenderPriceByAllBidSelectionMethodsUsingGET`
+  - Failure condition: a result row has a null method and other rows sort against it.
+  - Why it is handled: implementation replaces null with `Unspecified` before adding to sorted output.
+  - Violated prerequisite or constraint: none; null method is normalized.
+- Failing function: `tenderPriceByProcurementMethodUsingGET`
+  - Failure condition: no active award exists for a tender with value.
+  - Why it fails by domain expectation but not implementation: tender is excluded.
+  - Violated prerequisite or constraint: only tenders with active awards are included.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+`costEffectivenessTenderAmountUsingGET` supports grouping, but `costEffectivenessAwardAmountUsingGET` accepts the grouped request type only because of Java inheritance; award aggregation itself is year/month oriented.
 
-### Behavior 8: For All Tenders That Have Both Tender Tender Period Start Date And Planning Bid Plan Project Date Approvecalculates The Number O Days From Planning Bid Plan Project Date Approve To Tender Tender Period Start Dateand Creates The Average Groups Results By Tender Year Calculatedfrom Tender Tender Period Start Date
+### Behavior 8: Analyze Cancelled Tenders
 
 Business goal:
-For all tenders that have both tender.tenderPeriod.startDate and planning.bidPlanProjectDateApprovecalculates the number o days from planning.bidPlanProjectDateApprove to tender.tenderPeriod.startDateand creates the average. .
+Measure cancellation rates and cancelled tender value, including cancellation rationale.
 
 Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/avgTimeFromPlanToTenderPhase`.
+Cancelled tenders represent procurement failure, rework, or possible market/administrative issues.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing releases with `tender.status=cancelled`, tender value, tender start date, and optional `tender.cancellationRationale`.
 
 Required execution workflow:
-1. Use function `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date` (`POST /api/avgTimeFromPlanToTenderPhase`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `percentTendersCancelledUsingGET` (`GET /api/percentTendersCancelled`) with `year=2020`, `monthly=false`, and optional filters to calculate total tenders, cancelled tenders, and cancellation percentage.
+2. Use function `totalCancelledTendersByYearUsingGET` (`GET /api/totalCancelledTendersByYear`) with the same filters to calculate total cancelled tender value.
+3. Use function `totalCancelledTendersByYearByRationaleUsingGET` (`GET /api/totalCancelledTendersByYearByRationale`) with the same filters to group cancelled value by cancellation rationale.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `cancelledFundingPercentageExcelChartUsingGET` (`GET /api/ocds/cancelledFundingPercentageExcelChart`) with `language=en_US` and the same filters.
+2. Use function `cancelledFundingExcelChartUsingGET` (`GET /api/ocds/cancelledFundingExcelChart`) with `language=en_US` and the same filters.
+3. Use function `cancelledTendersByYearByRationaleExcelChartUsingGET` (`GET /api/ocds/cancelledTendersByYearByRationaleExcelChart`) with `language=en_US` and the same filters.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If only cancellation rate is needed, cancelled value functions can be skipped.
+- Direct database setup must set `tender.status` exactly to `cancelled` for cancelled-value functions.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Reuse the same `year`, `month`, `monthly`, and filters across percentage and value functions.
+- `year` binds to `tender.tenderPeriod.startDate`.
+- Cancellation rationale grouping consumes `tender.cancellationRationale`; null rationales can become their own group.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller receives cancellation percentage, cancellation count, cancelled value, and cancelled value by rationale. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Cancellation value functions do not apply pagination in source even though request model supports paging.
+- Cancellation rate denominator includes all tenders with tender start date in scope.
+- Cancelled value requires tender value amount to contribute meaningful sums.
 
 Failure and exceptional cases:
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `for all tenders that have both tender tender period start date and planning bid plan project date approvecalculates the number o days from planning bid plan project date approve to tender tender period start dateand creates the average groups results by tender year calculatedfrom tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `totalCancelledTendersByYearUsingGET`
+  - Failure condition: matching cancelled tenders have missing `tender.value.amount`.
+  - Why it fails by domain expectation but not implementation: records may aggregate with missing values rather than explicit validation.
+  - Violated prerequisite or constraint: cancelled funding analysis requires tender values.
+- Failing function: `percentTendersCancelledUsingGET`
+  - Failure condition: no tenders have `tender.tenderPeriod.startDate` in scope.
+  - Why it fails by domain expectation but not implementation: returns empty list.
+  - Violated prerequisite or constraint: started tenders are required for denominator.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+`percentTendersCancelledUsingGET` includes `PERCENT_TENDERS` in final projection, but the computed cancellation field is `percentCancelled`.
 
-### Behavior 9: Returns The Min And Max Of Awards Value Amount
+### Behavior 9: Analyze Procurement by Item and Location
 
 Business goal:
-Returns the min and max of awards.value.amount.
+Show how procurement value and counts are distributed across item classifications and geographic locations.
 
 Domain context:
-This behavior belongs to the `tenders-awards-value-intervals` capability area and operates through `GET /api/awardValueInterval`.
+Item and location views support sector analysis, regional spending analysis, and map visualizations.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing releases with tender item classifications, tender delivery locations, planning project locations, values, and geocoding coordinates.
 
 Required execution workflow:
-1. Use function `returns the min and max of awards value amount` (`GET /api/awardValueInterval`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `tendersByItemClassificationUsingGET` (`GET /api/tendersByItemClassification`) with `year=2020` and optional filters to count tenders and sum tender values by item classification.
+2. Use function `fundingByTenderDeliveryLocationUsingGET` (`GET /api/fundingByTenderDeliveryLocation`) with `year=2020`, `monthly=false`, and optional filters to sum tender funding by delivery location.
+3. Use function `qualityFundingByTenderDeliveryLocationUsingGET` (`GET /api/qualityFundingByTenderDeliveryLocation`) with the same filters to assess whether tenders have delivery locations.
+4. Use function `plannedFundingByLocationUsingGET` (`GET /api/plannedFundingByLocation`) with `year=2020` and optionally `procuringEntityId=PE1` to sum planning budget by project location.
+5. Use function `qualityPlannedFundingByLocationUsingGET` (`GET /api/qualityPlannedFundingByLocation`) with `procuringEntityId=PE1` to assess whether budgeted plans have locations.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `numberOfTendersByItemExcelChartUsingGET` (`GET /api/ocds/tendersByItemExcelChart`) with `language=en_US` and the same filters.
+2. Use function `locationsAllUsingGET` (`GET /api/ocds/location/all`) or `locationsSearchUsingGET` (`GET /api/ocds/location/search`) to inspect location reference data.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- If item classifications or locations are known, lookup functions can be skipped.
+- Direct database setup must include `geometry.coordinates` for map funding functions; location records without coordinates are filtered out.
+- Planned funding can skip non-procuring-entity filters because the implementation only honors `procuringEntityId` and year for that function.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- `bidTypeId` binds to `tender.items.classification._id` for item filters.
+- `tenderLoc` binds to `tender.items.deliveryLocation._id`.
+- `planningLoc` binds to `planning.budget.projectLocation._id`.
+- `plannedFundingByLocationUsingGET` splits `planning.budget.amount.amount` across the number of project locations; the same budget amount is intentionally divided across child locations.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The caller receives item classification counts/value, tender funding by delivery location, planned funding by project location, and quality percentages. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Tender delivery funding requires tender start date and geocoded delivery location.
+- Planned funding requires planning data, project locations, geocoded coordinates, and plan approval date.
+- `plannedFundingByLocationUsingGET` responds only to `procuringEntityId` among the common domain filters, per implementation and OpenAPI description.
+- Quality planned funding requires `planning.budget.amount`.
 
 Failure and exceptional cases:
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `plannedFundingByLocationUsingGET`
+  - Failure condition: `planning.budget.projectLocation` is empty or locations have no coordinates.
+  - Why it fails by domain expectation but not implementation: records are filtered out.
+  - Violated prerequisite or constraint: mapped planned funding requires geocoded project locations.
+- Failing function: `qualityFundingByTenderDeliveryLocationUsingGET`
+  - Failure condition: tender items are missing.
+  - Why it can fail in execution: implementation unwinds `tender.items`, so records without items do not contribute as expected.
+  - Violated prerequisite or constraint: tender items must exist for delivery-location quality assessment.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Funding-by-location functions contain commented-out pagination, so large result sets may not be paginated even though the shared request model advertises pagination.
 
-### Behavior 10: Returns The Min And Max Of Awards Value Amount
+### Behavior 10: Identify Top Suppliers, Largest Awards, Largest Tenders, and Repeated Relationships
 
 Business goal:
-Returns the min and max of awards.value.amount.
+Find concentration and repeated relationship patterns in procurement activity.
 
 Domain context:
-This behavior belongs to the `tenders-awards-value-intervals` capability area and operates through `POST /api/awardValueInterval`.
+Top value rankings and repeated pairings can support market concentration analysis and risk screening.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing releases with tender values, active award values, suppliers, procuring entities, tenderers, and award dates.
 
 Required execution workflow:
-1. Use function `returns the min and max of awards value amount` (`POST /api/awardValueInterval`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `topTenLargestTendersUsingGET` (`GET /api/topTenLargestTenders`) with optional `year=2020` and filters to retrieve the ten largest tenders by `tender.value.amount`.
+2. Use function `topTenLargestAwardsUsingGET` (`GET /api/topTenLargestAwards`) with optional `year=2020` and filters to retrieve the ten largest active awards by `awards.value.amount`.
+3. Use function `topTenLargestSuppliersUsingGET` (`GET /api/topTenSuppliers`) with optional `year=2020` and filters to retrieve suppliers ranked by total active award value.
+4. Use function `frequentSuppliersTimeIntervalUsingGET` (`GET /api/frequentSuppliersTimeInterval`) with `intervalDays=365`, `maxAwards=3`, and optional `now=2026-05-27` to find supplier/procuring-entity pairs with award counts greater than `maxAwards` in a computed time interval.
+5. Use function `frequentTenderersUsingGET` (`GET /api/frequentTenderers`) with `year=2020`, `pageNumber=0`, `pageSize=300`, and optional filters to find repeated supplier/tenderer pairings.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `byIdCollectionUsingGET` (`GET /api/ocds/organization/ids`) with repeated supplier and procuring entity ids returned by ranking functions to inspect names and organization records.
+2. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with `supplierId={supplierId}` and `procuringEntityId={procuringEntityId}` to inspect source releases.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If supplier and procuring entity ids are already known, organization lookup can be skipped.
+- Direct database setup must include active awards for award/supplier rankings.
+- Frequent supplier analysis can use a fixed `now` value for reproducibility; otherwise the current server date changes interval assignment over time.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Supplier ids returned by `topTenLargestSuppliersUsingGET` bind to `supplierId` filters and organization lookup `id`.
+- Procuring entity ids in `procuringEntityIds` bind to `procuringEntityId` filters.
+- `frequentSuppliersTimeIntervalUsingGET` groups by `tender.procuringEntity._id`, `awards.suppliers._id`, and computed `timeInterval`.
+- `intervalDays` controls bucket size; `maxAwards` is a strict greater-than threshold, not greater-than-or-equal.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller receives top ten value rankings and repeated relationship signals. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Largest awards and top suppliers include only active awards.
+- Largest tenders source code does not explicitly require `tender.status=active`, despite the OpenAPI summary saying active tenders.
+- Frequent tenderers requires at least two tenderers, at least one supplier, and active awards.
+- Frequent supplier intervals are relative to `now`.
 
 Failure and exceptional cases:
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of awards value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `frequentSuppliersTimeIntervalUsingGET`
+  - Failure condition: `intervalDays=0`.
+  - Why it fails: implementation divides by `intervalDays` in Mongo aggregation and does not validate positive values.
+  - Violated prerequisite or constraint: interval length must be positive.
+- Failing function: `frequentTenderersUsingGET`
+  - Failure condition: tender has co-tenderers but no active award supplier.
+  - Why it fails by domain expectation but not implementation: records are excluded because implementation compares tenderers to active award suppliers.
+  - Violated prerequisite or constraint: source requires active award supplier data.
+- Failing function: `topTenLargestTendersUsingGET`
+  - Failure condition: relying on OpenAPI promise that only active tenders are returned.
+  - Why it should fail by domain/API expectation but does not: implementation does not filter `tender.status=active`.
+  - Violated prerequisite or constraint: documented active-tender invariant is not enforced.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+`frequentTenderersUsingGET` does not actually compute all pairs of tenderers that applied together. It forms pairs between active award suppliers and tenderers, excluding identical ids.
 
-### Behavior 11: Cost Effectiveness Of Awards Displays The Total Amount Of Active Awards Grouped By Year The Tender Entity For Each Award Has To Have Amount Value The Year Is Calculated From Tender Tender Period Start Date
+### Behavior 11: Inspect Corruption-Risk Indicator Flags
 
 Business goal:
-Cost effectiveness of Awards: Displays the total amount of active awards grouped by year.The tender entity, for each award, has to have amount value. .
+View flagged releases and aggregate statistics for supported risk indicators.
 
 Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `GET /api/costEffectivenessAwardAmount`.
+The service stores precomputed `flags` on releases and exposes searches and stats for selected indicators.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing releases with `flags.flaggedStats` and indicator boolean properties such as I003, I004, I007, I019, I038, I077, and I180.
 
 Required execution workflow:
-1. Use function `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date` (`GET /api/costEffectivenessAwardAmount`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use one flag release function, such as `releaseFlagSearchUsingGET` (`GET /api/flags/i003/releases`) with `year=2020`, `pageNumber=0`, `pageSize=300`, and optional common filters to list releases flagged by I003.
+2. Use the matching stats function, such as `flagStatsUsingGET` (`GET /api/flags/i003/stats`) with the same `year`, `month`, `monthly`, and filters to obtain `total`, `totalTrue`, `totalFalse`, `totalPrecondMet`, and percentages.
+3. Repeat with matching function pairs for I004, I007, I019, I038, I077, or I180: `releaseFlagSearchUsingGET_1` with `flagStatsUsingGET_1`, `releaseFlagSearchUsingGET_2` with `flagStatsUsingGET_2`, and so on.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `ocdsReleasesUsingGET` (`GET /api/ocds/release/all`) with `flagged=true`, `year=2020`, and the same filters to inspect all releases flagged by at least one indicator.
+2. Use function `percentageAwardsNarrowPublicationDatesUsingGET` (`GET /api/percentageAwardsNarrowPublicationDates`) with the same year filters to inspect one publication-timing risk-adjacent metric.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- If flag fields have already been computed and inserted directly into releases, no API setup is needed.
+- There is no documented API function to calculate or recalculate flags; direct database or import-service setup is the only way to establish flag state through available files.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- The same indicator code must be used for release search and stats; I003 release search should be compared with I003 stats, not I004 stats.
+- `year` binds to `tender.tenderPeriod.startDate`.
+- `flagged=true` in generic release listing means at least one `flags.flaggedStats` element exists, not a specific indicator.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The caller receives flagged release slices and aggregate precondition/true/false percentages for each indicator. No state changes occur.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Release search returns only records where `flags.flaggedStats.0` exists and the selected indicator property is true.
+- Stats include true, false, and precondition-met counts based on whether the indicator field is true, false, or non-null.
+- Stats guard division by zero for true/false precondition percentages, but not every percentage expression has an explicit zero guard.
 
 Failure and exceptional cases:
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `releaseFlagSearchUsingGET`
+  - Failure condition: release has raw procurement data that would satisfy I003 but no persisted flag field.
+  - Why it fails by domain expectation but not implementation: endpoint only reads precomputed flag state.
+  - Violated prerequisite or constraint: flags must be precomputed and stored.
+- Failing function: `flagStatsUsingGET`
+  - Failure condition: no tender start date exists.
+  - Why it fails by implementation: stats match requires the year property to exist.
+  - Violated prerequisite or constraint: flag stats are grouped by tender start date.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Source contains additional flag endpoints for I002, I085, I171, crosstabs, and indicator type mapping that are not present in `ocvn.json`; they are source-backed but not part of the documented OpenAPI inventory used here.
 
-### Behavior 12: Cost Effectiveness Of Awards Displays The Total Amount Of Active Awards Grouped By Year The Tender Entity For Each Award Has To Have Amount Value The Year Is Calculated From Tender Tender Period Start Date
+### Behavior 12: Export Dashboard Data to Excel
 
 Business goal:
-Cost effectiveness of Awards: Displays the total amount of active awards grouped by year.The tender entity, for each award, has to have amount value. .
+Download dashboard views and release data as Excel files for offline analysis or reporting.
 
 Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `POST /api/costEffectivenessAwardAmount`.
+The API supports spreadsheet exports for key dashboards such as procurement activity, bid timeline, competition, procurement method, cancellation, cost effectiveness, and item classification.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing releases and, for localized chart titles/series, translation values.
 
 Required execution workflow:
-1. Use function `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date` (`POST /api/costEffectivenessAwardAmount`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+1. Use function `excelExportUsingGET` (`GET /api/ocds/excelExport`) with optional `year=2020`, `pageNumber=0`, `pageSize=300`, and common filters to export release rows.
+2. Use function `procurementActivityExcelChartUsingGET` (`GET /api/ocds/procurementActivityExcelChart`) with `language=en_US`, `year=2020`, `monthly=false`, and common filters to export activity counts.
+3. Use any chart export needed for the domain view: `averageNumberBidsExcelChartUsingGET`, `bidTimelineExcelChartUsingGET`, `bidSelectionExcelChartUsingGET`, `procurementMethodExcelChartUsingGET`, `costEffectivenessExcelChartUsingGET`, `cancelledFundingExcelChartUsingGET`, `cancelledTendersByYearByRationaleExcelChartUsingGET`, `cancelledFundingPercentageExcelChartUsingGET`, `numberCancelledFundingExcelChartUsingGET`, `percentTendersUsingEBidExcelChartUsingGET`, `numberTendersUsingEBidExcelChartUsingGET`, `percentTendersUsingEgpExcelChartUsingGET`, `tendersWithLinkedProcurementPlanExcelChartUsingGET`, or `numberOfTendersByItemExcelChartUsingGET` with the same filter values.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use the corresponding JSON data function before export, such as `countTendersByYearUsingGET` for procurement activity, `averageNumberOfTenderersUsingGET` for average bids, or `costEffectivenessTenderAwardAmountUsingGET` for cost effectiveness.
+2. Inspect the HTTP response headers for spreadsheet content type and `Content-Disposition` filename.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- If the caller trusts the export endpoint, JSON preview functions can be skipped.
+- Direct database setup must include the fields required by the underlying chart function.
+- Existing cached chart data can satisfy repeated export calls, but the export function itself is still required to produce the file.
 
 Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- Reuse the same `year`, `month`, `monthly`, filter ids, and value ranges between JSON preview and Excel export.
+- `language` binds to translation lookup for chart title and series names.
+- Export functions write binary XLSX content to the HTTP response rather than returning JSON.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The caller receives an Excel workbook. No persisted service state changes.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Language is validated by `LangYearFilterPagingRequest`; accepted values depend on the custom language validator and available translation files.
+- Exported chart data is assembled by invoking the corresponding controller functions internally.
+- Empty data can still produce an Excel file with empty categories/series depending on export controller logic.
 
 Failure and exceptional cases:
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of awards displays the total amount of active awards grouped by year the tender entity for each award has to have amount value the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `procurementActivityExcelChartUsingGET`
+  - Failure condition: invalid or unsupported `language`.
+  - Why it fails: language validation and translation lookup are applied before writing the workbook.
+  - Violated prerequisite or constraint: supported UI language.
+- Failing function: `excelExportUsingGET`
+  - Failure condition: invalid page or year filters.
+  - Why it fails: shared request validation applies.
+  - Violated prerequisite or constraint: valid filter request.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Export endpoints are side-effect-free but write directly to `HttpServletResponse`. They are not JSON APIs despite appearing in the same OpenAPI service.
 
-### Behavior 13: Cost Effectiveness Of Tenders Displays The Total Amount Of The Active Tenders That Have Active Awards Grouped By Year Only Tenders Status Activeare Taken Into Account The Year Is Calculated From Tender Period Start Date
+## Unsupported or Missing Business Behaviors
 
-Business goal:
-Cost effectiveness of Tenders: Displays the total amount of the active tenders that have active awards, grouped by year. .
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `GET /api/costEffectivenessTenderAmount`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date` (`GET /api/costEffectivenessTenderAmount`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 14: Cost Effectiveness Of Tenders Displays The Total Amount Of The Active Tenders That Have Active Awards Grouped By Year Only Tenders Status Activeare Taken Into Account The Year Is Calculated From Tender Period Start Date
-
-Business goal:
-Cost effectiveness of Tenders: Displays the total amount of the active tenders that have active awards, grouped by year. .
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `POST /api/costEffectivenessTenderAmount`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date` (`POST /api/costEffectivenessTenderAmount`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cost effectiveness of tenders displays the total amount of the active tenders that have active awards grouped by year only tenders status activeare taken into account the year is calculated from tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 15: Aggregated Version Of Api Cost Effectiveness Tender Amount And Api Cost Effectiveness Award Amount This Endpoint Aggregates The Responses From The Specified Endpoints Per Year Responds To The Same Filters
-
-Business goal:
-Aggregated version of /api/costEffectivenessTenderAmount and /api/costEffectivenessAwardAmount.This endpoint aggregates the responses from the specified endpoints, per year. .
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `GET /api/costEffectivenessTenderAwardAmount`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters` (`GET /api/costEffectivenessTenderAwardAmount`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 16: Aggregated Version Of Api Cost Effectiveness Tender Amount And Api Cost Effectiveness Award Amount This Endpoint Aggregates The Responses From The Specified Endpoints Per Year Responds To The Same Filters
-
-Business goal:
-Aggregated version of /api/costEffectivenessTenderAmount and /api/costEffectivenessAwardAmount.This endpoint aggregates the responses from the specified endpoints, per year. .
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-visuals-controller` capability area and operates through `POST /api/costEffectivenessTenderAwardAmount`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters` (`POST /api/costEffectivenessTenderAwardAmount`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `aggregated version of api cost effectiveness tender amount and api cost effectiveness award amount this endpoint aggregates the responses from the specified endpoints per year responds to the same filters`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 17: Count The Awards And Group The Results By Year The Year Is Calculated From The Awards Date Field
-
-Business goal:
-Count the awards and group the results by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `GET /api/countAwardsByYear`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count the awards and group the results by year the year is calculated from the awards date field` (`GET /api/countAwardsByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 18: Count The Awards And Group The Results By Year The Year Is Calculated From The Awards Date Field
-
-Business goal:
-Count the awards and group the results by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `POST /api/countAwardsByYear`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count the awards and group the results by year the year is calculated from the awards date field` (`POST /api/countAwardsByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the awards and group the results by year the year is calculated from the awards date field`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 19: Count Of Bid Plans By Year This Will Count The Releases That Have The Fieldplanning Bid Plan Project Date Approve Populated The Year Grouping Is Taken From Planning Bid Plan Project Date Approve
-
-Business goal:
-Count of bid plans, by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `GET /api/countBidPlansByYear`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve` (`GET /api/countBidPlansByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 20: Count Of Bid Plans By Year This Will Count The Releases That Have The Fieldplanning Bid Plan Project Date Approve Populated The Year Grouping Is Taken From Planning Bid Plan Project Date Approve
-
-Business goal:
-Count of bid plans, by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `POST /api/countBidPlansByYear`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve` (`POST /api/countBidPlansByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of bid plans by year this will count the releases that have the fieldplanning bid plan project date approve populated the year grouping is taken from planning bid plan project date approve`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 21: Count The Tenders And Group The Results By Year The Year Is Calculated From Tender Tender Period Start Date
-
-Business goal:
-Count the tenders and group the results by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `GET /api/countTendersByYear`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count the tenders and group the results by year the year is calculated from tender tender period start date` (`GET /api/countTendersByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 22: Count The Tenders And Group The Results By Year The Year Is Calculated From Tender Tender Period Start Date
-
-Business goal:
-Count the tenders and group the results by year. .
-
-Domain context:
-This behavior belongs to the `count-plans-tenders-awards-controller` capability area and operates through `POST /api/countTendersByYear`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count the tenders and group the results by year the year is calculated from tender tender period start date` (`POST /api/countTendersByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count the tenders and group the results by year the year is calculated from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 23: Search Releases By Flag I003
-
-Business goal:
-Search releases by flag i003.
-
-Domain context:
-This behavior belongs to the `flag-i-003-release-search-controller` capability area and operates through `GET /api/flags/i003/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i003` (`GET /api/flags/i003/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 24: Search Releases By Flag I003
-
-Business goal:
-Search releases by flag i003.
-
-Domain context:
-This behavior belongs to the `flag-i-003-release-search-controller` capability area and operates through `POST /api/flags/i003/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i003` (`POST /api/flags/i003/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i003`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 25: Stats For Flag I003
-
-Business goal:
-Stats for flag i003.
-
-Domain context:
-This behavior belongs to the `flag-i-003-stats-controller` capability area and operates through `GET /api/flags/i003/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i003` (`GET /api/flags/i003/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 26: Stats For Flag I003
-
-Business goal:
-Stats for flag i003.
-
-Domain context:
-This behavior belongs to the `flag-i-003-stats-controller` capability area and operates through `POST /api/flags/i003/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i003` (`POST /api/flags/i003/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i003`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 27: Search Releases By Flag I004
-
-Business goal:
-Search releases by flag i004.
-
-Domain context:
-This behavior belongs to the `flag-i-004-release-search-controller` capability area and operates through `GET /api/flags/i004/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i004` (`GET /api/flags/i004/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 28: Search Releases By Flag I004
-
-Business goal:
-Search releases by flag i004.
-
-Domain context:
-This behavior belongs to the `flag-i-004-release-search-controller` capability area and operates through `POST /api/flags/i004/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i004` (`POST /api/flags/i004/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i004`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 29: Stats For Flag I004
-
-Business goal:
-Stats for flag i004.
-
-Domain context:
-This behavior belongs to the `flag-i-004-stats-controller` capability area and operates through `GET /api/flags/i004/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i004` (`GET /api/flags/i004/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 30: Stats For Flag I004
-
-Business goal:
-Stats for flag i004.
-
-Domain context:
-This behavior belongs to the `flag-i-004-stats-controller` capability area and operates through `POST /api/flags/i004/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i004` (`POST /api/flags/i004/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i004`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 31: Search Releases By Flag I007
-
-Business goal:
-Search releases by flag i007.
-
-Domain context:
-This behavior belongs to the `flag-i-007-release-search-controller` capability area and operates through `GET /api/flags/i007/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i007` (`GET /api/flags/i007/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 32: Search Releases By Flag I007
-
-Business goal:
-Search releases by flag i007.
-
-Domain context:
-This behavior belongs to the `flag-i-007-release-search-controller` capability area and operates through `POST /api/flags/i007/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i007` (`POST /api/flags/i007/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i007`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 33: Stats For Flag I007
-
-Business goal:
-Stats for flag i007.
-
-Domain context:
-This behavior belongs to the `flag-i-007-stats-controller` capability area and operates through `GET /api/flags/i007/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i007` (`GET /api/flags/i007/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 34: Stats For Flag I007
-
-Business goal:
-Stats for flag i007.
-
-Domain context:
-This behavior belongs to the `flag-i-007-stats-controller` capability area and operates through `POST /api/flags/i007/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i007` (`POST /api/flags/i007/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i007`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 35: Search Releases By Flag I019
-
-Business goal:
-Search releases by flag i019.
-
-Domain context:
-This behavior belongs to the `flag-i-019-release-search-controller` capability area and operates through `GET /api/flags/i019/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i019` (`GET /api/flags/i019/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 36: Search Releases By Flag I019
-
-Business goal:
-Search releases by flag i019.
-
-Domain context:
-This behavior belongs to the `flag-i-019-release-search-controller` capability area and operates through `POST /api/flags/i019/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i019` (`POST /api/flags/i019/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i019`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 37: Stats For Flag I019
-
-Business goal:
-Stats for flag i019.
-
-Domain context:
-This behavior belongs to the `flag-i-019-stats-controller` capability area and operates through `GET /api/flags/i019/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i019` (`GET /api/flags/i019/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 38: Stats For Flag I019
-
-Business goal:
-Stats for flag i019.
-
-Domain context:
-This behavior belongs to the `flag-i-019-stats-controller` capability area and operates through `POST /api/flags/i019/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i019` (`POST /api/flags/i019/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i019`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 39: Search Releases By Flag I038
-
-Business goal:
-Search releases by flag i038.
-
-Domain context:
-This behavior belongs to the `flag-i-038-release-search-controller` capability area and operates through `GET /api/flags/i038/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i038` (`GET /api/flags/i038/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 40: Search Releases By Flag I038
-
-Business goal:
-Search releases by flag i038.
-
-Domain context:
-This behavior belongs to the `flag-i-038-release-search-controller` capability area and operates through `POST /api/flags/i038/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i038` (`POST /api/flags/i038/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i038`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 41: Stats For Flag I038
-
-Business goal:
-Stats for flag i038.
-
-Domain context:
-This behavior belongs to the `flag-i-038-stats-controller` capability area and operates through `GET /api/flags/i038/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i038` (`GET /api/flags/i038/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 42: Stats For Flag I038
-
-Business goal:
-Stats for flag i038.
-
-Domain context:
-This behavior belongs to the `flag-i-038-stats-controller` capability area and operates through `POST /api/flags/i038/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i038` (`POST /api/flags/i038/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i038`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 43: Search Releases By Flag I077
-
-Business goal:
-Search releases by flag i077.
-
-Domain context:
-This behavior belongs to the `flag-i-077-release-search-controller` capability area and operates through `GET /api/flags/i077/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i077` (`GET /api/flags/i077/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 44: Search Releases By Flag I077
-
-Business goal:
-Search releases by flag i077.
-
-Domain context:
-This behavior belongs to the `flag-i-077-release-search-controller` capability area and operates through `POST /api/flags/i077/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i077` (`POST /api/flags/i077/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i077`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 45: Stats For Flag I077
-
-Business goal:
-Stats for flag i077.
-
-Domain context:
-This behavior belongs to the `flag-i-077-stats-controller` capability area and operates through `GET /api/flags/i077/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i077` (`GET /api/flags/i077/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 46: Stats For Flag I077
-
-Business goal:
-Stats for flag i077.
-
-Domain context:
-This behavior belongs to the `flag-i-077-stats-controller` capability area and operates through `POST /api/flags/i077/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i077` (`POST /api/flags/i077/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i077`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 47: Search Releases By Flag I180
-
-Business goal:
-Search releases by flag i180.
-
-Domain context:
-This behavior belongs to the `flag-i-180-release-search-controller` capability area and operates through `GET /api/flags/i180/releases`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `search releases by flag i180` (`GET /api/flags/i180/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 48: Search Releases By Flag I180
-
-Business goal:
-Search releases by flag i180.
-
-Domain context:
-This behavior belongs to the `flag-i-180-release-search-controller` capability area and operates through `POST /api/flags/i180/releases`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `search releases by flag i180` (`POST /api/flags/i180/releases`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search releases by flag i180`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 49: Stats For Flag I180
-
-Business goal:
-Stats for flag i180.
-
-Domain context:
-This behavior belongs to the `flag-i-180-stats-controller` capability area and operates through `GET /api/flags/i180/stats`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `stats for flag i180` (`GET /api/flags/i180/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 50: Stats For Flag I180
-
-Business goal:
-Stats for flag i180.
-
-Domain context:
-This behavior belongs to the `flag-i-180-stats-controller` capability area and operates through `POST /api/flags/i180/stats`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `stats for flag i180` (`POST /api/flags/i180/stats`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `stats for flag i180`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 51: Returns The Frequent Suppliers Of A Procuring Entity Split By A Time Interval The Time Interval Is A Parameter And Represents The Number Of Days To Take As Interval Starting With Today And Going Back Till The Last Award Date The Awards Are Grouped By Procuring Entity Supplier And The Time Interval Max Awards Parameter Is Used To Designate What Is The Maximum Number Of Awards Granted To One Supplier By The Same Procuring Entity Inside One Time Interval The Default Value For Max Awards Is 3 Days And The Default Value For Interval Days Is 365
-
-Business goal:
-Returns the frequent suppliers of a procuringEntity split by a time interval. .
-
-Domain context:
-This behavior belongs to the `frequent-suppliers-time-interval-controller` capability area and operates through `GET /api/frequentSuppliersTimeInterval`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365` (`GET /api/frequentSuppliersTimeInterval`) with query: intervalDays optional, maxAwards optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `intervalDays`, `maxAwards` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 52: Returns The Frequent Suppliers Of A Procuring Entity Split By A Time Interval The Time Interval Is A Parameter And Represents The Number Of Days To Take As Interval Starting With Today And Going Back Till The Last Award Date The Awards Are Grouped By Procuring Entity Supplier And The Time Interval Max Awards Parameter Is Used To Designate What Is The Maximum Number Of Awards Granted To One Supplier By The Same Procuring Entity Inside One Time Interval The Default Value For Max Awards Is 3 Days And The Default Value For Interval Days Is 365
-
-Business goal:
-Returns the frequent suppliers of a procuringEntity split by a time interval. .
-
-Domain context:
-This behavior belongs to the `frequent-suppliers-time-interval-controller` capability area and operates through `POST /api/frequentSuppliersTimeInterval`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365` (`POST /api/frequentSuppliersTimeInterval`) with query: intervalDays optional, maxAwards optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `intervalDays`, `maxAwards` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the frequent suppliers of a procuring entity split by a time interval the time interval is a parameter and represents the number of days to take as interval starting with today and going back till the last award date the awards are grouped by procuring entity supplier and the time interval max awards parameter is used to designate what is the maximum number of awards granted to one supplier by the same procuring entity inside one time interval the default value for max awards is 3 days and the default value for interval days is 365`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 53: Detect Frequent Pairs Of Tenderers That Apply Together To Bids We Are Only Showing Pairs If They Applied To More Than One Bid Together We Are Sorting The Results After The Number Of Occurences Descending You Can Use All The Filters That Are Available Along With Pagination Options
-
-Business goal:
-Detect frequent pairs of tenderers that apply together to bids.We are only showing pairs if they applied to more than one bid together.We are sorting the results after the number of occurences, descending.You can use all the filters that ar.
-
-Domain context:
-This behavior belongs to the `frequent-tenderers-controller` capability area and operates through `GET /api/frequentTenderers`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options` (`GET /api/frequentTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 54: Detect Frequent Pairs Of Tenderers That Apply Together To Bids We Are Only Showing Pairs If They Applied To More Than One Bid Together We Are Sorting The Results After The Number Of Occurences Descending You Can Use All The Filters That Are Available Along With Pagination Options
-
-Business goal:
-Detect frequent pairs of tenderers that apply together to bids.We are only showing pairs if they applied to more than one bid together.We are sorting the results after the number of occurences, descending.You can use all the filters that ar.
-
-Domain context:
-This behavior belongs to the `frequent-tenderers-controller` capability area and operates through `POST /api/frequentTenderers`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options` (`POST /api/frequentTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `detect frequent pairs of tenderers that apply together to bids we are only showing pairs if they applied to more than one bid together we are sorting the results after the number of occurences descending you can use all the filters that are available along with pagination options`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 55: Total Estimated Funding Tender Value Grouped By Tender Items Delivery Location And Also Grouped By Year The Endpoint Also Returns The Count Of Tenders For Each Location It Responds To All Filters The Year Is Calculated Based On Tender Tender Period Start Date
-
-Business goal:
-Total estimated funding (tender.value) grouped by tender.items.deliveryLocation and also grouped by year. .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `GET /api/fundingByTenderDeliveryLocation`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date` (`GET /api/fundingByTenderDeliveryLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 56: Total Estimated Funding Tender Value Grouped By Tender Items Delivery Location And Also Grouped By Year The Endpoint Also Returns The Count Of Tenders For Each Location It Responds To All Filters The Year Is Calculated Based On Tender Tender Period Start Date
-
-Business goal:
-Total estimated funding (tender.value) grouped by tender.items.deliveryLocation and also grouped by year. .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `POST /api/fundingByTenderDeliveryLocation`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date` (`POST /api/fundingByTenderDeliveryLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total estimated funding tender value grouped by tender items delivery location and also grouped by year the endpoint also returns the count of tenders for each location it responds to all filters the year is calculated based on tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 57: Exports Average Number Of Bids Dashboard In Excel Format
-
-Business goal:
-Exports *Average number of bids* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `average-number-of-tenderers-excel-controller` capability area and operates through `GET /api/ocds/averageNumberBidsExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports average number of bids dashboard in excel format` (`GET /api/ocds/averageNumberBidsExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 58: Exports Average Number Of Bids Dashboard In Excel Format
-
-Business goal:
-Exports *Average number of bids* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `average-number-of-tenderers-excel-controller` capability area and operates through `POST /api/ocds/averageNumberBidsExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports average number of bids dashboard in excel format` (`POST /api/ocds/averageNumberBidsExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports average number of bids dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 59: Exports Bid Selection Dashboard In Excel Format
-
-Business goal:
-Exports *Bid selection* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-price-excel-controller` capability area and operates through `GET /api/ocds/bidSelectionExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports bid selection dashboard in excel format` (`GET /api/ocds/bidSelectionExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 60: Exports Bid Selection Dashboard In Excel Format
-
-Business goal:
-Exports *Bid selection* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-price-excel-controller` capability area and operates through `POST /api/ocds/bidSelectionExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports bid selection dashboard in excel format` (`POST /api/ocds/bidSelectionExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid selection dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 61: Display The Available Bid Selection Methods These Are Taken From Tender Procurement Method Details
-
-Business goal:
-Display the available bid selection methods. .
-
-Domain context:
-This behavior belongs to the `bid-selection-method-search-controller` capability area and operates through `GET /api/ocds/bidSelectionMethod/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `display the available bid selection methods these are taken from tender procurement method details` (`GET /api/ocds/bidSelectionMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 62: Display The Available Bid Selection Methods These Are Taken From Tender Procurement Method Details
-
-Business goal:
-Display the available bid selection methods. .
-
-Domain context:
-This behavior belongs to the `bid-selection-method-search-controller` capability area and operates through `POST /api/ocds/bidSelectionMethod/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `display the available bid selection methods these are taken from tender procurement method details` (`POST /api/ocds/bidSelectionMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid selection methods these are taken from tender procurement method details`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 63: Exports Bid Timeline Dashboard In Excel Format
-
-Business goal:
-Exports *Bid Timeline* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `average-tender-and-awards-excel-controller` capability area and operates through `GET /api/ocds/bidTimelineExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports bid timeline dashboard in excel format` (`GET /api/ocds/bidTimelineExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 64: Exports Bid Timeline Dashboard In Excel Format
-
-Business goal:
-Exports *Bid Timeline* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `average-tender-and-awards-excel-controller` capability area and operates through `POST /api/ocds/bidTimelineExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports bid timeline dashboard in excel format` (`POST /api/ocds/bidTimelineExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports bid timeline dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 65: Display The Available Bid Types These Are The Classification Entities In Ocds
-
-Business goal:
-Display the available bid types. .
-
-Domain context:
-This behavior belongs to the `bid-types-search-controller` capability area and operates through `GET /api/ocds/bidType/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `display the available bid types these are the classification entities in ocds` (`GET /api/ocds/bidType/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 66: Display The Available Bid Types These Are The Classification Entities In Ocds
-
-Business goal:
-Display the available bid types. .
-
-Domain context:
-This behavior belongs to the `bid-types-search-controller` capability area and operates through `POST /api/ocds/bidType/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `display the available bid types these are the classification entities in ocds` (`POST /api/ocds/bidType/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available bid types these are the classification entities in ocds`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 67: Exports Cancelled Funding Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-excel-controller` capability area and operates through `GET /api/ocds/cancelledFundingExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports cancelled funding dashboard in excel format` (`GET /api/ocds/cancelledFundingExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 68: Exports Cancelled Funding Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-excel-controller` capability area and operates through `POST /api/ocds/cancelledFundingExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports cancelled funding dashboard in excel format` (`POST /api/ocds/cancelledFundingExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 69: Exports Cancelled Funding Percentage Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding (percentage)* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/cancelledFundingPercentageExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports cancelled funding percentage dashboard in excel format` (`GET /api/ocds/cancelledFundingPercentageExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 70: Exports Cancelled Funding Percentage Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding (percentage)* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/cancelledFundingPercentageExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports cancelled funding percentage dashboard in excel format` (`POST /api/ocds/cancelledFundingPercentageExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding percentage dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 71: Exports Cancelled Funding By Reason Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding by reason* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-excel-controller` capability area and operates through `GET /api/ocds/cancelledTendersByYearByRationaleExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports cancelled funding by reason dashboard in excel format` (`GET /api/ocds/cancelledTendersByYearByRationaleExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 72: Exports Cancelled Funding By Reason Dashboard In Excel Format
-
-Business goal:
-Exports *Cancelled funding by reason* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-excel-controller` capability area and operates through `POST /api/ocds/cancelledTendersByYearByRationaleExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports cancelled funding by reason dashboard in excel format` (`POST /api/ocds/cancelledTendersByYearByRationaleExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cancelled funding by reason dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 73: Org Cities
-
-Business goal:
-orgCities.
-
-Domain context:
-This behavior belongs to the `city-search-controller` capability area and operates through `GET /api/ocds/city/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `org cities` (`GET /api/ocds/city/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org cities`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org cities`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org cities`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 74: Org Cities
-
-Business goal:
-orgCities.
-
-Domain context:
-This behavior belongs to the `city-search-controller` capability area and operates through `POST /api/ocds/city/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `org cities` (`POST /api/ocds/city/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org cities`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org cities`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org cities`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 75: Cities Search
-
-Business goal:
-citiesSearch.
-
-Domain context:
-This behavior belongs to the `city-search-controller` capability area and operates through `GET /api/ocds/city/search`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `cities search` (`GET /api/ocds/city/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `cities search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cities search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cities search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 76: Cities Search
-
-Business goal:
-citiesSearch.
-
-Domain context:
-This behavior belongs to the `city-search-controller` capability area and operates through `POST /api/ocds/city/search`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `cities search` (`POST /api/ocds/city/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `cities search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cities search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `cities search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 77: Contr Methods
-
-Business goal:
-contrMethods.
-
-Domain context:
-This behavior belongs to the `contr-method-search-controller` capability area and operates through `GET /api/ocds/contrMethod/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `contr methods` (`GET /api/ocds/contrMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `contr methods`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `contr methods`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `contr methods`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 78: Contr Methods
-
-Business goal:
-contrMethods.
-
-Domain context:
-This behavior belongs to the `contr-method-search-controller` capability area and operates through `POST /api/ocds/contrMethod/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `contr methods` (`POST /api/ocds/contrMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `contr methods`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `contr methods`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `contr methods`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 79: Exports Cost Effectiveness Dashboard In Excel Format
-
-Business goal:
-Exports *Cost effectiveness* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-excel-controller` capability area and operates through `GET /api/ocds/costEffectivenessExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports cost effectiveness dashboard in excel format` (`GET /api/ocds/costEffectivenessExcelChart`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 80: Exports Cost Effectiveness Dashboard In Excel Format
-
-Business goal:
-Exports *Cost effectiveness* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `cost-effectiveness-excel-controller` capability area and operates through `POST /api/ocds/costEffectivenessExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports cost effectiveness dashboard in excel format` (`POST /api/ocds/costEffectivenessExcelChart`) with query: groupByCategory optional, year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `groupByCategory`, `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports cost effectiveness dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 81: Export Releases In Excel Format
-
-Business goal:
-Export releases in Excel format.
-
-Domain context:
-This behavior belongs to the `excel-export-controller` capability area and operates through `GET /api/ocds/excelExport`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `export releases in excel format` (`GET /api/ocds/excelExport`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 82: Export Releases In Excel Format
-
-Business goal:
-Export releases in Excel format.
-
-Domain context:
-This behavior belongs to the `excel-export-controller` capability area and operates through `POST /api/ocds/excelExport`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `export releases in excel format` (`POST /api/ocds/excelExport`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `export releases in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 83: Locations All
-
-Business goal:
-locationsAll.
-
-Domain context:
-This behavior belongs to the `location-search-controller` capability area and operates through `GET /api/ocds/location/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `locations all` (`GET /api/ocds/location/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `locations all`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations all`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations all`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 84: Locations All
-
-Business goal:
-locationsAll.
-
-Domain context:
-This behavior belongs to the `location-search-controller` capability area and operates through `POST /api/ocds/location/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `locations all` (`POST /api/ocds/location/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `locations all`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations all`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations all`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 85: Locations Search
-
-Business goal:
-locationsSearch.
-
-Domain context:
-This behavior belongs to the `location-search-controller` capability area and operates through `GET /api/ocds/location/search`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `locations search` (`GET /api/ocds/location/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `locations search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 86: Locations Search
-
-Business goal:
-locationsSearch.
-
-Domain context:
-This behavior belongs to the `location-search-controller` capability area and operates through `POST /api/ocds/location/search`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `locations search` (`POST /api/ocds/location/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `locations search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `locations search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 87: Exports Number Of Cancelled Bids Dashboard In Excel Format
-
-Business goal:
-Exports *Number of cancelled bids* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/numberCancelledFundingExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports number of cancelled bids dashboard in excel format` (`GET /api/ocds/numberCancelledFundingExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 88: Exports Number Of Cancelled Bids Dashboard In Excel Format
-
-Business goal:
-Exports *Number of cancelled bids* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/numberCancelledFundingExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports number of cancelled bids dashboard in excel format` (`POST /api/ocds/numberCancelledFundingExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of cancelled bids dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 89: Exports Number Of E Bid Awards Dashboard In Excel Format
-
-Business goal:
-Exports *Number of eBid Awards* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/numberTendersUsingEBidExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports number of e bid awards dashboard in excel format` (`GET /api/ocds/numberTendersUsingEBidExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 90: Exports Number Of E Bid Awards Dashboard In Excel Format
-
-Business goal:
-Exports *Number of eBid Awards* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/numberTendersUsingEBidExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports number of e bid awards dashboard in excel format` (`POST /api/ocds/numberTendersUsingEBidExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of e bid awards dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 91: Org Departments
-
-Business goal:
-orgDepartments.
-
-Domain context:
-This behavior belongs to the `org-department-search-controller` capability area and operates through `GET /api/ocds/orgDepartment/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `org departments` (`GET /api/ocds/orgDepartment/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org departments`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org departments`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org departments`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 92: Org Departments
-
-Business goal:
-orgDepartments.
-
-Domain context:
-This behavior belongs to the `org-department-search-controller` capability area and operates through `POST /api/ocds/orgDepartment/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `org departments` (`POST /api/ocds/orgDepartment/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org departments`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org departments`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org departments`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 93: Department Search
-
-Business goal:
-departmentSearch.
-
-Domain context:
-This behavior belongs to the `org-department-search-controller` capability area and operates through `GET /api/ocds/orgDepartment/search`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `department search` (`GET /api/ocds/orgDepartment/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `department search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `department search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `department search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 94: Department Search
-
-Business goal:
-departmentSearch.
-
-Domain context:
-This behavior belongs to the `org-department-search-controller` capability area and operates through `POST /api/ocds/orgDepartment/search`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `department search` (`POST /api/ocds/orgDepartment/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `department search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `department search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `department search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 95: Org Groups
-
-Business goal:
-orgGroups.
-
-Domain context:
-This behavior belongs to the `org-group-search-controller` capability area and operates through `GET /api/ocds/orgGroup/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `org groups` (`GET /api/ocds/orgGroup/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org groups`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org groups`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org groups`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 96: Org Groups
-
-Business goal:
-orgGroups.
-
-Domain context:
-This behavior belongs to the `org-group-search-controller` capability area and operates through `POST /api/ocds/orgGroup/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `org groups` (`POST /api/ocds/orgGroup/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `org groups`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org groups`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `org groups`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 97: Groups Search
-
-Business goal:
-groupsSearch.
-
-Domain context:
-This behavior belongs to the `org-group-search-controller` capability area and operates through `GET /api/ocds/orgGroup/search`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `groups search` (`GET /api/ocds/orgGroup/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `groups search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `groups search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `groups search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 98: Groups Search
-
-Business goal:
-groupsSearch.
-
-Domain context:
-This behavior belongs to the `org-group-search-controller` capability area and operates through `POST /api/ocds/orgGroup/search`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `groups search` (`POST /api/ocds/orgGroup/search`) with query: text optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `text`, `pageNumber`, `pageSize` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `groups search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `groups search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `groups search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 99: Lists All Organizations In The Database Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all organizations in the database. .
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `GET /api/ocds/organization/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `lists all organizations in the database allows full text search using the text parameter` (`GET /api/ocds/organization/all`) with body: request optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 100: Lists All Organizations In The Database Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all organizations in the database. .
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `POST /api/ocds/organization/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `lists all organizations in the database allows full text search using the text parameter` (`POST /api/ocds/organization/all`) with body: request optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all organizations in the database allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 101: Lists All Buyers In The Database Suppliers Are Organizations That Have The Label Buyer Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all buyers in the database. .
-
-Domain context:
-This behavior belongs to the `buyer-search-controller` capability area and operates through `GET /api/ocds/organization/buyer/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter` (`GET /api/ocds/organization/buyer/all`) with body: request optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 102: Lists All Buyers In The Database Suppliers Are Organizations That Have The Label Buyer Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all buyers in the database. .
-
-Domain context:
-This behavior belongs to the `buyer-search-controller` capability area and operates through `POST /api/ocds/organization/buyer/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter` (`POST /api/ocds/organization/buyer/all`) with body: request optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all buyers in the database suppliers are organizations that have the label buyer assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 103: Finds Buyer Entity By The Given Id
-
-Business goal:
-Finds buyer entity by the given id.
-
-Domain context:
-This behavior belongs to the `buyer-search-controller` capability area and operates through `GET /api/ocds/organization/buyer/id/{id}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `finds buyer entity by the given id` (`GET /api/ocds/organization/buyer/id/{id}`) with path: id required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 104: Finds Buyer Entity By The Given Id
-
-Business goal:
-Finds buyer entity by the given id.
-
-Domain context:
-This behavior belongs to the `buyer-search-controller` capability area and operates through `POST /api/ocds/organization/buyer/id/{id}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `finds buyer entity by the given id` (`POST /api/ocds/organization/buyer/id/{id}`) with path: id required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds buyer entity by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 105: Finds Organization Entity By The Given Id
-
-Business goal:
-Finds organization entity by the given id.
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `GET /api/ocds/organization/id/{id}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `finds organization entity by the given id` (`GET /api/ocds/organization/id/{id}`) with path: id required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 106: Finds Organization Entity By The Given Id
-
-Business goal:
-Finds organization entity by the given id.
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `POST /api/ocds/organization/id/{id}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `finds organization entity by the given id` (`POST /api/ocds/organization/id/{id}`) with path: id required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entity by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 107: Finds Organization Entities By The Given List Of Ids Comma Separated
-
-Business goal:
-Finds organization entities by the given list of ids, comma separated.
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `GET /api/ocds/organization/ids`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `finds organization entities by the given list of ids comma separated` (`GET /api/ocds/organization/ids`) with query: id optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `id` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 108: Finds Organization Entities By The Given List Of Ids Comma Separated
-
-Business goal:
-Finds organization entities by the given list of ids, comma separated.
-
-Domain context:
-This behavior belongs to the `organization-search-controller` capability area and operates through `POST /api/ocds/organization/ids`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `finds organization entities by the given list of ids comma separated` (`POST /api/ocds/organization/ids`) with query: id optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `id` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds organization entities by the given list of ids comma separated`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 109: Lists All Procuring Entities In The Database Procuring Entities Are Organizations That Have The Label Procuring Entity Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all procuring entities in the database. .
-
-Domain context:
-This behavior belongs to the `procuring-entity-search-controller` capability area and operates through `GET /api/ocds/organization/procuringEntity/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter` (`GET /api/ocds/organization/procuringEntity/all`) with body: request optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 110: Lists All Procuring Entities In The Database Procuring Entities Are Organizations That Have The Label Procuring Entity Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all procuring entities in the database. .
-
-Domain context:
-This behavior belongs to the `procuring-entity-search-controller` capability area and operates through `POST /api/ocds/organization/procuringEntity/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter` (`POST /api/ocds/organization/procuringEntity/all`) with body: request optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all procuring entities in the database procuring entities are organizations that have the label procuring entity assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 111: Finds Procuring Entities By The Given Id
-
-Business goal:
-Finds procuringEntities by the given id.
-
-Domain context:
-This behavior belongs to the `procuring-entity-search-controller` capability area and operates through `GET /api/ocds/organization/procuringEntity/id/{id}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `finds procuring entities by the given id` (`GET /api/ocds/organization/procuringEntity/id/{id}`) with path: id required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 112: Finds Procuring Entities By The Given Id
-
-Business goal:
-Finds procuringEntities by the given id.
-
-Domain context:
-This behavior belongs to the `procuring-entity-search-controller` capability area and operates through `POST /api/ocds/organization/procuringEntity/id/{id}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `finds procuring entities by the given id` (`POST /api/ocds/organization/procuringEntity/id/{id}`) with path: id required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds procuring entities by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 113: Lists All Suppliers In The Database Suppliers Are Organizations That Have The Label Supplier Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all suppliers in the database. .
-
-Domain context:
-This behavior belongs to the `supplier-search-controller` capability area and operates through `GET /api/ocds/organization/supplier/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter` (`GET /api/ocds/organization/supplier/all`) with body: request optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 114: Lists All Suppliers In The Database Suppliers Are Organizations That Have The Label Supplier Assigned To Organization Types Array Allows Full Text Search Using The Text Parameter
-
-Business goal:
-Lists all suppliers in the database. .
-
-Domain context:
-This behavior belongs to the `supplier-search-controller` capability area and operates through `POST /api/ocds/organization/supplier/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter` (`POST /api/ocds/organization/supplier/all`) with body: request optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `lists all suppliers in the database suppliers are organizations that have the label supplier assigned to organization types array allows full text search using the text parameter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 115: Finds Supplier By The Given Id
-
-Business goal:
-Finds supplier by the given id.
-
-Domain context:
-This behavior belongs to the `supplier-search-controller` capability area and operates through `GET /api/ocds/organization/supplier/id/{id}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `finds supplier by the given id` (`GET /api/ocds/organization/supplier/id/{id}`) with path: id required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 116: Finds Supplier By The Given Id
-
-Business goal:
-Finds supplier by the given id.
-
-Domain context:
-This behavior belongs to the `supplier-search-controller` capability area and operates through `POST /api/ocds/organization/supplier/id/{id}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `finds supplier by the given id` (`POST /api/ocds/organization/supplier/id/{id}`) with path: id required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `id` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `id`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `finds supplier by the given id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 117: Returns All Available Packages Filtered By The Given Criteria This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns all available packages, filtered by the given criteria.This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/package/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself` (`GET /api/ocds/package/all`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 118: Returns All Available Packages Filtered By The Given Criteria This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns all available packages, filtered by the given criteria.This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/package/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself` (`POST /api/ocds/package/all`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns all available packages filtered by the given criteria this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 119: Returns A Release Package For The Given Project Id The Project Id Is Read From Planning Budget Project Id This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given project id. .
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/package/budgetProjectId/{projectId}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself` (`GET /api/ocds/package/budgetProjectId/{projectId}`) with path: projectId required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `projectId` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `projectId`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 120: Returns A Release Package For The Given Project Id The Project Id Is Read From Planning Budget Project Id This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given project id. .
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/package/budgetProjectId/{projectId}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself` (`POST /api/ocds/package/budgetProjectId/{projectId}`) with path: projectId required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `projectId` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `projectId`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given project id the project id is read from planning budget project id this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 121: Returns A Release Package For The Given Open Contracting Id Ocid This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/package/ocid/{ocid}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` (`GET /api/ocds/package/ocid/{ocid}`) with path: ocid required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `ocid` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `ocid`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 122: Returns A Release Package For The Given Open Contracting Id Ocid This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/package/ocid/{ocid}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` (`POST /api/ocds/package/ocid/{ocid}`) with path: ocid required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `ocid` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `ocid`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 123: Returns A Release Package For The Given Open Contracting Id Ocid This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/package/planningBidNo/{bidNo}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` (`GET /api/ocds/package/planningBidNo/{bidNo}`) with path: bidNo required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `bidNo` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `bidNo`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 124: Returns A Release Package For The Given Open Contracting Id Ocid This Will Contain The Ocds Package Information Metadata About Publisher Plus The Release Itself
-
-Business goal:
-Returns a release package for the given open contracting id (OCID).This will contain the OCDS package information (metadata about publisher) plus the release itself.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/package/planningBidNo/{bidNo}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself` (`POST /api/ocds/package/planningBidNo/{bidNo}`) with path: bidNo required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `bidNo` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `bidNo`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release package for the given open contracting id ocid this will contain the ocds package information metadata about publisher plus the release itself`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 125: Exports Percent Of Tenders Using E Bid Dashboard In Excel Format
-
-Business goal:
-Exports *Percent of Tenders Using e-Bid* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/percentTendersUsingEBidExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports percent of tenders using e bid dashboard in excel format` (`GET /api/ocds/percentTendersUsingEBidExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 126: Exports Percent Of Tenders Using E Bid Dashboard In Excel Format
-
-Business goal:
-Exports *Percent of Tenders Using e-Bid* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/percentTendersUsingEBidExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports percent of tenders using e bid dashboard in excel format` (`POST /api/ocds/percentTendersUsingEBidExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e bid dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 127: Exports Percent Of Tenders Using E Procurement Dashboard In Excel Format
-
-Business goal:
-Exports *Percent of Tenders Using e-Procurement* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/percentTendersUsingEgpExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports percent of tenders using e procurement dashboard in excel format` (`GET /api/ocds/percentTendersUsingEgpExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 128: Exports Percent Of Tenders Using E Procurement Dashboard In Excel Format
-
-Business goal:
-Exports *Percent of Tenders Using e-Procurement* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/percentTendersUsingEgpExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports percent of tenders using e procurement dashboard in excel format` (`POST /api/ocds/percentTendersUsingEgpExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percent of tenders using e procurement dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 129: Exports Procurement Activity By Year Dashboard In Excel Format
-
-Business goal:
-Exports *Procurement activity by year* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `procurement-activity-by-year-controller` capability area and operates through `GET /api/ocds/procurementActivityExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports procurement activity by year dashboard in excel format` (`GET /api/ocds/procurementActivityExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 130: Exports Procurement Activity By Year Dashboard In Excel Format
-
-Business goal:
-Exports *Procurement activity by year* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `procurement-activity-by-year-controller` capability area and operates through `POST /api/ocds/procurementActivityExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports procurement activity by year dashboard in excel format` (`POST /api/ocds/procurementActivityExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement activity by year dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 131: Display The Available Procurement Methods These Are Taken From Tender Procurement Method
-
-Business goal:
-Display the available procurement methods. .
-
-Domain context:
-This behavior belongs to the `procurement-method-search-controller` capability area and operates through `GET /api/ocds/procurementMethod/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `display the available procurement methods these are taken from tender procurement method` (`GET /api/ocds/procurementMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 132: Display The Available Procurement Methods These Are Taken From Tender Procurement Method
-
-Business goal:
-Display the available procurement methods. .
-
-Domain context:
-This behavior belongs to the `procurement-method-search-controller` capability area and operates through `POST /api/ocds/procurementMethod/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `display the available procurement methods these are taken from tender procurement method` (`POST /api/ocds/procurementMethod/all`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `display the available procurement methods these are taken from tender procurement method`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 133: Exports Procurement Method Dashboard In Excel Format
-
-Business goal:
-Exports *Procurement method* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-price-excel-controller` capability area and operates through `GET /api/ocds/procurementMethodExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports procurement method dashboard in excel format` (`GET /api/ocds/procurementMethodExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 134: Exports Procurement Method Dashboard In Excel Format
-
-Business goal:
-Exports *Procurement method* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-price-excel-controller` capability area and operates through `POST /api/ocds/procurementMethodExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports procurement method dashboard in excel format` (`POST /api/ocds/procurementMethodExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports procurement method dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 135: Resturns All Available Releases Filtered By The Given Criteria
-
-Business goal:
-Resturns all available releases, filtered by the given criteria.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/release/all`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `resturns all available releases filtered by the given criteria` (`GET /api/ocds/release/all`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 136: Resturns All Available Releases Filtered By The Given Criteria
-
-Business goal:
-Resturns all available releases, filtered by the given criteria.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/release/all`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `resturns all available releases filtered by the given criteria` (`POST /api/ocds/release/all`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `resturns all available releases filtered by the given criteria`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 137: Returns A Release Entity For The Given Project Id The Project Id Is Read From Planning Budget Project Id
-
-Business goal:
-Returns a release entity for the given project id. .
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/release/budgetProjectId/{projectId}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given project id the project id is read from planning budget project id` (`GET /api/ocds/release/budgetProjectId/{projectId}`) with path: projectId required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `projectId` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `projectId`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 138: Returns A Release Entity For The Given Project Id The Project Id Is Read From Planning Budget Project Id
-
-Business goal:
-Returns a release entity for the given project id. .
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/release/budgetProjectId/{projectId}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given project id the project id is read from planning budget project id` (`POST /api/ocds/release/budgetProjectId/{projectId}`) with path: projectId required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `projectId` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `projectId`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given project id the project id is read from planning budget project id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 139: Returns A Release Entity For The Given Open Contracting Id Ocid
-
-Business goal:
-Returns a release entity for the given open contracting id (OCID).
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/release/ocid/{ocid}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given open contracting id ocid` (`GET /api/ocds/release/ocid/{ocid}`) with path: ocid required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `ocid` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `ocid`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 140: Returns A Release Entity For The Given Open Contracting Id Ocid
-
-Business goal:
-Returns a release entity for the given open contracting id (OCID).
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/release/ocid/{ocid}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given open contracting id ocid` (`POST /api/ocds/release/ocid/{ocid}`) with path: ocid required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `ocid` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `ocid`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given open contracting id ocid`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 141: Returns A Release Entity For The Given Planning Bid Number The Planning Bid Number Is Taken From Planning Bid No
-
-Business goal:
-Returns a release entity for the given Planning Bid Number.The planning bid number is taken from planning.bidNo.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `GET /api/ocds/release/planningBidNo/{bidNo}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no` (`GET /api/ocds/release/planningBidNo/{bidNo}`) with path: bidNo required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `bidNo` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `bidNo`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 142: Returns A Release Entity For The Given Planning Bid Number The Planning Bid Number Is Taken From Planning Bid No
-
-Business goal:
-Returns a release entity for the given Planning Bid Number.The planning bid number is taken from planning.bidNo.
-
-Domain context:
-This behavior belongs to the `ocds-controller` capability area and operates through `POST /api/ocds/release/planningBidNo/{bidNo}`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no` (`POST /api/ocds/release/planningBidNo/{bidNo}`) with path: bidNo required.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Path values `bidNo` identify the business resource scope for the operation.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `bidNo`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns a release entity for the given planning bid number the planning bid number is taken from planning bid no`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 143: Exports Number Of Bids By Item Dashboard In Excel Format
-
-Business goal:
-Exports *Number of bids by item* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tenders-by-item-excel-controller` capability area and operates through `GET /api/ocds/tendersByItemExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports number of bids by item dashboard in excel format` (`GET /api/ocds/tendersByItemExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 144: Exports Number Of Bids By Item Dashboard In Excel Format
-
-Business goal:
-Exports *Number of bids by item* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tenders-by-item-excel-controller` capability area and operates through `POST /api/ocds/tendersByItemExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports number of bids by item dashboard in excel format` (`POST /api/ocds/tendersByItemExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports number of bids by item dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 145: Exports Percentage Of Plans With Tender Dashboard In Excel Format
-
-Business goal:
-Exports *Percentage of plans with tender* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `GET /api/ocds/tendersWithLinkedProcurementPlanExcelChart`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `exports percentage of plans with tender dashboard in excel format` (`GET /api/ocds/tendersWithLinkedProcurementPlanExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 146: Exports Percentage Of Plans With Tender Dashboard In Excel Format
-
-Business goal:
-Exports *Percentage of plans with tender* dashboard in Excel format.
-
-Domain context:
-This behavior belongs to the `tender-percentages-excel-controller` capability area and operates through `POST /api/ocds/tendersWithLinkedProcurementPlanExcelChart`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `exports percentage of plans with tender dashboard in excel format` (`POST /api/ocds/tendersWithLinkedProcurementPlanExcelChart`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `exports percentage of plans with tender dashboard in excel format`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 147: Percent Of Awarded Tenders With 1 Tenderer Bidder Count Of Tenders With Number Of Tenderers 1 Divided By Total Count Of Tenders With Number Of Tenderers 0 This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percent of awarded tenders with >1 tenderer/bidderCount of tenders with numberOfTenderers >1 divided by total count of tenders with numberOfTenderers >0This endpoint uses tender.tenderPeriod.startDate to calculate the tender year.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersAwardedWithTwoOrMoreTenderers`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year` (`GET /api/percentTendersAwardedWithTwoOrMoreTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 148: Percent Of Awarded Tenders With 1 Tenderer Bidder Count Of Tenders With Number Of Tenderers 1 Divided By Total Count Of Tenders With Number Of Tenderers 0 This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percent of awarded tenders with >1 tenderer/bidderCount of tenders with numberOfTenderers >1 divided by total count of tenders with numberOfTenderers >0This endpoint uses tender.tenderPeriod.startDate to calculate the tender year.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersAwardedWithTwoOrMoreTenderers`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year` (`POST /api/percentTendersAwardedWithTwoOrMoreTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percent of awarded tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders with number of tenderers 0 this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 149: Returns The Percent Of Tenders That Were Cancelled Grouped By Year The Year Is Taken From Tender Tender Period Start Date The Response Also Contains The Total Number Of Tenders And Total Number Of Cancelled Tenders For Each Year
-
-Business goal:
-Returns the percent of tenders that were cancelled, grouped by year. .
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersCancelled`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year` (`GET /api/percentTendersCancelled`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 150: Returns The Percent Of Tenders That Were Cancelled Grouped By Year The Year Is Taken From Tender Tender Period Start Date The Response Also Contains The Total Number Of Tenders And Total Number Of Cancelled Tenders For Each Year
-
-Business goal:
-Returns the percent of tenders that were cancelled, grouped by year. .
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersCancelled`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year` (`POST /api/percentTendersCancelled`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that were cancelled grouped by year the year is taken from tender tender period start date the response also contains the total number of tenders and total number of cancelled tenders for each year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 151: Returns The Percent Of Tenders With Active Awards With Tender Submission Method Electronic Submission The Endpoint Also Returns The Total Tenderds With Active Awards And The Count Of Tenders With Tender Submission Method Electronic Submission
-
-Business goal:
-Returns the percent of tenders with active awards, with tender.submissionMethod='electronicSubmission'.The endpoint also returns the total tenderds with active awards and the count of tenders with tender.submissionMethod='electronicSubmissi.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersUsingEBid`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission` (`GET /api/percentTendersUsingEBid`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 152: Returns The Percent Of Tenders With Active Awards With Tender Submission Method Electronic Submission The Endpoint Also Returns The Total Tenderds With Active Awards And The Count Of Tenders With Tender Submission Method Electronic Submission
-
-Business goal:
-Returns the percent of tenders with active awards, with tender.submissionMethod='electronicSubmission'.The endpoint also returns the total tenderds with active awards and the count of tenders with tender.submissionMethod='electronicSubmissi.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersUsingEBid`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission` (`POST /api/percentTendersUsingEBid`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders with active awards with tender submission method electronic submission the endpoint also returns the total tenderds with active awards and the count of tenders with tender submission method electronic submission`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 153: Returns The Percent Of Tenders That Are Using E Procurement This Is Read From Tender Publication Method E Gp
-
-Business goal:
-Returns the percent of tenders that are using eProcurement. .
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersUsingEgp`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders that are using e procurement this is read from tender publication method e gp` (`GET /api/percentTendersUsingEgp`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 154: Returns The Percent Of Tenders That Are Using E Procurement This Is Read From Tender Publication Method E Gp
-
-Business goal:
-Returns the percent of tenders that are using eProcurement. .
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersUsingEgp`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the percent of tenders that are using e procurement this is read from tender publication method e gp` (`POST /api/percentTendersUsingEgp`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the percent of tenders that are using e procurement this is read from tender publication method e gp`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 155: Percentage Of Tenders That Are Associated In Releases That Have The Planning Budget Amount Non Empty Meaning There Really Is A Planning Entity Correlated With The Tender Entity This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percentage of tenders that are associated in releases that have the planning.budget.amount non empty,meaning there really is a planning entity correlated with the tender entity.This endpoint uses tender.tenderPeriod.startDate to calculate t.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersWithLinkedProcurementPlan`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year` (`GET /api/percentTendersWithLinkedProcurementPlan`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 156: Percentage Of Tenders That Are Associated In Releases That Have The Planning Budget Amount Non Empty Meaning There Really Is A Planning Entity Correlated With The Tender Entity This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percentage of tenders that are associated in releases that have the planning.budget.amount non empty,meaning there really is a planning entity correlated with the tender entity.This endpoint uses tender.tenderPeriod.startDate to calculate t.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersWithLinkedProcurementPlan`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year` (`POST /api/percentTendersWithLinkedProcurementPlan`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders that are associated in releases that have the planning budget amount non empty meaning there really is a planning entity correlated with the tender entity this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 157: Percentage Of Tenders With 1 Tenderer Bidder Count Of Tenders With Number Of Tenderers 1 Divided By Total Count Of Tenders This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percentage of tenders with >1 tenderer/bidder): Count of tenders with numberOfTenderers >1 divided by total count of tenders.This endpoint uses tender.tenderPeriod.startDate to calculate the tender year.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `GET /api/percentTendersWithTwoOrMoreTenderers`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year` (`GET /api/percentTendersWithTwoOrMoreTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 158: Percentage Of Tenders With 1 Tenderer Bidder Count Of Tenders With Number Of Tenderers 1 Divided By Total Count Of Tenders This Endpoint Uses Tender Tender Period Start Date To Calculate The Tender Year
-
-Business goal:
-Percentage of tenders with >1 tenderer/bidder): Count of tenders with numberOfTenderers >1 divided by total count of tenders.This endpoint uses tender.tenderPeriod.startDate to calculate the tender year.
-
-Domain context:
-This behavior belongs to the `tender-percentages-controller` capability area and operates through `POST /api/percentTendersWithTwoOrMoreTenderers`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year` (`POST /api/percentTendersWithTwoOrMoreTenderers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of tenders with 1 tenderer bidder count of tenders with number of tenderers 1 divided by total count of tenders this endpoint uses tender tender period start date to calculate the tender year`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 159: Percentage Of Awards Where Award Publication Date Award Date Is Less Than 7 Days Percentage Should Be By Year The Denominator For The Percentage Is The Number Of Awards That Have Both Awards Date And Awards Published Date
-
-Business goal:
-Percentage of awards where award publication date - award.date is less than 7 days. .
-
-Domain context:
-This behavior belongs to the `percentage-awards-narrow-publication-dates` capability area and operates through `GET /api/percentageAwardsNarrowPublicationDates`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date` (`GET /api/percentageAwardsNarrowPublicationDates`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 160: Percentage Of Awards Where Award Publication Date Award Date Is Less Than 7 Days Percentage Should Be By Year The Denominator For The Percentage Is The Number Of Awards That Have Both Awards Date And Awards Published Date
-
-Business goal:
-Percentage of awards where award publication date - award.date is less than 7 days. .
-
-Domain context:
-This behavior belongs to the `percentage-awards-narrow-publication-dates` capability area and operates through `POST /api/percentageAwardsNarrowPublicationDates`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date` (`POST /api/percentageAwardsNarrowPublicationDates`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `percentage of awards where award publication date award date is less than 7 days percentage should be by year the denominator for the percentage is the number of awards that have both awards date and awards published date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 161: Planned Funding By Location By Year Returns The Total Amount Of Planning Budget Available Per Planning Budget Project Location Grouped By Year This Will Return Full Location Information Including Geocoding Data Responds Only To The Procuring Entity Id Filter Tender Procuring Entity Id
-
-Business goal:
-Planned funding by location by year. .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `GET /api/plannedFundingByLocation`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id` (`GET /api/plannedFundingByLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 162: Planned Funding By Location By Year Returns The Total Amount Of Planning Budget Available Per Planning Budget Project Location Grouped By Year This Will Return Full Location Information Including Geocoding Data Responds Only To The Procuring Entity Id Filter Tender Procuring Entity Id
-
-Business goal:
-Planned funding by location by year. .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `POST /api/plannedFundingByLocation`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id` (`POST /api/plannedFundingByLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `planned funding by location by year returns the total amount of planning budget available per planning budget project location grouped by year this will return full location information including geocoding data responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 163: Quality Indicator For Average Award Period Endpoint Showing The Percentage Of Awards That Have Start And End Dates Vs The Total Tenders In The System
-
-Business goal:
-Quality indicator for averageAwardPeriod endpoint, showing the percentage of awards that have start and end dates vs the total tenders in the system.
-
-Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `GET /api/qualityAverageAwardPeriod`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system` (`GET /api/qualityAverageAwardPeriod`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 164: Quality Indicator For Average Award Period Endpoint Showing The Percentage Of Awards That Have Start And End Dates Vs The Total Tenders In The System
-
-Business goal:
-Quality indicator for averageAwardPeriod endpoint, showing the percentage of awards that have start and end dates vs the total tenders in the system.
-
-Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `POST /api/qualityAverageAwardPeriod`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system` (`POST /api/qualityAverageAwardPeriod`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average award period endpoint showing the percentage of awards that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 165: Quality Indicator For Average Tender Period Endpoint Showing The Percentage Of Tenders That Have Start And End Dates Vs The Total Tenders In The System
-
-Business goal:
-Quality indicator for averageTenderPeriod endpoint, showing the percentage of tenders that have start and end dates vs the total tenders in the system.
-
-Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `GET /api/qualityAverageTenderPeriod`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system` (`GET /api/qualityAverageTenderPeriod`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 166: Quality Indicator For Average Tender Period Endpoint Showing The Percentage Of Tenders That Have Start And End Dates Vs The Total Tenders In The System
-
-Business goal:
-Quality indicator for averageTenderPeriod endpoint, showing the percentage of tenders that have start and end dates vs the total tenders in the system.
-
-Domain context:
-This behavior belongs to the `average-tender-and-award-periods-controller` capability area and operates through `POST /api/qualityAverageTenderPeriod`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system` (`POST /api/qualityAverageTenderPeriod`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `quality indicator for average tender period endpoint showing the percentage of tenders that have start and end dates vs the total tenders in the system`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 167: Calculates Percentage Of Releases With Tender With At Least One Specified Delivery Location That Is The Array Tender Items Delivery Location Has To Have Items Filters Out Stub Tenders Therefore Tender Tender Period Start Date Has To Exist
-
-Business goal:
-Calculates percentage of releases with tender with at least one specified delivery location, that is the array tender.items.deliveryLocation has to have items.Filters out stub tenders, therefore tender.tenderPeriod.startDate has to exist.
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `GET /api/qualityFundingByTenderDeliveryLocation`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist` (`GET /api/qualityFundingByTenderDeliveryLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 168: Calculates Percentage Of Releases With Tender With At Least One Specified Delivery Location That Is The Array Tender Items Delivery Location Has To Have Items Filters Out Stub Tenders Therefore Tender Tender Period Start Date Has To Exist
-
-Business goal:
-Calculates percentage of releases with tender with at least one specified delivery location, that is the array tender.items.deliveryLocation has to have items.Filters out stub tenders, therefore tender.tenderPeriod.startDate has to exist.
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `POST /api/qualityFundingByTenderDeliveryLocation`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist` (`POST /api/qualityFundingByTenderDeliveryLocation`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with tender with at least one specified delivery location that is the array tender items delivery location has to have items filters out stub tenders therefore tender tender period start date has to exist`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 169: Calculates Percentage Of Releases With Planning With At Least One Specified Location That Is The Array Planning Budget Project Location Has To Be Initialzied Filters Out Stub Planning Therefore Planning Budget Amount Has To Exist Responds Only To The Procuring Entity Id Filter Tender Procuring Entity Id
-
-Business goal:
-Calculates percentage of releases with planning with at least one specified location, that is the array planning.budget.projectLocation has to be initialzied.Filters out stub planning, therefore planning.budget.amount has to exist.Responds .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `GET /api/qualityPlannedFundingByLocation`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id` (`GET /api/qualityPlannedFundingByLocation`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 170: Calculates Percentage Of Releases With Planning With At Least One Specified Location That Is The Array Planning Budget Project Location Has To Be Initialzied Filters Out Stub Planning Therefore Planning Budget Amount Has To Exist Responds Only To The Procuring Entity Id Filter Tender Procuring Entity Id
-
-Business goal:
-Calculates percentage of releases with planning with at least one specified location, that is the array planning.budget.projectLocation has to be initialzied.Filters out stub planning, therefore planning.budget.amount has to exist.Responds .
-
-Domain context:
-This behavior belongs to the `funding-by-location-controller` capability area and operates through `POST /api/qualityPlannedFundingByLocation`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id` (`POST /api/qualityPlannedFundingByLocation`) with query: bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc`, `minTenderValue`, `maxTenderValue`, `minAwardValue` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `calculates percentage of releases with planning with at least one specified location that is the array planning budget project location has to be initialzied filters out stub planning therefore planning budget amount has to exist responds only to the procuring entity id filter tender procuring entity id`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 171: Same As Api Tender Price By Bid Selection Method But It Always Returns All Bid Selection Methods It Adds The Missing Bid Selection Methods With Zero Totals
-
-Business goal:
-Same as /api/tenderPriceByBidSelectionMethod, but it always returns all bidSelectionMethods (it adds the missing bid selection methods with zero totals.
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `GET /api/tenderPriceByAllBidSelectionMethods`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals` (`GET /api/tenderPriceByAllBidSelectionMethods`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 172: Same As Api Tender Price By Bid Selection Method But It Always Returns All Bid Selection Methods It Adds The Missing Bid Selection Methods With Zero Totals
-
-Business goal:
-Same as /api/tenderPriceByBidSelectionMethod, but it always returns all bidSelectionMethods (it adds the missing bid selection methods with zero totals.
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `POST /api/tenderPriceByAllBidSelectionMethods`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals` (`POST /api/tenderPriceByAllBidSelectionMethods`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `same as api tender price by bid selection method but it always returns all bid selection methods it adds the missing bid selection methods with zero totals`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 173: Returns The Tender Price By Vietnam Type Procurement Method Details By Year The Ocds Type Is Read From Tender Procurement Method Details The Tender Price Is Read From Tender Value Amount
-
-Business goal:
-Returns the tender price by Vietnam type (procurementMethodDetails), by year. .
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `GET /api/tenderPriceByBidSelectionMethod`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount` (`GET /api/tenderPriceByBidSelectionMethod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 174: Returns The Tender Price By Vietnam Type Procurement Method Details By Year The Ocds Type Is Read From Tender Procurement Method Details The Tender Price Is Read From Tender Value Amount
-
-Business goal:
-Returns the tender price by Vietnam type (procurementMethodDetails), by year. .
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `POST /api/tenderPriceByBidSelectionMethod`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount` (`POST /api/tenderPriceByBidSelectionMethod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by vietnam type procurement method details by year the ocds type is read from tender procurement method details the tender price is read from tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 175: Returns The Tender Price By Ocds Type Procurement Method By Year The Ocds Type Is Read From Tender Procurement Method The Tender Price Is Read From Tender Value Amount
-
-Business goal:
-Returns the tender price by OCDS type (procurementMethod), by year. .
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `GET /api/tenderPriceByProcurementMethod`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount` (`GET /api/tenderPriceByProcurementMethod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 176: Returns The Tender Price By Ocds Type Procurement Method By Year The Ocds Type Is Read From Tender Procurement Method The Tender Price Is Read From Tender Value Amount
-
-Business goal:
-Returns the tender price by OCDS type (procurementMethod), by year. .
-
-Domain context:
-This behavior belongs to the `tender-price-by-type-year-controller` capability area and operates through `POST /api/tenderPriceByProcurementMethod`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount` (`POST /api/tenderPriceByProcurementMethod`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the tender price by ocds type procurement method by year the ocds type is read from tender procurement method the tender price is read from tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 177: Returns The Min And Max Of Tender Value Amount
-
-Business goal:
-Returns the min and max of tender.value.amount.
-
-Domain context:
-This behavior belongs to the `tenders-awards-value-intervals` capability area and operates through `GET /api/tenderValueInterval`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the min and max of tender value amount` (`GET /api/tenderValueInterval`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 178: Returns The Min And Max Of Tender Value Amount
-
-Business goal:
-Returns the min and max of tender.value.amount.
-
-Domain context:
-This behavior belongs to the `tenders-awards-value-intervals` capability area and operates through `POST /api/tenderValueInterval`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the min and max of tender value amount` (`POST /api/tenderValueInterval`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+### Missing Behavior 1: Create, Import, Update, or Delete Procurement Releases Through the REST API
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the min and max of tender value amount`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 179: Computes All Available Years From Awards Date Tender Tender Period Start Dateand Planning Bid Plan Project Date Approve
-
-Business goal:
-Computes all available years from awards.date, tender.tenderPeriod.startDateand planning.bidPlanProjectDateApprove.
-
-Domain context:
-This behavior belongs to the `tenders-awards-years` capability area and operates through `GET /api/tendersAwardsYears`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `computes all available years from awards date tender tender period start dateand planning bid plan project date approve` (`GET /api/tendersAwardsYears`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 180: Computes All Available Years From Awards Date Tender Tender Period Start Dateand Planning Bid Plan Project Date Approve
-
-Business goal:
-Computes all available years from awards.date, tender.tenderPeriod.startDateand planning.bidPlanProjectDateApprove.
-
-Domain context:
-This behavior belongs to the `tenders-awards-years` capability area and operates through `POST /api/tendersAwardsYears`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `computes all available years from awards date tender tender period start dateand planning bid plan project date approve` (`POST /api/tendersAwardsYears`) with no request parameters or body declared.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `computes all available years from awards date tender tender period start dateand planning bid plan project date approve`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 181: This Should Show The Number Of Tenders Per Tender Items Classification The Tender Date Is Taken From Tender Tender Period Start Date
-
-Business goal:
-This should show the number of tenders per tender.items.classification.The tender date is taken from tender.tenderPeriod.startDate.
-
-Domain context:
-This behavior belongs to the `tenders-by-item-classification` capability area and operates through `GET /api/tendersByItemClassification`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date` (`GET /api/tendersByItemClassification`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 182: This Should Show The Number Of Tenders Per Tender Items Classification The Tender Date Is Taken From Tender Tender Period Start Date
-
-Business goal:
-This should show the number of tenders per tender.items.classification.The tender date is taken from tender.tenderPeriod.startDate.
-
-Domain context:
-This behavior belongs to the `tenders-by-item-classification` capability area and operates through `POST /api/tendersByItemClassification`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date` (`POST /api/tendersByItemClassification`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this should show the number of tenders per tender items classification the tender date is taken from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 183: Returns The Top Ten Largest Active Awards The Amount Is Taken From The Award Value Field The Returned Data Will Containthe Following Fields Planning Bid No Awards Date Awards Suppliers Name Awards Value Amount Awards Suppliers Name Planning Budget If Any
-
-Business goal:
-Returns the top ten largest active awards. .
-
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `GET /api/topTenLargestAwards`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any` (`GET /api/topTenLargestAwards`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 184: Returns The Top Ten Largest Active Awards The Amount Is Taken From The Award Value Field The Returned Data Will Containthe Following Fields Planning Bid No Awards Date Awards Suppliers Name Awards Value Amount Awards Suppliers Name Planning Budget If Any
-
-Business goal:
-Returns the top ten largest active awards. .
-
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `POST /api/topTenLargestAwards`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any` (`POST /api/topTenLargestAwards`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active awards the amount is taken from the award value field the returned data will containthe following fields planning bid no awards date awards suppliers name awards value amount awards suppliers name planning budget if any`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 185: Returns The Top Ten Largest Active Tenders The Amount Is Taken From The Tender Value Amount Field The Returned Data Will Containthe Following Fields Planning Bid No Tender Date Tender Value Amount Tender Tender Period Tender Procuring Entity Name
-
-Business goal:
-Returns the top ten largest active tenders. .
-
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `GET /api/topTenLargestTenders`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name` (`GET /api/topTenLargestTenders`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Priority:
+Critical domain gap
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 186: Returns The Top Ten Largest Active Tenders The Amount Is Taken From The Tender Value Amount Field The Returned Data Will Containthe Following Fields Planning Bid No Tender Date Tender Value Amount Tender Tender Period Tender Procuring Entity Name
-
-Business goal:
-Returns the top ten largest active tenders. .
-
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `POST /api/topTenLargestTenders`.
+Expected business goal:
+A data manager would expect to create or import new OCDS releases, correct release data, or delete invalid records through service APIs.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name` (`POST /api/topTenLargestTenders`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Why it is unsupported:
+The documented functions are read, aggregate, lookup, or export operations. No OpenAPI path or controller method provides release create, update, delete, validation, or import execution.
 
-Failure and exceptional cases:
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `returns the top ten largest active tenders the amount is taken from the tender value amount field the returned data will containthe following fields planning bid no tender date tender value amount tender tender period tender procuring entity name`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Existing functions considered:
+- `ocdsReleasesUsingGET`: lists releases but cannot create or mutate them.
+- `ocdsByOcidUsingGET`: retrieves one release but cannot update it.
+- `excelExportUsingGET`: exports releases but cannot import spreadsheet data.
+- Dashboard aggregate functions: read from MongoDB but do not persist changes.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Missing capability:
+Missing POST/PUT/PATCH/DELETE release endpoints, import endpoint, schema validation endpoint, and persistence workflow.
 
-### Behavior 187: This Endpoint Should Return The Following Data For The Top 10 Suppliers By Award Value Returns Supplier Id Total Awarded Amount Of All Awarded Contracts Count Of Awarded Contracts Ids Of The Procuring Entities From Which They Have Received An Award And Their Count All Filters Ally Here The Year Filter Uses The Awards Date Field
+Proof that function composition is insufficient:
+Chaining lookup and export functions can only read existing data. It cannot create a new `release` document, add an award, change tender status, correct a supplier id, or remove invalid data. Direct database insertion is possible outside the API, but it is not equivalent to an API-supported domain workflow because it bypasses validation, auditability, and any intended import rules.
 
-Business goal:
-This endpoint should return the following data for the Top 10 suppliers (by award value).Returns supplier id, total awarded amount of all awarded contracts, count of awarded contracts,Ids of the procuring entities from which they have received an award, and their count. .
+Evidence from existing functions/source:
+All documented controllers use MongoDB `find` or `aggregate`, or write an Excel response. No documented endpoint calls repository save/delete for releases.
 
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `GET /api/topTenSuppliers`.
+Business impact:
+The dashboard API cannot be used as a complete procurement data management service. Data freshness and correction depend on out-of-band import or database processes.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+### Missing Behavior 2: Recalculate or Repair Risk Flags Through the API
 
-Required execution workflow:
-1. Use function `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field` (`GET /api/topTenSuppliers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Priority:
+Critical domain gap
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Expected business goal:
+A risk analyst would expect to recalculate indicators after new releases are imported or corrected.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+Why it is unsupported:
+Flag endpoints only read precomputed `flags` fields. There is no documented API to run flag processors or refresh stored flag state.
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+Existing functions considered:
+- `releaseFlagSearchUsingGET`: finds releases where a specific flag is already true.
+- `flagStatsUsingGET`: aggregates already stored true/false/null indicator values.
+- `ocdsReleasesUsingGET` with `flagged=true`: only checks whether any flaggedStats element exists.
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Missing capability:
+Missing flag recalculation endpoint, batch processor trigger, status endpoint, and stale-flag detection.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Proof that function composition is insufficient:
+Calling stats and search functions cannot create `flags.flaggedStats`, cannot recompute boolean indicator fields, and cannot distinguish stale flag values from current values after source data changes. Delete-and-reimport outside the API is not equivalent because the public REST API still cannot trigger or verify the recalculation process.
 
-Failure and exceptional cases:
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Evidence from existing functions/source:
+`AbstractFlagReleaseSearchController` and `AbstractFlagStatsController` only query fields under `flags`. Flag processor classes exist in source, but documented REST functions do not expose processor execution.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Business impact:
+Risk dashboards can become stale or empty if flag processing is not run externally. Users cannot repair risk state through the API.
 
-### Behavior 188: This Endpoint Should Return The Following Data For The Top 10 Suppliers By Award Value Returns Supplier Id Total Awarded Amount Of All Awarded Contracts Count Of Awarded Contracts Ids Of The Procuring Entities From Which They Have Received An Award And Their Count All Filters Ally Here The Year Filter Uses The Awards Date Field
+### Missing Behavior 3: Retrieve or Manage Individual Tenders, Awards, Plans, Items, and Locations as First-Class Resources
 
-Business goal:
-This endpoint should return the following data for the Top 10 suppliers (by award value).Returns supplier id, total awarded amount of all awarded contracts, count of awarded contracts,Ids of the procuring entities from which they have received an award, and their count. .
+Priority:
+Important robustness gap
 
-Domain context:
-This behavior belongs to the `top-ten-controller` capability area and operates through `POST /api/topTenSuppliers`.
+Expected business goal:
+A user would reasonably expect to retrieve a tender, award, plan, tender item, or location directly by its own id.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Why it is unsupported:
+The API exposes release-level retrieval and aggregate views, but not child-resource retrieval or lifecycle operations.
 
-Required execution workflow:
-1. Use function `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field` (`POST /api/topTenSuppliers`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Existing functions considered:
+- `ocdsByOcidUsingGET`: returns the whole release containing child data, if the release OCID is known.
+- `tendersByItemClassificationUsingGET`: aggregates items but does not retrieve item records.
+- `fundingByTenderDeliveryLocationUsingGET`: aggregates delivery locations but does not expose tender-item detail.
+- `topTenLargestAwardsUsingGET`: returns projected award fields but not a stable award-detail endpoint.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Missing capability:
+Missing `/tender/{id}`, `/award/{id}`, `/planning/{id}`, `/item/{id}`, and `/location/{id}` style endpoints and child-resource scoping rules.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Proof that function composition is insufficient:
+If a caller only knows an award id or tender item classification, existing functions cannot deterministically retrieve the owning release and exact child object. Aggregate endpoints discard source identity, and release listing requires broad filters followed by client-side scanning.
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+Evidence from existing functions/source:
+Release retrieval is keyed by OCID, project id, or planning bid number only. Aggregations use `$project`, `$group`, and `$unwind`, losing full child-resource context.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Business impact:
+Debugging, audit review, drill-down, and correction workflows are cumbersome or impossible through the API alone.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+### Missing Behavior 4: Validate Filter Values and Cross-Resource Relationships Before Running Analytics
 
-Failure and exceptional cases:
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `this endpoint should return the following data for the top 10 suppliers by award value returns supplier id total awarded amount of all awarded contracts count of awarded contracts ids of the procuring entities from which they have received an award and their count all filters ally here the year filter uses the awards date field`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Priority:
+Important robustness gap
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Expected business goal:
+A dashboard client would expect to validate that selected supplier, procuring entity, method, location, and value filters are meaningful and compatible.
 
-### Behavior 189: Total Cancelled Tenders By Year The Tender Amount Is Read From Tender Value The Tender Status Has To Be Cancelled The Year Is Retrieved From Tender Tender Period Start Date
+Why it is unsupported:
+Lookup endpoints can list values, but no function validates a complete filter set or explains why a filter combination returns no results.
 
-Business goal:
-Total Cancelled tenders by year. .
+Existing functions considered:
+- `searchTextUsingGET_2`: can find procuring entities but does not validate dashboard filters.
+- `bidSelectionMethodsUsingGET`: lists method values but does not validate combinations.
+- `tenderValueIntervalUsingGET`: returns bounds but does not validate all filters.
+- `ocdsReleasesUsingGET`: returns matching records or an empty list, without diagnostics.
 
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-by-year-controller` capability area and operates through `GET /api/totalCancelledTendersByYear`.
+Missing capability:
+Missing filter validation endpoint, relationship existence checks, and structured empty-result explanations.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Proof that function composition is insufficient:
+A client can call many lookup endpoints and still cannot know whether `supplierId=SUP1` ever appears with `procuringEntityId=PE1`, `year=2020`, and `bidSelectionMethod=METHOD1` except by running the final query and interpreting emptiness manually. It also cannot distinguish invalid ids from valid ids with no matching releases.
 
-Required execution workflow:
-1. Use function `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date` (`GET /api/totalCancelledTendersByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Evidence from existing functions/source:
+Shared filter criteria are direct MongoDB `in`, `not in`, range, and equality criteria. There is no validation layer that checks relationships before query execution.
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Business impact:
+Users can create confusing empty dashboards, and clients must implement their own diagnostics.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+### Missing Behavior 5: Transactionally Consistent Dashboard Snapshot Across Multiple Metrics
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+Priority:
+Important robustness gap
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Expected business goal:
+A dashboard page should show counts, percentages, values, and exports from the same data snapshot.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Why it is unsupported:
+Composite dashboard views require multiple independent API calls, and there is no snapshot id, as-of timestamp, ETag, cursor, or transaction boundary.
 
-Failure and exceptional cases:
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Existing functions considered:
+- `countTendersByYearUsingGET`, `countAwardsByYearUsingGET`, and `countBidPlansByYearUsingGET`: each computes separately.
+- `costEffectivenessTenderAwardAmountUsingGET`: combines two internal async calls but does not expose a snapshot token.
+- Excel export functions: internally call data functions but do not coordinate with separate JSON calls.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Missing capability:
+Missing snapshot token, consistent read timestamp, ETag/version return, and multi-metric batch endpoint.
 
-### Behavior 190: Total Cancelled Tenders By Year The Tender Amount Is Read From Tender Value The Tender Status Has To Be Cancelled The Year Is Retrieved From Tender Tender Period Start Date
+Proof that function composition is insufficient:
+Sequentially calling metric functions cannot guarantee that the underlying MongoDB collection did not change between calls. Reusing identical filters ensures semantic scope, but not temporal consistency.
 
-Business goal:
-Total Cancelled tenders by year. .
+Evidence from existing functions/source:
+Controllers call Mongo aggregations independently. No function returns or accepts a dataset version, import batch id, cursor, or ETag.
 
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-by-year-controller` capability area and operates through `POST /api/totalCancelledTendersByYear`.
+Business impact:
+Dashboard panels can disagree during imports or data refreshes, weakening trust in reported totals and percentages.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+### Missing Behavior 6: Strong API-Level Validation for Numeric and Domain Constraints
 
-Required execution workflow:
-1. Use function `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date` (`POST /api/totalCancelledTendersByYear`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Priority:
+Important robustness gap
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Expected business goal:
+The API should reject invalid thresholds, unsupported grouping values, malformed ObjectIds, and nonsensical date intervals with clear errors.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Why it is unsupported:
+Some bean validation exists, but many domain constraints are unchecked.
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+Existing functions considered:
+- `frequentSuppliersTimeIntervalUsingGET`: accepts `intervalDays`, `maxAwards`, and `now`.
+- `costEffectivenessTenderAmountUsingGET`: accepts `groupByCategory`.
+- Common filter functions accept `contrMethod`, value ranges, and inclusion/exclusion filters.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Missing capability:
+Missing positive validation for `intervalDays`, non-negative validation for `maxAwards`, enum validation for `groupByCategory`, ObjectId validation for `contrMethod`, and range validation that `min <= max`.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Proof that function composition is insufficient:
+Lookup functions can suggest values but cannot enforce complete request validity. Invalid values either produce empty results, runtime exceptions, or misleading output.
 
-Failure and exceptional cases:
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Evidence from existing functions/source:
+`intervalDays` and `maxAwards` are plain request parameters without validation. `groupByCategory` returns null for unsupported values. `contrMethod` is converted to `ObjectId` after accepting alphanumeric strings.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Business impact:
+Clients can trigger runtime errors or produce ambiguous dashboards with invalid filters.
 
-### Behavior 191: Total Cancelled Tenders By Year By Cancel Reason The Tender Amount Is Read From Tender Value The Tender Status Has To Be Cancelled The Year Is Retrieved From Tender Tender Period Start Date The Cancellation Reason Is Read From Tender Cancellation Rationale
+### Missing Behavior 7: Authenticated Access, Ownership, and Audit Controls
 
-Business goal:
-Total Cancelled tenders by year by cancel reason. .
+Priority:
+Important robustness gap
 
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-by-year-controller` capability area and operates through `GET /api/totalCancelledTendersByYearByRationale`.
+Expected business goal:
+A production procurement system may need authenticated roles, scoped access, and auditability for sensitive records or administrative exports.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Why it is unsupported:
+The documented dashboard endpoints are public read/export endpoints with no ownership or session binding in the documented functions.
 
-Required execution workflow:
-1. Use function `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale` (`GET /api/totalCancelledTendersByYearByRationale`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Existing functions considered:
+- All lookup and analytics functions: accept filters but no authorization context.
+- `excelExportUsingGET`: exports filtered release data without documented auth parameters.
+- Organization retrieval functions: expose organization records by id and role.
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Missing capability:
+Missing authentication, authorization, tenant/owner scoping, and audit log endpoints.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+Proof that function composition is insufficient:
+Passing filters is not an ownership check. A caller can request any documented filter value if the endpoint is reachable, and no combination of read functions can enforce caller-specific access policy.
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+Evidence from existing functions/source:
+The relevant controllers do not consume authenticated principal, session, owner id, or authorization headers in the documented request models.
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Business impact:
+The API is suitable for public dashboard data but not for restricted procurement administration without external access controls.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+### Missing Behavior 8: Explain Empty or Partial Analytics Results
 
-Failure and exceptional cases:
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Priority:
+API ergonomics gap
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Expected business goal:
+A dashboard should explain whether a metric is empty because data is missing, filters are too narrow, dates are absent, awards are inactive, or locations lack coordinates.
 
-### Behavior 192: Total Cancelled Tenders By Year By Cancel Reason The Tender Amount Is Read From Tender Value The Tender Status Has To Be Cancelled The Year Is Retrieved From Tender Tender Period Start Date The Cancellation Reason Is Read From Tender Cancellation Rationale
+Why it is unsupported:
+Analytics endpoints return aggregate lists only; they do not return exclusion counts or reason codes.
 
-Business goal:
-Total Cancelled tenders by year by cancel reason. .
+Existing functions considered:
+- `qualityAverageTenderPeriodUsingGET`: gives one completeness metric but only for tender-period dates.
+- `qualityFundingByTenderDeliveryLocationUsingGET`: gives one location completeness metric.
+- `averageAwardPeriodUsingGET`, `plannedFundingByLocationUsingGET`, and `frequentTenderersUsingGET`: silently filter out many records.
 
-Domain context:
-This behavior belongs to the `total-cancelled-tenders-by-year-controller` capability area and operates through `POST /api/totalCancelledTendersByYearByRationale`.
+Missing capability:
+Missing diagnostics endpoint and per-metric exclusion breakdown.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Proof that function composition is insufficient:
+Quality endpoints cover only selected dimensions and cannot explain every aggregate. For example, no existing function can say how many planned funding records were excluded specifically because coordinates were missing versus plan approval date missing.
 
-Required execution workflow:
-1. Use function `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale` (`POST /api/totalCancelledTendersByYearByRationale`) with query: year optional, month optional, monthly optional, bidTypeId optional, notBidTypeId optional, procuringEntityId optional, notProcuringEntityId optional, supplierId optional, bidSelectionMethod optional, notBidSelectionMethod optional, contrMethod optional, tenderLoc optional, minTenderValue optional, maxTenderValue optional, minAwardValue optional, maxAwardValue optional, procuringEntityCityId optional, procuringEntityDepartmentId optional, procuringEntityGroupId optional, pageNumber optional, pageSize optional.
+Evidence from existing functions/source:
+Most controllers use Mongo `match` stages that filter missing fields without returning rejected counts.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Business impact:
+Users may misinterpret missing or low metrics as business reality rather than data completeness limitations.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+## Cross-Behavior Observations
 
-Parameter and value bindings:
-- Query values `year`, `month`, `monthly`, `bidTypeId`, `notBidTypeId`, `procuringEntityId`, `notProcuringEntityId`, `supplierId`, `bidSelectionMethod`, `notBidSelectionMethod`, `contrMethod`, `tenderLoc` and others filter, page, or modify the operation result.
+- The documented API is read-only. Business state is established outside the REST API through import jobs, direct database state, or other modules.
+- GET and POST are generally equivalent for documented endpoints; both bind request parameters to model attributes rather than using distinct command semantics.
+- Shared filters bind directly to nested Mongo fields. There is little domain validation beyond basic page/year/month/text constraints.
+- Many metrics silently exclude incomplete records. Quality endpoints exist for some, but not all, data completeness dimensions.
+- Role-specific organization lookup is implemented using organization roles, while some OpenAPI text says `types`.
+- Several source endpoints are not present in `ocvn.json`, including additional corruption-risk dashboard, crosstab, and indicator mapping endpoints.
+- Some OpenAPI descriptions disagree with implementation: package lookup by planning bid number is described as OCID lookup, average award period wording is wrong, top-ten largest tenders are not filtered to active status in source, and frequent tenderers is implemented as supplier/tenderer pairing rather than all co-tenderer pairs.
+- Caching is used for many controllers. The API does not expose cache invalidation or dataset versioning, so data freshness depends on external processes.
+- Excel exports are response-streaming functions and can call multiple JSON metric functions internally.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+## Coverage Summary
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Supported domain areas:
+Release/package retrieval, organization/reference lookup, procurement activity counts, timing metrics, competition/e-procurement percentages, cancellation analytics, value and cost-effectiveness analytics, item/location analytics, top rankings, repeated relationship signals, precomputed flag inspection, and Excel exports.
 
-Failure and exceptional cases:
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `total cancelled tenders by year by cancel reason the tender amount is read from tender value the tender status has to be cancelled the year is retrieved from tender tender period start date the cancellation reason is read from tender cancellation rationale`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Partially supported domain areas:
+Data quality, risk analysis, dashboard filter discovery, and geographic analysis are supported through selected read metrics but lack full diagnostics, recalculation, validation, and drill-down.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Unsupported domain areas:
+REST-based data creation/import/update/delete, first-class tender/award/plan lifecycle management, flag recalculation, transactional dashboard snapshots, authenticated ownership controls, comprehensive filter validation, and explanatory analytics diagnostics.

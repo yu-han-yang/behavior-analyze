@@ -2,1338 +2,1138 @@
 
 ## Domain Summary
 
-The `spring-ecommerce` service is described by its OpenAPI contract as: Api Documentation
+This service is a Spring-based e-commerce storefront API. Its main domain concepts are customer accounts, account verification tokens, catalog categories, catalog products, Elasticsearch-backed search/facet data, product ratings, and a currently non-persistent shopping cart acknowledgement endpoint.
 
-The core business concepts are:
-
-- web-mvc-links-handler: endpoint group for web mvc links handler behavior.
-- operation-handler: endpoint group for operation handler behavior.
-- auth-controller: endpoint group for auth controller behavior.
-- cart-controller: endpoint group for cart controller behavior.
-- product-rating-controller: endpoint group for product rating controller behavior.
-- catalog-controller: endpoint group for catalog controller behavior.
-- basic-error-controller: endpoint group for basic error controller behavior.
-
-Contract-level limits: this document captures externally visible business behavior from the API contract. Implementation-only validation, persistence side effects, authorization rules, and asynchronous processing details may be stricter than what is visible here.
+The catalog itself is mostly read-only through the API. Categories, products, and Elasticsearch product documents must be created outside the exposed REST API, typically through direct database/index setup or fixtures. Customer registration, activation, login, product rating operations, and authenticated add-to-cart acknowledgement are exposed as API functions.
 
 ## Available Function Inventory
 
-### auth-controller
+### Account and Authentication
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `verify account` | `GET /api/auth/accountVerification/{token}` | verifyAccount. |
-| `login` | `POST /api/auth/login` | login. |
-| `register` | `POST /api/auth/register` | register. |
+- `register user`
+  - Endpoint: `POST /api/auth/register`
+  - Domain meaning: creates a disabled customer account, creates a verification token, and sends an activation email.
 
-### basic-error-controller
+- `verify account`
+  - Endpoint: `GET /api/auth/accountVerification/{token}`
+  - Domain meaning: enables a registered user account using a saved verification token.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `error html` | `GET /error` | errorHtml. |
-| `error html` | `POST /error` | errorHtml. |
-| `error html` | `PUT /error` | errorHtml. |
-| `error html` | `DELETE /error` | errorHtml. |
-| `error html` | `PATCH /error` | errorHtml. |
-| `error html` | `HEAD /error` | errorHtml. |
-| `error html` | `OPTIONS /error` | errorHtml. |
+- `log in and obtain token`
+  - Endpoint: `POST /api/auth/login`
+  - Domain meaning: authenticates an enabled user and returns an access token for protected API calls.
 
-### cart-controller
+### Catalog Browsing
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `add to cart` | `POST /api/cart/add/{sku}` | addToCart. |
+- `list categories`
+  - Endpoint: `GET /api/store/catalog/categories`
+  - Domain meaning: lists available catalog category names.
 
-### catalog-controller
+- `list products`
+  - Endpoint: `GET /api/store/catalog/products`
+  - Domain meaning: lists all catalog products.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `read all categories` | `GET /api/store/catalog/categories` | readAllCategories. |
-| `read all products` | `GET /api/store/catalog/products` | readAllProducts. |
-| `read product by category` | `GET /api/store/catalog/products/category/{categoryName}` | readProductByCategory. |
-| `read featured products` | `GET /api/store/catalog/products/featured` | readFeaturedProducts. |
-| `read one product` | `GET /api/store/catalog/products/{sku}` | readOneProduct. |
-| `search` | `POST /api/store/catalog/search` | search. |
-| `filter for facets` | `POST /api/store/catalog/{categoryName}/facets/filter` | filterForFacets. |
+- `list featured products`
+  - Endpoint: `GET /api/store/catalog/products/featured`
+  - Domain meaning: lists products marked as featured.
 
-### operation-handler
+- `retrieve product by SKU`
+  - Endpoint: `GET /api/store/catalog/products/{sku}`
+  - Domain meaning: retrieves one catalog product by SKU.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `handle` | `GET /actuator/health` | handle. |
-| `handle` | `GET /actuator/health/{component}` | handle. |
-| `handle` | `GET /actuator/health/{component}/{instance}` | handle. |
-| `handle` | `GET /actuator/info` | handle. |
+- `list products by category`
+  - Endpoint: `GET /api/store/catalog/products/category/{categoryName}`
+  - Domain meaning: lists products attached to a named category.
 
-### product-rating-controller
+### Search and Facets
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `delete rating` | `DELETE /api/products/ratings/delete/{ratingId}` | deleteRating. |
-| `edit rating` | `PUT /api/products/ratings/edit` | editRating. |
-| `get rating` | `GET /api/products/ratings/get/{sku}` | getRating. |
-| `post rating` | `POST /api/products/ratings/submit` | postRating. |
+- `search catalog globally`
+  - Endpoint: `POST /api/store/catalog/search`
+  - Domain meaning: searches Elasticsearch products globally and returns product hits, price range, brand facets, and category facets.
 
-### web-mvc-links-handler
+- `filter category catalog`
+  - Endpoint: `POST /api/store/catalog/{categoryName}/facets/filter`
+  - Domain meaning: searches within a named category when `textQuery` is blank and applies attribute filters.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `links` | `GET /actuator` | links. |
+- `search text with category facets`
+  - Endpoint: `POST /api/store/catalog/{categoryName}/facets/filter`
+  - Domain meaning: searches text globally while using the named category only to choose facet definitions.
+
+### Product Ratings
+
+- `submit product rating`
+  - Endpoint: `POST /api/products/ratings/submit`
+  - Domain meaning: adds a rating to a product in MongoDB and Elasticsearch.
+
+- `retrieve product ratings`
+  - Endpoint: `GET /api/products/ratings/get/{sku}`
+  - Domain meaning: retrieves ratings for a product and exposes generated rating IDs.
+
+- `edit product rating`
+  - Endpoint: `PUT /api/products/ratings/edit`
+  - Domain meaning: updates an existing MongoDB product rating’s stars and review text.
+
+- `delete product ratings`
+  - Endpoint: `DELETE /api/products/ratings/delete/{ratingId}`
+  - Domain meaning: clears all ratings for the body `sku`; despite the path name, it does not delete only the path `ratingId`.
+
+### Cart
+
+- `acknowledge add to cart`
+  - Endpoint: `POST /api/cart/add/{sku}`
+  - Domain meaning: returns success for an authenticated add-to-cart request, but does not persist cart state.
 
 ## Supported Business Behaviors
 
-### Behavior 1: Links
+### Behavior 1: Register a New Customer Account
 
 Business goal:
-links.
+Create a customer account and start email-based activation.
 
 Domain context:
-This behavior belongs to the `web-mvc-links-handler` capability area and operates through `GET /actuator`.
+Registration is the first step before a customer can authenticate and use protected features such as ratings or cart acknowledgement.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+No prior service state.
 
 Required execution workflow:
-1. Use function `links` (`GET /actuator`) with no request parameters or body declared.
+1. Use function `register user` (`POST /api/auth/register`) with body `username=alice`, `name=Alice Example`, `email=alice@example.com`, `password=Password123`, `confirmPassword=Password123` to create a disabled user and generate a verification token.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) only if the generated token is available from email or direct token storage inspection.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- None for the core registration behavior.
+- Direct database setup can insert a disabled `User` and matching `VerificationToken`, but that skips the API behavior and does not send the activation email.
+- The `username` must not already exist.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- `username` is saved on the user and later reused by login.
+- `password` is encoded and persisted; the raw value must be reused for login.
+- The generated verification `token` is stored in `VerificationToken` and embedded in the activation email URL.
+- `name` is validated but not persisted.
+- `confirmPassword` is validated as nonblank but is not compared with `password`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+A disabled user exists with saved `email`, `username`, and encoded password. A verification token linked to that user exists. An activation email is sent.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `username`, `name`, `email`, `password`, and `confirmPassword` must be nonblank.
+- `email` must be email-shaped.
+- `password` must be 8 to 20 characters.
+- `username` uniqueness is enforced.
+- Password confirmation matching is implied by the API shape but not enforced.
 
 Failure and exceptional cases:
-- Failing function: `links`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `links`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `links`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `register user`
+  - Failure condition: `username` already exists.
+  - Why it fails: `userRepository.existsByUsername` returns true and the controller returns HTTP 400.
+  - Violated prerequisite or constraint: username uniqueness.
+- Failing function: `register user`
+  - Failure condition: blank required fields, invalid email, or password length outside 8 to 20 characters.
+  - Why it fails: DTO validation rejects the request.
+  - Violated prerequisite or constraint: registration input validation.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The implementation creates only disabled accounts. It stores no display name and does not compare password and confirmation.
 
-### Behavior 2: Handle
-
-Business goal:
-handle.
-
-Domain context:
-This behavior belongs to the `operation-handler` capability area and operates through `GET /actuator/health`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `handle` (`GET /actuator/health`) with body: body optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `handle`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 3: Handle
+### Behavior 2: Activate a Registered Account
 
 Business goal:
-handle.
+Enable a previously registered customer account.
 
 Domain context:
-This behavior belongs to the `operation-handler` capability area and operates through `GET /actuator/health/{component}`.
+Login requires an enabled user. Registration alone is not sufficient for authentication.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+No prior service state.
 
 Required execution workflow:
-1. Use function `handle` (`GET /actuator/health/{component}`) with body: body optional.
+1. Use function `register user` (`POST /api/auth/register`) with body `username=alice`, `name=Alice Example`, `email=alice@example.com`, `password=Password123`, `confirmPassword=Password123` to create the disabled account and token.
+2. Capture `{token}` from the activation email URL or from the saved `VerificationToken`.
+3. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with path `token={token}` to enable the account.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `log in and obtain token` (`POST /api/auth/login`) with body `username=alice`, `password=Password123` to verify the account can authenticate.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Step 1 can be skipped if an equivalent disabled `User` and matching `VerificationToken` already exist.
+- Direct database setup may insert the user and token, or directly set `User.enabled=true`; direct enabling bypasses the activation behavior.
+- The token must point to a persisted user whose `username` matches the token’s embedded user.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- The verification path `token` must be the exact generated token from registration.
+- The token’s embedded user `username` is used to reload and enable the persisted `User`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The user’s `enabled` flag is set to true. The token remains stored; the implementation does not consume or delete it.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `handle`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 4: Handle
-
-Business goal:
-handle.
-
-Domain context:
-This behavior belongs to the `operation-handler` capability area and operates through `GET /actuator/health/{component}/{instance}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `handle` (`GET /actuator/health/{component}/{instance}`) with body: body optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `handle`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 5: Handle
-
-Business goal:
-handle.
-
-Domain context:
-This behavior belongs to the `operation-handler` capability area and operates through `GET /actuator/info`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `handle` (`GET /actuator/info`) with body: body optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `handle`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `handle`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
-
-### Behavior 6: Verify Account
-
-Business goal:
-verifyAccount.
-
-Domain context:
-This behavior belongs to the `auth-controller` capability area and operates through `GET /api/auth/accountVerification/{token}`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with path: token required.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Path values `token` identify the business resource scope for the operation.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `token`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Token existence is required.
+- The token-to-user relationship must resolve to a saved user.
+- Tokens appear reusable because verification does not invalidate them.
 
 Failure and exceptional cases:
 - Failing function: `verify account`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+  - Failure condition: unknown or fabricated `token`.
+  - Why it fails: token lookup returns empty and the response body reports status `400`, message `Invalid Token`.
+  - Violated prerequisite or constraint: token must be generated and saved.
 - Failing function: `verify account`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `verify account`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+  - Failure condition: token exists but its embedded username no longer identifies a user.
+  - Why it fails: user lookup throws `SpringStoreException`.
+  - Violated prerequisite or constraint: token must remain linked to a persisted user.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The controller returns an `ApiResponse` object directly, so an invalid token is represented in the body as status `400`; the HTTP status may still be 200 depending on Spring serialization behavior.
 
-### Behavior 7: Login
+### Behavior 3: Authenticate as a Customer
 
 Business goal:
-login.
+Obtain a bearer token for protected customer actions.
 
 Domain context:
-This behavior belongs to the `auth-controller` capability area and operates through `POST /api/auth/login`.
+Ratings and cart acknowledgement require authentication by security configuration.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+No prior service state.
 
 Required execution workflow:
-1. Use function `login` (`POST /api/auth/login`) with body: loginRequestDto required.
+1. Use function `register user` (`POST /api/auth/register`) with body `username=alice`, `name=Alice Example`, `email=alice@example.com`, `password=Password123`, `confirmPassword=Password123`.
+2. Capture `{token}` from the activation email URL or `VerificationToken`.
+3. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with `token={token}`.
+4. Use function `log in and obtain token` (`POST /api/auth/login`) with body `username=alice`, `password=Password123` to obtain `accessToken`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Steps 1 and 2 can be skipped if an enabled user with a BCrypt password already exists.
+- Step 3 can be skipped if the user is already enabled.
+- Direct database setup must preserve the same `username` and encoded password matching the raw login password.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- Login body `username` must match the registered or pre-existing user.
+- Login body `password` must match the raw password corresponding to the encoded stored password.
+- The response field `accessToken` is reused as `Authorization: Bearer {accessToken}` for protected functions.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The client receives an access token and username for an enabled account.
 
 Constraints and invariants:
-- Required request values: `loginRequestDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `username` and `password` must be nonblank.
+- Disabled users cannot authenticate.
+- Tokens are stateless JWT-style credentials generated from Spring Security authentication.
 
 Failure and exceptional cases:
-- Failing function: `login`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `login`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `login`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `log in and obtain token`
+  - Failure condition: user exists but is disabled.
+  - Why it fails: Spring Security rejects disabled accounts.
+  - Violated prerequisite or constraint: account must be enabled.
+- Failing function: `log in and obtain token`
+  - Failure condition: unknown username or wrong password.
+  - Why it fails: `AuthenticationManager.authenticate` rejects credentials.
+  - Violated prerequisite or constraint: submitted credentials must match an enabled user.
+- Failing function: `register user`
+  - Failure condition: duplicate username or invalid registration fields.
+  - Why it fails: username check or DTO validation.
+  - Violated prerequisite or constraint: valid unique account input.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Swagger lists auth endpoints but does not define reusable bearer security metadata for protected endpoints.
 
-### Behavior 8: Register
+### Behavior 4: Browse the Public Catalog
 
 Business goal:
-register.
+Inspect available categories and products without logging in.
 
 Domain context:
-This behavior belongs to the `auth-controller` capability area and operates through `POST /api/auth/register`.
+The storefront exposes public catalog discovery endpoints.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing catalog database state.
 
 Required execution workflow:
-1. Use function `register` (`POST /api/auth/register`) with body: registerRequestDto required.
+1. Use function `list categories` (`GET /api/store/catalog/categories`) to list category names.
+2. Use function `list products` (`GET /api/store/catalog/products`) to list all products.
+3. Optionally as part of the same browsing workflow, use function `list featured products` (`GET /api/store/catalog/products/featured`) to view promoted products.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={skuFromProductList}` to inspect one listed product.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- No API setup function exists for categories or products.
+- Direct MongoDB setup can insert `Category` and `Product` documents.
+- The product `category` object should match a saved category if category-based browsing is needed.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- `sku` values returned from `list products` can be reused in `retrieve product by SKU`.
+- Category names returned from `list categories` can be reused in `list products by category`.
+- Product availability is derived from `quantity`.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The client receives public catalog category and product DTOs. Featured products are the subset whose DTO has `featured=true`.
 
 Constraints and invariants:
-- Required request values: `registerRequestDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Catalog endpoints are public.
+- Empty repositories return empty lists.
+- Product availability uses color to distinguish stock, but both in-stock and out-of-stock labels are `"Out of Stock"`.
 
 Failure and exceptional cases:
-- Failing function: `register`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `register`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `register`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `retrieve product by SKU`
+  - Failure condition: `sku` does not match a saved product.
+  - Why it fails: `productRepository.findBySku` returns empty and `IllegalArgumentException` is thrown.
+  - Violated prerequisite or constraint: SKU must exist.
+- Failing function: `list products by category`
+  - Failure condition: `categoryName` does not match a saved category.
+  - Why it fails: category lookup throws `IllegalArgumentException("Category Not Found")`.
+  - Violated prerequisite or constraint: category name must exist.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+There are no API functions to create or update catalog products or categories.
 
-### Behavior 9: Add To Cart
+### Behavior 5: View Products in a Named Category
 
 Business goal:
-addToCart.
+Show products belonging to a selected storefront category.
 
 Domain context:
-This behavior belongs to the `cart-controller` capability area and operates through `POST /api/cart/add/{sku}`.
+Category pages are a standard e-commerce navigation flow.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing catalog database state.
 
 Required execution workflow:
-1. Use function `add to cart` (`POST /api/cart/add/{sku}`) with path: sku required.
+1. Use function `list categories` (`GET /api/store/catalog/categories`) to obtain `categoryName`.
+2. Use function `list products by category` (`GET /api/store/catalog/products/category/{categoryName}`) with `categoryName={categoryNameFromCategoryList}` to retrieve products in that category.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={skuFromCategoryResult}` to inspect a selected product.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Step 1 can be skipped if the exact category name is already known.
+- Direct MongoDB setup can insert the category and products.
+- Products must be saved with their `category` field equal to the resolved `Category` object.
 
 Parameter and value bindings:
-- Path values `sku` identify the business resource scope for the operation.
+- The `categoryName` returned or known from category data must be reused exactly in the path.
+- Product `sku` values returned from the category listing can be reused for product detail.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The client receives all products whose saved category matches the named category.
 
 Constraints and invariants:
-- Required request values: `sku`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Category matching is by `Category.name`.
+- Product lookup is by resolved `Category` object, not only by category text.
+- No category ownership or visibility rules are enforced.
 
 Failure and exceptional cases:
-- Failing function: `add to cart`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `add to cart`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `add to cart`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `list products by category`
+  - Failure condition: missing category.
+  - Why it fails: `CategoryRepository.findByName` returns empty.
+  - Violated prerequisite or constraint: category must exist before category browsing.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+If products contain a category object that does not equal the repository-resolved category object, they may not appear even if the displayed category name is similar.
 
-### Behavior 10: Delete Rating
+### Behavior 6: Search the Catalog Globally
 
 Business goal:
-deleteRating.
+Find products by text and inspect global facets.
 
 Domain context:
-This behavior belongs to the `product-rating-controller` capability area and operates through `DELETE /api/products/ratings/delete/{ratingId}`.
+Customers need keyword search across product names and descriptions.
 
 Starting point:
-The target resource identified by the path should exist and be eligible for removal.
+Pre-existing Elasticsearch index state.
 
 Required execution workflow:
-1. Use function `delete rating` (`DELETE /api/products/ratings/delete/{ratingId}`) with body: productRatingDto required; path: ratingId required.
+1. Use function `search catalog globally` (`POST /api/store/catalog/search`) with body `textQuery="phone"`, `filters=[]` to search product `name` and `description`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the resource is absent or no longer active.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={skuFromSearchHit}` to inspect a MongoDB-backed product detail, if the same SKU exists in MongoDB.
 
 Existing-state shortcuts:
-- Direct setup can create the target resource before invoking the delete operation.
+- No API function indexes products into Elasticsearch.
+- Direct Elasticsearch setup can create `product` index documents.
+- Direct MongoDB setup is only needed if search hits will be cross-checked through product detail.
 
 Parameter and value bindings:
-- Path values `ratingId` identify the business resource scope for the operation.
+- The body `filters` field must exist and be a list, even if empty.
+- Search hit `sku` can be reused in catalog detail or rating workflows.
+- Filters use `key` and `value`, but in global search they affect aggregations and min/max price, not returned hits.
 
 Business result:
-The addressed resource is removed, cancelled, or detached from its previous scope.
+The client receives product hits, min and max price, Brand facets, and Category facets from Elasticsearch.
 
 Constraints and invariants:
-- Required request values: `productRatingDto`, `ratingId`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `filters=null` is invalid in implementation.
+- `from` and `to` fields exist in DTO but are unused.
+- Returned hits are limited by the search source size of 16.
+- Global filters are not applied as a post-filter to returned hits.
 
 Failure and exceptional cases:
-- Failing function: `delete rating`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `delete rating`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `search catalog globally`
+  - Failure condition: body omits `filters` or sets `filters=null`.
+  - Why it fails: implementation iterates over `searchQueryDto.getFilters()` without a null guard.
+  - Violated prerequisite or constraint: filters must be a non-null list.
+- Failing function: `retrieve product by SKU`
+  - Failure condition: search hit SKU exists only in Elasticsearch, not MongoDB.
+  - Why it fails: Mongo product lookup fails.
+  - Violated prerequisite or constraint: SKU must exist in MongoDB for product detail.
 
 Implementation notes:
-Success responses: 200 OK; 204 No Content. Failure responses: 401 Unauthorized; 403 Forbidden.
+The implementation prioritizes Elasticsearch state for search. Search and Mongo catalog state can diverge.
 
-### Behavior 11: Edit Rating
+### Behavior 7: Filter a Category Page by Facets
 
 Business goal:
-editRating.
+Search within a category and narrow results by product attributes.
 
 Domain context:
-This behavior belongs to the `product-rating-controller` capability area and operates through `PUT /api/products/ratings/edit`.
+A category page with filters such as Brand, RAM, or Screen Size is a common storefront workflow.
 
 Starting point:
-The target resource identified by the path should exist unless the implementation treats the request as an upsert.
+Pre-existing MongoDB category state and Elasticsearch product index state.
 
 Required execution workflow:
-1. Use function `edit rating` (`PUT /api/products/ratings/edit`) with body: productRatingDto required.
+1. Use function `list categories` (`GET /api/store/catalog/categories`) to obtain `categoryName`.
+2. Use function `filter category catalog` (`POST /api/store/catalog/{categoryName}/facets/filter`) with path `categoryName={categoryNameFromCategoryList}` and body `textQuery=""`, `filters=[{"key":"Brand","value":"Samsung"}]` to search the named category and apply attribute filters.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={skuFromFilterHit}` to inspect a returned product if MongoDB contains the same SKU.
 
 Existing-state shortcuts:
-- Direct setup can create the target resource before invoking the update operation.
+- Step 1 can be skipped if the exact category name is already known.
+- Direct MongoDB setup must provide a `Category` with `name={categoryName}` and relevant `possibleFacets`.
+- Direct Elasticsearch setup must provide product documents with matching `category.name` and nested `productAttributeList`.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- The path `categoryName` must match an existing MongoDB `Category.name`.
+- The category’s `possibleFacets` drives facet aggregation names.
+- Each filter’s `key` must match `productAttributeList.attributeName.keyword`; each `value` must match `productAttributeList.attributeValue.keyword`.
+- Returned `sku` values can be reused in detail or rating operations.
 
 Business result:
-The addressed resource is replaced with the submitted representation or command result.
+The client receives category-scoped product hits, filtered facets, and min/max prices.
 
 Constraints and invariants:
-- Required request values: `productRatingDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Blank or absent `textQuery` with a category path searches by `category.name`.
+- `filters` must be non-null.
+- Category must exist in MongoDB even though hits come from Elasticsearch.
+- Facet definitions are category-driven.
 
 Failure and exceptional cases:
-- Failing function: `edit rating`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `edit rating`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `edit rating`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `filter category catalog`
+  - Failure condition: unknown `categoryName`.
+  - Why it fails: `SearchService.searchWithFilters` cannot load category `possibleFacets`.
+  - Violated prerequisite or constraint: category must exist.
+- Failing function: `filter category catalog`
+  - Failure condition: `filters=null`.
+  - Why it fails: service iterates over filters without a null guard.
+  - Violated prerequisite or constraint: filters must be a list.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+This endpoint combines MongoDB category metadata with Elasticsearch product search. Missing `possibleFacets` can weaken facet output even when product documents exist.
 
-### Behavior 12: Get Rating
+### Behavior 8: Text Search Using a Category’s Facet Set
 
 Business goal:
-getRating.
+Search by free text while displaying facet choices configured for a selected category.
 
 Domain context:
-This behavior belongs to the `product-rating-controller` capability area and operates through `GET /api/products/ratings/get/{sku}`.
+The same endpoint supports a different behavior when `textQuery` is nonblank.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing MongoDB category state and Elasticsearch product index state.
 
 Required execution workflow:
-1. Use function `get rating` (`GET /api/products/ratings/get/{sku}`) with path: sku required.
+1. Use function `list categories` (`GET /api/store/catalog/categories`) to obtain `categoryName`.
+2. Use function `search text with category facets` (`POST /api/store/catalog/{categoryName}/facets/filter`) with path `categoryName={categoryNameFromCategoryList}` and body `textQuery="watch"`, `filters=[]`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={skuFromSearchHit}` if product detail inspection is needed.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Step 1 can be skipped if category name is known.
+- Direct MongoDB setup can create the category metadata.
+- Direct Elasticsearch setup can create matching searchable product documents.
 
 Parameter and value bindings:
-- Path values `sku` identify the business resource scope for the operation.
+- The path `categoryName` is reused only to load `possibleFacets`.
+- Nonblank `textQuery` is searched against product `name` and `description`.
+- `filters` can further post-filter hits by nested attributes.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The client receives text-search hits and facets based on the named category’s configured facet names.
 
 Constraints and invariants:
-- Required request values: `sku`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- The path category is not used to constrain hits when `textQuery` is nonblank.
+- `filters` must be non-null.
+- The category must exist even if the text search is effectively global.
 
 Failure and exceptional cases:
-- Failing function: `get rating`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `get rating`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `get rating`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `search text with category facets`
+  - Failure condition: unknown category.
+  - Why it fails: category lookup occurs before search.
+  - Violated prerequisite or constraint: category facet configuration must exist.
+- Failing function: `search text with category facets`
+  - Failure condition: `filters=null`.
+  - Why it fails: null filter iteration.
+  - Violated prerequisite or constraint: filters must be a list.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The endpoint name suggests category filtering, but nonblank `textQuery` changes the behavior to global text search with category-selected facets.
 
-### Behavior 13: Post Rating
+### Behavior 9: Submit a Product Rating
 
 Business goal:
-postRating.
+Allow an authenticated customer to leave a review and star rating for a product.
 
 Domain context:
-This behavior belongs to the `product-rating-controller` capability area and operates through `POST /api/products/ratings/submit`.
+Ratings enrich product detail and search-facing product data.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Pre-existing product state in both MongoDB and Elasticsearch.
 
 Required execution workflow:
-1. Use function `post rating` (`POST /api/products/ratings/submit`) with body: productRatingDto required.
+1. Use function `register user` (`POST /api/auth/register`) with body `username=alice`, `name=Alice Example`, `email=alice@example.com`, `password=Password123`, `confirmPassword=Password123`.
+2. Capture `{token}` from email or `VerificationToken`.
+3. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with `token={token}`.
+4. Use function `log in and obtain token` (`POST /api/auth/login`) with body `username=alice`, `password=Password123` and capture `accessToken`.
+5. Use function `submit product rating` (`POST /api/products/ratings/submit`) with header `Authorization: Bearer {accessToken}` and body `sku={existingSku}`, `ratingStars=5`, `review="Great product"`, `userName="alice"`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+1. Use function `retrieve product ratings` (`GET /api/products/ratings/get/{sku}`) with header `Authorization: Bearer {accessToken}` and path `sku={existingSku}` to inspect the new rating and generated `ratingId`.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Steps 1 to 4 can be skipped if a valid bearer token for an enabled user already exists.
+- Product setup cannot be done through the API; direct MongoDB and Elasticsearch setup must create matching product documents with the same `sku`.
+- The core submit step cannot be skipped.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- `accessToken` from login is reused in the Authorization header.
+- Body `sku` must match both MongoDB `Product.sku` and Elasticsearch `ElasticSearchProduct.sku`.
+- Body `userName` is persisted as supplied and is not checked against the authenticated user.
+- The generated `ratingId` is not returned by submit; it must be obtained later through `retrieve product ratings`.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+A new rating with generated ID, product ID, Elasticsearch product ID, stars, review, and user name is appended to the MongoDB product and copied to the Elasticsearch product.
 
 Constraints and invariants:
-- Required request values: `productRatingDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Authentication is required by security configuration.
+- `ratingStars` must be between 1 and 5 when supplied.
+- Product must exist in both stores.
+- No one-rating-per-user rule is enforced.
+- No ownership check binds body `userName` to the JWT principal.
 
 Failure and exceptional cases:
-- Failing function: `post rating`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `post rating`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `post rating`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `submit product rating`
+  - Failure condition: missing or invalid bearer token.
+  - Why it fails: `/api/products/ratings/**` requires authentication.
+  - Violated prerequisite or constraint: protected endpoint requires `Authorization`.
+- Failing function: `submit product rating`
+  - Failure condition: `sku` missing from MongoDB or Elasticsearch.
+  - Why it fails: both repositories are queried and either missing document raises `SpringStoreException`.
+  - Violated prerequisite or constraint: product must exist in both product stores.
+- Failing function: `submit product rating`
+  - Failure condition: `ratingStars` below 1 or above 5.
+  - Why it fails: DTO validation rejects the request.
+  - Violated prerequisite or constraint: rating value range.
 
 Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Swagger does not define the bearer security requirement, but implementation enforces it.
 
-### Behavior 14: Read All Categories
+### Behavior 10: Retrieve Product Ratings
 
 Business goal:
-readAllCategories.
+Inspect review history for a product and discover generated rating IDs.
 
 Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `GET /api/store/catalog/categories`.
+Generated rating IDs are required for edit workflows.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing MongoDB product with non-null rating list, or a rating submitted through the API.
 
 Required execution workflow:
-1. Use function `read all categories` (`GET /api/store/catalog/categories`) with no request parameters or body declared.
+1. Use function `register user` (`POST /api/auth/register`) with valid registration body.
+2. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with the generated `token`.
+3. Use function `log in and obtain token` (`POST /api/auth/login`) with matching credentials and capture `accessToken`.
+4. Use function `retrieve product ratings` (`GET /api/products/ratings/get/{sku}`) with header `Authorization: Bearer {accessToken}` and `sku={existingSku}`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Auth setup can be skipped with an existing valid bearer token.
+- Rating creation can be done by `submit product rating` before retrieval, or by direct database insertion.
+- The product’s `productRating` list must be non-null; an empty list works, but null fails.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- The same `sku` identifies the MongoDB product whose ratings are read.
+- `ratingId` values returned here can be reused by `edit product rating`.
+- The same `accessToken` from login is reused in the Authorization header.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The client receives the product’s rating DTOs, including generated `ratingId` values.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Authentication is required.
+- The MongoDB product must exist.
+- The rating list must not be null.
 
 Failure and exceptional cases:
-- Failing function: `read all categories`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read all categories`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read all categories`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `retrieve product ratings`
+  - Failure condition: missing or invalid bearer token.
+  - Why it fails: security configuration requires authentication.
+  - Violated prerequisite or constraint: protected endpoint authentication.
+- Failing function: `retrieve product ratings`
+  - Failure condition: unknown `sku`.
+  - Why it fails: MongoDB product lookup fails.
+  - Violated prerequisite or constraint: product must exist.
+- Failing function: `retrieve product ratings`
+  - Failure condition: product `productRating=null`.
+  - Why it fails: implementation calls `.stream()` on null.
+  - Violated prerequisite or constraint: rating list must be initialized.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+After `delete product ratings`, this read can fail because delete sets `productRating` to null rather than an empty list.
 
-### Behavior 15: Read All Products
+### Behavior 11: Edit an Existing Product Rating
 
 Business goal:
-readAllProducts.
+Change the star value and review text of a previously created rating.
 
 Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `GET /api/store/catalog/products`.
+Customers or moderators may need to revise reviews, although ownership is not enforced.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing product state in both MongoDB and Elasticsearch, plus a rating on the MongoDB product.
 
 Required execution workflow:
-1. Use function `read all products` (`GET /api/store/catalog/products`) with no request parameters or body declared.
+1. Use function `register user` (`POST /api/auth/register`) with valid body.
+2. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with generated `token`.
+3. Use function `log in and obtain token` (`POST /api/auth/login`) and capture `accessToken`.
+4. Use function `submit product rating` (`POST /api/products/ratings/submit`) with header `Authorization: Bearer {accessToken}` and body `sku={existingSku}`, `ratingStars=4`, `review="Initial review"`, `userName="alice"`.
+5. Use function `retrieve product ratings` (`GET /api/products/ratings/get/{sku}`) with header `Authorization: Bearer {accessToken}` and `sku={existingSku}` to capture `ratingId`.
+6. Use function `edit product rating` (`PUT /api/products/ratings/edit`) with header `Authorization: Bearer {accessToken}` and body `sku={existingSku}`, `ratingId={capturedRatingId}`, `ratingStars=5`, `review="Updated review"`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `retrieve product ratings` (`GET /api/products/ratings/get/{sku}`) with the same `sku` and token to verify the changed stars and review.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Auth setup can be skipped with a valid bearer token.
+- Steps 4 and 5 can be skipped if a known `ratingId` already exists on the MongoDB product’s rating list.
+- Direct database setup can insert a product rating, but the `ratingId` must match the edit body.
+- Matching Elasticsearch product by the same `sku` is still required even though edit does not update its rating list.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- `sku` used for submit, retrieve, and edit must be the same product SKU.
+- `ratingId` captured from retrieve must be reused in edit body.
+- `accessToken` is reused across protected operations.
+- Replacement `ratingStars` and `review` overwrite the MongoDB rating fields.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The MongoDB product rating identified by `ratingId` has updated stars and review text. Elasticsearch product is fetched and saved, but its rating list is not modified by edit.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Authentication is required.
+- Product must exist in both MongoDB and Elasticsearch.
+- Rating ID must exist on the MongoDB product identified by `sku`.
+- `ratingStars` must be between 1 and 5.
+- Rating ownership is not checked.
 
 Failure and exceptional cases:
-- Failing function: `read all products`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read all products`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read all products`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `edit product rating`
+  - Failure condition: `ratingId` does not exist on the body `sku`.
+  - Why it fails: service filters the product rating list and throws `SpringStoreException`.
+  - Violated prerequisite or constraint: rating ID must belong to the product.
+- Failing function: `edit product rating`
+  - Failure condition: missing MongoDB or Elasticsearch product for `sku`.
+  - Why it fails: both stores are looked up before edit completes.
+  - Violated prerequisite or constraint: product must exist in both stores.
+- Failing function: `retrieve product ratings`
+  - Failure condition: product rating list is null after prior deletion.
+  - Why it fails: null stream access.
+  - Violated prerequisite or constraint: rating list must be initialized.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The edit operation can make MongoDB and Elasticsearch rating data inconsistent because it does not mutate the Elasticsearch rating list before saving.
 
-### Behavior 16: Read Product By Category
+### Behavior 12: Clear Product Ratings
 
 Business goal:
-readProductByCategory.
+Remove all ratings from a product.
 
 Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `GET /api/store/catalog/products/category/{categoryName}`.
+This is exposed as delete-by-rating-ID, but the implemented business behavior is product-level rating clearing.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing product state in both MongoDB and Elasticsearch.
 
 Required execution workflow:
-1. Use function `read product by category` (`GET /api/store/catalog/products/category/{categoryName}`) with path: categoryName required.
+1. Use function `register user` (`POST /api/auth/register`) with valid body.
+2. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with generated `token`.
+3. Use function `log in and obtain token` (`POST /api/auth/login`) and capture `accessToken`.
+4. Use function `delete product ratings` (`DELETE /api/products/ratings/delete/{ratingId}`) with header `Authorization: Bearer {accessToken}`, path `ratingId=anyValueOrKnownRatingId`, and body `sku={existingSku}`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={existingSku}` to inspect product DTO ratings as an empty list.
+2. Do not use `retrieve product ratings` immediately after deletion as the only verification because it may fail when `productRating=null`.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Auth setup can be skipped with a valid bearer token.
+- Direct MongoDB and Elasticsearch setup must provide matching products by `sku`.
+- A real `ratingId` is not required by implementation, although the path requires a value.
 
 Parameter and value bindings:
-- Path values `categoryName` identify the business resource scope for the operation.
+- Body `sku` controls which product is cleared.
+- Path `ratingId` is ignored by implementation.
+- `accessToken` is reused in the Authorization header.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The MongoDB product and Elasticsearch product identified by body `sku` have `productRating=null`. All ratings are removed for that SKU.
 
 Constraints and invariants:
-- Required request values: `categoryName`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Authentication is required.
+- Product must exist in both stores.
+- The implementation does not validate that path `ratingId` exists or belongs to the body `sku`.
 
 Failure and exceptional cases:
-- Failing function: `read product by category`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read product by category`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read product by category`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `delete product ratings`
+  - Failure condition: missing or invalid bearer token.
+  - Why it fails: protected endpoint requires authentication.
+  - Violated prerequisite or constraint: valid Authorization header.
+- Failing function: `delete product ratings`
+  - Failure condition: body `sku` missing from MongoDB or Elasticsearch.
+  - Why it fails: repository lookup throws `SpringStoreException`.
+  - Violated prerequisite or constraint: body SKU must identify a product in both stores.
+- Failing function: `delete product ratings`
+  - Failure condition: path `ratingId` belongs to product A but body `sku` names product B.
+  - Why it fails: it does not fail as expected; the implementation ignores `ratingId` and clears product B.
+  - Violated prerequisite or constraint: API contract implies rating-specific deletion, but implementation does not enforce it.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+This is a major OpenAPI/implementation discrepancy. The path says delete one rating by ID; source code clears all ratings for body `sku`.
 
-### Behavior 17: Read Featured Products
+### Behavior 13: Acknowledge Add-to-Cart Request
 
 Business goal:
-readFeaturedProducts.
+Allow an authenticated customer to send an add-to-cart action.
 
 Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `GET /api/store/catalog/products/featured`.
+Cart interaction is expected in an e-commerce service, but this implementation only acknowledges the request.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+No prior product state is required by the active implementation.
 
 Required execution workflow:
-1. Use function `read featured products` (`GET /api/store/catalog/products/featured`) with no request parameters or body declared.
+1. Use function `register user` (`POST /api/auth/register`) with valid body.
+2. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with generated `token`.
+3. Use function `log in and obtain token` (`POST /api/auth/login`) and capture `accessToken`.
+4. Use function `acknowledge add to cart` (`POST /api/cart/add/{sku}`) with header `Authorization: Bearer {accessToken}` and path `sku={anySkuValue}`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Auth setup can be skipped with a valid bearer token.
+- Direct product setup is not required because the active `CartService.addToCart` does not check product existence.
+- Direct cart database inspection will not show a new cart item because no mutation is performed.
 
 Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+- `accessToken` from login is reused in the Authorization header.
+- Path `sku` is accepted but not consumed by active business logic.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The API returns HTTP 200 for an authenticated request. No cart, cart item, product relationship, quantity, or customer cart state is persisted.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Authentication is required.
+- Product existence is not enforced.
+- No ownership, quantity, inventory, or duplicate-line handling exists.
 
 Failure and exceptional cases:
-- Failing function: `read featured products`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read featured products`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read featured products`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `acknowledge add to cart`
+  - Failure condition: missing or invalid bearer token.
+  - Why it fails: `/api/cart/**` is not public.
+  - Violated prerequisite or constraint: protected endpoint authentication.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+The intended cart logic is commented out in `CartService`. The endpoint should not be treated as a functional cart mutation.
 
-### Behavior 18: Read One Product
+### Behavior 14: End-to-End Customer Review Lifecycle
 
 Business goal:
-readOneProduct.
+Register, activate, authenticate, create a product review, retrieve its generated ID, edit it, and then clear product ratings.
 
 Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `GET /api/store/catalog/products/{sku}`.
+This is the closest complete customer-generated-content workflow supported by the API.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Pre-existing product state in both MongoDB and Elasticsearch.
 
 Required execution workflow:
-1. Use function `read one product` (`GET /api/store/catalog/products/{sku}`) with path: sku required.
+1. Use function `register user` (`POST /api/auth/register`) with body `username=alice`, `name=Alice Example`, `email=alice@example.com`, `password=Password123`, `confirmPassword=Password123`.
+2. Capture `{token}` from email or `VerificationToken`.
+3. Use function `verify account` (`GET /api/auth/accountVerification/{token}`) with `token={token}`.
+4. Use function `log in and obtain token` (`POST /api/auth/login`) with body `username=alice`, `password=Password123`; capture `accessToken`.
+5. Use function `submit product rating` (`POST /api/products/ratings/submit`) with header `Authorization: Bearer {accessToken}` and body `sku={existingSku}`, `ratingStars=4`, `review="Initial review"`, `userName="alice"`.
+6. Use function `retrieve product ratings` (`GET /api/products/ratings/get/{sku}`) with header `Authorization: Bearer {accessToken}` and `sku={existingSku}`; capture `ratingId`.
+7. Use function `edit product rating` (`PUT /api/products/ratings/edit`) with header `Authorization: Bearer {accessToken}` and body `sku={existingSku}`, `ratingId={capturedRatingId}`, `ratingStars=5`, `review="Updated review"`.
+8. Use function `delete product ratings` (`DELETE /api/products/ratings/delete/{ratingId}`) with header `Authorization: Bearer {accessToken}`, path `ratingId={capturedRatingId}`, and body `sku={existingSku}` to clear all ratings for the product.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+1. Use function `retrieve product by SKU` (`GET /api/store/catalog/products/{sku}`) with `sku={existingSku}` to inspect the product DTO after clearing.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Account setup can be skipped if a valid bearer token exists.
+- Rating submission/retrieval can be skipped before edit only if a valid `ratingId` already exists on the product.
+- Product and Elasticsearch setup must be done directly because no API creates them.
 
 Parameter and value bindings:
-- Path values `sku` identify the business resource scope for the operation.
+- The same `username` and raw `password` bind registration to login.
+- The verification `token` binds registration to activation.
+- `accessToken` binds login to protected rating operations.
+- The same `sku` scopes submit, retrieve, edit, and delete.
+- `ratingId` generated during submit and discovered by retrieve is reused for edit and path delete, although delete ignores it.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+A user account is created and enabled. A rating is created, then the MongoDB rating is edited, then all ratings for the body SKU are cleared in both MongoDB and Elasticsearch.
 
 Constraints and invariants:
-- Required request values: `sku`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Product must exist in both MongoDB and Elasticsearch.
+- Authentication is required for all rating functions.
+- Rating ownership is not enforced.
+- Delete clears all product ratings, not one rating.
+- Edit does not update Elasticsearch rating content.
 
 Failure and exceptional cases:
-- Failing function: `read one product`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read one product`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `read one product`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `log in and obtain token`
+  - Failure condition: activation skipped.
+  - Why it fails: disabled accounts cannot authenticate.
+  - Violated prerequisite or constraint: user must be enabled.
+- Failing function: `submit product rating`
+  - Failure condition: product exists in MongoDB but not Elasticsearch, or vice versa.
+  - Why it fails: both repository lookups are required.
+  - Violated prerequisite or constraint: SKU must be present in both stores.
+- Failing function: `edit product rating`
+  - Failure condition: `ratingId` was not captured from the same product.
+  - Why it fails: rating ID lookup is scoped to the body `sku`.
+  - Violated prerequisite or constraint: rating ID must belong to that product.
+- Failing function: `delete product ratings`
+  - Failure condition: path `ratingId` and body `sku` disagree.
+  - Why it fails: it does not fail; body SKU wins.
+  - Violated prerequisite or constraint: expected rating-specific deletion is not enforced.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+This workflow exposes the service’s strongest supported customer write path, but also highlights weak ownership, incomplete Elasticsearch synchronization, and delete semantics that differ from the URL.
 
-### Behavior 19: Search
+## Unsupported or Missing Business Behaviors
 
-Business goal:
-search.
+### Missing Behavior 1: Manage Catalog Products Through the API
 
-Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `POST /api/store/catalog/search`.
+Priority:
+Critical domain gap
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Expected business goal:
+Administrators should be able to create, update, delete, activate, deactivate, or inventory-adjust catalog products.
 
-Required execution workflow:
-1. Use function `search` (`POST /api/store/catalog/search`) with body: searchQueryDto required.
+Why it is unsupported:
+No exposed controller function persists products. `ProductService.save` exists but is incomplete and unused by controllers.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Existing functions considered:
+- `list products`: reads products only.
+- `retrieve product by SKU`: reads one product only.
+- `list featured products`: reads featured products only.
+- `list products by category`: reads by category only.
+- `submit product rating`: mutates only product ratings, not product catalog data.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Missing capability:
+Product create/update/delete endpoints, SKU uniqueness validation, inventory updates, featured flag management, and MongoDB/Elasticsearch synchronization.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Proof that function composition is insufficient:
+Chaining read, search, and rating functions cannot create a new product, change product price, change inventory, or remove a catalog item. Direct database insertion is possible but is not an API behavior and does not guarantee Elasticsearch synchronization.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Evidence from existing functions/source:
+Catalog controller exposes only read/search endpoints. `AdminController` is empty.
 
-Constraints and invariants:
-- Required request values: `searchQueryDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Business impact:
+The storefront cannot be administered through its own REST API.
 
-Failure and exceptional cases:
-- Failing function: `search`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `search`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+### Missing Behavior 2: Manage Categories Through the API
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Priority:
+Critical domain gap
 
-### Behavior 20: Filter For Facets
+Expected business goal:
+Administrators should be able to create, update, rename, delete, and configure category facet definitions.
 
-Business goal:
-filterForFacets.
+Why it is unsupported:
+There is only `list categories`; no category mutation endpoint exists.
 
-Domain context:
-This behavior belongs to the `catalog-controller` capability area and operates through `POST /api/store/catalog/{categoryName}/facets/filter`.
+Existing functions considered:
+- `list categories`: lists category names.
+- `list products by category`: requires an existing category.
+- `filter category catalog`: requires existing category `possibleFacets`.
+- `search text with category facets`: requires existing category `possibleFacets`.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Missing capability:
+Category CRUD, category rename, facet configuration management, and safe category deletion/reassignment rules.
 
-Required execution workflow:
-1. Use function `filter for facets` (`POST /api/store/catalog/{categoryName}/facets/filter`) with path: categoryName required; body: searchQueryDto required.
+Proof that function composition is insufficient:
+Existing functions can consume category state but cannot create or modify it. Search facet behavior depends on `possibleFacets`, which cannot be changed through the API.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Evidence from existing functions/source:
+`CategoryRepository` supports persistence, but `CatalogController` only reads categories.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Business impact:
+Category navigation and faceted search depend on out-of-band database maintenance.
 
-Parameter and value bindings:
-- Path values `categoryName` identify the business resource scope for the operation.
+### Missing Behavior 3: Functional Shopping Cart Management
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Priority:
+Critical domain gap
 
-Constraints and invariants:
-- Required request values: `categoryName`, `searchQueryDto`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Expected business goal:
+Customers should be able to add products to a cart, view cart contents, update quantities, remove items, and retain cart state.
 
-Failure and exceptional cases:
-- Failing function: `filter for facets`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `filter for facets`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `filter for facets`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Why it is unsupported:
+`acknowledge add to cart` returns success but active service logic is empty.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Existing functions considered:
+- `acknowledge add to cart`: authenticates and returns OK, but does not persist cart items.
+- `retrieve product by SKU`: can inspect product existence but is not used by cart logic.
+- `log in and obtain token`: supplies authentication only.
 
-### Behavior 21: Error Html
+Missing capability:
+Cart item persistence, product existence validation, quantity handling, cart retrieval, item removal, and customer-cart ownership.
 
-Business goal:
-errorHtml.
+Proof that function composition is insufficient:
+No function writes cart state. Repeating `acknowledge add to cart` produces no persisted cart item and no API can list cart contents.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `GET /error`.
+Evidence from existing functions/source:
+`CartService.addToCart` contains only commented-out logic.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Business impact:
+A core e-commerce shopping workflow is nonfunctional.
 
-Required execution workflow:
-1. Use function `error html` (`GET /error`) with no request parameters or body declared.
+### Missing Behavior 4: Checkout and Order Creation
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Priority:
+Critical domain gap
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+Expected business goal:
+Customers should be able to convert a cart into an order, reserve or decrement inventory, and receive order confirmation.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Why it is unsupported:
+There are no order, payment, checkout, shipping, or inventory mutation endpoints.
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Existing functions considered:
+- `acknowledge add to cart`: does not persist cart state.
+- `list products`: exposes products but does not reserve inventory.
+- `log in and obtain token`: authenticates only.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Missing capability:
+Order model, checkout endpoint, payment flow, shipping data, inventory decrement, transactional order creation.
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Proof that function composition is insufficient:
+Without persisted cart state or order endpoints, no sequence of existing functions can create an order or alter inventory.
 
-### Behavior 22: Error Html
+Evidence from existing functions/source:
+No order controller, service, model, or repository is present in the exposed API.
 
-Business goal:
-errorHtml.
+Business impact:
+The service behaves as a catalog and review API, not a complete commerce transaction system.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `POST /error`.
+### Missing Behavior 5: Delete One Specific Rating Safely
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Priority:
+Important robustness gap
 
-Required execution workflow:
-1. Use function `error html` (`POST /error`) with no request parameters or body declared.
+Expected business goal:
+Delete exactly one rating by `ratingId` for a product.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Why it is unsupported:
+`delete product ratings` ignores path `ratingId` and clears all ratings for body `sku`.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Existing functions considered:
+- `retrieve product ratings`: can discover rating IDs.
+- `delete product ratings`: accepts `ratingId` path but does not use it.
+- `edit product rating`: validates rating ID but only edits.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Missing capability:
+Single-rating deletion that checks the rating belongs to the product and removes only that rating.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Proof that function composition is insufficient:
+Retrieving a rating ID before delete does not matter because delete ignores it. Delete-and-recreate is not equivalent because generated IDs, ordering, timestamps if later added, and other users’ ratings cannot be preserved safely.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Evidence from existing functions/source:
+`ProductRatingController.deleteRating` receives path `ratingId`, but `ProductService.deleteProductRating` only uses body `sku` and sets `productRating=null`.
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Business impact:
+A user trying to delete one review can accidentally erase all reviews for a product.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+### Missing Behavior 6: Enforce Rating Ownership
 
-### Behavior 23: Error Html
+Priority:
+Important robustness gap
 
-Business goal:
-errorHtml.
+Expected business goal:
+Only the authenticated user who authored a rating, or an authorized moderator, should edit or delete it.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `PUT /error`.
+Why it is unsupported:
+Rating body `userName` is trusted and not compared with the authenticated principal.
 
-Starting point:
-The target resource identified by the path should exist unless the implementation treats the request as an upsert.
+Existing functions considered:
+- `submit product rating`: saves body `userName`.
+- `edit product rating`: edits by `sku` and `ratingId`, no user check.
+- `delete product ratings`: clears by body `sku`, no user check.
+- `log in and obtain token`: authenticates user but protected services do not bind principal to rating owner.
 
-Required execution workflow:
-1. Use function `error html` (`PUT /error`) with no request parameters or body declared.
+Missing capability:
+Ownership checks against JWT principal, moderator roles, and rating-user relationship enforcement.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Proof that function composition is insufficient:
+Authentication provides identity, but no rating function consumes that identity for authorization decisions.
 
-Existing-state shortcuts:
-- Direct setup can create the target resource before invoking the update operation.
+Evidence from existing functions/source:
+`ProductService` methods accept only DTO values and do not use `AuthService.getCurrentUser`.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Business impact:
+Any authenticated user can submit ratings under another username, edit another user’s rating, or clear all product ratings.
 
-Business result:
-The addressed resource is replaced with the submitted representation or command result.
+### Missing Behavior 7: Keep MongoDB and Elasticsearch Product Ratings Consistent
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Priority:
+Important robustness gap
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not Found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Expected business goal:
+Rating creation, edit, and deletion should leave MongoDB and Elasticsearch with equivalent rating state.
 
-Implementation notes:
-Success responses: 200 OK; 201 Created. Failure responses: 401 Unauthorized; 403 Forbidden; 404 Not Found.
+Why it is unsupported:
+Submit copies ratings to both stores, delete clears both stores, but edit mutates only the MongoDB rating object and saves the Elasticsearch product without changing its rating list.
 
-### Behavior 24: Error Html
+Existing functions considered:
+- `submit product rating`: writes both stores.
+- `edit product rating`: updates MongoDB rating but not Elasticsearch rating list.
+- `delete product ratings`: clears both stores.
+- `search catalog globally`: reads from Elasticsearch and can expose stale data.
 
-Business goal:
-errorHtml.
+Missing capability:
+Consistent update logic or a synchronization/reindex endpoint.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `DELETE /error`.
+Proof that function composition is insufficient:
+After edit, there is no function that updates the Elasticsearch rating to match the MongoDB edit except clearing all ratings or direct index repair.
 
-Starting point:
-The target resource identified by the path should exist and be eligible for removal.
+Evidence from existing functions/source:
+`editProductRating` changes `productRating` from MongoDB list, then calls `productSearchRepository.save(elasticSearchProduct)` without modifying `elasticSearchProduct.productRating`.
 
-Required execution workflow:
-1. Use function `error html` (`DELETE /error`) with no request parameters or body declared.
+Business impact:
+Search results and product detail can disagree about ratings.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the resource is absent or no longer active.
+### Missing Behavior 8: Account Recovery, Token Resend, and Token Expiration
 
-Existing-state shortcuts:
-- Direct setup can create the target resource before invoking the delete operation.
+Priority:
+Important robustness gap
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Expected business goal:
+Users should be able to resend activation emails, recover passwords, and rely on expiring one-time verification tokens.
 
-Business result:
-The addressed resource is removed, cancelled, or detached from its previous scope.
+Why it is unsupported:
+Only registration, verification, and login exist.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Existing functions considered:
+- `register user`: generates initial token.
+- `verify account`: enables user but does not consume or expire token.
+- `log in and obtain token`: requires enabled account.
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Missing capability:
+Resend verification, password reset request/confirm, token expiry, token consumption, and duplicate-token invalidation.
 
-Implementation notes:
-Success responses: 200 OK; 204 No Content. Failure responses: 401 Unauthorized; 403 Forbidden.
+Proof that function composition is insufficient:
+A disabled user with lost email cannot request a new token through the API. A used token remains valid because verification does not delete or mark it consumed.
 
-### Behavior 25: Error Html
+Evidence from existing functions/source:
+`AuthService.verifyAccount` enables the user but does not update or delete the `VerificationToken`.
 
-Business goal:
-errorHtml.
+Business impact:
+Account lifecycle is fragile and security controls around tokens are weak.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `PATCH /error`.
+### Missing Behavior 9: Accurate Product Availability and Inventory Rules
 
-Starting point:
-The target resource identified by the path should exist unless the implementation treats the request as an upsert.
+Priority:
+Important robustness gap
 
-Required execution workflow:
-1. Use function `error html` (`PATCH /error`) with no request parameters or body declared.
+Expected business goal:
+Customers should see correct in-stock/out-of-stock status and cart/checkout should enforce inventory.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Why it is unsupported:
+Availability label is incorrect for in-stock products, and no cart or checkout inventory enforcement exists.
 
-Existing-state shortcuts:
-- Direct setup can create the target resource before invoking the update operation.
+Existing functions considered:
+- `list products`: derives availability from `quantity`.
+- `retrieve product by SKU`: returns availability.
+- `acknowledge add to cart`: does not check product or quantity.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Missing capability:
+Correct availability label, inventory reservation/decrement, and out-of-stock blocking.
 
-Business result:
-The addressed resource is partially updated according to the submitted patch document or fields.
+Proof that function composition is insufficient:
+Reading quantity-derived DTOs cannot enforce stock rules. Add-to-cart does not inspect SKU or quantity.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Evidence from existing functions/source:
+`inStock()` returns `new ProductAvailability("Out of Stock", "forestgreen")`.
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Business impact:
+Customers may see misleading availability and can receive successful cart acknowledgements for nonexistent or unavailable SKUs.
 
-Implementation notes:
-Success responses: 200 OK; 204 No Content. Failure responses: 401 Unauthorized; 403 Forbidden.
+### Missing Behavior 10: Search Index Creation and Reindexing
 
-### Behavior 26: Error Html
+Priority:
+API ergonomics gap
 
-Business goal:
-errorHtml.
+Expected business goal:
+Administrators should be able to index products, rebuild search data, or sync MongoDB products into Elasticsearch.
 
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `HEAD /error`.
+Why it is unsupported:
+Search requires Elasticsearch documents, but no endpoint creates or refreshes them.
 
-Starting point:
-The caller can address the declared endpoint with the required parameters.
+Existing functions considered:
+- `search catalog globally`: reads Elasticsearch.
+- `filter category catalog`: reads Elasticsearch plus MongoDB category metadata.
+- `submit product rating`: updates existing Elasticsearch product only if found.
 
-Required execution workflow:
-1. Use function `error html` (`HEAD /error`) with no request parameters or body declared.
+Missing capability:
+Index product, reindex all products, update indexed product fields, and reconcile missing Elasticsearch documents.
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Proof that function composition is insufficient:
+If a MongoDB product has no Elasticsearch counterpart, search cannot find it and rating submit/edit/delete fail for that SKU. No existing API can create the missing Elasticsearch document.
 
-Existing-state shortcuts:
-- None beyond satisfying the declared request parameters.
+Evidence from existing functions/source:
+`ProductSearchRepository.findBySku` is required for rating writes; no controller exposes save/index operations.
 
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
+Business impact:
+Catalog and search can drift, and API clients cannot repair the drift.
 
-Business result:
-The endpoint returns the operation-specific result declared by the service contract.
+## Cross-Behavior Observations
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- The API is read-heavy for catalog data and lacks administrative catalog mutation endpoints.
+- Authentication is implemented through Spring Security, but Swagger does not clearly model bearer-token requirements for ratings and cart endpoints.
+- Account verification tokens are not returned by registration, not expired, and not consumed.
+- Rating operations have weak ownership controls; authenticated identity is not bound to `userName`.
+- Rating deletion is product-wide despite a rating-specific path.
+- MongoDB and Elasticsearch can diverge, especially after rating edits.
+- Global search filters influence aggregations but not returned hits.
+- Category-facet search changes meaning depending on whether `textQuery` is blank.
+- Product availability has an implementation bug: in-stock products still carry the text `"Out of Stock"`.
+- Add-to-cart is currently an acknowledgement endpoint with no domain mutation.
 
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+## Coverage Summary
 
-Implementation notes:
-Success responses: 200 OK; 204 No Content. Failure responses: 401 Unauthorized; 403 Forbidden.
+Supported domain areas:
+Customer registration, account activation, login, public catalog reads, category/product browsing, Elasticsearch search/facets, authenticated rating submission/retrieval/editing/clearing, and authenticated cart request acknowledgement.
 
-### Behavior 27: Error Html
+Partially supported domain areas:
+Product reviews are partially supported but lack ownership, single-rating deletion, and full search-index consistency. Search is partially supported but depends on out-of-band indexing and has filter semantics gaps. Cart is only superficially supported.
 
-Business goal:
-errorHtml.
-
-Domain context:
-This behavior belongs to the `basic-error-controller` capability area and operates through `OPTIONS /error`.
-
-Starting point:
-The caller can address the declared endpoint with the required parameters.
-
-Required execution workflow:
-1. Use function `error html` (`OPTIONS /error`) with no request parameters or body declared.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- None beyond satisfying the declared request parameters.
-
-Parameter and value bindings:
-- No request values are reused by later steps according to the OpenAPI contract.
-
-Business result:
-The endpoint returns the operation-specific result declared by the service contract.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `error html`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `error html`
-  - Failure condition: HTTP `403` response.
-  - Why it fails: Forbidden
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK; 204 No Content. Failure responses: 401 Unauthorized; 403 Forbidden.
+Unsupported domain areas:
+Catalog administration, category management, real cart persistence, checkout/orders, inventory enforcement, product indexing/reindexing, account recovery, token lifecycle hardening, and safe moderation workflows.

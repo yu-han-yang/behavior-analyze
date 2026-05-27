@@ -2,9228 +2,1642 @@
 
 ## Domain Summary
 
-The `ohsome-api` service is described by its OpenAPI contract as: This REST-based API aims to leverage the tools of the OSHDB through allowing to access some of its functionalities via HTTP requests. The official documentation can be found here .
+The service exposes request-scoped analytics over OpenStreetMap history data stored in OSHDB. Its main business concepts are OSM elements, OSM contributions, OSM contributor users, spatial boundaries, time ranges, OSM types, OSM tags, filters, and derived metrics.
 
-The core business concepts are:
+The API is not a CRUD service. It does not create OSM elements, users, contributions, boundaries, datasets, jobs, sessions, or reusable queries. Every supported function performs an immediate analytical read against a preconfigured OSHDB extract. The domain result is a count, length, area, perimeter, density, ratio, or grouped time series.
 
-- Contributions Count: endpoint group for contributions count behavior.
-- Elements Area: endpoint group for elements area behavior.
-- Elements Count: endpoint group for elements count behavior.
-- Elements Length: endpoint group for elements length behavior.
-- Elements Perimeter: endpoint group for elements perimeter behavior.
-- Users Count: endpoint group for users count behavior.
-
-Contract-level limits: this document captures externally visible business behavior from the API contract. Implementation-only validation, persistence side effects, authorization rules, and asynchronous processing details may be stricter than what is visible here.
+The implementation contains additional controllers for `/metadata`, `/elements/geometry`, `/elementsFullHistory/...`, and data-extraction `/contributions/...` endpoints, but `ohsome-api.json` and `full-behavior.md` exclude them. Supported behaviors below therefore use only exact function names from `full-behavior.md`.
 
 ## Available Function Inventory
 
-### Contributions Count
+### OSM Element Metrics
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `count of osm contributions` | `GET /contributions/count` | Count of OSM contributions. |
-| `count of osm contributions` | `POST /contributions/count` | Count of OSM contributions. |
-| `density of osm contributions number of contributions divided by the total area in square kilometers` | `GET /contributions/count/density` | Density of OSM contributions (number of contributions divided by the total area in square-kilometers). |
-| `density of osm contributions number of contributions divided by the total area in square kilometers` | `POST /contributions/count/density` | Density of OSM contributions (number of contributions divided by the total area in square-kilometers). |
-| `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys` | `GET /contributions/count/density/groupBy/boundary` | Count density of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys` | `POST /contributions/count/density/groupBy/boundary` | Count density of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of osm contributions grouped by boundary bboxes bcirlces or bpolys` | `GET /contributions/count/groupBy/boundary` | Count of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of osm contributions grouped by boundary bboxes bcirlces or bpolys` | `POST /contributions/count/groupBy/boundary` | Count of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of latest osm contributions` | `GET /contributions/latest/count` | Count of latest OSM contributions. |
-| `count of latest osm contributions` | `POST /contributions/latest/count` | Count of latest OSM contributions. |
-| `density of the latest osm contributions number of contributions divided by the total area in square kilometers` | `GET /contributions/latest/count/density` | Density of the latest OSM contributions (number of contributions divided by the total area in square-kilometers). |
-| `density of the latest osm contributions number of contributions divided by the total area in square kilometers` | `POST /contributions/latest/count/density` | Density of the latest OSM contributions (number of contributions divided by the total area in square-kilometers). |
+- `calculate OSM element metric`
+  - Core endpoints: `GET|POST /elements/count`, `/elements/length`, `/elements/area`, `/elements/perimeter`
+  - Domain meaning: compute count, total length, total area, or total perimeter of matching OSM elements over time.
 
-### Elements Area
+- `calculate OSM element metric density`
+  - Core endpoints: `GET|POST /elements/count/density`, `/elements/length/density`, `/elements/area/density`, `/elements/perimeter/density`
+  - Domain meaning: compute an element metric divided by requested boundary area.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `area of osm elements` | `GET /elements/area` | Area of OSM elements. |
-| `area of osm elements` | `POST /elements/area` | Area of OSM elements. |
-| `density of osm elements area of elements divided by the total area in square kilometers` | `GET /elements/area/density` | Density of OSM elements (area of elements divided by the total area in square-kilometers). |
-| `density of osm elements area of elements divided by the total area in square kilometers` | `POST /elements/area/density` | Density of OSM elements (area of elements divided by the total area in square-kilometers). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/area/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/area/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary and the tag` | `GET /elements/area/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the boundary and the tag` | `POST /elements/area/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the tag` | `GET /elements/area/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the tag` | `POST /elements/area/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the type` | `GET /elements/area/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `density of osm elements grouped by the type` | `POST /elements/area/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `area of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/area/groupBy/boundary` | Area of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `area of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/area/groupBy/boundary` | Area of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `area of osm elements grouped by the boundary and the tag` | `GET /elements/area/groupBy/boundary/groupBy/tag` | Area of OSM elements grouped by the boundary and the tag. |
-| `area of osm elements grouped by the boundary and the tag` | `POST /elements/area/groupBy/boundary/groupBy/tag` | Area of OSM elements grouped by the boundary and the tag. |
-| `area of osm elements grouped by the key` | `GET /elements/area/groupBy/key` | Area of OSM elements grouped by the key. |
-| `area of osm elements grouped by the key` | `POST /elements/area/groupBy/key` | Area of OSM elements grouped by the key. |
-| `area of osm elements grouped by the tag` | `GET /elements/area/groupBy/tag` | Area of OSM elements grouped by the tag. |
-| `area of osm elements grouped by the tag` | `POST /elements/area/groupBy/tag` | Area of OSM elements grouped by the tag. |
-| `area of osm elements grouped by the type` | `GET /elements/area/groupBy/type` | Area of OSM elements grouped by the type. |
-| `area of osm elements grouped by the type` | `POST /elements/area/groupBy/type` | Area of OSM elements grouped by the type. |
-| `ratio of the area of osm elements satisfying filter2 within items selected by filter` | `GET /elements/area/ratio` | Ratio of the area of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of the area of osm elements satisfying filter2 within items selected by filter` | `POST /elements/area/ratio` | Ratio of the area of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of the area of osm elements grouped by the boundary` | `GET /elements/area/ratio/groupBy/boundary` | Ratio of the area of OSM elements grouped by the boundary. |
-| `ratio of the area of osm elements grouped by the boundary` | `POST /elements/area/ratio/groupBy/boundary` | Ratio of the area of OSM elements grouped by the boundary. |
+- `calculate OSM element metric ratio`
+  - Core endpoints: `GET|POST /elements/count/ratio`, `/elements/length/ratio`, `/elements/area/ratio`, `/elements/perimeter/ratio`
+  - Domain meaning: compare two element selections and return `value`, `value2`, and `ratio`.
 
-### Elements Count
+### OSM Element Grouping
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `count of osm elements` | `GET /elements/count` | Count of OSM elements. |
-| `count of osm elements` | `POST /elements/count` | Count of OSM elements. |
-| `density of osm elements number of elements divided by the total area in square kilometers` | `GET /elements/count/density` | Density of OSM elements (number of elements divided by the total area in square-kilometers). |
-| `density of osm elements number of elements divided by the total area in square kilometers` | `POST /elements/count/density` | Density of OSM elements (number of elements divided by the total area in square-kilometers). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/count/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/count/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary and the tag` | `GET /elements/count/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the boundary and the tag` | `POST /elements/count/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the tag` | `GET /elements/count/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the tag` | `POST /elements/count/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the type` | `GET /elements/count/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `density of osm elements grouped by the type` | `POST /elements/count/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `count of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/count/groupBy/boundary` | Count of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `count of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/count/groupBy/boundary` | Count of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `count of osm elements grouped by the boundary and the tag` | `GET /elements/count/groupBy/boundary/groupBy/tag` | Count of OSM elements grouped by the boundary and the tag. |
-| `count of osm elements grouped by the boundary and the tag` | `POST /elements/count/groupBy/boundary/groupBy/tag` | Count of OSM elements grouped by the boundary and the tag. |
-| `count of osm elements grouped by the key` | `GET /elements/count/groupBy/key` | Count of OSM elements grouped by the key. |
-| `count of osm elements grouped by the key` | `POST /elements/count/groupBy/key` | Count of OSM elements grouped by the key. |
-| `count of osm elements grouped by the tag` | `GET /elements/count/groupBy/tag` | Count of OSM elements grouped by the tag. |
-| `count of osm elements grouped by the tag` | `POST /elements/count/groupBy/tag` | Count of OSM elements grouped by the tag. |
-| `count of osm elements grouped by the type` | `GET /elements/count/groupBy/type` | Count of OSM elements grouped by the type. |
-| `count of osm elements grouped by the type` | `POST /elements/count/groupBy/type` | Count of OSM elements grouped by the type. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `GET /elements/count/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `POST /elements/count/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of osm elements grouped by the boundary` | `GET /elements/count/ratio/groupBy/boundary` | Ratio of OSM elements grouped by the boundary. |
-| `ratio of osm elements grouped by the boundary` | `POST /elements/count/ratio/groupBy/boundary` | Ratio of OSM elements grouped by the boundary. |
+- `group OSM element metric by type`
+  - Core endpoints: `GET|POST /elements/{metric}/groupBy/type`
+  - Domain meaning: split an element metric by OSM type.
 
-### Elements Length
+- `group OSM element metric density by type`
+  - Core endpoints: `GET|POST /elements/{metric}/density/groupBy/type`
+  - Domain meaning: split an element density metric by OSM type.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `length of osm elements` | `GET /elements/length` | Length of OSM elements. |
-| `length of osm elements` | `POST /elements/length` | Length of OSM elements. |
-| `density of osm elements length of elements divided by the total area in square kilometers` | `GET /elements/length/density` | Density of OSM elements (length of elements divided by the total area in square-kilometers). |
-| `density of osm elements length of elements divided by the total area in square kilometers` | `POST /elements/length/density` | Density of OSM elements (length of elements divided by the total area in square-kilometers). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/length/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/length/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary and the tag` | `GET /elements/length/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the boundary and the tag` | `POST /elements/length/density/groupBy/boundary/groupBy/tag` | Density of OSM elements grouped by the boundary and the tag. |
-| `density of osm elements grouped by the tag` | `GET /elements/length/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the tag` | `POST /elements/length/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the osm type` | `GET /elements/length/density/groupBy/type` | Density of OSM elements grouped by the OSM type. |
-| `density of osm elements grouped by the osm type` | `POST /elements/length/density/groupBy/type` | Density of OSM elements grouped by the OSM type. |
-| `length of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/length/groupBy/boundary` | Length of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `length of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/length/groupBy/boundary` | Length of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `length of osm elements grouped by the boundary and the tag` | `GET /elements/length/groupBy/boundary/groupBy/tag` | Length of OSM elements grouped by the boundary and the tag. |
-| `length of osm elements grouped by the boundary and the tag` | `POST /elements/length/groupBy/boundary/groupBy/tag` | Length of OSM elements grouped by the boundary and the tag. |
-| `length of osm elements grouped by the key` | `GET /elements/length/groupBy/key` | Length of OSM elements grouped by the key. |
-| `length of osm elements grouped by the key` | `POST /elements/length/groupBy/key` | Length of OSM elements grouped by the key. |
-| `length of osm elements grouped by the tag` | `GET /elements/length/groupBy/tag` | Length of OSM elements grouped by the tag. |
-| `length of osm elements grouped by the tag` | `POST /elements/length/groupBy/tag` | Length of OSM elements grouped by the tag. |
-| `length of osm elements grouped by the type` | `GET /elements/length/groupBy/type` | Length of OSM elements grouped by the type. |
-| `length of osm elements grouped by the type` | `POST /elements/length/groupBy/type` | Length of OSM elements grouped by the type. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `GET /elements/length/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `POST /elements/length/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of the length of osm elements grouped by the boundary` | `GET /elements/length/ratio/groupBy/boundary` | Ratio of the length of OSM elements grouped by the boundary. |
-| `ratio of the length of osm elements grouped by the boundary` | `POST /elements/length/ratio/groupBy/boundary` | Ratio of the length of OSM elements grouped by the boundary. |
+- `group OSM element metric by boundary`
+  - Core endpoints: `GET|POST /elements/{metric}/groupBy/boundary`
+  - Domain meaning: compute one element metric separately per supplied boundary.
 
-### Elements Perimeter
+- `group OSM element metric density by boundary`
+  - Core endpoints: `GET|POST /elements/{metric}/density/groupBy/boundary`
+  - Domain meaning: compute density separately per supplied boundary.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `perimeter of osm elements` | `GET /elements/perimeter` | Perimeter of OSM elements. |
-| `perimeter of osm elements` | `POST /elements/perimeter` | Perimeter of OSM elements. |
-| `density of osm elements perimeter of elements divided by the total area in square kilometers` | `GET /elements/perimeter/density` | Density of OSM elements (perimeter of elements divided by the total area in square-kilometers). |
-| `density of osm elements perimeter of elements divided by the total area in square kilometers` | `POST /elements/perimeter/density` | Density of OSM elements (perimeter of elements divided by the total area in square-kilometers). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/perimeter/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of osm elements grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/perimeter/density/groupBy/boundary` | Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `density of grouped by the boundary and the tag` | `GET /elements/perimeter/density/groupBy/boundary/groupBy/tag` | Density of grouped by the boundary and the tag. |
-| `density of grouped by the boundary and the tag` | `POST /elements/perimeter/density/groupBy/boundary/groupBy/tag` | Density of grouped by the boundary and the tag. |
-| `density of osm elements grouped by the tag` | `GET /elements/perimeter/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the tag` | `POST /elements/perimeter/density/groupBy/tag` | Density of OSM elements grouped by the tag. |
-| `density of osm elements grouped by the type` | `GET /elements/perimeter/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `density of osm elements grouped by the type` | `POST /elements/perimeter/density/groupBy/type` | Density of OSM elements grouped by the type. |
-| `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys` | `GET /elements/perimeter/groupBy/boundary` | Perimeter of OSM elements in grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys` | `POST /elements/perimeter/groupBy/boundary` | Perimeter of OSM elements in grouped by the boundary (bboxes, bcircles, or bpolys). |
-| `perimeter of osm elements grouped by the boundary and the tag` | `GET /elements/perimeter/groupBy/boundary/groupBy/tag` | Perimeter of OSM elements grouped by the boundary and the tag. |
-| `perimeter of osm elements grouped by the boundary and the tag` | `POST /elements/perimeter/groupBy/boundary/groupBy/tag` | Perimeter of OSM elements grouped by the boundary and the tag. |
-| `perimeter of osm elements grouped by the key` | `GET /elements/perimeter/groupBy/key` | Perimeter of OSM elements grouped by the key. |
-| `perimeter of osm elements grouped by the key` | `POST /elements/perimeter/groupBy/key` | Perimeter of OSM elements grouped by the key. |
-| `perimeter of osm elements grouped by the tag` | `GET /elements/perimeter/groupBy/tag` | Perimeter of OSM elements grouped by the tag. |
-| `perimeter of osm elements grouped by the tag` | `POST /elements/perimeter/groupBy/tag` | Perimeter of OSM elements grouped by the tag. |
-| `perimeter of osm elements grouped by the type` | `GET /elements/perimeter/groupBy/type` | Perimeter of OSM elements grouped by the type. |
-| `perimeter of osm elements grouped by the type` | `POST /elements/perimeter/groupBy/type` | Perimeter of OSM elements grouped by the type. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `GET /elements/perimeter/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of osm elements satisfying filter2 within items selected by filter` | `POST /elements/perimeter/ratio` | Ratio of OSM elements satisfying filter2 within items selected by filter. |
-| `ratio of the perimeter of osm elements grouped by the boundary` | `GET /elements/perimeter/ratio/groupBy/boundary` | Ratio of the perimeter of OSM elements grouped by the boundary. |
-| `ratio of the perimeter of osm elements grouped by the boundary` | `POST /elements/perimeter/ratio/groupBy/boundary` | Ratio of the perimeter of OSM elements grouped by the boundary. |
+- `group OSM element metric by tag`
+  - Core endpoints: `GET|POST /elements/{metric}/groupBy/tag`
+  - Domain meaning: split an element metric by values of one OSM tag key.
 
-### Users Count
+- `group OSM element metric density by tag`
+  - Core endpoints: `GET|POST /elements/{metric}/density/groupBy/tag`
+  - Domain meaning: split element density by values of one OSM tag key.
 
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `count of osm users` | `GET /users/count` | Count of OSM users. |
-| `count of osm users` | `POST /users/count` | Count of OSM users. |
-| `density of osm users number of users divided by the total area in square kilometers` | `GET /users/count/density` | Density of OSM users (number of users divided by the total area in square-kilometers). |
-| `density of osm users number of users divided by the total area in square kilometers` | `POST /users/count/density` | Density of OSM users (number of users divided by the total area in square-kilometers). |
-| `count of osm users grouped by boundary bboxes bcirlces or bpolys` | `GET /users/count/density/groupBy/boundary` | Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of osm users grouped by boundary bboxes bcirlces or bpolys` | `POST /users/count/density/groupBy/boundary` | Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `density of osm users grouped by the tag` | `GET /users/count/density/groupBy/tag` | Density of OSM users grouped by the tag. |
-| `density of osm users grouped by the tag` | `POST /users/count/density/groupBy/tag` | Density of OSM users grouped by the tag. |
-| `density of osm users grouped by the type` | `GET /users/count/density/groupBy/type` | Density of OSM users grouped by the type. |
-| `density of osm users grouped by the type` | `POST /users/count/density/groupBy/type` | Density of OSM users grouped by the type. |
-| `count of osm users grouped by boundary bboxes bcirlces or bpolys` | `GET /users/count/groupBy/boundary` | Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of osm users grouped by boundary bboxes bcirlces or bpolys` | `POST /users/count/groupBy/boundary` | Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys). |
-| `count of osm users grouped by the key` | `GET /users/count/groupBy/key` | Count of OSM users grouped by the key. |
-| `count of osm users grouped by the key` | `POST /users/count/groupBy/key` | Count of OSM users grouped by the key. |
-| `count of osm users grouped by the tag` | `GET /users/count/groupBy/tag` | Count of OSM users grouped by the tag. |
-| `count of osm users grouped by the tag` | `POST /users/count/groupBy/tag` | Count of OSM users grouped by the tag. |
-| `count of osm users grouped by the type` | `GET /users/count/groupBy/type` | Count of OSM users grouped by the type. |
-| `count of osm users grouped by the type` | `POST /users/count/groupBy/type` | Count of OSM users grouped by the type. |
+- `group OSM element metric by key`
+  - Core endpoints: `GET|POST /elements/{metric}/groupBy/key`
+  - Domain meaning: split an element metric by presence of one or more OSM tag keys.
+
+- `group OSM element metric by boundary and tag`
+  - Core endpoints: `GET|POST /elements/{metric}/groupBy/boundary/groupBy/tag`
+  - Domain meaning: split an element metric first by boundary and then by tag value.
+
+- `group OSM element metric density by boundary and tag`
+  - Core endpoints: `GET|POST /elements/{metric}/density/groupBy/boundary/groupBy/tag`
+  - Domain meaning: split element density by boundary and tag value.
+
+- `calculate OSM element metric ratio grouped by boundary`
+  - Core endpoints: `GET|POST /elements/{metric}/ratio/groupBy/boundary`
+  - Domain meaning: compute a two-filter element ratio separately per boundary.
+
+### OSM Contributions
+
+- `count OSM contributions`
+  - Core endpoints: `GET|POST /contributions/count`
+  - Domain meaning: count contribution events over contribution intervals.
+
+- `calculate OSM contribution density`
+  - Core endpoints: `GET|POST /contributions/count/density`
+  - Domain meaning: count contribution events per square kilometer.
+
+- `count latest OSM contributions`
+  - Core endpoints: `GET|POST /contributions/latest/count`
+  - Domain meaning: count only each entity’s latest contribution in an interval.
+
+- `calculate latest OSM contribution density`
+  - Core endpoints: `GET|POST /contributions/latest/count/density`
+  - Domain meaning: count latest contributions per square kilometer.
+
+- `count OSM contributions grouped by boundary`
+  - Core endpoints: `GET|POST /contributions/count/groupBy/boundary`
+  - Domain meaning: count contribution events separately per boundary.
+
+- `calculate OSM contribution density grouped by boundary`
+  - Core endpoints: `GET|POST /contributions/count/density/groupBy/boundary`
+  - Domain meaning: count contribution density separately per boundary.
+
+### OSM Contributor Users
+
+- `count OSM users`
+  - Core endpoints: `GET|POST /users/count`
+  - Domain meaning: count distinct contributor user IDs over contribution intervals.
+
+- `calculate OSM user density`
+  - Core endpoints: `GET|POST /users/count/density`
+  - Domain meaning: count distinct contributors per square kilometer.
+
+- `group OSM users by type`
+  - Core endpoints: `GET|POST /users/count/groupBy/type`
+  - Domain meaning: split distinct contributor counts by contributed entity type.
+
+- `group OSM user density by type`
+  - Core endpoints: `GET|POST /users/count/density/groupBy/type`
+  - Domain meaning: split contributor density by contributed entity type.
+
+- `group OSM users by tag`
+  - Core endpoints: `GET|POST /users/count/groupBy/tag`
+  - Domain meaning: split distinct contributor counts by one OSM tag key’s values.
+
+- `group OSM user density by tag`
+  - Core endpoints: `GET|POST /users/count/density/groupBy/tag`
+  - Domain meaning: split contributor density by tag value.
+
+- `group OSM users by key`
+  - Core endpoints: `GET|POST /users/count/groupBy/key`
+  - Domain meaning: split distinct contributor counts by tag-key presence.
+
+- `group OSM users by boundary`
+  - Core endpoints: `GET|POST /users/count/groupBy/boundary`
+  - Domain meaning: count distinct contributors separately per boundary.
+
+- `group OSM user density by boundary`
+  - Core endpoints: `GET|POST /users/count/density/groupBy/boundary`
+  - Domain meaning: contributor density separately per boundary.
 
 ## Supported Business Behaviors
 
-### Behavior 1: Count Of Osm Contributions
+### Behavior 1: Measure OSM Element Presence or Geometry Over Time
 
 Business goal:
-Count of OSM contributions.
+Measure how many OSM elements exist, or how much element length, area, or perimeter exists, inside a boundary over time.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/count`.
+This is the core snapshot analytics behavior for map completeness and feature inventory analysis.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of osm contributions` (`GET /contributions/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM element metric` (`GET /elements/count`, `GET /elements/length`, `GET /elements/area`, or `GET /elements/perimeter`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=building=*`, optional `types=way`, `format=json`, `showMetadata=false`, and optional `timeout=10` to compute the selected metric. The same values may be sent as form values to the matching `POST` endpoint.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- No API setup steps can be skipped because the API has no setup functions.
+- Direct database/application setup may preload the OSHDB extract, keytables, attribution metadata, and extract polygon.
+- If equivalent dataset and boundary knowledge already exist, the caller still must send exactly one boundary parameter unless relying on an implementation-configured extract polygon.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The endpoint path selects the metric: `/count`, `/length`, `/area`, or `/perimeter`.
+- `bboxes`, `bcircles`, or `bpolys` defines the area of interest and is consumed only by this request.
+- `time` binds all returned timestamps to the same temporal selection.
+- `filter`, `types`, `keys`, and `values` select the element population; if `filter` is used, implementation rejects simultaneous `keys`, `values`, or `types`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains a time series of `value` entries for the selected metric. No service state is created or changed.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- At least one request parameter is required.
+- Exactly one of `bboxes`, `bcircles`, or `bpolys` is accepted by implementation, despite source comments suggesting an extract polygon fallback.
+- Snapshot filters must not use changeset-only expressions.
+- `types` may be OSM types or simple feature types, but not a mixture.
+- `format` accepts `json`, `csv`, and implementation-wide `geojson`, although GeoJSON is meaningful mainly for boundary-grouped and extraction responses.
 
 Failure and exceptional cases:
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM element metric`
+  - Failure condition: request has no parameters.
+  - Why it fails: `InputProcessor.checkParameters` rejects an empty parameter map.
+  - Violated prerequisite or constraint: at least one request parameter must be supplied.
+- Failing function: `calculate OSM element metric`
+  - Failure condition: both `bboxes` and `bpolys` are supplied.
+  - Why it fails: `setBoundaryType` accepts only one boundary source.
+  - Violated prerequisite or constraint: exactly one boundary parameter type.
+- Failing function: `calculate OSM element metric`
+  - Failure condition: malformed `filter` or changeset-only filter on a snapshot endpoint.
+  - Why it fails: the OSHDB filter parser or snapshot suitability check rejects it.
+  - Violated prerequisite or constraint: valid snapshot filter expression.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Metric endpoints are pure analytical reads. Length, area, and perimeter are derived from snapshot geometries. Perimeter contributes `0.0` for non-polygonal geometries.
 
-### Behavior 2: Count Of Osm Contributions
+### Behavior 2: Measure OSM Element Metric Density
 
 Business goal:
-Count of OSM contributions.
+Normalize an element metric by the requested boundary area.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/count`.
+Density makes regions of different sizes comparable, for example buildings per square kilometer or road length per square kilometer.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of osm contributions` (`POST /contributions/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM element metric density` (`GET /elements/count/density`, `GET /elements/length/density`, `GET /elements/area/density`, or `GET /elements/perimeter/density`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=highway=*`, `format=json`, and `showMetadata=false` to compute the selected metric divided by boundary area. The matching `POST` endpoint accepts the same values as form data.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Direct database setup can provide the OSHDB extract and extract metadata.
+- Existing knowledge of the same boundary can be reused by sending the identical `bboxes`, `bcircles`, or `bpolys` value again; there is no reusable boundary ID.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The same boundary geometry both selects the data and supplies the area denominator.
+- The path metric determines the numerator.
+- `time`, `filter`, and type/tag parameters scope numerator values for all density calculations.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains density values per timestamp. No persisted density object is created.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Density requires a valid non-empty polygonal boundary.
+- Boundary area is computed from the request geometry.
+- `timeout` must parse as a number and must not exceed the configured maximum.
 
 Failure and exceptional cases:
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM element metric density`
+  - Failure condition: boundary is omitted or invalid.
+  - Why it fails: density cannot be computed without geometry area.
+  - Violated prerequisite or constraint: valid single boundary input.
+- Failing function: `calculate OSM element metric density`
+  - Failure condition: `timeout=abc` or timeout greater than configuration.
+  - Why it fails: `defineRequestTimeout` parses and bounds the timeout.
+  - Violated prerequisite or constraint: valid timeout seconds.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The implementation computes density as metric value divided by `Geo.areaOf(boundary) * 0.000001`, converting square meters to square kilometers.
 
-### Behavior 3: Density Of Osm Contributions Number Of Contributions Divided By The Total Area In Square Kilometers
+### Behavior 3: Segment OSM Element Metrics by OSM Type
 
 Business goal:
-Density of OSM contributions (number of contributions divided by the total area in square-kilometers).
+Understand how count, length, area, or perimeter is distributed across nodes, ways, and relations.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/count/density`.
+OSM type segmentation helps distinguish point, linear, polygonal, and relation-backed mapping activity.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm contributions number of contributions divided by the total area in square kilometers` (`GET /contributions/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric by type` (`GET /elements/count/groupBy/type`, `/elements/length/groupBy/type`, `/elements/area/groupBy/type`, or `/elements/perimeter/groupBy/type`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=building=*`, `format=json`, and `showMetadata=false` to compute the selected metric split by OSM type.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Dataset initialization may be done directly through database/application configuration.
+- The caller can reuse a known boundary and temporal window by resending the same parameter values.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The same boundary and time values scope all type groups.
+- The selected metric endpoint applies to every group.
+- Optional `filter` is applied before grouping.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains grouped time series, with group names such as `node`, `way`, and `relation`.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Snapshot filter constraints apply.
+- Unknown or repeated parameters are rejected.
+- Type grouping is fixed to OSM entity type; callers cannot rename or configure these groups.
 
 Failure and exceptional cases:
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric by type`
+  - Failure condition: malformed `filter`.
+  - Why it fails: parser rejects invalid OSHDB filter syntax.
+  - Violated prerequisite or constraint: valid filter expression.
+- Failing function: `group OSM element metric by type`
+  - Failure condition: changeset-only filter is used.
+  - Why it fails: snapshot endpoints reject contribution-only filters.
+  - Violated prerequisite or constraint: snapshot-suitable filter.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The grouping is computed by OSHDB aggregation and returns only groups present in the result.
 
-### Behavior 4: Density Of Osm Contributions Number Of Contributions Divided By The Total Area In Square Kilometers
+### Behavior 4: Segment OSM Element Density by OSM Type
 
 Business goal:
-Density of OSM contributions (number of contributions divided by the total area in square-kilometers).
+Compare normalized element metrics across OSM entity types.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/count/density`.
+This supports regional comparison of type-specific mapping density.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm contributions number of contributions divided by the total area in square kilometers` (`POST /contributions/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric density by type` (`GET /elements/count/density/groupBy/type`, `/elements/length/density/groupBy/type`, `/elements/area/density/groupBy/type`, or `/elements/perimeter/density/groupBy/type`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=building=*`, `format=json`, and `showMetadata=false` to compute density split by OSM type.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Preloaded OSHDB and known boundaries can be reused outside the API.
+- No API-created state exists to skip.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The boundary is reused as both spatial scope and density denominator for every type group.
+- The metric path binds the numerator used for all groups.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains per-type density time series.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- A valid single boundary is required.
+- `showMetadata` accepts only `true`, `yes`, `false`, `no`, or blank.
+- Snapshot filter restrictions apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric density by type`
+  - Failure condition: no boundary is supplied.
+  - Why it fails: density and input processing need spatial area.
+  - Violated prerequisite or constraint: valid boundary.
+- Failing function: `group OSM element metric density by type`
+  - Failure condition: `showMetadata=maybe`.
+  - Why it fails: boolean parsing rejects unsupported values.
+  - Violated prerequisite or constraint: supported boolean value.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Metadata is included only when `showMetadata` evaluates to true; POST responses omit request URL metadata.
 
-### Behavior 5: Count Density Of Osm Contributions Grouped By Boundary Bboxes Bcirlces Or Bpolys
+### Behavior 5: Compare OSM Element Metrics Across Multiple Boundaries
 
 Business goal:
-Count density of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys).
+Compute a selected metric independently for multiple named or generated spatial areas.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/count/density/groupBy/boundary`.
+This supports regional dashboards, administrative comparisons, and boundary-by-boundary reporting.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys` (`GET /contributions/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric by boundary` (`GET /elements/count/groupBy/boundary`, `/elements/length/groupBy/boundary`, `/elements/area/groupBy/boundary`, or `/elements/perimeter/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=building=*`, `format=json` or `format=geojson`, and `showMetadata=false`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Direct database setup can provide extract coverage.
+- Existing boundary definitions can be reused only by resending their coordinates and optional IDs.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary ID in `bboxes`, `bcircles`, or `bpolys` becomes the group identifier.
+- If IDs are omitted, implementation generates positional IDs.
+- The same `time`, metric path, and filter are applied to every boundary group.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains one grouped result per boundary. With `format=geojson`, boundary geometries are returned as features carrying the computed results.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary parameter type is allowed, but it may contain multiple boundary objects separated by `|`.
+- Boundary geometry must parse correctly and lie inside the configured extract polygon when one is configured.
+- `format=geojson` is meaningful here.
 
 Failure and exceptional cases:
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric by boundary`
+  - Failure condition: malformed boundary coordinates.
+  - Why it fails: geometry builder rejects wrong coordinate counts or non-numeric values.
+  - Violated prerequisite or constraint: valid boundary format.
+- Failing function: `group OSM element metric by boundary`
+  - Failure condition: boundary is outside the configured data polygon.
+  - Why it fails: geometry validation checks extract coverage.
+  - Violated prerequisite or constraint: requested area must be covered by dataset.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Boundary IDs are taken from request prefixes such as `west:` or are generated automatically.
 
-### Behavior 6: Count Density Of Osm Contributions Grouped By Boundary Bboxes Bcirlces Or Bpolys
+### Behavior 6: Compare OSM Element Metric Density Across Boundaries
 
 Business goal:
-Count density of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys).
+Compute normalized element metrics independently for multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/count/density/groupBy/boundary`.
+This is the size-normalized variant of regional element comparison.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys` (`POST /contributions/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric density by boundary` (`GET /elements/count/density/groupBy/boundary`, `/elements/length/density/groupBy/boundary`, `/elements/area/density/groupBy/boundary`, or `/elements/perimeter/density/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `filter=highway=*`, and `format=json` or `format=geojson`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Existing extract and boundary knowledge can be reused by resending the same boundary values.
+- There is no API boundary registry or generated boundary ID lookup.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary provides both the group ID and its own density denominator.
+- The selected metric endpoint defines the numerator for all boundary groups.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains one density time series per boundary.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary source is allowed.
+- Each boundary’s density is computed using that boundary’s own area.
+- `format` must be `json`, `csv`, or `geojson`.
 
 Failure and exceptional cases:
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count density of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric density by boundary`
+  - Failure condition: both `bboxes` and `bcircles` are provided.
+  - Why it fails: boundary source is ambiguous.
+  - Violated prerequisite or constraint: one boundary parameter type.
+- Failing function: `group OSM element metric density by boundary`
+  - Failure condition: `format=xml`.
+  - Why it fails: format validation accepts only supported values.
+  - Violated prerequisite or constraint: supported output format.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The same group-by-boundary machinery also powers contribution and user boundary grouping.
 
-### Behavior 7: Count Of Osm Contributions Grouped By Boundary Bboxes Bcirlces Or Bpolys
+### Behavior 7: Segment OSM Element Metrics by Tag Value
 
 Business goal:
-Count of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys).
+Measure how an element metric is distributed across values of one OSM tag key.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/count/groupBy/boundary`.
+This supports analyses such as road length by `highway` value or building area by `building` value.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of osm contributions grouped by boundary bboxes bcirlces or bpolys` (`GET /contributions/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric by tag` (`GET /elements/count/groupBy/tag`, `/elements/length/groupBy/tag`, `/elements/area/groupBy/tag`, or `/elements/perimeter/groupBy/tag`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, optional `filter=highway=*`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Known tag keys and values can be reused by resending `groupByKey` and `groupByValues`.
+- No API can discover or persist tag-group definitions.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `groupByKey` names the single tag key used for grouping.
+- `groupByValues` limits explicit groups; unmatched data is placed in a remainder group.
+- The boundary, time, filter, and metric path apply to all tag groups.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains grouped metric time series by tag value, plus total/remainder groups where produced by the executor.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one `groupByKey` is required.
+- Repeating a query/form parameter is rejected; comma-separated values must be supplied in one parameter value.
+- Unknown tag values are not necessarily errors; they can produce empty or fallback groups.
 
 Failure and exceptional cases:
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric by tag`
+  - Failure condition: `groupByKey` is omitted or contains multiple keys.
+  - Why it fails: tag grouping requires exactly one key.
+  - Violated prerequisite or constraint: one grouping key.
+- Failing function: `group OSM element metric by tag`
+  - Failure condition: `groupByValues` is sent twice as repeated parameters.
+  - Why it fails: implementation requires every parameter to be unique.
+  - Violated prerequisite or constraint: one value per parameter name.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The implementation maps known tags through the tag translator; unknown requested values can be represented by negative synthetic IDs.
 
-### Behavior 8: Count Of Osm Contributions Grouped By Boundary Bboxes Bcirlces Or Bpolys
+### Behavior 8: Segment OSM Element Density by Tag Value
 
 Business goal:
-Count of OSM contributions grouped by boundary (bboxes, bcirlces, or bpolys).
+Compare normalized element metrics across values of one OSM tag key.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/count/groupBy/boundary`.
+This supports density comparisons such as road-length density by road class.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of osm contributions grouped by boundary bboxes bcirlces or bpolys` (`POST /contributions/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric density by tag` (`GET /elements/count/density/groupBy/tag`, `/elements/length/density/groupBy/tag`, `/elements/area/density/groupBy/tag`, or `/elements/perimeter/density/groupBy/tag`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- No API setup exists.
+- Existing knowledge of tag values and boundaries can be reused by resending them.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `groupByKey` and optional `groupByValues` define groups.
+- The same boundary is used to select data and compute the density denominator for every tag group.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains density time series grouped by tag value.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `groupByKey` is mandatory.
+- Valid boundary geometry is mandatory.
+- Density denominator is shared across tag groups for a single-boundary request.
 
 Failure and exceptional cases:
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm contributions grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric density by tag`
+  - Failure condition: `groupByKey` omitted.
+  - Why it fails: tag grouping cannot be computed without the grouping key.
+  - Violated prerequisite or constraint: mandatory grouping key.
+- Failing function: `group OSM element metric density by tag`
+  - Failure condition: malformed `bboxes`, `bcircles`, or `bpolys`.
+  - Why it fails: geometry cannot be built for density calculation.
+  - Violated prerequisite or constraint: valid boundary geometry.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The result is analytical only; no tag statistics are cached or persisted.
 
-### Behavior 9: Count Of Latest Osm Contributions
+### Behavior 9: Segment OSM Element Metrics by Tag-Key Presence
 
 Business goal:
-Count of latest OSM contributions.
+Measure how much of an element metric is associated with selected OSM tag keys.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/latest/count`.
+This supports inventory questions such as how many elements carry `building` or `highway`.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of latest osm contributions` (`GET /contributions/latest/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric by key` (`GET /elements/count/groupBy/key`, `/elements/length/groupBy/key`, `/elements/area/groupBy/key`, or `/elements/perimeter/groupBy/key`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKeys=building,highway`, optional `filter=type:way`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Known tag-key lists can be reused by resending `groupByKeys`.
+- No API can list available keys from the extract in the function inventory.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `groupByKeys` supplies one or more keys in a single parameter value.
+- The same boundary and time scope all key groups.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains metric time series grouped by tag-key presence, with remainder/total behavior handled by the executor.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- At least one `groupByKeys` value is required.
+- Unknown parameters are rejected by `ResourceParameters`.
+- Elements without requested keys are placed in a remainder group.
 
 Failure and exceptional cases:
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric by key`
+  - Failure condition: `groupByKeys` omitted.
+  - Why it fails: key grouping requires at least one requested key.
+  - Violated prerequisite or constraint: mandatory key list.
+- Failing function: `group OSM element metric by key`
+  - Failure condition: unsupported parameter name is supplied.
+  - Why it fails: resource-specific parameter validation rejects unknown names.
+  - Violated prerequisite or constraint: allowed parameter set.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+OpenAPI does not list all implementation-supported element filtering parameters such as `types`, `keys`, and `values`.
 
-### Behavior 10: Count Of Latest Osm Contributions
+### Behavior 10: Segment OSM Element Metrics by Boundary and Tag Value
 
 Business goal:
-Count of latest OSM contributions.
+Compare tag-value distributions across multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/latest/count`.
+This supports regional categorical comparisons, such as road class length by district.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `count of latest osm contributions` (`POST /contributions/latest/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric by boundary and tag` (`GET /elements/count/groupBy/boundary/groupBy/tag`, `/elements/length/groupBy/boundary/groupBy/tag`, `/elements/area/groupBy/boundary/groupBy/tag`, or `/elements/perimeter/groupBy/boundary/groupBy/tag`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Existing boundary and tag definitions can be reused only by resending coordinates and tag parameters.
+- No generated boundary group can be referenced later by ID.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary IDs define the first grouping dimension.
+- `groupByKey` and `groupByValues` define the second grouping dimension inside each boundary.
+- The metric path applies to every boundary-tag combination.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains metric time series per boundary and tag-value combination.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary source and exactly one `groupByKey` are required.
+- Boundary IDs and tag identifiers together identify result groups.
 
 Failure and exceptional cases:
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of latest osm contributions`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric by boundary and tag`
+  - Failure condition: `groupByKey` omitted.
+  - Why it fails: tag groups cannot be formed.
+  - Violated prerequisite or constraint: mandatory grouping key.
+- Failing function: `group OSM element metric by boundary and tag`
+  - Failure condition: two boundary parameter types are supplied.
+  - Why it fails: boundary grouping requires one boundary source.
+  - Violated prerequisite or constraint: one boundary source.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+This is a single analytical request, not a composition of a boundary grouping call followed by a tag grouping call.
 
-### Behavior 11: Density Of The Latest Osm Contributions Number Of Contributions Divided By The Total Area In Square Kilometers
+### Behavior 11: Segment OSM Element Density by Boundary and Tag Value
 
 Business goal:
-Density of the latest OSM contributions (number of contributions divided by the total area in square-kilometers).
+Compare tag-value density across multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `GET /contributions/latest/count/density`.
+This is the normalized form of boundary-plus-tag comparison.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of the latest osm contributions number of contributions divided by the total area in square kilometers` (`GET /contributions/latest/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM element metric density by boundary and tag` (`GET /elements/count/density/groupBy/boundary/groupBy/tag`, `/elements/length/density/groupBy/boundary/groupBy/tag`, `/elements/area/density/groupBy/boundary/groupBy/tag`, or `/elements/perimeter/density/groupBy/boundary/groupBy/tag`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Dataset and boundary setup can exist outside the API.
+- Boundary IDs remain request-scoped and cannot be reused without resending coordinates.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary’s area is used as the density denominator for that boundary’s tag groups.
+- `groupByKey` binds every tag-value group in every boundary.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains density time series per boundary-tag group.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary source and one `groupByKey` are required.
+- GeoJSON `bpolys` must be a valid polygonal FeatureCollection.
 
 Failure and exceptional cases:
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM element metric density by boundary and tag`
+  - Failure condition: missing or multi-key `groupByKey`.
+  - Why it fails: implementation requires exactly one grouping key.
+  - Violated prerequisite or constraint: one tag grouping key.
+- Failing function: `group OSM element metric density by boundary and tag`
+  - Failure condition: invalid GeoJSON in `bpolys`.
+  - Why it fails: GeoJSON cannot be converted to valid boundary geometry.
+  - Violated prerequisite or constraint: valid polygonal boundary input.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Density is computed per boundary, not against the union of all boundaries.
 
-### Behavior 12: Density Of The Latest Osm Contributions Number Of Contributions Divided By The Total Area In Square Kilometers
+### Behavior 12: Compare Two OSM Element Selections as a Ratio
 
 Business goal:
-Density of the latest OSM contributions (number of contributions divided by the total area in square-kilometers).
+Compute the ratio between two filtered element populations for count, length, area, or perimeter.
 
 Domain context:
-This behavior belongs to the `Contributions Count` capability area and operates through `POST /contributions/latest/count/density`.
+This supports questions such as the share of residential roads among all roads or mapped building area matching a category.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of the latest osm contributions number of contributions divided by the total area in square kilometers` (`POST /contributions/latest/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM element metric ratio` (`GET /elements/count/ratio`, `/elements/length/ratio`, `/elements/area/ratio`, or `/elements/perimeter/ratio`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `filter=highway=*`, `filter2=highway=residential`, `format=json`, and `showMetadata=false`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- No numerator or denominator selection can be created ahead of time through the API.
+- Equivalent filters can be reused by resending the same `filter` and `filter2`.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `filter` defines `value`.
+- `filter2` defines `value2`.
+- The response `ratio` is derived from those two values for the same timestamp, boundary, and metric.
+- The same boundary and time window bind both selections.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains `value`, `value2`, and `ratio` per timestamp.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `filter2` is required for the OpenAPI-supported ratio form.
+- `filter` and `filter2` must be valid snapshot-suitable filters.
+- Implementation also supports deprecated `keys2`, `values2`, and `types2` ratio mode, but these are not exposed in `ohsome-api.json`.
 
 Failure and exceptional cases:
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of the latest osm contributions number of contributions divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM element metric ratio`
+  - Failure condition: `filter2` omitted or blank.
+  - Why it fails: implementation explicitly requires denominator filter.
+  - Violated prerequisite or constraint: denominator selection must exist.
+- Failing function: `calculate OSM element metric ratio`
+  - Failure condition: changeset-only filter is used.
+  - Why it fails: ratio endpoints operate on snapshots.
+  - Violated prerequisite or constraint: snapshot-suitable filters.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+If an element matches both filters, the implementation adds it to both `value` and `value2`.
 
-### Behavior 13: Area Of Osm Elements
+### Behavior 13: Compare Two OSM Element Selections as Ratios per Boundary
 
 Business goal:
-Area of OSM elements.
+Compute the same two-filter ratio separately for multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area`.
+This supports regional share comparisons, such as residential-road share by district.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements` (`GET /elements/area`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM element metric ratio grouped by boundary` (`GET /elements/count/ratio/groupBy/boundary`, `/elements/length/ratio/groupBy/boundary`, `/elements/area/ratio/groupBy/boundary`, or `/elements/perimeter/ratio/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, `filter=highway=*`, `filter2=highway=residential`, and `format=json` or `format=geojson`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Existing boundary coordinates and filters can be resent.
+- There is no API-created boundary, query, numerator, or denominator resource.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary ID scopes its own `value`, `value2`, and `ratio`.
+- `filter` and `filter2` are reused across every boundary group.
+- `time` binds ratio values across all groups.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains ratio time series per boundary.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Explicit boundary groups are required; extract-polygon fallback is not sufficient for boundary grouping.
+- `filter2` is required.
+- `format=geojson` can attach ratio results to boundary features.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM element metric ratio grouped by boundary`
+  - Failure condition: all boundary parameters omitted.
+  - Why it fails: boundary grouping cannot be computed without boundary groups.
+  - Violated prerequisite or constraint: explicit boundary input.
+- Failing function: `calculate OSM element metric ratio grouped by boundary`
+  - Failure condition: `filter2` omitted.
+  - Why it fails: ratio needs numerator and denominator definitions.
+  - Violated prerequisite or constraint: both filters required.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Source includes deprecated basic-filter ratio variants using `keys2`, `values2`, and `types2`; the OpenAPI file only documents `filter2`.
 
-### Behavior 14: Area Of Osm Elements
+### Behavior 14: Count OSM Contributions Over Time
 
 Business goal:
-Area of OSM elements.
+Count contribution events in a boundary and time interval.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area`.
+This measures editing activity, not the number of resulting map elements.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements` (`POST /elements/area`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `count OSM contributions` (`GET /contributions/count`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation,tagChange`, optional `filter=building=*`, `format=json`, and `showMetadata=false`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Contribution history must exist in the OSHDB extract through database setup.
+- No API function creates contribution records.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `time` must define intervals; each returned result binds `fromTimestamp` and `toTimestamp`.
+- `contributionType` filters contribution events before counting.
+- Boundary scopes the contribution view.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains contribution counts per interval.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Contribution endpoints require interval-style time when `time` is supplied.
+- Supported `contributionType` values are `creation`, `deletion`, `tagChange`, and `geometryChange`.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `count OSM contributions`
+  - Failure condition: `time=2015-01-01` as a single timestamp.
+  - Why it fails: contribution counting requires intervals.
+  - Violated prerequisite or constraint: interval or timestamp list with at least two timestamps.
+- Failing function: `count OSM contributions`
+  - Failure condition: `contributionType=rename`.
+  - Why it fails: contribution-type filter rejects unknown names.
+  - Violated prerequisite or constraint: allowed contribution type.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The implementation removes deprecated `types`, `keys`, and `values` parameters for contribution count endpoints.
 
-### Behavior 15: Density Of Osm Elements Area Of Elements Divided By The Total Area In Square Kilometers
+### Behavior 15: Measure OSM Contribution Density
 
 Business goal:
-Density of OSM elements (area of elements divided by the total area in square-kilometers).
+Normalize contribution activity by boundary area.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/density`.
+This supports comparison of editing intensity across differently sized areas.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements area of elements divided by the total area in square kilometers` (`GET /elements/area/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM contribution density` (`GET /contributions/count/density`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Existing OSHDB contribution data can be preloaded directly.
+- Boundary definitions must still be supplied on the request.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary selects contributions and provides area denominator.
+- `contributionType` and `filter` restrict numerator events.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains contribution counts per square kilometer per interval.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Valid boundary geometry is mandatory.
+- Contribution interval constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM contribution density`
+  - Failure condition: boundary omitted.
+  - Why it fails: density requires geometry area.
+  - Violated prerequisite or constraint: valid boundary.
+- Failing function: `calculate OSM contribution density`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: shared contribution-type filter rejects unsupported values.
+  - Violated prerequisite or constraint: supported contribution type.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The same `fillContributionsResult` density logic is used for contribution and user density responses.
 
-### Behavior 16: Density Of Osm Elements Area Of Elements Divided By The Total Area In Square Kilometers
+### Behavior 16: Count Each Entity’s Latest Contribution
 
 Business goal:
-Density of OSM elements (area of elements divided by the total area in square-kilometers).
+Count only the latest contribution per OSM entity in a requested interval.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/density`.
+This reduces multiple edits to the same entity to one latest activity event.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements area of elements divided by the total area in square kilometers` (`POST /elements/area/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `count latest OSM contributions` (`GET /contributions/latest/count`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01`, optional `contributionType=geometryChange`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Existing contribution history can be preloaded in OSHDB.
+- There is no API function to mark or persist “latest” contribution state.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `time` defines the interval in which latest contribution per entity is selected.
+- `contributionType` is applied after choosing each entity’s latest contribution.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains counts of latest entity contributions per interval.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Still uses contribution interval processing.
+- Filter handling is delayed so grouping by entity can occur before latest selection.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements area of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `count latest OSM contributions`
+  - Failure condition: single timestamp `time`.
+  - Why it fails: latest contribution counting still uses interval processing.
+  - Violated prerequisite or constraint: interval time.
+- Failing function: `count latest OSM contributions`
+  - Failure condition: malformed `filter`.
+  - Why it fails: filter is parsed before grouping latest contributions.
+  - Violated prerequisite or constraint: valid filter.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The implementation sets a `fullHistory` flag to avoid premature filtering before `groupByEntity()`.
 
-### Behavior 17: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
+### Behavior 17: Measure Density of Each Entity’s Latest Contribution
 
 Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
+Normalize latest-contribution counts by boundary area.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/density/groupBy/boundary`.
+This measures latest editing activity intensity rather than all edits.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/area/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate latest OSM contribution density` (`GET /contributions/latest/count/density`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01`, optional `contributionType=tagChange`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Existing OSHDB contribution history can be configured outside the API.
+- Boundary must still be supplied in the density request.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary supplies both contribution scope and density denominator.
+- Latest contribution selection is scoped by the same `time`.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains latest contribution density per interval.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Boundary must be valid.
+- Contribution interval constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate latest OSM contribution density`
+  - Failure condition: malformed boundary.
+  - Why it fails: density cannot be computed without valid geometry.
+  - Violated prerequisite or constraint: valid boundary.
+- Failing function: `calculate latest OSM contribution density`
+  - Failure condition: single timestamp `time`.
+  - Why it fails: contribution endpoints require intervals.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+This is latest-per-entity logic followed by density normalization.
 
-### Behavior 18: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
+### Behavior 18: Count OSM Contributions per Boundary
 
 Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
+Compare contribution activity across multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/density/groupBy/boundary`.
+This supports regional activity monitoring and editing hot spot analysis.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/area/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `count OSM contributions grouped by boundary` (`GET /contributions/count/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation,deletion`, optional `filter=building=*`, and `format=json` or `format=geojson`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Existing contribution data and boundary definitions can be maintained outside the API.
+- Boundary IDs remain request-scoped.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary IDs define contribution groups.
+- `time`, `filter`, and `contributionType` are reused across every boundary.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains contribution-count time series per boundary.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Explicit boundary groups are required.
+- Contribution interval and contribution-type constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `count OSM contributions grouped by boundary`
+  - Failure condition: all boundary parameters omitted.
+  - Why it fails: boundary grouping needs explicit groups.
+  - Violated prerequisite or constraint: boundary input.
+- Failing function: `count OSM contributions grouped by boundary`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: unsupported type names are rejected.
+  - Violated prerequisite or constraint: allowed contribution types.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+With `format=geojson`, response uses boundary geometries as GeoJSON features.
 
-### Behavior 19: Density Of Osm Elements Grouped By The Boundary And The Tag
+### Behavior 19: Measure OSM Contribution Density per Boundary
 
 Business goal:
-Density of OSM elements grouped by the boundary and the tag.
+Compare normalized contribution activity across multiple boundaries.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/density/groupBy/boundary/groupBy/tag`.
+This controls for area size when comparing editing activity.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`GET /elements/area/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM contribution density grouped by boundary` (`GET /contributions/count/density/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- OSHDB and extract metadata can be initialized outside the API.
+- No request-generated boundary ID can be reused later.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary group supplies its own density denominator.
+- The same interval and contribution-type filter applies to all groups.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains contribution density time series per boundary.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary parameter type is accepted.
+- Time must define intervals.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM contribution density grouped by boundary`
+  - Failure condition: both `bboxes` and `bpolys` supplied.
+  - Why it fails: input processing permits one boundary source.
+  - Violated prerequisite or constraint: one boundary source.
+- Failing function: `calculate OSM contribution density grouped by boundary`
+  - Failure condition: one timestamp in `time`.
+  - Why it fails: contribution endpoints require intervals.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Boundary-grouped density is computed per group, not against total area.
 
-### Behavior 20: Density Of Osm Elements Grouped By The Boundary And The Tag
+### Behavior 20: Count Distinct OSM Contributor Users
 
 Business goal:
-Density of OSM elements grouped by the boundary and the tag.
+Count how many unique users contributed within an area and interval.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/density/groupBy/boundary/groupBy/tag`.
+This measures contributor participation, not number of edits.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`POST /elements/area/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `count OSM users` (`GET /users/count`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation,tagChange`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Contributor data exists only through preloaded OSHDB contribution history.
+- No API function creates or retrieves user resources.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- User IDs are derived from matching contributions.
+- `contributionType` filters contributions before unique user counting.
+- `time` defines contribution intervals.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains unique contributor counts per interval.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- User analytics are contribution-based and require interval time.
+- The API returns counts, not user identities.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `count OSM users`
+  - Failure condition: single timestamp `time`.
+  - Why it fails: user counting is contribution-based and requires intervals.
+  - Violated prerequisite or constraint: interval time.
+- Failing function: `count OSM users`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: user endpoints reuse contribution-type validation.
+  - Violated prerequisite or constraint: allowed contribution type.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Implementation uses `countUniq()` over `getContributorUserId()`.
 
-### Behavior 21: Density Of Osm Elements Grouped By The Tag
+### Behavior 21: Measure OSM Contributor User Density
 
 Business goal:
-Density of OSM elements grouped by the tag.
+Normalize unique contributor counts by boundary area.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/density/groupBy/tag`.
+This supports comparing contributor participation across areas of different size.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`GET /elements/area/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `calculate OSM user density` (`GET /users/count/density`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Existing OSHDB contribution history may be preconfigured.
+- The density request still needs a boundary.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary scopes contributions and provides the denominator.
+- Unique users are derived from filtered contribution events.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains unique contributor density per interval.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Valid boundary geometry is mandatory.
+- Contribution interval constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `calculate OSM user density`
+  - Failure condition: missing or malformed boundary.
+  - Why it fails: density requires valid spatial geometry.
+  - Violated prerequisite or constraint: valid boundary.
+- Failing function: `calculate OSM user density`
+  - Failure condition: single timestamp `time`.
+  - Why it fails: user density is contribution-based.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The endpoint does not expose individual user IDs or usernames.
 
-### Behavior 22: Density Of Osm Elements Grouped By The Tag
+### Behavior 22: Segment OSM Contributors by Contributed Entity Type
 
 Business goal:
-Density of OSM elements grouped by the tag.
+Count unique contributors grouped by the OSM type of the contributed entity.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/density/groupBy/tag`.
+This shows whether contributor activity is associated with nodes, ways, or relations.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`POST /elements/area/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM users by type` (`GET /users/count/groupBy/type`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, optional `filter=building=*`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- OSHDB user/contribution history can exist before the request.
+- No API-created type groups exist.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The same contribution filter and time interval are reused for all type groups.
+- OSM type is taken from the contributed entity.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains unique user counts grouped by entity type.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Contribution interval constraints apply.
+- Unknown request parameters are rejected.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM users by type`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: shared contribution-type validator rejects it.
+  - Violated prerequisite or constraint: allowed contribution type.
+- Failing function: `group OSM users by type`
+  - Failure condition: unsupported parameter supplied.
+  - Why it fails: resource-specific parameter validation rejects unknown names.
+  - Violated prerequisite or constraint: allowed parameter set.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Grouping uses `getEntityAfter().getType()`, so deleted contributions may depend on OSHDB contribution state availability.
 
-### Behavior 23: Density Of Osm Elements Grouped By The Type
+### Behavior 23: Segment OSM Contributor Density by Contributed Entity Type
 
 Business goal:
-Density of OSM elements grouped by the type.
+Normalize type-grouped contributor counts by boundary area.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/density/groupBy/type`.
+This provides density-based comparison of contributor participation by entity type.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`GET /elements/area/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM user density by type` (`GET /users/count/density/groupBy/type`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Preloaded OSHDB data can satisfy contribution history.
+- Boundary still must be supplied.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary supplies the density denominator for all entity-type groups.
+- `contributionType` scopes the contribution set before grouping.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains contributor density grouped by entity type.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Boundary and contribution interval constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM user density by type`
+  - Failure condition: no boundary.
+  - Why it fails: density grouping needs area.
+  - Violated prerequisite or constraint: valid boundary.
+- Failing function: `group OSM user density by type`
+  - Failure condition: single timestamp `time`.
+  - Why it fails: user density grouping uses contribution intervals.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The denominator is the request boundary area.
 
-### Behavior 24: Density Of Osm Elements Grouped By The Type
+### Behavior 24: Segment OSM Contributors by Tag Value
 
 Business goal:
-Density of OSM elements grouped by the type.
+Count unique contributors associated with values of one OSM tag key.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/density/groupBy/type`.
+This supports questions like how many users contributed to different `highway` classes.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`POST /elements/area/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM users by tag` (`GET /users/count/groupBy/tag`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, optional `contributionType=tagChange`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Known tag keys and values can be reused by resending them.
+- No API lists all possible tag values in the function inventory.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `groupByKey` defines the tag key for grouping contributions before unique user counting.
+- `groupByValues` identifies explicit tag-value groups.
+- `contributionType` is applied before user ID uniqueness.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains unique contributor counts grouped by tag value.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one `groupByKey` is required.
+- Contribution interval and contribution-type constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM users by tag`
+  - Failure condition: `groupByKey` omitted or multi-key.
+  - Why it fails: executor requires exactly one grouping key.
+  - Violated prerequisite or constraint: one tag key.
+- Failing function: `group OSM users by tag`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: contribution-type filter rejects it.
+  - Violated prerequisite or constraint: allowed contribution type.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Unknown tag keys/values are represented through synthetic negative IDs and can still produce groups or remainders.
 
-### Behavior 25: Area Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
+### Behavior 25: Segment OSM Contributor Density by Tag Value
 
 Business goal:
-Area of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
+Normalize tag-value grouped contributor counts by boundary area.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/groupBy/boundary`.
+This compares contributor participation by tag category across regions.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/area/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM user density by tag` (`GET /users/count/density/groupBy/tag`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKey=highway`, optional `groupByValues=primary,residential`, optional `contributionType=tagChange`, and `format=json`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- Existing extract and known tag values can be reused outside the API.
+- No setup function is available or required.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary is reused as spatial scope and density denominator.
+- `groupByKey` defines all tag groups.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains unique contributor density grouped by tag value.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- `groupByKey` and valid boundary are required.
+- Contribution interval constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM user density by tag`
+  - Failure condition: missing `groupByKey`.
+  - Why it fails: tag grouping cannot run without the key.
+  - Violated prerequisite or constraint: mandatory grouping key.
+- Failing function: `group OSM user density by tag`
+  - Failure condition: malformed boundary.
+  - Why it fails: density cannot be computed.
+  - Violated prerequisite or constraint: valid boundary geometry.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The endpoint returns counts/densities, not contributor identity lists.
 
-### Behavior 26: Area Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
+### Behavior 26: Segment OSM Contributors by Tag-Key Presence
 
 Business goal:
-Area of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
+Count unique contributors associated with selected OSM tag keys.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/groupBy/boundary`.
+This supports participation analysis by mapping theme, such as contributors to `building` versus `highway` features.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/area/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM users by key` (`GET /users/count/groupBy/key`) with `bboxes=8.675,49.385,8.700,49.410`, `time=2014-01-01/2015-01-01/P1M`, `groupByKeys=building,highway`, optional `contributionType=creation`, and `format=json`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Known key lists can be reused by resending `groupByKeys`.
+- No API can persist or discover key groups in the function inventory.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- `groupByKeys` defines one or more tag-key groups.
+- User IDs are counted uniquely inside each key group and interval.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains unique contributor counts grouped by tag-key presence.
 
 Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- At least one `groupByKeys` value is required.
+- Time must define contribution intervals.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM users by key`
+  - Failure condition: `groupByKeys` omitted.
+  - Why it fails: implementation requires key grouping input.
+  - Violated prerequisite or constraint: mandatory key list.
+- Failing function: `group OSM users by key`
+  - Failure condition: one timestamp in `time`.
+  - Why it fails: user aggregation is contribution-based.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The executor emits total and remainder groups in addition to requested key groups.
 
-### Behavior 27: Area Of Osm Elements Grouped By The Boundary And The Tag
+### Behavior 27: Compare OSM Contributors Across Boundaries
 
 Business goal:
-Area of OSM elements grouped by the boundary and the tag.
+Count distinct contributors separately for multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/groupBy/boundary/groupBy/tag`.
+This supports regional contributor participation reports.
 
 Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements grouped by the boundary and the tag` (`GET /elements/area/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM users by boundary` (`GET /users/count/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, optional `filter=building=*`, and `format=json` or `format=geojson`.
 
 Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+None.
 
 Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+- OSHDB contribution/user history can be preconfigured.
+- Boundary IDs are request-local and must be resent for later comparisons.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Boundary IDs define groups.
+- The same time, filter, and contribution-type values apply to every boundary.
 
 Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+The response contains distinct contributor counts per boundary.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Explicit boundary groups are required.
+- Contribution interval and contribution-type constraints apply.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM users by boundary`
+  - Failure condition: no boundary input.
+  - Why it fails: boundary grouping needs explicit boundary groups.
+  - Violated prerequisite or constraint: boundary input.
+- Failing function: `group OSM users by boundary`
+  - Failure condition: invalid `contributionType`.
+  - Why it fails: contribution-type filter rejects unsupported values.
+  - Violated prerequisite or constraint: allowed contribution type.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+The implementation reuses contribution boundary grouping and maps contribution user IDs through `countUniq()`.
 
-### Behavior 28: Area Of Osm Elements Grouped By The Boundary And The Tag
+### Behavior 28: Compare OSM Contributor Density Across Boundaries
 
 Business goal:
-Area of OSM elements grouped by the boundary and the tag.
+Compute distinct contributor density separately for multiple spatial areas.
 
 Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/groupBy/boundary/groupBy/tag`.
+This normalizes contributor participation by boundary area.
 
 Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Preconfigured OSHDB extract and tag translator; no prior API-created service state.
 
 Required execution workflow:
-1. Use function `area of osm elements grouped by the boundary and the tag` (`POST /elements/area/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+1. Use function `group OSM user density by boundary` (`GET /users/count/density/groupBy/boundary`) with `bboxes=west:8.675,49.385,8.690,49.400|east:8.690,49.385,8.705,49.400`, `time=2014-01-01/2015-01-01/P1M`, optional `contributionType=creation`, and `format=json` or `format=geojson`.
 
 Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+None.
 
 Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+- Existing contribution data and known boundaries can be reused outside the API.
+- Request-local boundary identifiers must still match the supplied boundary list.
 
 Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- Each boundary’s own area is used as the denominator.
+- `contributionType` and `time` are reused across all boundary groups.
 
 Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+The response contains unique contributor density per boundary.
 
 Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+- Exactly one boundary parameter type is accepted.
+- Time must define intervals.
 
 Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+- Failing function: `group OSM user density by boundary`
+  - Failure condition: both `bboxes` and `bcircles` supplied.
+  - Why it fails: input processing accepts only one boundary source.
+  - Violated prerequisite or constraint: one boundary parameter type.
+- Failing function: `group OSM user density by boundary`
+  - Failure condition: one timestamp in `time`.
+  - Why it fails: user density grouping uses contribution intervals.
+  - Violated prerequisite or constraint: interval time.
 
 Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Density per boundary is not affected by the area of other supplied boundaries.
 
-### Behavior 29: Area Of Osm Elements Grouped By The Key
+## Unsupported or Missing Business Behaviors
 
-Business goal:
-Area of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/groupBy/key`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the key` (`GET /elements/area/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 30: Area Of Osm Elements Grouped By The Key
-
-Business goal:
-Area of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/groupBy/key`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the key` (`POST /elements/area/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 31: Area Of Osm Elements Grouped By The Tag
-
-Business goal:
-Area of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the tag` (`GET /elements/area/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 32: Area Of Osm Elements Grouped By The Tag
-
-Business goal:
-Area of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the tag` (`POST /elements/area/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 33: Area Of Osm Elements Grouped By The Type
-
-Business goal:
-Area of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the type` (`GET /elements/area/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 34: Area Of Osm Elements Grouped By The Type
-
-Business goal:
-Area of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `area of osm elements grouped by the type` (`POST /elements/area/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `area of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 35: Ratio Of The Area Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of the area of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/ratio`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of the area of osm elements satisfying filter2 within items selected by filter` (`GET /elements/area/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 36: Ratio Of The Area Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of the area of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/ratio`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of the area of osm elements satisfying filter2 within items selected by filter` (`POST /elements/area/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 37: Ratio Of The Area Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the area of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `GET /elements/area/ratio/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of the area of osm elements grouped by the boundary` (`GET /elements/area/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 38: Ratio Of The Area Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the area of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Area` capability area and operates through `POST /elements/area/ratio/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of the area of osm elements grouped by the boundary` (`POST /elements/area/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the area of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 39: Count Of Osm Elements
-
-Business goal:
-Count of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements` (`GET /elements/count`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 40: Count Of Osm Elements
-
-Business goal:
-Count of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements` (`POST /elements/count`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 41: Density Of Osm Elements Number Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (number of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/density`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements number of elements divided by the total area in square kilometers` (`GET /elements/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 42: Density Of Osm Elements Number Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (number of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/density`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements number of elements divided by the total area in square kilometers` (`POST /elements/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements number of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 43: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/density/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 44: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/density/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 45: Density Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Density of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`GET /elements/count/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 46: Density Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Density of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`POST /elements/count/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 47: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/density/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`GET /elements/count/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 48: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/density/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`POST /elements/count/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 49: Density Of Osm Elements Grouped By The Type
-
-Business goal:
-Density of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/density/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`GET /elements/count/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 50: Density Of Osm Elements Grouped By The Type
-
-Business goal:
-Density of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/density/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`POST /elements/count/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 51: Count Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Count of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 52: Count Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Count of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 53: Count Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Count of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the boundary and the tag` (`GET /elements/count/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 54: Count Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Count of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the boundary and the tag` (`POST /elements/count/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 55: Count Of Osm Elements Grouped By The Key
-
-Business goal:
-Count of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/groupBy/key`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the key` (`GET /elements/count/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 56: Count Of Osm Elements Grouped By The Key
-
-Business goal:
-Count of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/groupBy/key`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the key` (`POST /elements/count/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 57: Count Of Osm Elements Grouped By The Tag
-
-Business goal:
-Count of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the tag` (`GET /elements/count/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 58: Count Of Osm Elements Grouped By The Tag
-
-Business goal:
-Count of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the tag` (`POST /elements/count/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 59: Count Of Osm Elements Grouped By The Type
-
-Business goal:
-Count of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the type` (`GET /elements/count/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 60: Count Of Osm Elements Grouped By The Type
-
-Business goal:
-Count of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm elements grouped by the type` (`POST /elements/count/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 61: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/ratio`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`GET /elements/count/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 62: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/ratio`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`POST /elements/count/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 63: Ratio Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `GET /elements/count/ratio/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of osm elements grouped by the boundary` (`GET /elements/count/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 64: Ratio Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Count` capability area and operates through `POST /elements/count/ratio/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of osm elements grouped by the boundary` (`POST /elements/count/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 65: Length Of Osm Elements
-
-Business goal:
-Length of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements` (`GET /elements/length`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 66: Length Of Osm Elements
-
-Business goal:
-Length of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements` (`POST /elements/length`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 67: Density Of Osm Elements Length Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (length of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/density`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements length of elements divided by the total area in square kilometers` (`GET /elements/length/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 68: Density Of Osm Elements Length Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (length of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/density`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements length of elements divided by the total area in square kilometers` (`POST /elements/length/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements length of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 69: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/density/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/length/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 70: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/density/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/length/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 71: Density Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Density of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`GET /elements/length/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 72: Density Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Density of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary and the tag` (`POST /elements/length/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 73: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/density/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`GET /elements/length/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 74: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/density/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`POST /elements/length/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 75: Density Of Osm Elements Grouped By The Osm Type
-
-Business goal:
-Density of OSM elements grouped by the OSM type.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/density/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the osm type` (`GET /elements/length/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 76: Density Of Osm Elements Grouped By The Osm Type
-
-Business goal:
-Density of OSM elements grouped by the OSM type.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/density/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the osm type` (`POST /elements/length/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the osm type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 77: Length Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Length of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/length/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 78: Length Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Length of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/length/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 79: Length Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Length of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the boundary and the tag` (`GET /elements/length/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 80: Length Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Length of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the boundary and the tag` (`POST /elements/length/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 81: Length Of Osm Elements Grouped By The Key
-
-Business goal:
-Length of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/groupBy/key`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the key` (`GET /elements/length/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 82: Length Of Osm Elements Grouped By The Key
-
-Business goal:
-Length of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/groupBy/key`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the key` (`POST /elements/length/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 83: Length Of Osm Elements Grouped By The Tag
-
-Business goal:
-Length of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the tag` (`GET /elements/length/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 84: Length Of Osm Elements Grouped By The Tag
-
-Business goal:
-Length of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the tag` (`POST /elements/length/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 85: Length Of Osm Elements Grouped By The Type
-
-Business goal:
-Length of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the type` (`GET /elements/length/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 86: Length Of Osm Elements Grouped By The Type
-
-Business goal:
-Length of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `length of osm elements grouped by the type` (`POST /elements/length/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `length of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 87: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/ratio`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`GET /elements/length/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 88: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/ratio`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`POST /elements/length/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 89: Ratio Of The Length Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the length of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `GET /elements/length/ratio/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of the length of osm elements grouped by the boundary` (`GET /elements/length/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 90: Ratio Of The Length Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the length of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Length` capability area and operates through `POST /elements/length/ratio/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of the length of osm elements grouped by the boundary` (`POST /elements/length/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the length of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 91: Perimeter Of Osm Elements
-
-Business goal:
-Perimeter of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements` (`GET /elements/perimeter`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 92: Perimeter Of Osm Elements
-
-Business goal:
-Perimeter of OSM elements.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements` (`POST /elements/perimeter`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 93: Density Of Osm Elements Perimeter Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (perimeter of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/density`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements perimeter of elements divided by the total area in square kilometers` (`GET /elements/perimeter/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 94: Density Of Osm Elements Perimeter Of Elements Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM elements (perimeter of elements divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/density`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements perimeter of elements divided by the total area in square kilometers` (`POST /elements/perimeter/density`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements perimeter of elements divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 95: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/density/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/perimeter/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 96: Density Of Osm Elements Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Density of OSM elements grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/density/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/perimeter/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 97: Density Of Grouped By The Boundary And The Tag
-
-Business goal:
-Density of grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of grouped by the boundary and the tag` (`GET /elements/perimeter/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 98: Density Of Grouped By The Boundary And The Tag
-
-Business goal:
-Density of grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/density/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of grouped by the boundary and the tag` (`POST /elements/perimeter/density/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 99: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/density/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`GET /elements/perimeter/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 100: Density Of Osm Elements Grouped By The Tag
-
-Business goal:
-Density of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/density/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the tag` (`POST /elements/perimeter/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 101: Density Of Osm Elements Grouped By The Type
-
-Business goal:
-Density of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/density/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`GET /elements/perimeter/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 102: Density Of Osm Elements Grouped By The Type
-
-Business goal:
-Density of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/density/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm elements grouped by the type` (`POST /elements/perimeter/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 103: Perimeter Of Osm Elements In Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Perimeter of OSM elements in grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys` (`GET /elements/perimeter/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 104: Perimeter Of Osm Elements In Grouped By The Boundary Bboxes Bcircles Or Bpolys
-
-Business goal:
-Perimeter of OSM elements in grouped by the boundary (bboxes, bcircles, or bpolys).
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys` (`POST /elements/perimeter/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements in grouped by the boundary bboxes bcircles or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 105: Perimeter Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Perimeter of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the boundary and the tag` (`GET /elements/perimeter/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 106: Perimeter Of Osm Elements Grouped By The Boundary And The Tag
-
-Business goal:
-Perimeter of OSM elements grouped by the boundary and the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/groupBy/boundary/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the boundary and the tag` (`POST /elements/perimeter/groupBy/boundary/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the boundary and the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 107: Perimeter Of Osm Elements Grouped By The Key
-
-Business goal:
-Perimeter of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/groupBy/key`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the key` (`GET /elements/perimeter/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 108: Perimeter Of Osm Elements Grouped By The Key
-
-Business goal:
-Perimeter of OSM elements grouped by the key.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/groupBy/key`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the key` (`POST /elements/perimeter/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 109: Perimeter Of Osm Elements Grouped By The Tag
-
-Business goal:
-Perimeter of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the tag` (`GET /elements/perimeter/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 110: Perimeter Of Osm Elements Grouped By The Tag
-
-Business goal:
-Perimeter of OSM elements grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the tag` (`POST /elements/perimeter/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 111: Perimeter Of Osm Elements Grouped By The Type
-
-Business goal:
-Perimeter of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the type` (`GET /elements/perimeter/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 112: Perimeter Of Osm Elements Grouped By The Type
-
-Business goal:
-Perimeter of OSM elements grouped by the type.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `perimeter of osm elements grouped by the type` (`POST /elements/perimeter/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `perimeter of osm elements grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 113: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/ratio`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`GET /elements/perimeter/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 114: Ratio Of Osm Elements Satisfying Filter2 Within Items Selected By Filter
-
-Business goal:
-Ratio of OSM elements satisfying filter2 within items selected by filter.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/ratio`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of osm elements satisfying filter2 within items selected by filter` (`POST /elements/perimeter/ratio`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of osm elements satisfying filter2 within items selected by filter`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 115: Ratio Of The Perimeter Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the perimeter of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `GET /elements/perimeter/ratio/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `ratio of the perimeter of osm elements grouped by the boundary` (`GET /elements/perimeter/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 116: Ratio Of The Perimeter Of Osm Elements Grouped By The Boundary
-
-Business goal:
-Ratio of the perimeter of OSM elements grouped by the boundary.
-
-Domain context:
-This behavior belongs to the `Elements Perimeter` capability area and operates through `POST /elements/perimeter/ratio/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `ratio of the perimeter of osm elements grouped by the boundary` (`POST /elements/perimeter/ratio/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, filter optional, filter2 optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `filter`, `filter2`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `ratio of the perimeter of osm elements grouped by the boundary`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 117: Count Of Osm Users
-
-Business goal:
-Count of OSM users.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm users` (`GET /users/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 118: Count Of Osm Users
-
-Business goal:
-Count of OSM users.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm users` (`POST /users/count`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 119: Density Of Osm Users Number Of Users Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM users (number of users divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/density`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm users number of users divided by the total area in square kilometers` (`GET /users/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 120: Density Of Osm Users Number Of Users Divided By The Total Area In Square Kilometers
-
-Business goal:
-Density of OSM users (number of users divided by the total area in square-kilometers).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/density`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm users number of users divided by the total area in square kilometers` (`POST /users/count/density`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users number of users divided by the total area in square kilometers`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 121: Count Of Osm Users Grouped By Boundary Bboxes Bcirlces Or Bpolys
-
-Business goal:
-Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/density/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm users grouped by boundary bboxes bcirlces or bpolys` (`GET /users/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 122: Count Of Osm Users Grouped By Boundary Bboxes Bcirlces Or Bpolys
-
-Business goal:
-Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/density/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm users grouped by boundary bboxes bcirlces or bpolys` (`POST /users/count/density/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 123: Density Of Osm Users Grouped By The Tag
-
-Business goal:
-Density of OSM users grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/density/groupBy/tag`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm users grouped by the tag` (`GET /users/count/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 124: Density Of Osm Users Grouped By The Tag
-
-Business goal:
-Density of OSM users grouped by the tag.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/density/groupBy/tag`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm users grouped by the tag` (`POST /users/count/density/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 125: Density Of Osm Users Grouped By The Type
-
-Business goal:
-Density of OSM users grouped by the type.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/density/groupBy/type`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `density of osm users grouped by the type` (`GET /users/count/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 126: Density Of Osm Users Grouped By The Type
-
-Business goal:
-Density of OSM users grouped by the type.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/density/groupBy/type`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `density of osm users grouped by the type` (`POST /users/count/density/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `density of osm users grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 127: Count Of Osm Users Grouped By Boundary Bboxes Bcirlces Or Bpolys
-
-Business goal:
-Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/groupBy/boundary`.
-
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm users grouped by boundary bboxes bcirlces or bpolys` (`GET /users/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
-
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 128: Count Of Osm Users Grouped By Boundary Bboxes Bcirlces Or Bpolys
-
-Business goal:
-Count of OSM users grouped by boundary (bboxes, bcirlces, or bpolys).
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/groupBy/boundary`.
-
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
-
-Required execution workflow:
-1. Use function `count of osm users grouped by boundary bboxes bcirlces or bpolys` (`POST /users/count/groupBy/boundary`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
-
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
-
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
-
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
-
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
-
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
-
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by boundary bboxes bcirlces or bpolys`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
-
-### Behavior 129: Count Of Osm Users Grouped By The Key
-
-Business goal:
-Count of OSM users grouped by the key.
-
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/groupBy/key`.
+### Missing Behavior 1: API-Managed Dataset or Extract Lifecycle
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
-
-Required execution workflow:
-1. Use function `count of osm users grouped by the key` (`GET /users/count/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
+Priority:
+Critical domain gap
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Expected business goal:
+A user would expect to register, select, update, validate, or inspect which OSM/OSHDB extract is being analyzed.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+Why it is unsupported:
+No function in `full-behavior.md` creates or selects an OSHDB extract. All supported functions assume `DbConnData`, tag translator, extract metadata, and optional data polygon already exist.
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+Existing functions considered:
+- `calculate OSM element metric`: consumes configured OSHDB data but cannot load or choose it.
+- `count OSM contributions`: reads contribution history but cannot import it.
+- `count OSM users`: derives users from contribution history but cannot manage user data.
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Missing capability:
+Dataset/extract registration, selection, metadata lookup in the documented function set, readiness validation, and extract refresh.
 
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Proof that function composition is insufficient:
+Chaining analytics functions can only query the currently configured backend. It cannot create dataset state, switch extracts, validate that an extract covers a region before execution, or roll back to an earlier extract.
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Evidence from existing functions/source:
+All supported functions instantiate request executors over `DbConnData.db`. Source has a `/metadata` controller, but it is absent from `ohsome-api.json` and from `full-behavior.md`.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Business impact:
+Users cannot build a fully API-realizable workflow from data import to analytics.
 
-### Behavior 130: Count Of Osm Users Grouped By The Key
+### Missing Behavior 2: Reusable Boundary Management
 
-Business goal:
-Count of OSM users grouped by the key.
+Priority:
+Important robustness gap
 
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/groupBy/key`.
+Expected business goal:
+A user would expect to create, validate, name, list, reuse, or delete common analysis areas.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Why it is unsupported:
+Boundaries are request parameters only. Boundary IDs are parsed from request prefixes or generated positionally and are not persisted.
 
-Required execution workflow:
-1. Use function `count of osm users grouped by the key` (`POST /users/count/groupBy/key`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKeys required, showMetadata optional, time optional, timeout optional.
+Existing functions considered:
+- `group OSM element metric by boundary`: accepts boundary coordinates and IDs for one request.
+- `calculate OSM contribution density grouped by boundary`: computes per-boundary density but does not store boundaries.
+- `group OSM users by boundary`: uses boundaries only as request-scoped groups.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Missing capability:
+Boundary CRUD, validation-only endpoint, generated boundary ID lookup, and reusable boundary references.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Proof that function composition is insufficient:
+Calling a boundary-grouped function returns analytics, not a persistent boundary resource. A later request cannot refer to a prior generated ID without resending the full geometry.
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKeys`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+Evidence from existing functions/source:
+`InputProcessingUtils` stores boundary IDs in request-local arrays; no repository or controller persists them.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Business impact:
+Repeated workflows are error-prone and cannot rely on stable server-side boundary identifiers.
 
-Constraints and invariants:
-- Required request values: `groupByKeys`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+### Missing Behavior 3: Contracted Raw OSM Element and Contribution Extraction
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the key`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Priority:
+Important robustness gap
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Expected business goal:
+A user would expect to retrieve the actual elements or contributions behind an aggregate result.
 
-### Behavior 131: Count Of Osm Users Grouped By The Tag
+Why it is unsupported:
+The function inventory contains only aggregate analytics. Implementation source has extraction controllers, but they are excluded from the OpenAPI file and `full-behavior.md`.
 
-Business goal:
-Count of OSM users grouped by the tag.
+Existing functions considered:
+- `calculate OSM element metric`: returns aggregate values only.
+- `count OSM contributions`: returns counts only.
+- `count latest OSM contributions`: returns counts only.
 
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/groupBy/tag`.
+Missing capability:
+Documented functions for raw geometry, bbox, centroid, full history, latest contribution extraction, and result pagination/stream semantics.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Proof that function composition is insufficient:
+Aggregates cannot reconstruct individual OSM entity IDs, geometries, tags, contributors, or contribution details.
 
-Required execution workflow:
-1. Use function `count of osm users grouped by the tag` (`GET /users/count/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+Evidence from existing functions/source:
+Source contains `/elements/geometry`, `/elementsFullHistory/...`, and `/contributions/...` extraction controllers, but `ohsome-api.json` omits them.
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Business impact:
+Users cannot move from aggregate anomaly detection to documented drill-down through the function set.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+### Missing Behavior 4: Contributor Identity Listing and Search
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+Priority:
+Important robustness gap
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Expected business goal:
+A user may need to identify which users contributed in a region or category.
 
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Why it is unsupported:
+User functions count distinct contributor IDs but do not return the IDs, names, profiles, or contribution memberships.
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Existing functions considered:
+- `count OSM users`: counts distinct users.
+- `group OSM users by tag`: counts distinct users per tag group.
+- `group OSM users by boundary`: counts distinct users per boundary.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Missing capability:
+List/search contributors, retrieve contributor IDs per group, or page user identities.
 
-### Behavior 132: Count Of Osm Users Grouped By The Tag
+Proof that function composition is insufficient:
+Counts lose identity information. No sequence of count functions can recover which users were counted.
 
-Business goal:
-Count of OSM users grouped by the tag.
+Evidence from existing functions/source:
+`UsersRequestExecutor` maps contributions to `getContributorUserId()` and immediately calls `countUniq()`.
 
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/groupBy/tag`.
+Business impact:
+Participation analysis cannot support follow-up contributor auditing or community engagement workflows.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+### Missing Behavior 5: Contribution Grouping by Type, Tag, or Key in the Contract
 
-Required execution workflow:
-1. Use function `count of osm users grouped by the tag` (`POST /users/count/groupBy/tag`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, groupByKey required, groupByValues optional, showMetadata optional, time optional, timeout optional.
+Priority:
+API ergonomics gap
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Expected business goal:
+A user might expect contribution counts to be grouped by OSM type, tag value, or tag key, as element and user analytics support.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+Why it is unsupported:
+Contribution functions in `full-behavior.md` support ungrouped counts, density, latest counts, and boundary grouping only.
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `groupByKey`, `groupByValues`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+Existing functions considered:
+- `count OSM contributions`: can filter by `contributionType` but not group by OSM type or tag.
+- `count OSM contributions grouped by boundary`: groups only by boundary.
+- `group OSM users by tag`: groups contributors, not contribution events.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+Missing capability:
+`/contributions/count/groupBy/type`, `/contributions/count/groupBy/tag`, and `/contributions/count/groupBy/key` style functions.
 
-Constraints and invariants:
-- Required request values: `groupByKey`.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Proof that function composition is insufficient:
+Counting users by tag or elements by tag cannot produce contribution-event counts by tag. Boundary grouping cannot split by tag/key/type.
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the tag`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Evidence from existing functions/source:
+`ContributionsCountController` exposes only count, density, latest count, latest density, and boundary group variants.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Business impact:
+Editing activity cannot be categorized as richly as element inventory or user participation.
 
-### Behavior 133: Count Of Osm Users Grouped By The Type
+### Missing Behavior 6: Atomic Multi-Metric Reports
 
-Business goal:
-Count of OSM users grouped by the type.
+Priority:
+API ergonomics gap
 
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `GET /users/count/groupBy/type`.
+Expected business goal:
+A user may want count, length, area, perimeter, density, and ratio results in one consistent report.
 
-Starting point:
-Any service state that satisfies the declared path parameters. For collection reads, the backing store may be empty.
+Why it is unsupported:
+Each function computes one metric family per request.
 
-Required execution workflow:
-1. Use function `count of osm users grouped by the type` (`GET /users/count/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+Existing functions considered:
+- `calculate OSM element metric`: one metric selected by path.
+- `calculate OSM element metric density`: one density metric selected by path.
+- `calculate OSM element metric ratio`: one ratio metric selected by path.
 
-Optional verification workflow:
-None. The behavior itself is a read or inspection operation.
+Missing capability:
+A multi-metric endpoint or server-side report definition.
 
-Existing-state shortcuts:
-- Direct database or fixture setup can create records before invoking the read if a non-empty response is needed.
+Proof that function composition is insufficient:
+Multiple calls can approximate a report by reusing parameters, but there is no atomicity, shared execution plan, or guarantee that all values come from the same backend state if the configured extract changes between calls.
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+Evidence from existing functions/source:
+Controllers are split by metric resource (`CountController`, `LengthController`, `AreaController`, `PerimeterController`).
 
-Business result:
-No state changes are expected. The response returns the requested resource, collection, calculation, or status view.
+Business impact:
+Dashboard clients must orchestrate many calls and handle partial failures themselves.
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+### Missing Behavior 7: Validation-Only Query Planning
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Priority:
+API ergonomics gap
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Expected business goal:
+A user may want to validate a boundary, filter, tag grouping, or time range before running an expensive query.
 
-### Behavior 134: Count Of Osm Users Grouped By The Type
+Why it is unsupported:
+Validation is embedded in execution.
 
-Business goal:
-Count of OSM users grouped by the type.
+Existing functions considered:
+- All metric, contribution, and user functions validate parameters only as part of computing results.
 
-Domain context:
-This behavior belongs to the `Users Count` capability area and operates through `POST /users/count/groupBy/type`.
+Missing capability:
+Dry-run or validation endpoint for boundaries, filters, time ranges, and expected computation cost.
 
-Starting point:
-The caller has prepared all required path parameters and any required request body or form fields. Parent resources referenced by the path should already exist when the domain requires them.
+Proof that function composition is insufficient:
+Any existing function that validates also executes OSHDB processing if validation passes.
 
-Required execution workflow:
-1. Use function `count of osm users grouped by the type` (`POST /users/count/groupBy/type`) with query: bboxes optional, bcircles optional, bpolys optional, contributionType optional, filter optional, format optional, showMetadata optional, time optional, timeout optional.
+Evidence from existing functions/source:
+`InputProcessor.processParameters()` validates and constructs the `MapReducer` for execution.
 
-Optional verification workflow:
-1. Use the corresponding read/list function for the same resource, when available, to verify the persisted or computed state.
+Business impact:
+Clients cannot cheaply preflight requests or provide precise UI feedback without running analytics.
 
-Existing-state shortcuts:
-- Direct setup can create parent resources referenced by path values before invoking this function.
-- Reusing an already-existing target may be accepted, rejected, or treated idempotently depending on implementation validation.
+## Cross-Behavior Observations
 
-Parameter and value bindings:
-- Query values `bboxes`, `bcircles`, `bpolys`, `contributionType`, `filter`, `format`, `showMetadata`, `time`, `timeout` filter, page, or modify the operation result.
+- The service is stateless at the API layer. All supported functions are analytical reads over preconfigured OSHDB state.
+- The main reusable domain values are not server resources. Boundaries, filters, tag keys, contribution types, and time ranges must be resent on every request.
+- Implementation validation is stricter and richer than the OpenAPI file. It rejects empty parameter maps, repeated parameters, unknown parameter names, invalid boolean values, invalid time formats, unsupported content types, and ambiguous boundary sources.
+- OpenAPI and implementation disagree. Source supports implementation-only endpoints such as `/metadata` and data extraction routes, while the OpenAPI file excludes them. Source also supports `types`, `keys`, `values`, and deprecated ratio parameters `types2`, `keys2`, `values2`, but the OpenAPI parameter inventory is narrower.
+- Density is derived from request boundary area. For grouped boundary density, each boundary uses its own area.
+- Contribution and user analytics require interval semantics. A single timestamp is valid for snapshot element metrics but invalid for contribution-based functions.
+- `filter` cannot be combined with legacy `keys`, `values`, or `types` in normal processing.
+- The API returns aggregate result values, not persisted analytics, jobs, raw entity identity, or reusable query objects.
+- CSV responses are written directly to the servlet response and return no response object internally.
+- `format=geojson` is accepted by generic format validation, but it is only domain-meaningful for boundary-grouped and extraction-style responses.
 
-Business result:
-The service creates, imports, starts, or executes the requested business action. Returned identifiers or links can be reused in later resource-specific calls when present.
+## Coverage Summary
 
-Constraints and invariants:
-- No required primitive parameters are declared in the OpenAPI contract.
-- Authentication, authorization, and cross-resource consistency are implementation concerns unless explicitly documented by the endpoint responses.
+Supported domain areas:
+OSM element metric analytics, element density, element grouping by type/boundary/tag/key, element ratios, contribution counts, contribution densities, latest contribution counts, boundary-grouped contribution analytics, user counts, user densities, and user grouping by type/tag/key/boundary.
 
-Failure and exceptional cases:
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `400` response.
-  - Why it fails: Bad request
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `401` response.
-  - Why it fails: Unauthorized
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `404` response.
-  - Why it fails: Not found
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `405` response.
-  - Why it fails: Method not allowed
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `413` response.
-  - Why it fails: Payload too large
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `500` response.
-  - Why it fails: Internal server error
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `501` response.
-  - Why it fails: Not implemented
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
-- Failing function: `count of osm users grouped by the type`
-  - Failure condition: HTTP `503` response.
-  - Why it fails: Service Unavailable
-  - Violated prerequisite or constraint: The request does not satisfy service validation, authorization, existence, or state-transition rules for this endpoint.
+Partially supported domain areas:
+Dataset metadata and raw extraction exist in source but are not covered by `ohsome-api.json` or `full-behavior.md`; contribution grouping is less complete than element and user grouping; multi-metric reporting requires client orchestration.
 
-Implementation notes:
-Success responses: 200 OK. Failure responses: 400 Bad request; 401 Unauthorized; 404 Not found; 405 Method not allowed; 413 Payload too large; 500 Internal server error; 501 Not implemented; 503 Service Unavailable.
+Unsupported domain areas:
+API-managed dataset lifecycle, reusable boundary resources, documented raw result drill-down from aggregates, contributor identity listing, validation-only dry runs, persistent reports/jobs, and atomic multi-metric analytics.

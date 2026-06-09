@@ -1,569 +1,663 @@
-# Domain-Level Behavior Analysis
+# Domain-Level Workflow and State Behavior Analysis
+
+| No. | Behavior name | Business goal |
+|---:|---|---|
+| 1 | [Behavior 1: Discover registered batch jobs](#behavior-1) | Find the batch jobs currently exposed by the service. |
+| 2 | [Behavior 2: Inspect a named batch job](#behavior-2) | Retrieve the domain resource for one job name. |
+| 3 | [Behavior 3: Start a synchronous batch execution](#behavior-3) | Run a registered job and receive the returned execution state. |
+| 4 | [Behavior 4: Submit an asynchronous batch execution](#behavior-4) | Start a registered job without waiting for completion. |
+| 5 | [Behavior 5: Review global execution history](#behavior-5) | View stored job executions across jobs. |
+| 6 | [Behavior 6: Retrieve a specific execution record](#behavior-6) | Inspect one generated execution by id. |
+| 7 | [Behavior 7: Review executions for one job](#behavior-7) | View execution history scoped to one job name. |
+| 8 | [Behavior 8: Review executions by outcome](#behavior-8) | Find executions with a selected exit code. |
+| 9 | [Behavior 9: Review one job's executions by outcome](#behavior-9) | Find executions matching both job name and exit code. |
 
 ## Domain Summary
 
-This service exposes a REST control and inspection surface for Spring Batch jobs. The main domain resources are registered batch jobs and their job executions. A job is identified by name, and an execution is identified by a Spring Batch-generated execution id. The only REST mutation is starting a job execution; job registration, job construction, Quartz scheduling, and repository configuration happen through application wiring or utility classes, not through the documented REST API.
+This service exposes a REST control and inspection surface for Spring Batch. The main aggregate roots are registered jobs, identified by job name, and job executions, identified by Spring Batch-generated execution ids. The central lifecycle transition is creating a job execution from a registered job. Execution records then move through Spring Batch states such as STARTING, STARTED, COMPLETED, FAILED, STOPPED, ABANDONED, and UNKNOWN. The REST API can start executions and read execution history, but job registration, job definition construction, Quartz scheduling, and repository configuration are established outside the documented REST surface.
 
-The OpenAPI description mentions Quartz schedules, and the source contains Quartz scheduler utilities, but no schedule REST endpoints are documented in `spring-batch-rest.json` or described as REST functions in `full-behavior.md`.
-
-## Available Function Inventory
-
-### Job discovery
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `list registered Spring Batch jobs` | `GET /jobs` | Lists jobs known to the service registry. |
-| `get registered job by name` | `GET /jobs/{jobName}` | Retrieves a job resource for a named Spring Batch job. |
-
-### Job execution control
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `start job asynchronously` | `POST /jobExecutions` | Starts a registered job using the asynchronous launcher branch. |
-| `start job synchronously` | `POST /jobExecutions` | Starts a registered job using the synchronous launcher branch. |
-
-### Job execution inspection
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `list job execution history` | `GET /jobExecutions` | Lists stored job executions globally. |
-| `find job executions by job name` | `GET /jobExecutions` | Filters execution history by job name. |
-| `find job executions by exit code` | `GET /jobExecutions` | Filters execution history by execution exit code. |
-| `find job executions by job name and exit code` | `GET /jobExecutions` | Filters execution history by both job name and exit code. |
-| `get job execution by id` | `GET /jobExecutions/{id}` | Retrieves one stored execution by generated execution id. |
+The OpenAPI description mentions Quartz schedules, and the source contains Quartz utilities, but no schedule endpoint appears in `spring-batch-rest.json` or in the extracted function list. The visible implementation also lacks the REST controller source, so controller-level read and error behavior is verified mainly from OpenAPI, `full-behavior.md`, and generated tests. Launch and parameter behavior is implementation-backed by `AdHocStarter`, `JobConfig`, `JobParamUtil`, `JobPropertyResolvers`, and Spring Batch repository configuration.
 
 ## Supported Business Behaviors
 
-### Behavior 1: Discover Available Batch Jobs
+<a id="behavior-1"></a>
+### Behavior 1: Discover registered batch jobs
 
 Business goal:
-Allow an operator or client to see which batch jobs the service can expose.
+Allow an operator or client to discover which Spring Batch jobs the service can expose for lookup or launch.
+
+API group boundary:
+This is an atomic read behavior. The single function is itself the registry discovery workflow over the global job registry.
 
 Domain context:
-Job launch and inspection are name-based, so discovering registered job names is the entry point for most workflows.
+All launch workflows require a job name. The registry list is the REST-visible way to obtain names that can be reused in job lookup or execution creation.
 
 Starting point:
-Application-wired service state. No REST function creates registered jobs.
+Pre-existing service/upstream state required. Registered jobs must already exist through application wiring, `JobBuilder.registerJob(...)`, `JobBuilder.createJob(...)`, or test fixture setup.
+
+State transition summary:
+- State before: The in-memory Spring Batch `JobRegistry` may contain zero or more registered jobs.
+- Transition trigger: A caller requests the global job collection.
+- Intermediate states: No persisted service state changes.
+- State after: Registry state is unchanged, and the caller has a HAL collection of job resources.
+- Invalid or blocked transitions: No implementation-backed business failure is documented; malformed request negotiation may still fail at the HTTP layer.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain the collection of available job resources and their `job.name` values.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, no body, and the caller's ordinary HTTP context to return registered job resources and their `job.name` values.
 
 Optional verification workflow:
-None. The behavior itself is a read operation.
+None.
 
 Existing-state shortcuts:
-- If the caller already knows a valid `jobName`, this discovery step can be skipped for later launch or lookup workflows.
-- Direct application wiring, `JobBuilder.registerJob(...)`, or `JobBuilder.createJob(...)` can establish registry state. There is no visible database-only setup path for registered jobs.
+- If a caller already knows a valid job name in the same service instance, this discovery step can be skipped for later lookup or launch behaviors.
+- Direct application or test registration can establish equivalent registry state.
+- There is no visible database-only setup path for job registration because the visible configuration uses registry wiring rather than persisted job-definition rows.
 
 Parameter and value bindings:
-- Returned `job.name` values are reused as `jobName` path values in `get registered job by name` and as request body `name` values in `start job synchronously` or `start job asynchronously`.
+- Returned `job.name` values can be reused as path `jobName` in `get registered job by name`.
+- Returned `job.name` values can be reused as request body `name` in `start job synchronously` and `start job asynchronously`.
+- The behavior is global; there is no tenant, owner, role, or caller-scope binding in the OpenAPI contract.
 
 Business result:
-The caller has a list of batch job names exposed by the service.
+The caller obtains the exposed job-name set. No job execution is created, no job definition is changed, and no registry membership is added or removed.
 
 Constraints and invariants:
-- The endpoint is global and not scoped by owner, tenant, or schedule.
-- The visible sample runtime exposes `personJob`.
-- Job registration is not persisted or managed by the REST API.
+- The endpoint is not scoped by job, tenant, schedule, or user.
+- OpenAPI documents a `200` HAL collection response only.
+- The visible source includes registry helpers but not the REST controller implementation.
+- Generated tests show the sample service exposes `personJob`.
 
 Failure and exceptional cases:
 - Failing function: `list registered Spring Batch jobs`
-  - Failure condition: No implementation-backed business failure is documented.
-  - Why it fails: The OpenAPI documents only `200`; controller source is not visible.
-  - Violated prerequisite or constraint: None confirmed.
+- Failure condition: No confirmed domain-level failure branch exists.
+- Why it fails: OpenAPI and visible source do not document a registry-list failure; controller source is not present for deeper confirmation.
+- Violated prerequisite or constraint: None confirmed.
 
 Implementation notes:
-The OpenAPI documents only a `200` response. Tests show `GET /jobs` returns a HAL collection containing `personJob`.
+The behavior depends on pre-existing Spring application wiring. Unknown query parameters are tolerated in generated tests, and OpenAPI documents no non-200 responses.
 
-### Behavior 2: Inspect A Named Batch Job
+<a id="behavior-2"></a>
+### Behavior 2: Inspect a named batch job
 
 Business goal:
-Allow a caller to inspect a specific job resource by name before launching it.
+Retrieve the resource representation for a specific batch job name before launching or auditing it.
+
+API group boundary:
+The functions share the job-name aggregate key. `list registered Spring Batch jobs` returns a `job.name` value that is consumed as the path value by `get registered job by name`.
 
 Domain context:
-Launching a job requires submitting its name, so named lookup lets a client confirm the intended job identity.
+Named inspection confirms the job identity that a caller intends to use in later execution workflows.
 
 Starting point:
-Application-wired service state with at least one exposed job name.
+Pre-existing service/upstream state required. A usable job name must exist through application wiring or equivalent registry setup.
+
+State transition summary:
+- State before: A job name is expected to be present in the registry.
+- Transition trigger: The caller resolves the name and requests the named job resource.
+- Intermediate states: No registry or execution state changes.
+- State after: The caller has a job resource for the path-scoped job name.
+- Invalid or blocked transitions: Missing registry entries should be blocked by domain expectation, but generated tests show arbitrary path names may return `200`; malformed path encoding can return `400`.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob` or another returned job name.
-2. Use function `get registered job by name` (`GET /jobs/{jobName}`) with path `jobName=personJob` and `Accept=application/hal+json` to retrieve the named job resource.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `get registered job by name` (`GET /jobs/{jobName}`) with path `jobName={job.name from step 1}`, `Accept=application/hal+json`, no query values, and no body to retrieve that named job resource.
 
 Optional verification workflow:
-None. The behavior itself is a read operation.
+None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if the caller already has a job name that should be accepted by the service.
-- Direct app/test registration can provide the same job registry state.
+- Step 1 can be skipped if the caller already has a service-valid job name in the same registry scope.
+- Direct application registration through `JobBuilder.registerJob(...)` or `JobBuilder.createJob(...)` can replace REST discovery.
+- The path value must still be path-safe and refer to the same service registry context.
 
 Parameter and value bindings:
-- The `job.name` returned by `list registered Spring Batch jobs` is reused as path `jobName` in `get registered job by name`.
+- The `job.name` returned by `list registered Spring Batch jobs` is reused exactly as path `jobName` in `get registered job by name`.
+- Caller identity is not bound to the job resource; OpenAPI declares no security schemes or owner fields.
 
 Business result:
-The caller receives a job resource for the requested name.
+The caller receives a job resource for the requested name. Persisted service state is unchanged. If the implementation returns a job resource for a name not actually registered, the response represents a weak or synthetic lookup rather than a proven launchable job.
 
 Constraints and invariants:
-- `full-behavior.md` describes this as a registered-job lookup.
-- Generated tests indicate the implementation may return `200` for an arbitrary syntactically acceptable `jobName`, which weakens the registry-existence invariant.
-- Malformed path values can fail before domain lookup.
+- Domain expectation from `full-behavior.md` is that `jobName` identifies a registered job.
+- Generated tests indicate this invariant may not be enforced for named job lookup.
+- A job resource retrieved by name is not sufficient proof that `POST /jobExecutions` can launch the same name; launch still resolves through `JobLocator.getJob(name)`.
 
 Failure and exceptional cases:
 - Failing function: `list registered Spring Batch jobs`
-  - Failure condition: The registry is empty and the caller needs an API-discovered name.
-  - Why it fails: No job name can be obtained through REST.
-  - Violated prerequisite or constraint: A usable job name is required for named lookup.
+- Failure condition: The registry has no jobs and the caller does not already know a valid name.
+- Why it fails: The workflow cannot obtain a job name through REST.
+- Violated prerequisite or constraint: Named inspection needs a path-safe job name.
+
 - Failing function: `get registered job by name`
-  - Failure condition: The path contains malformed encoded characters such as a problematic backslash sequence.
-  - Why it fails: Tests show `GET /jobs/{jobName}` can return `400` with text/html for malformed path input.
-  - Violated prerequisite or constraint: `jobName` must be a path-safe name.
+- Failure condition: The path contains malformed or unsafe encoding, for example problematic backslash encoding.
+- Why it fails: Generated tests show `400` with `text/html` for malformed path input.
+- Violated prerequisite or constraint: `jobName` must be safe as a path segment.
+
 - Failing function: `get registered job by name`
-  - Failure condition: A name is not registered.
-  - Why it fails: Domain expectation says missing names should not resolve; however tests suggest arbitrary names may still return `200`.
-  - Violated prerequisite or constraint: Registry existence is expected but may not be enforced.
+- Failure condition: The name is not registered.
+- Why it fails: The domain expectation is that missing registry entries cannot produce a true registered-job resource, but generated tests show arbitrary names can still receive `200`.
+- Violated prerequisite or constraint: Registry membership is expected but not consistently enforced.
 
 Implementation notes:
-OpenAPI documents only `200`, but tests show `400` is possible. There is an implementation/OpenAPI discrepancy around both error documentation and apparent registry validation.
+OpenAPI documents only `200`. Generated tests expose an implementation/OpenAPI discrepancy: `GET /jobs/{jobName}` can return `400`, and registry validation appears weaker than launch validation.
 
-### Behavior 3: Start A Batch Job Synchronously
+<a id="behavior-3"></a>
+### Behavior 3: Start a synchronous batch execution
 
 Business goal:
-Run a batch job and wait for the launch operation to return a completed or terminal execution resource.
+Run a registered batch job through the synchronous launcher and receive the resulting execution resource after the launcher returns.
+
+API group boundary:
+The functions share the job-name lifecycle key. `list registered Spring Batch jobs` supplies the request body `name` consumed by `start job synchronously`, and the POST creates a new Spring Batch execution.
 
 Domain context:
-Synchronous execution is meaningful when a client wants immediate completion feedback and can tolerate waiting for the job launcher.
+Synchronous launch is the core state transition from a registered job definition to a stored execution record with a terminal or returned execution status.
 
 Starting point:
-Application-wired service state with a registered launchable job.
+Pre-existing service/upstream state required. The job must already be registered and resolvable by `JobLocator`.
+
+State transition summary:
+- State before: A registered job exists; no new execution for this request exists yet.
+- Transition trigger: A caller posts a `JobConfig` with `name` and `asynchronous=false` or omits `asynchronous`.
+- Intermediate states: `AdHocStarter` resolves the job, enables property resolution, converts `properties` to Spring Batch parameters, optionally adds `uuid`, and calls the synchronous `JobLauncher`.
+- State after: A new execution exists in the Spring Batch repository with generated execution id, job name, parameters, status, exit code, timestamps, and exceptions.
+- Invalid or blocked transitions: Missing name, unknown job name, invalid launch parameters, already-running, already-complete, restart, repository, or job validation errors block launch.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to start the job and receive `jobExecution.id`, `jobExecution.jobName`, `jobExecution.status`, and `jobExecution.exitCode`.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=false`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to create the execution and receive its generated execution fields.
 
 Optional verification workflow:
-1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` captured from step 2 to inspect the stored execution.
-2. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName=personJob` to inspect executions for the same job.
+1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to inspect the stored execution.
+2. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName={body name from step 2}`, optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, and no body to inspect history for the same job.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if `name=personJob` or another valid job name is already known.
-- Direct app wiring can establish the job. Direct repository seeding can establish execution history for verification, but it does not replace the core start action for this behavior.
+- Step 1 can be skipped if the caller already knows a launchable job name in the same `JobRegistry`.
+- Direct application wiring, `JobBuilder.registerJob(...)`, or `JobBuilder.createJob(...)` can establish the required job registration.
+- Direct repository seeding can create execution records for verification, but it does not replace the core launch action.
 
 Parameter and value bindings:
-- `job.name` from step 1 is reused as body `name` in step 2.
-- Body `properties` become Spring Batch job parameters. `Date`, `Long`, and `Double` preserve typed parameter form; other values are stringified.
-- If `addUniqueJobParameter=true`, the implementation adds generated parameter `uuid`, so repeated starts of the same job can create distinct job instances.
-- The returned `jobExecution.id` can be reused as path `id` in `get job execution by id`.
+- `job.name` from discovery is reused exactly as POST body `name`.
+- Body `asynchronous=false` selects the synchronous launcher; omitting it has the same Java default.
+- Body `properties` is converted to Spring Batch `JobParameter` values: `Date`, `Long`, and `Double` keep typed parameter form; other values are stringified.
+- If `com.github.chrisgleissner.springbatchrest.addUniqueJobParameter=true`, a generated `uuid` parameter is added.
+- The generated execution id from the response can be reused as path `id` in `get job execution by id`.
 
 Business result:
-A new job execution is created in the Spring Batch repository. For the sample job, synchronous runs complete with `status=COMPLETED`, `exitCode=COMPLETED`, and an end time.
+A new execution record exists for the selected job. In generated tests for the sample `personJob`, synchronous runs return `status=COMPLETED`, `exitCode=COMPLETED`, empty `exitDescription`, no exceptions, and non-null start/end timestamps. No job definition is changed.
 
 Constraints and invariants:
-- Body `name` must resolve through `JobLocator.getJob(name)`.
-- Omitting `asynchronous` is equivalent to `asynchronous=false` because the Java boolean defaults to false.
-- No owner, tenant, or authorization scope is enforced by the visible REST contract.
-- OpenAPI declares date-time fields as strings with date-time format, but observed responses omit timezone and may violate the schema.
+- `name` must resolve through `JobLocator.getJob(name)`.
+- OpenAPI does not mark `name` as required, but implementation requires it.
+- Spring Batch launch invariants still apply, including parameter validity and job instance/restart rules.
+- The API has no visible caller authorization, tenant scope, or ownership restriction.
 
 Failure and exceptional cases:
 - Failing function: `list registered Spring Batch jobs`
-  - Failure condition: No jobs are registered or exposed.
-  - Why it fails: The workflow cannot obtain a valid body `name`.
-  - Violated prerequisite or constraint: A launchable job name is required.
+- Failure condition: No launchable job name can be obtained.
+- Why it fails: REST cannot create a registered job, and launch needs a resolvable name.
+- Violated prerequisite or constraint: A registered job is required.
+
 - Failing function: `start job synchronously`
-  - Failure condition: Body omits `name` or sets `name=null`.
-  - Why it fails: `AdHocStarter.start(JobConfig)` calls `JobLocator.getJob(jobConfig.getName())`; tests show this returns `500`.
-  - Violated prerequisite or constraint: Request body `name` is required by implementation, although not marked required by OpenAPI.
+- Failure condition: Body omits `name` or sets `name=null`.
+- Why it fails: `AdHocStarter.start(JobConfig)` calls `JobLocator.getJob(jobConfig.getName())`; generated tests show this can return `500`.
+- Violated prerequisite or constraint: Body `name` must be present and resolvable.
+
 - Failing function: `start job synchronously`
-  - Failure condition: Body `name` is unknown.
-  - Why it fails: `JobLocator` raises `NoSuchJobException`; tests show `404`.
-  - Violated prerequisite or constraint: The job must be registered.
+- Failure condition: Body `name` is not registered.
+- Why it fails: `JobLocator` raises `NoSuchJobException`; generated tests show `404`.
+- Violated prerequisite or constraint: The requested job must be registered.
+
 - Failing function: `start job synchronously`
-  - Failure condition: Job parameters or repository state violate Spring Batch launch rules.
-  - Why it fails: `JobLauncher.run(...)` can throw `JobExecutionException`, wrapped as a batch runtime failure.
-  - Violated prerequisite or constraint: Spring Batch job parameter, restart, already-running, or already-complete rules.
+- Failure condition: Request has no JSON body or malformed JSON body.
+- Why it fails: Generated tests show `400` for an empty POST body.
+- Violated prerequisite or constraint: A parseable `JobConfig` body is required by the controller.
+
+- Failing function: `start job synchronously`
+- Failure condition: Parameters or repository state violate Spring Batch launch rules.
+- Why it fails: `JobLauncher.run(...)` can throw `JobExecutionException`, which `AdHocStarter` wraps in `BatchRuntimeException`.
+- Violated prerequisite or constraint: Spring Batch job parameter, restart, already-running, already-complete, or repository constraints.
 
 Implementation notes:
-`AdHocStarter` selects a `SyncTaskExecutor` when `asynchronous=false`. The OpenAPI documents only `200`, but implementation/tests show `400`, `404`, and `500` outcomes.
+`AdHocStarter` uses a `SyncTaskExecutor` when `asynchronous=false`. OpenAPI documents only `200`, but generated tests show `400`, `404`, and `500`. Timestamp strings in responses can lack the timezone format required by the OpenAPI `date-time` schema.
 
-### Behavior 4: Submit A Batch Job Asynchronously
+<a id="behavior-4"></a>
+### Behavior 4: Submit an asynchronous batch execution
 
 Business goal:
-Start a batch job without waiting for completion.
+Submit a registered batch job through the asynchronous launcher and receive an execution handle before completion.
+
+API group boundary:
+The functions share the job-name lifecycle key. Discovery supplies the POST body `name`, and `start job asynchronously` creates the execution in an asynchronous Spring Batch state path.
 
 Domain context:
-Asynchronous launch supports long-running jobs where the caller wants an execution handle and will inspect status later.
+Asynchronous launch is meaningful for long-running jobs where the caller needs an execution id and later inspection rather than immediate terminal status.
 
 Starting point:
-Application-wired service state with a registered launchable job.
+Pre-existing service/upstream state required. The job must already be registered and resolvable by `JobLocator`.
+
+State transition summary:
+- State before: A registered job exists; no new execution for this request exists yet.
+- Transition trigger: A caller posts a `JobConfig` with `name` and `asynchronous=true`.
+- Intermediate states: `AdHocStarter` resolves the job, enables job-name-scoped property resolution, converts properties, optionally adds `uuid`, and uses `SimpleAsyncTaskExecutor`.
+- State after: A new execution exists and may initially be STARTING with UNKNOWN exit code and null timestamps.
+- Invalid or blocked transitions: Missing name, unknown job, invalid body, invalid launch parameters, or Spring Batch infrastructure failures block submission; concurrent async property resolution can produce incorrect per-execution property behavior without necessarily returning an HTTP error.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job asynchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name=personJob`, `asynchronous=true`, and optional `properties={...}` to submit the job and receive a job execution resource.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job asynchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=true`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to submit the execution and receive its generated execution fields.
 
 Optional verification workflow:
-1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` captured from step 2 to poll or inspect later state.
-2. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName=personJob` to inspect later executions for the job.
+1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to inspect later execution state.
+2. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName={body name from step 2}`, optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, and no body to inspect later history for the same job.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if the job name is already known.
-- Direct app/test wiring can register the job.
-- Existing execution history can be seeded for later inspection, but the async submission itself must still be performed for this behavior.
+- Step 1 can be skipped if the caller already knows a launchable job name in the same registry scope.
+- Direct application wiring or `JobBuilder` utilities can establish job registration.
+- Existing execution history can support later verification, but it does not replace the core async submission.
 
 Parameter and value bindings:
-- `job.name` from step 1 is reused as body `name`.
-- `asynchronous=true` selects the async launcher.
-- The response execution id, if present, is reused as path `id` in later retrieval.
-- Body `properties` are converted to job parameters and can affect job logic.
+- `job.name` from discovery is reused as POST body `name`.
+- Body `asynchronous=true` selects the async launcher.
+- Body `properties` is converted to Spring Batch job parameters and also made available through the deprecated job-name-scoped resolver.
+- Generated execution id is reused for id-based polling or retrieval.
+- The same caller context is not preserved by any documented security or ownership field.
 
 Business result:
-A job execution is created and started. Immediately returned async executions may have `status=STARTING`, `exitCode=UNKNOWN`, and null `startTime` or `endTime`.
+A new execution record exists for the selected job. The immediate response may report STARTING, UNKNOWN exit code, null `startTime`, and null `endTime`. Later repository updates can transition the execution to a terminal status.
 
 Constraints and invariants:
-- Body `name` must resolve to a registered job.
-- Asynchronous status and exit code are time-dependent.
-- Deprecated `JobPropertyResolvers.JobProperties` is unsafe for concurrent asynchronous executions of the same job with different properties.
+- `name` must resolve through `JobLocator.getJob(name)`.
+- Async status and exit code are time-dependent.
+- OpenAPI does not mark response timestamps nullable, but async responses can contain null values.
+- Deprecated `JobPropertyResolvers.JobProperties` is not safe for concurrent asynchronous executions of the same job with different property maps.
 
 Failure and exceptional cases:
+- Failing function: `list registered Spring Batch jobs`
+- Failure condition: No launchable job name can be obtained.
+- Why it fails: The API cannot create job registration state.
+- Violated prerequisite or constraint: A registered job is required.
+
 - Failing function: `start job asynchronously`
-  - Failure condition: Body `name` is missing or null.
-  - Why it fails: `AdHocStarter` attempts to resolve a null job name and wraps the failure; tests show `500`.
-  - Violated prerequisite or constraint: A concrete job name is required.
+- Failure condition: Body omits `name` or sets `name=null`.
+- Why it fails: `AdHocStarter` still attempts to resolve a null job name; generated tests show `500`.
+- Violated prerequisite or constraint: A concrete job name is required.
+
 - Failing function: `start job asynchronously`
-  - Failure condition: Body `name` is not registered.
-  - Why it fails: `JobLocator.getJob(name)` raises `NoSuchJobException`; tests show `404`.
-  - Violated prerequisite or constraint: The requested job must exist in the registry.
+- Failure condition: Body `name` is not registered.
+- Why it fails: `JobLocator.getJob(name)` raises `NoSuchJobException`; generated tests show `404`.
+- Violated prerequisite or constraint: The requested job must exist in the registry.
+
 - Failing function: `start job asynchronously`
-  - Failure condition: Multiple concurrent async executions of the same job use different property maps and job code reads through the deprecated singleton resolver.
-  - Why it fails: Resolvers are keyed by job name, so one execution can see another execution's properties.
-  - Violated prerequisite or constraint: Per-execution properties require execution-scoped access, not job-name-scoped singleton lookup.
+- Failure condition: Request body is absent or malformed.
+- Why it fails: The controller cannot bind a usable `JobConfig`; generated tests show `400` for an empty POST body.
+- Violated prerequisite or constraint: A parseable JSON body is required.
+
+- Failing function: `start job asynchronously`
+- Failure condition: Multiple concurrent async executions of the same job use different properties and job code reads through `JobPropertyResolvers.JobProperties`.
+- Why it fails: Resolvers are keyed by job name, not execution id, so one execution can read another execution's properties.
+- Violated prerequisite or constraint: Per-execution properties require execution-scoped access.
 
 Implementation notes:
-`AdHocStarter` selects `SimpleAsyncTaskExecutor` when `asynchronous=true`. OpenAPI does not mark nullable response dates, but async responses can contain null timestamps.
+`AdHocStarter` uses `SimpleAsyncTaskExecutor` for async launches. The response schema disagrees with observed async responses because timestamp fields can be null. The concurrency property resolver problem is documented directly in source comments.
 
-### Behavior 5: Review Global Job Execution History
+<a id="behavior-5"></a>
+### Behavior 5: Review global execution history
 
 Business goal:
-Allow an operator to view recent or stored executions across jobs.
+Allow an operator or client to inspect stored job executions across the service.
+
+API group boundary:
+This is an atomic read behavior. The single function is the global execution-history read model.
 
 Domain context:
-Execution history is the audit trail for job starts, status, exit code, and failure information.
+Execution history is the audit surface for job runs, statuses, exit codes, exceptions, and timing.
 
 Starting point:
-No prior REST-created execution state is required; the result may be empty.
+No prior service state.
+
+State transition summary:
+- State before: The Spring Batch repository may contain zero or more executions.
+- Transition trigger: A caller requests the global execution collection.
+- Intermediate states: No repository state changes.
+- State after: Repository state is unchanged, and the caller receives a collection.
+- Invalid or blocked transitions: Negative `limitPerJob` and some filter combinations can return server errors even though OpenAPI documents only `200`.
 
 Required execution workflow:
-1. Use function `list job execution history` (`GET /jobExecutions`) with optional query `limitPerJob={limitPerJob}` and `Accept=application/hal+json` to retrieve the execution collection.
+1. Use function `list job execution history` (`GET /jobExecutions`) with optional query `limitPerJob={positive integer or omitted}`, `Accept=application/hal+json`, no path values, and no body to retrieve execution records across jobs.
 
 Optional verification workflow:
-None. The behavior itself is a read operation.
+None.
 
 Existing-state shortcuts:
-- No setup is required for an empty or current history view.
-- Direct Spring Batch metadata seeding or prior calls to `start job synchronously` or `start job asynchronously` can make the result non-empty.
+- No setup is needed for an empty history view.
+- Prior calls to `start job synchronously` or `start job asynchronously` can make the result non-empty.
+- Direct Spring Batch metadata seeding can create history, but the seeded data must belong to the same repository instance.
 
 Parameter and value bindings:
-- `limitPerJob` controls how many executions are returned per job, when the controller accepts it.
-- Returned `jobExecution.id` values can be reused in `get job execution by id`.
-- Returned `jobExecution.jobName` and `jobExecution.exitCode` values can be reused in filtered search functions.
+- Query `limitPerJob` controls per-job result count when accepted by the implementation.
+- Returned generated execution ids can be reused in `get job execution by id`.
+- Returned `jobExecution.jobName` values can be reused in `find job executions by job name`.
+- Returned `jobExecution.exitCode` values can be reused in `find job executions by exit code`.
 
 Business result:
-The caller receives a collection of execution records, typically including job name, id, start/end times, status, exit code, exit description, and exceptions.
+The caller receives a HAL collection of execution records. No execution is created, deleted, updated, stopped, restarted, or abandoned.
 
 Constraints and invariants:
-- The repository is Spring Batch metadata; visible config overrides the datasource and uses a map-based repository in `AdHocBatchConfig`.
-- OpenAPI says `limitPerJob` defaults to `3`.
-- Negative or malformed query values are not consistently validated.
+- The read is global, not owner- or tenant-scoped.
+- OpenAPI documents `limitPerJob` defaulting to `3`.
+- Visible `AdHocBatchConfig` uses a map-based Spring Batch repository when that configuration is active.
+- Negative limits are not declared invalid by OpenAPI but can fail in implementation.
 
 Failure and exceptional cases:
 - Failing function: `list job execution history`
-  - Failure condition: `limitPerJob` is negative in some query combinations.
-  - Why it fails: Tests show an `IllegalArgumentException` and `500` for `jobName=` with `limitPerJob=-3643`.
-  - Violated prerequisite or constraint: `limitPerJob` should be non-negative, but this is not declared in OpenAPI.
+- Failure condition: Query `limitPerJob` is negative.
+- Why it fails: Generated tests show `IllegalArgumentException` and `500` for negative limit values.
+- Violated prerequisite or constraint: The implementation expects a non-negative limit, although OpenAPI does not state it.
+
 - Failing function: `list job execution history`
-  - Failure condition: A query value is interpreted as an invalid regex in filter logic.
-  - Why it fails: Tests show `PatternSyntaxException` for a job name containing an unclosed group.
-  - Violated prerequisite or constraint: Filter strings must be regex-safe in implementation, although the API exposes them as plain strings.
+- Failure condition: Query combinations contain values that trigger provider null handling bugs.
+- Why it fails: Generated tests show `NullPointerException` for some job-name and exit-code combinations.
+- Violated prerequisite or constraint: The provider expects filter states it does not consistently validate.
 
 Implementation notes:
-OpenAPI documents only `200`. Tests show `500` responses for some query combinations and response date-time schema mismatches.
+OpenAPI documents only `200`; generated tests show `500`. Response date-time strings observed in history can violate the declared OpenAPI date-time format.
 
-### Behavior 6: Retrieve A Specific Execution Record
+<a id="behavior-6"></a>
+### Behavior 6: Retrieve a specific execution record
 
 Business goal:
-Inspect the persisted state of one job execution.
+Inspect the persisted state of one job execution using its generated id.
+
+API group boundary:
+The functions share a response-to-request id binding. `start job synchronously` creates an execution and returns the generated id consumed by `get job execution by id`.
 
 Domain context:
-A client that starts a job or sees an execution in history needs a stable id-based lookup.
+Id-based lookup is the stable follow-up workflow after a job is started or discovered in history.
 
 Starting point:
-Application-wired service state with a launchable job, so the workflow can create an execution id through the API.
+Pre-existing service/upstream state required. A registered launchable job must exist if the workflow creates the execution through REST.
+
+State transition summary:
+- State before: A registered job exists; the target execution id does not exist until launch.
+- Transition trigger: The caller creates an execution and then requests it by generated id.
+- Intermediate states: The synchronous launch creates and persists the execution record.
+- State after: The execution record is unchanged by the lookup and is returned to the caller.
+- Invalid or blocked transitions: Missing launchable job blocks id creation; nonexistent or non-numeric ids block retrieval.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to create an execution and capture `jobExecution.id`.
-3. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` and `Accept=application/hal+json` to retrieve that execution record.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=false`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to create an execution and capture its generated execution id.
+3. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to retrieve the same execution record.
 
 Optional verification workflow:
-1. Use function `list job execution history` (`GET /jobExecutions`) with `limitPerJob=3` to verify that the same execution appears in history.
+1. Use function `list job execution history` (`GET /jobExecutions`) with optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, no path values, and no body to verify the generated execution appears in history.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if the job name is known.
-- Steps 1 and 2 can be skipped if an equivalent execution already exists and its generated `jobExecution.id` is known.
-- Direct Spring Batch metadata seeding can create an execution id, but the id must match the path value used in step 3.
+- Step 1 can be skipped if a launchable job name is already known.
+- Steps 1 and 2 can be skipped if an equivalent execution already exists in the same Spring Batch repository and its generated id is known.
+- Direct Spring Batch metadata seeding can replace the launch setup only for lookup testing; the path id must still match a real persisted execution.
 
 Parameter and value bindings:
-- `job.name` from step 1 is reused as POST body `name`.
-- The generated `jobExecution.id` from step 2 is reused as path `id` in step 3.
+- `job.name` from discovery is reused as POST body `name`.
+- The generated execution id from the POST response is reused exactly as path `id`.
 - The returned `jobExecution.jobName` should match the POST body `name`.
+- Generated tests assert a `jobExecution.jobId` response field; OpenAPI also defines `id`, so clients may need to bind to the actual representation returned by the running service.
 
 Business result:
-The caller receives one execution record for the selected generated id.
+The caller receives one execution record. No execution state changes during retrieval. The record includes job name, status, exit code, exit description, timestamps, and exception list when represented.
 
 Constraints and invariants:
-- `id` is a numeric Spring Batch execution id.
-- Id lookup is not scoped by job name, owner, or tenant.
-- No API exists to update or delete the execution record.
+- Path `id` must be parseable as an `int64`.
+- Id lookup is global and not scoped by job name, caller, tenant, or owner.
+- No endpoint updates or deletes the execution after retrieval.
 
 Failure and exceptional cases:
 - Failing function: `start job synchronously`
-  - Failure condition: Unknown or null job name.
-  - Why it fails: The job cannot be resolved by `JobLocator`.
-  - Violated prerequisite or constraint: A registered job is required to create an execution id.
+- Failure condition: Unknown, null, or unlaunchable job name.
+- Why it fails: `AdHocStarter` resolves the job before launching.
+- Violated prerequisite or constraint: A registered job is needed to create a generated execution id.
+
 - Failing function: `get job execution by id`
-  - Failure condition: No execution exists for `id`.
-  - Why it fails: Tests show `NoSuchJobExecutionException` mapped to `404`.
-  - Violated prerequisite or constraint: The path id must identify persisted Spring Batch metadata.
+- Failure condition: No execution exists for path `id`.
+- Why it fails: Generated tests show `NoSuchJobExecutionException` mapped to `404`.
+- Violated prerequisite or constraint: The path id must identify persisted Spring Batch execution metadata.
+
 - Failing function: `get job execution by id`
-  - Failure condition: Path `id` is non-numeric.
-  - Why it fails: The path variable is declared as `int64`, so Spring request binding should reject it.
-  - Violated prerequisite or constraint: `id` must be parseable as a long.
+- Failure condition: Path `id` is non-numeric.
+- Why it fails: OpenAPI declares `id` as `int64`, so request binding should reject non-numeric values.
+- Violated prerequisite or constraint: `id` must be a long integer.
 
 Implementation notes:
-OpenAPI documents only `200`, but tests show `404`. Responses may violate the declared date-time format.
+OpenAPI documents only `200`, but generated tests show `404`. Response timestamp format can disagree with the OpenAPI date-time schema.
 
-### Behavior 7: Review Executions For One Job
+<a id="behavior-7"></a>
+### Behavior 7: Review executions for one job
 
 Business goal:
-Inspect execution history for a specific batch job.
+Inspect execution history scoped to one batch job.
+
+API group boundary:
+The functions share the job-name aggregate key. Discovery obtains `job.name`, launch creates an execution with that same job name, and the filter consumes the same value as query `jobName`.
 
 Domain context:
-Operators commonly need to answer “what happened to this job recently?” rather than viewing all jobs.
+Operators usually need to answer what happened to a specific job, not only inspect global execution history.
 
 Starting point:
-Application-wired service state with a launchable named job.
+Pre-existing service/upstream state required. A registered launchable job must exist if the workflow establishes matching history through REST.
+
+State transition summary:
+- State before: A registered job exists, and matching execution history may or may not already exist.
+- Transition trigger: The caller creates or relies on history, then filters by job name.
+- Intermediate states: The setup launch creates an execution whose stored `jobExecution.jobName` equals the POST body `name`.
+- State after: The caller receives records matching query `jobName`; repository state is unchanged by the read.
+- Invalid or blocked transitions: Unknown jobs block setup; mismatched or regex-unsafe job-name filters can produce empty results or server errors.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to create at least one execution for that job.
-3. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName=personJob`, optional `limitPerJob={limitPerJob}`, and `Accept=application/hal+json` to retrieve executions for that job.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=false`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to create at least one execution for that job.
+3. Use function `find job executions by job name` (`GET /jobExecutions`) with query `jobName={body name from step 2}`, optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, no path values, and no body to retrieve executions for that job.
 
 Optional verification workflow:
-1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` captured from step 2 to inspect one returned execution.
+1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to inspect one matching execution.
 
 Existing-state shortcuts:
 - Step 1 can be skipped if the job name is already known.
-- Step 2 can be skipped if execution history for `jobName=personJob` already exists.
-- Direct Spring Batch metadata seeding can replace step 2, but seeded records must use the same `jobExecution.jobName` consumed by the query.
+- Step 2 can be skipped if execution history for the same `jobName` already exists in the same repository.
+- Direct metadata seeding can replace step 2 if seeded records use the same stored `jobExecution.jobName` consumed by query `jobName`.
 
 Parameter and value bindings:
-- The same `personJob` value is used as POST body `name` and later as query `jobName`.
-- `limitPerJob` limits result count for each job.
+- The same job-name value flows from `job.name` to POST body `name` and then to query `jobName`.
+- `limitPerJob` must be a non-negative result limit in practice.
 - Returned execution ids can be reused for id lookup.
 
 Business result:
-The caller receives execution records whose stored `jobExecution.jobName` matches the requested job name.
+The caller receives execution records whose stored job name matches the query. No execution is changed by the filter operation.
 
 Constraints and invariants:
-- Query `jobName` must match stored execution job names.
-- Empty `jobName` may behave like an unscoped or broad search in observed tests.
-- Filter implementation appears regex-sensitive.
+- Query `jobName` must match the stored execution job name.
+- Empty `jobName` can behave like a broad or unstable filter in generated tests.
+- Some job-name values appear to be interpreted through regex-sensitive provider logic.
+- The API does not enforce caller-specific ownership of the job name.
 
 Failure and exceptional cases:
 - Failing function: `start job synchronously`
-  - Failure condition: The selected job cannot be launched.
-  - Why it fails: `JobLocator` or `JobLauncher` raises an exception.
-  - Violated prerequisite or constraint: A launchable registered job is required for API-created history.
+- Failure condition: The selected job cannot be launched.
+- Why it fails: `JobLocator` or `JobLauncher` rejects the setup launch.
+- Violated prerequisite or constraint: A launchable registered job is required for API-created matching history.
+
 - Failing function: `find job executions by job name`
-  - Failure condition: Query `jobName` differs from the stored execution job name.
-  - Why it fails: The filter excludes non-matching executions.
-  - Violated prerequisite or constraint: The query must reuse the stored job name.
+- Failure condition: Query `jobName` differs from stored `jobExecution.jobName`.
+- Why it fails: The filter excludes the target execution.
+- Violated prerequisite or constraint: Query `jobName` must reuse the stored job name.
+
 - Failing function: `find job executions by job name`
-  - Failure condition: Query `jobName` contains regex metacharacters that form an invalid pattern.
-  - Why it fails: Tests show `PatternSyntaxException`.
-  - Violated prerequisite or constraint: The implementation requires regex-safe filter text, though OpenAPI does not state that.
+- Failure condition: Query `jobName` contains invalid regex syntax.
+- Why it fails: Generated tests show `PatternSyntaxException` and `500`.
+- Violated prerequisite or constraint: The implementation requires regex-safe filter text, although OpenAPI exposes a plain string.
+
+- Failing function: `find job executions by job name`
+- Failure condition: Query `limitPerJob` is negative.
+- Why it fails: Generated tests show `IllegalArgumentException` and `500`.
+- Violated prerequisite or constraint: Result limit must be non-negative.
 
 Implementation notes:
-The behavior is supported, but filter semantics are weaker than a normal exact-match string filter because invalid regex-like names can fail.
+This behavior is supported, but not as a robust literal exact-match search. OpenAPI documents only `200` and does not document regex-sensitive failures.
 
-### Behavior 8: Review Executions By Exit Code
+<a id="behavior-8"></a>
+### Behavior 8: Review executions by outcome
 
 Business goal:
-Find executions with a particular outcome, such as `COMPLETED`, `FAILED`, or `UNKNOWN`.
+Find job executions with a selected exit code, for example COMPLETED, FAILED, or UNKNOWN.
+
+API group boundary:
+The functions share execution outcome state. The setup launch returns or stores an execution `exitCode`, and `find job executions by exit code` consumes that value as query `exitCode`.
 
 Domain context:
-Exit-code filtering supports operational monitoring and failure triage.
+Outcome filtering supports operational monitoring, success review, and failure triage.
 
 Starting point:
-Application-wired service state with a launchable job so the workflow can create a known exit code.
+Pre-existing service/upstream state required. A registered launchable job must exist if the workflow establishes a known exit code through REST.
+
+State transition summary:
+- State before: A registered job exists, and matching execution history may or may not already exist.
+- Transition trigger: The caller creates or relies on an execution outcome, then filters by exit code.
+- Intermediate states: The setup launch creates an execution and produces a stored `jobExecution.exitCode`.
+- State after: The caller receives records matching query `exitCode`; repository state is unchanged by the read.
+- Invalid or blocked transitions: Querying for a terminal code before async completion, using a non-matching code, or using provider-bug-triggering query combinations can block or weaken the result.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to create an execution and capture `jobExecution.exitCode=COMPLETED` or the actual returned value.
-3. Use function `find job executions by exit code` (`GET /jobExecutions`) with query `exitCode={captured jobExecution.exitCode}`, optional `limitPerJob={limitPerJob}`, and `Accept=application/hal+json` to retrieve executions with that outcome.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=false`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to create an execution and capture its returned `jobExecution.exitCode`.
+3. Use function `find job executions by exit code` (`GET /jobExecutions`) with query `exitCode={jobExecution.exitCode from step 2}`, optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, no path values, and no body to retrieve executions with that outcome.
 
 Optional verification workflow:
-1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` from step 2 to confirm the selected execution's exit code.
+1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to confirm the selected execution's exit code.
 
 Existing-state shortcuts:
-- Step 2 can be skipped if an execution with the desired `exitCode` already exists.
-- Direct metadata seeding can replace step 2, but the seeded `jobExecution.exitCode` must exactly match the query value.
-- For async executions, wait until the execution has reached the desired terminal exit code before using a terminal query such as `exitCode=COMPLETED`.
+- Step 2 can be skipped if an execution with the desired exit code already exists in the same repository.
+- Direct metadata seeding can replace step 2 if seeded `jobExecution.exitCode` exactly matches the query value.
+- For asynchronous setup, the caller must wait until the desired stored exit code exists before filtering for a terminal value.
 
 Parameter and value bindings:
-- The returned `jobExecution.exitCode` from step 2 is reused as query `exitCode` in step 3.
-- If using async setup instead of sync, the initially returned `UNKNOWN` value may differ from the later terminal value.
+- The returned `jobExecution.exitCode` from setup is reused exactly as query `exitCode`.
+- If async launch is used outside this required workflow, an initially returned UNKNOWN value may differ from the later terminal value.
+- `limitPerJob` constrains returned records when accepted by the provider.
 
 Business result:
-The caller receives execution records whose stored exit code matches the query.
+The caller receives execution records whose stored exit code matches the query. No execution status or exit code is changed by the read.
 
 Constraints and invariants:
-- Exit code is stored on the execution record and is time-dependent for async jobs.
-- Query strings are not constrained to the enum-like values in the response schema; arbitrary strings can return empty results.
+- Exit code is time-dependent for asynchronous jobs.
+- The query value is not constrained by OpenAPI to known exit-code strings.
+- Empty results can be a valid outcome when no execution matches.
 
 Failure and exceptional cases:
-- Failing function: `find job executions by exit code`
-  - Failure condition: Query `exitCode` differs from the stored execution exit code.
-  - Why it fails: The filter excludes executions with different outcomes.
-  - Violated prerequisite or constraint: The query must reuse the stored exit code.
-- Failing function: `find job executions by exit code`
-  - Failure condition: The execution was just submitted asynchronously and the query uses `exitCode=COMPLETED`.
-  - Why it fails: The stored exit code may still be `UNKNOWN`.
-  - Violated prerequisite or constraint: Terminal outcome must exist before terminal filtering.
 - Failing function: `start job synchronously`
-  - Failure condition: Job launch fails before an execution with the desired exit code is created.
-  - Why it fails: Spring Batch launch exceptions prevent usable setup state.
-  - Violated prerequisite or constraint: A valid registered job and acceptable parameters are required.
+- Failure condition: Job launch fails before an execution with the desired exit code is created.
+- Why it fails: Spring Batch rejects the launch or repository operation.
+- Violated prerequisite or constraint: A valid registered job and acceptable parameters are required.
+
+- Failing function: `find job executions by exit code`
+- Failure condition: Query `exitCode` differs from the stored execution exit code.
+- Why it fails: The filter excludes executions with different outcomes.
+- Violated prerequisite or constraint: Query `exitCode` must reuse a stored exit code.
+
+- Failing function: `find job executions by exit code`
+- Failure condition: A caller filters for `exitCode=COMPLETED` immediately after async submission.
+- Why it fails: The stored execution may still report UNKNOWN.
+- Violated prerequisite or constraint: Terminal outcome must exist before terminal filtering.
+
+- Failing function: `find job executions by exit code`
+- Failure condition: Query combinations trigger provider null handling defects.
+- Why it fails: Generated tests show `NullPointerException` and `500` for some non-matching exit-code combinations.
+- Violated prerequisite or constraint: Filter state must be internally consistent, but implementation validation is incomplete.
 
 Implementation notes:
-Tests show no-match exit-code queries can return `200`, but OpenAPI does not document empty-result semantics.
+OpenAPI documents only `200`. Generated tests show no-match and malformed combinations can behave inconsistently; some return `200`, while others return `500`.
 
-### Behavior 9: Review A Job's Executions By Outcome
+<a id="behavior-9"></a>
+### Behavior 9: Review one job's executions by outcome
 
 Business goal:
-Find executions for a specific job that ended with a specific exit code.
+Find executions for a specific job that also match a specific exit code.
+
+API group boundary:
+The functions share both job-name and execution-outcome state. The setup launch binds POST body `name` to stored `jobExecution.jobName` and returns `jobExecution.exitCode`, and the final read consumes both values.
 
 Domain context:
-This combines job-scoped audit with outcome filtering, which is the most useful read model for operational triage.
+This is the most useful operational read model for questions like “which runs of this job completed or failed?”
 
 Starting point:
-Application-wired service state with a launchable named job.
+Pre-existing service/upstream state required. A registered launchable job must exist if the workflow establishes matching history through REST.
+
+State transition summary:
+- State before: A registered job exists, and matching execution history may or may not already exist.
+- Transition trigger: The caller creates or relies on an execution, then filters by both job name and exit code.
+- Intermediate states: The setup launch stores an execution with the selected job name and returned exit code.
+- State after: The caller receives records satisfying both filters; repository state is unchanged by the read.
+- Invalid or blocked transitions: Either filter mismatch excludes the target execution; regex-sensitive job-name values or invalid limits can return server errors.
 
 Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to create an execution and capture `jobExecution.exitCode`.
-3. Use function `find job executions by job name and exit code` (`GET /jobExecutions`) with query `jobName=personJob`, query `exitCode={captured jobExecution.exitCode}`, optional `limitPerJob={limitPerJob}`, and `Accept=application/hal+json` to retrieve matching executions.
+1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json`, no path values, no query values, and no body to obtain a returned `job.name` value.
+2. Use function `start job synchronously` (`POST /jobExecutions`) with `Content-Type=application/json`, `Accept=application/hal+json`, body `name={job.name from step 1}`, body `asynchronous=false`, body `properties={client supplied key/value map or empty object}`, no path values, and no required query values to create an execution and capture its returned `jobExecution.exitCode`.
+3. Use function `find job executions by job name and exit code` (`GET /jobExecutions`) with query `jobName={body name from step 2}`, query `exitCode={jobExecution.exitCode from step 2}`, optional query `limitPerJob={positive integer}`, `Accept=application/hal+json`, no path values, and no body to retrieve executions matching both values.
 
 Optional verification workflow:
-1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` from step 2 to inspect one matching execution.
+1. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={generated execution id from step 2}`, `Accept=application/hal+json`, no query values, and no body to inspect one matching execution.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if `jobName` is known.
-- Step 2 can be skipped if a matching execution already exists.
-- Direct repository seeding can replace step 2, but both seeded `jobExecution.jobName` and `jobExecution.exitCode` must match the query values.
+- Step 1 can be skipped if the job name is already known.
+- Step 2 can be skipped if a matching execution already exists in the same repository.
+- Direct metadata seeding can replace step 2 if both seeded `jobExecution.jobName` and seeded `jobExecution.exitCode` match the query values.
 
 Parameter and value bindings:
-- POST body `name=personJob` is reused as query `jobName=personJob`.
-- Returned `jobExecution.exitCode` is reused as query `exitCode`.
-- Returned `jobExecution.id` can be reused in id lookup.
+- POST body `name` is reused exactly as query `jobName`.
+- Returned `jobExecution.exitCode` is reused exactly as query `exitCode`.
+- Returned generated execution id can be reused in id lookup.
+- Both filters must bind to the same repository scope.
 
 Business result:
-The caller receives execution records satisfying both job-name and exit-code filters.
+The caller receives execution records for the selected job and selected outcome. Executions for the same job with a different exit code and executions for other jobs with the same exit code are excluded.
 
 Constraints and invariants:
 - Both filters must match the same stored execution.
-- A matching job name with a different exit code is excluded.
-- A matching exit code for a different job is excluded.
-- Filter values may be regex-sensitive in implementation.
+- Query `jobName` may be regex-sensitive in implementation.
+- `limitPerJob` should be non-negative.
+- No ownership, tenant, or authorization rule limits who can use the filters.
 
 Failure and exceptional cases:
-- Failing function: `find job executions by job name and exit code`
-  - Failure condition: Query `jobName` does not equal the stored execution job name.
-  - Why it fails: The job-name filter excludes the execution.
-  - Violated prerequisite or constraint: Query job name must reuse the stored job name.
-- Failing function: `find job executions by job name and exit code`
-  - Failure condition: Query `exitCode` does not equal the stored execution exit code.
-  - Why it fails: The exit-code filter excludes the execution.
-  - Violated prerequisite or constraint: Query exit code must reuse the stored exit code.
-- Failing function: `find job executions by job name and exit code`
-  - Failure condition: `jobName` contains invalid regex syntax.
-  - Why it fails: Tests show `PatternSyntaxException` and `500`.
-  - Violated prerequisite or constraint: The implementation requires regex-safe filter text.
-
-Implementation notes:
-This behavior is API-supported, but error semantics are underdocumented and query validation is weak.
-
-### Behavior 10: Launch Then Audit A Batch Run End To End
-
-Business goal:
-Perform a complete operational workflow: discover a job, run it, retrieve the generated execution, and find it in history.
-
-Domain context:
-This is the natural client workflow for “run this batch job and verify the recorded result.”
-
-Starting point:
-Application-wired service state with a launchable job.
-
-Required execution workflow:
-1. Use function `list registered Spring Batch jobs` (`GET /jobs`) with `Accept=application/hal+json` to obtain `jobName=personJob`.
-2. Use function `start job synchronously` (`POST /jobExecutions`) with body `name=personJob`, `asynchronous=false`, and optional `properties={...}` to create a completed execution and capture `jobExecution.id` and `jobExecution.exitCode`.
-3. Use function `get job execution by id` (`GET /jobExecutions/{id}`) with path `id={jobExecution.id}` to retrieve the created execution.
-4. Use function `find job executions by job name and exit code` (`GET /jobExecutions`) with query `jobName=personJob` and `exitCode={captured jobExecution.exitCode}` to find the same run in filtered history.
-
-Optional verification workflow:
-1. Use function `list job execution history` (`GET /jobExecutions`) with `limitPerJob=3` to inspect the broader execution list.
-
-Existing-state shortcuts:
-- Step 1 can be skipped if the job name is known.
-- Step 3 can be skipped if the POST response already contains all execution details needed by the client.
-- Step 4 can be skipped if filtered audit is not required.
-- Existing execution metadata cannot replace step 2 when the business goal is to launch a new run.
-
-Parameter and value bindings:
-- `jobName=personJob` flows from discovery to POST body `name`, then to query `jobName`.
-- Generated `jobExecution.id` flows from POST response to path `id`.
-- Returned `jobExecution.exitCode` flows from POST response to query `exitCode`.
-
-Business result:
-A new execution exists and can be inspected by id and found in filtered history.
-
-Constraints and invariants:
-- The workflow depends on generated execution id reuse.
-- The execution record is global, not owner-scoped.
-- For asynchronous launch, step 4 must account for temporary `UNKNOWN` exit code; this synchronous workflow avoids that timing issue.
-
-Failure and exceptional cases:
-- Failing function: `list registered Spring Batch jobs`
-  - Failure condition: No discoverable job exists.
-  - Why it fails: The workflow cannot obtain a valid launch name.
-  - Violated prerequisite or constraint: A launchable job must exist.
 - Failing function: `start job synchronously`
-  - Failure condition: Unknown job, missing name, or invalid launch parameters.
-  - Why it fails: `AdHocStarter` resolves the job and delegates to Spring Batch, both of which can reject the launch.
-  - Violated prerequisite or constraint: Valid job identity and Spring Batch launch rules.
-- Failing function: `get job execution by id`
-  - Failure condition: The path id is not the generated id from the launch response.
-  - Why it fails: Id lookup retrieves another execution or returns `404`.
-  - Violated prerequisite or constraint: Generated id must be reused exactly.
+- Failure condition: Setup launch cannot create the execution.
+- Why it fails: The job name is unknown, null, invalid, or rejected by Spring Batch launch rules.
+- Violated prerequisite or constraint: Matching history needs a valid stored execution.
+
 - Failing function: `find job executions by job name and exit code`
-  - Failure condition: Query values do not match the stored execution values.
-  - Why it fails: The filters exclude the launched execution.
-  - Violated prerequisite or constraint: Job name and exit code must be bound from the created execution.
+- Failure condition: Query `jobName` does not equal stored `jobExecution.jobName`.
+- Why it fails: The job-name filter excludes the execution.
+- Violated prerequisite or constraint: Query job name must reuse the stored job name.
+
+- Failing function: `find job executions by job name and exit code`
+- Failure condition: Query `exitCode` does not equal stored `jobExecution.exitCode`.
+- Why it fails: The exit-code filter excludes the execution.
+- Violated prerequisite or constraint: Query exit code must reuse the stored exit code.
+
+- Failing function: `find job executions by job name and exit code`
+- Failure condition: Query `jobName` contains invalid regex syntax.
+- Why it fails: Generated tests show `PatternSyntaxException` and `500`.
+- Violated prerequisite or constraint: Implementation requires regex-safe filter text.
+
+- Failing function: `find job executions by job name and exit code`
+- Failure condition: Query combination has a non-matching exit code in a cached-provider path.
+- Why it fails: Generated tests show `NullPointerException` and `500` for some combined filters instead of a clean empty collection.
+- Violated prerequisite or constraint: Combined filters should be valid and provider-safe, but implementation validation is incomplete.
 
 Implementation notes:
-This is the strongest fully API-realizable workflow, provided job registration already exists through application wiring. Job registration itself is not API-realizable.
+This behavior is supported as an exposed query pattern, but it has underdocumented error semantics. OpenAPI lists optional plain string filters and only `200` responses, while generated tests show `500`.
 
 ## Unsupported or Missing Business Behaviors
 
-### Missing Behavior 1: Register Or Manage Batch Jobs Through REST
+### Missing Behavior 1: Register or manage batch jobs through REST
 
 Priority:
 Critical domain gap
@@ -572,233 +666,237 @@ Expected business goal:
 A client should be able to create, register, update, rename, enable, disable, or delete batch job definitions through the API.
 
 Why it is unsupported:
-No available REST function creates or mutates job registry entries.
+No available REST function creates or mutates job registry entries. Job registration is done by application wiring or Java utility code outside the REST surface.
 
 Existing functions considered:
-- `list registered Spring Batch jobs`: can list current registry entries but cannot create them.
-- `get registered job by name`: can retrieve or synthesize a named job resource but cannot register executable job logic.
-- `start job synchronously`: can launch only a job resolvable by `JobLocator`.
-- `start job asynchronously`: can launch only a job resolvable by `JobLocator`.
+- `list registered Spring Batch jobs`: Lists registry entries but cannot create or mutate them.
+- `get registered job by name`: Retrieves a job resource by path name but cannot register executable job logic.
+- `start job synchronously`: Launches only a job resolvable by `JobLocator`.
+- `start job asynchronously`: Launches only a job resolvable by `JobLocator`.
 
 Missing capability:
-A REST endpoint and data model for registering job definitions, binding steps/tasklets, validating job names, updating definitions, and removing jobs.
+REST endpoints and persistence/model support for job-definition registration, validation, update, removal, enablement, and disablement.
 
 Proof that function composition is insufficient:
-Listing and retrieving jobs do not write registry state. Starting an unknown job fails because `JobLocator.getJob(name)` cannot resolve it. Delete-and-recreate is not possible because there is no REST create or delete.
+Listing and retrieving jobs do not write registry state. Starting an unknown job fails because `AdHocStarter` calls `JobLocator.getJob(name)`. No delete-and-recreate workaround exists because no REST create or delete exists.
 
 Evidence from existing functions/source:
-`AdHocStarter.start(JobConfig)` calls `jobLocator.getJob(jobConfig.getName())`. `JobBuilder.registerJob(...)` exists only as application/source utility code, not as a REST function.
+`AdHocStarter.start(JobConfig)` resolves the job before launching. `JobBuilder.registerJob(...)` and `JobBuilder.createJob(...)` exist only as source-level utilities, not extracted REST functions.
 
 Business impact:
-Clients cannot onboard new jobs or manage job lifecycle through the documented API.
+Clients cannot onboard, retire, rename, or govern job definitions through the documented API.
 
-### Missing Behavior 2: Stop, Restart, Abandon, Or Resume Executions
+### Missing Behavior 2: Stop, restart, abandon, or resume executions
 
 Priority:
 Critical domain gap
 
 Expected business goal:
-Operators should be able to stop a running execution, restart a failed execution, abandon an execution, or resume supported Spring Batch workflows.
+Operators should be able to stop a running execution, restart a failed execution, abandon an execution, or resume a supported Spring Batch workflow.
 
 Why it is unsupported:
-The REST API only starts executions and reads execution history.
+The REST API starts executions and reads execution history, but no function consumes an existing execution id as a control target.
 
 Existing functions considered:
-- `start job asynchronously`: starts a run but cannot stop it.
-- `start job synchronously`: starts a run but cannot restart a previous execution.
-- `get job execution by id`: reads execution state only.
-- `list job execution history`: reads execution history only.
+- `start job asynchronously`: Creates a new execution but cannot stop an existing one.
+- `start job synchronously`: Creates a new execution but cannot restart a previous one.
+- `get job execution by id`: Reads execution state only.
+- `list job execution history`: Reads stored executions only.
 
 Missing capability:
-Execution control endpoints such as stop, restart, abandon, or resume, with state validation against Spring Batch execution status.
+Execution-control endpoints for stop, restart, abandon, and resume, with state validation against Spring Batch execution status.
 
 Proof that function composition is insufficient:
-Starting a new job creates a new execution; it does not mutate the status of an existing execution. Reading by id cannot transition state. No function consumes an existing execution id as a control target.
+Starting a job creates another execution; it does not mutate the status of an existing execution. Reading by id cannot transition state. No available request body contains an execution id plus a control command.
 
 Evidence from existing functions/source:
-`POST /jobExecutions` accepts `JobConfig` with `name`, `properties`, and `asynchronous`; it does not accept an existing execution id or control command.
+`POST /jobExecutions` accepts `JobConfig` with `name`, `properties`, and `asynchronous`. It does not accept a prior execution id.
 
 Business impact:
-Long-running, failed, or stuck executions cannot be controlled through the API.
+Long-running, failed, stuck, or incorrectly started executions cannot be controlled through REST.
 
-### Missing Behavior 3: Manage Quartz Schedules Through REST
+### Missing Behavior 3: Manage Quartz schedules through REST
 
 Priority:
 Critical domain gap
 
 Expected business goal:
-A client should be able to create, inspect, pause, resume, update, or delete schedules for batch jobs.
+A client should be able to create, inspect, pause, resume, update, or delete future and recurring schedules for batch jobs.
 
 Why it is unsupported:
-The OpenAPI description mentions Quartz schedules and the source has `AdHocScheduler`, but `full-behavior.md` and `spring-batch-rest.json` expose no schedule endpoints.
+OpenAPI mentions Quartz schedules in the service description, and source contains scheduler utilities, but no schedule functions exist in `full-behavior.md` or `spring-batch-rest.json`.
 
 Existing functions considered:
-- `list registered Spring Batch jobs`: identifies jobs but not schedules.
-- `start job synchronously`: runs immediately, not on a schedule.
-- `start job asynchronously`: runs immediately, not on a schedule.
-- `list job execution history`: shows executions after they happen, not schedule definitions.
+- `list registered Spring Batch jobs`: Identifies jobs but not schedules.
+- `start job synchronously`: Runs immediately, not on a schedule.
+- `start job asynchronously`: Runs immediately, not on a schedule.
+- `list job execution history`: Shows executions after they exist, not future triggers.
 
 Missing capability:
-REST endpoints for schedule lifecycle and scheduler control, including cron/date trigger creation, schedule listing, pause/resume, unschedule, and schedule status.
+REST endpoints for schedule lifecycle and scheduler control, including cron/date trigger creation, schedule listing, pause, resume, unschedule, and schedule status.
 
 Proof that function composition is insufficient:
-Immediate execution cannot create future or recurring triggers. Execution history cannot reveal intended future schedules. No REST function accepts cron expressions or run dates.
+Immediate execution cannot create future or recurring triggers. Execution history cannot reveal intended future schedules. No REST function accepts cron expressions, run dates, trigger ids, or scheduler commands.
 
 Evidence from existing functions/source:
-`AdHocScheduler.schedule(...)`, `start()`, `pause()`, `resume()`, and `stop()` exist in source, but they are not part of the REST function inventory.
+`AdHocScheduler.schedule(...)`, `start()`, `pause()`, `resume()`, and `stop()` exist in source but are not exposed as REST functions.
 
 Business impact:
-The service description promises schedule control, but API clients cannot manage schedules.
+The service description implies schedule control, but API clients cannot manage schedules.
 
-### Missing Behavior 4: Safe, Validated Execution Search
+### Missing Behavior 4: Safe validated execution search
 
 Priority:
 Important robustness gap
 
 Expected business goal:
-Clients should be able to search executions by plain job name and exit code without regex errors or inconsistent limit behavior.
+Clients should be able to search executions by literal job name and exit code with documented validation for limits and bad inputs.
 
 Why it is unsupported:
-The available search functions accept string query values but do not reliably validate or treat them as safe literals.
+Available search functions accept plain string query values but generated tests show regex-sensitive job-name failures, null-provider failures, and negative-limit server errors.
 
 Existing functions considered:
-- `find job executions by job name`: can filter by job name but appears regex-sensitive.
-- `find job executions by exit code`: can filter by exit code but does not enforce known values.
-- `find job executions by job name and exit code`: combines the same weak filters.
-- `list job execution history`: accepts `limitPerJob` but negative values can produce inconsistent results.
+- `find job executions by job name`: Filters by job name but can fail on regex-like input.
+- `find job executions by exit code`: Filters by outcome but does not validate known values.
+- `find job executions by job name and exit code`: Combines weak filter behavior.
+- `list job execution history`: Accepts `limitPerJob` but negative values can produce `500`.
 
 Missing capability:
-Input validation and literal string filtering for `jobName`, explicit constraints for `limitPerJob`, and documented error responses.
+Literal string filtering, explicit `limitPerJob` constraints, validation errors documented as `400`, and provider-safe empty-result handling.
 
 Proof that function composition is insufficient:
-No existing function sanitizes a job name before passing it to the search implementation. Retrying with modified text changes the search semantics and cannot represent a real job name containing regex metacharacters. Negative limit behavior cannot be repaired by another endpoint.
+No existing function sanitizes or validates filter values before search. Retrying with escaped text changes the literal job name being searched. Negative-limit handling cannot be repaired by another endpoint.
 
 Evidence from existing functions/source:
-Generated tests show `PatternSyntaxException` for a `jobName` containing an unclosed group and `IllegalArgumentException` for a negative `limitPerJob` in some combinations. OpenAPI documents none of those errors.
+Generated tests show `PatternSyntaxException`, `NullPointerException`, and `IllegalArgumentException` for `GET /jobExecutions`; OpenAPI documents only `200`.
 
 Business impact:
-Operational search can fail for valid-looking names and can return server errors instead of client validation errors.
+Operational search can fail unpredictably and return server errors for client-controlled inputs.
 
-### Missing Behavior 5: Inspect Or Search Execution Parameters
+### Missing Behavior 5: Inspect or search execution parameters
 
 Priority:
 Important robustness gap
 
 Expected business goal:
-Clients should be able to see which parameters were used for a job execution and search or audit runs by parameter values.
+Clients should be able to see which parameters were used for an execution and search or audit executions by parameter keys or values.
 
 Why it is unsupported:
-Execution resources expose id, job id, job name, timestamps, exit code, status, and exceptions, but not job parameters.
+Execution resources expose status-oriented fields but not the original request `properties` or converted Spring Batch job parameters.
 
 Existing functions considered:
-- `start job synchronously`: accepts `properties` and converts them to job parameters.
-- `start job asynchronously`: accepts `properties` and converts them to job parameters.
-- `get job execution by id`: returns execution status but not the submitted parameters.
-- `find job executions by job name`: can filter by job name only.
-- `find job executions by exit code`: can filter by outcome only.
+- `start job synchronously`: Accepts `properties` and converts them to job parameters.
+- `start job asynchronously`: Accepts `properties` and converts them to job parameters.
+- `get job execution by id`: Returns execution status fields but not parameters.
+- `find job executions by job name`: Filters by job name only.
+- `find job executions by exit code`: Filters by outcome only.
 
 Missing capability:
-Execution parameter persistence in the REST representation and query filters for parameter keys or values.
+REST representation of execution parameters and filters for parameter keys or values.
 
 Proof that function composition is insufficient:
-The POST response and GET responses do not expose the original `properties` map or converted Spring Batch parameters. Once the start request is completed, no REST function can recover or search those values.
+Once the POST response is returned, no REST read exposes the submitted `properties` map or converted job parameters. Execution id lookup and filters cannot recover those values.
 
 Evidence from existing functions/source:
-`JobParamUtil` converts raw properties to `JobParameter`; the OpenAPI `JobExecution` schema does not include parameters.
+`JobParamUtil` converts raw properties to `JobParameter`; OpenAPI `JobExecution` schema lacks a parameters field.
 
 Business impact:
-Auditing and troubleshooting are weakened because clients cannot prove which inputs produced a given execution.
+Audit and troubleshooting are weakened because clients cannot prove which inputs produced a run.
 
-### Missing Behavior 6: Purge Or Retain Execution History
+### Missing Behavior 6: Purge or retain execution history
 
 Priority:
 API ergonomics gap
 
 Expected business goal:
-Operators may need to delete old execution records, purge failed test runs, or enforce retention policies.
+Operators may need to delete old execution records, purge test runs, archive history, or enforce retention policies.
 
 Why it is unsupported:
-All execution-history functions are read-only except starting new executions, which only adds records.
+All execution-history functions are read-only, and the only mutation starts a new execution.
 
 Existing functions considered:
-- `list job execution history`: reads stored records.
-- `get job execution by id`: reads one record.
-- `find job executions by job name`: reads filtered records.
-- `find job executions by exit code`: reads filtered records.
-- `find job executions by job name and exit code`: reads filtered records.
+- `list job execution history`: Reads records.
+- `get job execution by id`: Reads one record.
+- `find job executions by job name`: Reads filtered records.
+- `find job executions by exit code`: Reads filtered records.
+- `find job executions by job name and exit code`: Reads filtered records.
 
 Missing capability:
-Delete, purge, archive, or retention-management endpoints for Spring Batch metadata.
+DELETE, purge, archive, or retention-management endpoints for Spring Batch metadata.
 
 Proof that function composition is insufficient:
 Starting more executions cannot remove old ones. Reading by id or filter cannot mutate repository metadata. Direct database cleanup is outside the REST API and is not equivalent to a governed business operation.
 
 Evidence from existing functions/source:
-No DELETE endpoint exists in OpenAPI. `AdHocBatchConfig` uses Spring Batch repository infrastructure, but no REST function exposes cleanup.
+OpenAPI has no DELETE path. `AdHocBatchConfig` configures repository behavior but exposes no REST cleanup function.
 
 Business impact:
-Execution history can grow or remain polluted without an API-managed cleanup path.
+Execution history can grow, remain polluted, or require unsafe out-of-band cleanup.
 
-### Missing Behavior 7: Authenticated Or Scoped Batch Administration
+### Missing Behavior 7: Authenticated or scoped batch administration
 
 Priority:
 Important robustness gap
 
 Expected business goal:
-Administrative operations should be scoped by authenticated user, tenant, role, or ownership where the deployment domain requires it.
+Administrative job discovery, launch, and execution-history access should be scoped by authenticated user, tenant, role, or ownership where deployment requires it.
 
 Why it is unsupported:
-The OpenAPI and visible behavior contain no authentication, authorization, ownership, or tenant parameters.
+OpenAPI and extracted behavior contain no security schemes, authorization headers, ownership fields, or tenant parameters.
 
 Existing functions considered:
-- `list registered Spring Batch jobs`: globally lists jobs.
-- `get registered job by name`: globally addresses job names.
-- `start job synchronously`: launches any resolvable job name.
-- `start job asynchronously`: launches any resolvable job name.
-- `get job execution by id`: globally retrieves by numeric id.
+- `list registered Spring Batch jobs`: Globally lists jobs.
+- `get registered job by name`: Globally addresses job names.
+- `start job synchronously`: Launches any resolvable job name.
+- `start job asynchronously`: Launches any resolvable job name.
+- `get job execution by id`: Globally retrieves by numeric id.
 
 Missing capability:
 Authentication requirements, authorization checks, tenant or owner scoping, and scoped identifiers.
 
 Proof that function composition is insufficient:
-No available function establishes an identity or ownership relationship. Headers are not documented for auth. Id and name lookups are global, so chaining functions cannot restrict access.
+No available function establishes identity or ownership state. No later function consumes an identity, tenant, token, or ownership binding. Global ids and names cannot be made scoped by chaining existing calls.
 
 Evidence from existing functions/source:
-OpenAPI declares no security schemes and no owner/tenant fields in schemas.
+OpenAPI declares no security schemes and job/execution schemas have no owner or tenant fields.
 
 Business impact:
-In multi-user or multi-tenant deployments, job discovery, execution, and history access would be unsafe or ambiguous.
+In multi-user or multi-tenant deployments, job launch and execution history access would be unsafe or ambiguous.
 
 ## Cross-Behavior Observations
 
-- Job registration is outside the REST API. Most meaningful workflows depend on application-wired jobs such as `personJob`.
-- The API is execution-centric: it can start jobs and inspect execution records, but cannot manage job definitions, schedules, or execution control transitions.
-- OpenAPI documents only `200` responses for core endpoints, while tests show `400`, `404`, and `500`.
-- Query validation is weak. Some job-name filters appear regex-sensitive, and negative `limitPerJob` can cause server errors.
-- Response schemas are not fully accurate: timestamp fields may be null for async starts and may not match the documented date-time format.
-- The implementation adds a generated `uuid` job parameter by default, making repeated starts distinct.
-- Asynchronous property resolution through the deprecated singleton resolver is unsafe for concurrent runs of the same job with different properties.
-- There is no visible authentication, authorization, ownership, or tenant scoping.
+- Job registration is outside the REST API; most workflows begin from pre-existing application-wired jobs such as `personJob`.
+- The only exposed write transition is execution creation via `POST /jobExecutions`.
+- Synchronous and asynchronous launch paths share the same endpoint but are separate behaviors because body `asynchronous` selects different launcher semantics and execution states.
+- Generated execution ids are the central response-to-request binding for id lookup.
+- Job name and exit code are the central query bindings for execution history.
+- OpenAPI documents only `200` for core endpoints, while generated tests show `400`, `404`, and `500`.
+- Response schemas are weaker than observed behavior: async timestamps can be null, and timestamp strings can violate the declared date-time format.
+- Query validation is weak: regex-sensitive job names, negative limits, and null-provider paths can produce server errors.
+- `addUniqueJobParameter=true` adds a generated `uuid`, making repeated launches distinct.
+- Deprecated job-name-scoped property resolution is unsafe for concurrent async runs of the same job with different properties.
+- There is no visible access-control, ownership, tenant scoping, audit-user binding, or schedule-management REST surface.
 
 ## Coverage Summary
 
-Supported domain areas:
+Fully supported workflow/state areas:
 - Listing exposed Spring Batch jobs.
-- Retrieving a named job resource.
+- Reading a named job resource, with caveats around registry validation.
 - Starting synchronous and asynchronous job executions.
-- Listing and filtering execution history by job name and exit code.
-- Retrieving a job execution by generated id.
+- Reading global execution history.
+- Retrieving an execution by generated id.
+- Filtering execution history by job name, exit code, or both.
 
-Partially supported domain areas:
-- Operational audit is supported at status/exit-code level but not parameter level.
-- Async monitoring is possible through execution lookup, but terminal-state timing is caller-managed.
-- Job lookup exists, but registry validation appears inconsistent with the domain description.
+Partially supported workflow/state areas:
+- Operational audit is available for status and exit code, but not for submitted parameters.
+- Async monitoring is possible through later reads, but terminal-state timing is caller-managed.
+- Query filters work for ordinary values but have weak validation and underdocumented failure modes.
 
-Unsupported domain areas:
-- REST job registration and lifecycle management.
-- Execution stop, restart, abandon, or resume.
-- REST Quartz schedule management.
-- Safe validated search semantics.
+Unsupported or unsafe workflow/state areas:
+- REST job registration and job lifecycle management.
+- Execution stop, restart, abandon, resume, or safe close.
+- REST Quartz schedule lifecycle management.
+- Validated literal search and documented error responses.
 - Execution parameter audit/search.
-- Retention or purge management.
+- Execution-history purge or retention.
 - Authenticated or scoped administration.

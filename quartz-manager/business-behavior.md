@@ -1,1060 +1,1087 @@
-# Domain-Level Behavior Analysis
+# Domain-Level Workflow and State Behavior Analysis
+
+| No. | Behavior name | Business goal |
+|---:|---|---|
+| 1 | [Behavior 1: Obtain API access token](#behavior-1) | Authenticate credentials and obtain the bearer token used by protected APIs. |
+| 2 | [Behavior 2: Inspect eligible job classes](#behavior-2) | Discover the Java job classes available to the scheduler. |
+| 3 | [Behavior 3: Inspect scheduler status and configuration](#behavior-3) | Read the singleton scheduler identity, status, and trigger-key view. |
+| 4 | [Behavior 4: Start scheduler execution](#behavior-4) | Move the scheduler toward active execution. |
+| 5 | [Behavior 5: Stop scheduler execution](#behavior-5) | Stop the scheduler from executing scheduled work. |
+| 6 | [Behavior 6: Pause scheduler execution](#behavior-6) | Temporarily pause scheduler activity while retaining configuration. |
+| 7 | [Behavior 7: Resume scheduler execution](#behavior-7) | Resume scheduler activity after a pause or stopped-like inactive condition. |
+| 8 | [Behavior 8: List scheduler triggers](#behavior-8) | Read the global trigger inventory known to Quartz Manager. |
+| 9 | [Behavior 9: Schedule a named simple trigger](#behavior-9) | Create a named simple trigger in the scheduler store. |
+| 10 | [Behavior 10: Retrieve a named simple trigger](#behavior-10) | Read the stored configuration for a specific simple trigger. |
+| 11 | [Behavior 11: Reschedule a named simple trigger](#behavior-11) | Replace the timing/configuration of an existing simple trigger. |
 
 ## Domain Summary
 
-Quartz Manager is a secured REST API for inspecting and controlling a Quartz scheduler. Its main domain resources are:
+Quartz Manager is a secured operational REST API for a singleton Quartz scheduler. The main aggregate roots and lifecycle resources visible in the available files are the authenticated caller context represented by a JWT bearer token, the singleton scheduler, global job-class discovery, global trigger listing, and named simple triggers addressed by `{name}`.
 
-- authenticated API sessions represented by JWT bearer tokens
-- the global Quartz scheduler and its execution state
-- eligible Java job classes
-- global trigger keys/triggers
-- named simple triggers
+The dominant state machines are operational rather than business-case oriented: unauthenticated caller to authenticated caller, scheduler execution state changes through start/stop/pause/resume controls, and simple-trigger lifecycle changes from absent to scheduled to rescheduled. The API has no tenant id, scheduler id, trigger group id, job id, or ownership id in its paths, so all exposed scheduler and trigger behavior is global to the service instance. The visible Java source contains shared constants and utilities only; the OpenAPI contract and generated tests provide the main evidence for REST shape and observed runtime behavior.
 
-The service is operational rather than tenant-scoped: the exposed scheduler and trigger APIs operate globally. The visible source under `src` only contains shared constants/utilities, so the OpenAPI contract, `full-behavior.md`, and generated tests provide most of the behavioral evidence. The OpenAPI references DTO schemas such as `SimpleTriggerInputDTO`, `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `SchedulerDTO`, and `ExceptionResponse`, but those schemas are not defined under `components.schemas`.
-
-## Available Function Inventory
-
-### Authentication
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `authenticate user` | `POST /quartz-manager/auth/login` | Authenticates credentials and obtains a JWT bearer token for secured scheduler operations. |
-
-### Jobs
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `list eligible job classes` | `GET /quartz-manager/jobs` | Lists Java job classes eligible for use by Quartz Manager. |
-
-### Scheduler
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `retrieve scheduler details` | `GET /quartz-manager/scheduler` | Reads scheduler configuration/status details. |
-| `start scheduler` | `GET /quartz-manager/scheduler/run` | Starts scheduler execution. |
-| `stop scheduler` | `GET /quartz-manager/scheduler/stop` | Stops scheduler execution. |
-| `pause scheduler` | `GET /quartz-manager/scheduler/pause` | Pauses scheduler execution. |
-| `resume scheduler` | `GET /quartz-manager/scheduler/resume` | Resumes scheduler execution. |
-
-### Triggers
-
-| Function | Core endpoint(s) | Domain meaning |
-|---|---|---|
-| `list triggers` | `GET /quartz-manager/triggers` | Lists global scheduler triggers or trigger keys. |
-| `schedule simple trigger` | `POST /quartz-manager/simple-triggers/{name}` | Creates/schedules a named simple trigger. |
-| `retrieve simple trigger by name` | `GET /quartz-manager/simple-triggers/{name}` | Reads one named simple trigger. |
-| `reschedule simple trigger` | `PUT /quartz-manager/simple-triggers/{name}` | Replaces/reschedules an existing named simple trigger. |
+The OpenAPI references DTO schemas including `SimpleTriggerInputDTO`, `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `SchedulerDTO`, and `ExceptionResponse`, but the `components.schemas` section does not define them. Body-level field rules for simple triggers therefore cannot be inferred from the available source set. Implementation/OpenAPI discrepancies are important in this service: login returns `accessToken` in generated tests although no success response is documented; jobs are documented as `type=string` but behave like a JSON list in tests; several endpoints documented with 200/204/404 responses are observed returning 500 in generated tests.
 
 ## Supported Business Behaviors
 
-### Behavior 1: Obtain API Access
+<a id="behavior-1"></a>
+### Behavior 1: Obtain API access token
 
 Business goal:
-Authenticate a caller so protected Quartz Manager functions can be used.
+Authenticate a caller and obtain the JWT bearer token required by protected Quartz Manager operations.
+
+API group boundary:
+This is an atomic authentication behavior. The single function is itself the lifecycle transition from an unauthenticated request to an authenticated caller context.
 
 Domain context:
-All scheduler, job, and trigger functions require the `quartz-manager-auth` bearer security scheme. Login is the gateway behavior for the rest of the API.
+All scheduler, job, and trigger operations in the OpenAPI use the `quartz-manager-auth` bearer security scheme. Login is therefore the gateway workflow for the service, even though the API exposes no registration, refresh, or logout operation.
 
 Starting point:
-Credential state exists in the authentication backing store. The API exposes no user-registration function.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A credential pair exists in the authentication backing store, but the caller has no reusable bearer token.
+- Transition trigger: The caller submits form credentials to the login endpoint.
+- Intermediate states: The authentication layer validates `username` and `password` against configured credentials.
+- State after: The caller holds a JWT token value that can be sent as `Authorization: Bearer {token}`.
+- Invalid or blocked transitions: Missing or incorrect credentials block token issuance with 401. The API exposes no token refresh, token revocation, or user provisioning transition.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain an access token.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to authenticate the caller and obtain `{token}` from the response.
 
 Optional verification workflow:
 None.
 
 Existing-state shortcuts:
-- If a valid JWT already exists, this login step can be skipped for later secured behaviors.
-- Direct credential setup is possible only outside the exposed API, for example by deployment configuration or database setup.
-- The token must still be accepted by the `quartz-manager-auth` bearer scheme.
+- The login call can be skipped for later protected behaviors when the caller already has a valid, unexpired `{token}` accepted by the service.
+- Credential setup is outside the documented REST API and may be provided by deployment configuration or direct setup of the authentication backing store.
+- The token must still be valid for the same service instance and the `quartz-manager-auth` security scheme.
 
 Parameter and value bindings:
-- The submitted `username` and `password` must match the backing credential store.
-- The response field `accessToken` observed in generated tests is reused later as `Authorization: Bearer {token}`.
-- OpenAPI says the login API provides the JWT, but the login operation does not document a successful response body.
+- The submitted `username` and `password` must match one configured credential pair.
+- The response value `{token}`, observed in generated tests as `accessToken`, is reused by protected functions as `Authorization: Bearer {token}`.
+- No resource id, tenant id, scheduler id, or role id is returned or bound by the login contract.
 
 Business result:
-The caller has a bearer token that can authorize protected scheduler, job, and trigger calls.
+The caller has an authenticated API context that can authorize protected scheduler, job, and trigger calls. No scheduler, job, or trigger state is changed.
 
 Constraints and invariants:
 - `username` and `password` are required form fields.
-- There is no exposed user creation, user lookup, token refresh, or token revocation behavior.
-- The token is global API authorization; no endpoint-level ownership scoping is visible.
+- The documented login operation only declares 401, while generated tests show a successful body containing `accessToken`.
+- Authentication is global to the exposed API surface; no per-resource ownership scope is visible.
+- No logout endpoint is exposed in OpenAPI, despite a logout path constant in source.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: `username`/`password` is missing, invalid, or not configured.
-  - Why it fails: OpenAPI documents `401 Unauthorized - Username or password are incorrect!`.
-  - Violated prerequisite or constraint: The submitted credential pair does not match the authentication backing store.
+- Failure condition: `username` or `password` is missing, invalid, or not configured.
+- Why it fails: OpenAPI documents `401 Unauthorized - Username or password are incorrect!`, and generated tests observe 401 responses for invalid login submissions.
+- Violated prerequisite or constraint: The submitted credential pair does not match the authentication backing store.
 
 Implementation notes:
-Generated tests authenticate successfully with configured credentials such as `username=foo&password=bar` and extract `accessToken`, despite OpenAPI documenting only the 401 response.
+`QuartzManagerPaths` defines `/quartz-manager/auth/login` and `/quartz-manager/auth/logout`, but only login appears in the OpenAPI. `OpenAPIConfigConsts` names the bearer scheme as `quartz-manager-auth`. Generated tests authenticate successfully with configured users such as `foo` and `foo2` and extract `accessToken`, which is an OpenAPI documentation gap.
 
-### Behavior 2: Inspect Eligible Job Classes
+<a id="behavior-2"></a>
+### Behavior 2: Inspect eligible job classes
 
 Business goal:
-Discover which Java job classes the scheduler can use.
+Allow an operator to discover which Java job classes are eligible for use by Quartz Manager.
+
+API group boundary:
+This is an atomic read-only job discovery behavior. `list eligible job classes` is itself the domain lookup, and it shares only the authenticated caller context with the rest of the service.
 
 Domain context:
-Job classes represent executable work units. This API only exposes discovery, not job creation or job binding.
+Quartz jobs represent executable work units. The exposed API allows discovery of eligible classes but does not create, bind, update, or delete jobs as first-class resources.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: The service has a configured classpath or job eligibility source, and the caller has no domain data dependency beyond credentials.
+- Transition trigger: The caller asks for the eligible job-class list.
+- Intermediate states: The bearer token is validated.
+- State after: Scheduler, job, and trigger state remain unchanged; the caller receives the current eligible class list.
+- Invalid or blocked transitions: Missing or invalid authentication blocks the read with 401. OpenAPI declares 404, but no visible source condition explains a user-controlled not-found state.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `list eligible job classes` (`GET /quartz-manager/jobs`) with header `Authorization=Bearer {token}` to list eligible job classes.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `list eligible job classes` (`GET /quartz-manager/jobs`) with header `Authorization=Bearer {token}` to retrieve the eligible job-class list.
 
 Optional verification workflow:
 None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Direct classpath/configuration changes may alter the eligible job list, but no API function creates this state.
+- Step 1 can be skipped when a valid `{token}` already exists for the same service instance.
+- The eligible job-class source can be changed only outside these APIs, for example by deployment/classpath configuration.
+- The lookup action itself cannot be skipped when the business goal is to read the current list.
 
 Parameter and value bindings:
-- `{token}` returned by `authenticate user` is reused in the `Authorization` header.
-- No job id, class name, pagination cursor, or filter value is accepted by `list eligible job classes`.
+- `{token}` returned by `authenticate user` is reused as the bearer credential for `list eligible job classes`.
+- `list eligible job classes` accepts no documented path, query, body, or cursor values.
+- Generated tests send extra query parameters and still receive 200, so those values are not part of the domain binding.
 
 Business result:
-The caller receives the current list of eligible job classes. Generated tests observed an empty JSON list.
+The caller receives the current globally configured eligible job-class list. Generated tests observed an empty JSON list. No job or trigger is created.
 
 Constraints and invariants:
-- The endpoint is authenticated.
-- The list is global, not user-owned.
-- No search, filter, registration, or activation parameter is exposed.
-- Extra query parameters are ignored in generated tests.
+- The endpoint is protected by `quartz-manager-auth`.
+- The result is global; no tenant, user, scheduler id, or job group is supplied.
+- The API provides discovery only, not job registration or job lifecycle control.
+- OpenAPI says the 200 response schema is a string, while tests assert JSON array semantics.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401 for incorrect credentials.
-  - Violated prerequisite or constraint: No valid bearer token can be produced.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `list eligible job classes`
-  - Failure condition: Missing, malformed, expired, or invalid bearer token.
-  - Why it fails: The endpoint is protected by `quartz-manager-auth`.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: The `Authorization` header is absent, malformed, expired, or otherwise invalid.
+- Why it fails: The endpoint is protected by the `quartz-manager-auth` bearer scheme, and generated tests observe 401 for unauthenticated calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `list eligible job classes`
-  - Failure condition: OpenAPI-declared generic `404 Not Found`.
-  - Why it fails: The current visible source does not expose a user-controlled condition that causes this.
-  - Violated prerequisite or constraint: No concrete implementation-backed resource constraint is visible.
+- Failure condition: OpenAPI-declared generic not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but the available implementation source exposes no user-controlled missing-resource state for this singleton-style lookup.
+- Violated prerequisite or constraint: No concrete request-level or resource-level constraint is visible in the allowed files.
 
 Implementation notes:
-The OpenAPI response schema says `type=string`, but generated tests assert a JSON array with `size() == 0`; this is an OpenAPI/runtime discrepancy.
+The job list is a read-only capability. The generated tests show successful reads with additional ignored query parameters and an empty list response. This differs from the OpenAPI `type=string` schema and should be treated as an API documentation discrepancy.
 
-### Behavior 3: Inspect Scheduler Status and Configuration
+<a id="behavior-3"></a>
+### Behavior 3: Inspect scheduler status and configuration
 
 Business goal:
-Read the current scheduler identity, configuration, status, and trigger-key view.
+Read the singleton scheduler's identity, instance id, status, and trigger-key view.
+
+API group boundary:
+This is an atomic read-only scheduler behavior. `retrieve scheduler details` targets the singleton scheduler aggregate; no scheduler id or child resource id is required.
 
 Domain context:
-Operators need to know whether the scheduler is stopped/running/paused and which triggers are attached.
+Operators need a stable way to inspect scheduler state before or after control operations. The service exposes a singleton scheduler rather than a collection of schedulers.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A scheduler exists as a configured service resource.
+- Transition trigger: The caller requests scheduler details.
+- Intermediate states: The bearer token is validated, then scheduler metadata is read.
+- State after: Scheduler state is unchanged; the caller receives scheduler details.
+- Invalid or blocked transitions: Missing authentication blocks the read with 401. A documented 404 has no visible user-controlled setup path in the available source.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect scheduler details.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the singleton scheduler.
 
 Optional verification workflow:
 None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Scheduler configuration may be supplied by deployment or direct configuration, but no API function creates the scheduler resource.
+- Step 1 can be skipped when `{token}` is already valid for the service.
+- The singleton scheduler is established by deployment/runtime configuration, not by an exposed create-scheduler API.
+- The read action itself remains required for this inspection behavior.
 
 Parameter and value bindings:
-- `{token}` is reused in the `Authorization` header.
-- No scheduler id is supplied; the operation targets the singleton scheduler.
+- `{token}` from `authenticate user` is reused by `retrieve scheduler details`.
+- No scheduler id is provided; the endpoint implicitly targets the single configured scheduler.
+- Extra query parameters observed in generated tests do not bind to scheduler identity or filtering.
 
 Business result:
-The caller receives scheduler details. Generated tests observed fields such as `name=example`, `instanceId=NON_CLUSTERED`, `status=STOPPED`, and `triggerKeys=null`.
+The caller receives scheduler details. Generated tests observed `name=example`, `instanceId=NON_CLUSTERED`, `status=STOPPED`, and `triggerKeys=null`.
 
 Constraints and invariants:
-- The scheduler is a singleton API resource.
-- The endpoint is authenticated.
-- No ownership, tenant, scheduler id, or query filter is exposed.
-- Extra query parameters are ignored in generated tests.
+- The scheduler is a singleton resource from the API perspective.
+- Authentication is required.
+- No ownership, tenant, or scheduler selection is available.
+- The read does not recalculate, start, stop, pause, or resume the scheduler.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: A valid bearer token cannot be obtained.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `retrieve scheduler details`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: The endpoint is protected by `quartz-manager-auth`.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated access.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `retrieve scheduler details`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: No visible source or API setup path exposes a missing scheduler state.
-  - Violated prerequisite or constraint: No concrete request-level constraint is visible.
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but the available source does not expose a way to remove, select, or misaddress the singleton scheduler.
+- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
 
 Implementation notes:
-The endpoint is a read operation. Unlike `run`, `resume`, and trigger listing, generated tests show successful 200 responses for this endpoint.
+This endpoint is one of the better-observed successful operations in the generated tests. It tolerates unexpected query parameters in tests while preserving the same singleton response.
 
-### Behavior 4: Stop Scheduler Execution
+<a id="behavior-4"></a>
+### Behavior 4: Start scheduler execution
 
 Business goal:
-Stop the Quartz scheduler.
+Move the scheduler into active execution so scheduled work can run.
+
+API group boundary:
+This is an atomic scheduler lifecycle transition. `start scheduler` targets the singleton scheduler execution state.
 
 Domain context:
-Stopping the scheduler is an operational control used to prevent further scheduled execution.
+Starting the scheduler is an operational control that changes whether Quartz can execute scheduled triggers. It is distinct from resume because the API exposes separate endpoints and the required workflow must not merge alternative state transitions.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A singleton scheduler exists and may be stopped or otherwise inactive.
+- Transition trigger: The caller invokes the scheduler run endpoint.
+- Intermediate states: The bearer token is validated; the scheduler start routine is invoked.
+- State after: On documented success, the scheduler is started and the response is 204 with no body. In generated tests, the endpoint returned 500 under reset-state conditions, so the final running state was not demonstrated.
+- Invalid or blocked transitions: Missing authentication returns 401. Internal scheduler start failure can surface as 500 rather than a domain-specific blocked transition.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `stop scheduler` (`GET /quartz-manager/scheduler/stop`) with header `Authorization=Bearer {token}` to stop the scheduler.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `start scheduler` (`GET /quartz-manager/scheduler/run`) with header `Authorization=Bearer {token}` to start the singleton scheduler.
 
 Optional verification workflow:
 1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the resulting scheduler status.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- No API setup is required to create the scheduler; it is assumed to exist as a singleton deployment resource.
-- The stop action itself cannot be skipped when the business goal is to stop the scheduler.
+- Step 1 can be skipped when a valid `{token}` is already available.
+- The singleton scheduler must already exist through runtime configuration.
+- The start action itself cannot be skipped when the business goal is to start execution.
 
 Parameter and value bindings:
-- `{token}` from authentication is reused for both stop and optional status inspection.
-- The operation has no scheduler id; it controls the singleton scheduler.
+- `{token}` from `authenticate user` is reused by `start scheduler` and optional status inspection.
+- No scheduler id is accepted; the transition applies to the singleton scheduler.
+- Query parameters are not documented and have no intended domain binding.
 
 Business result:
-The scheduler is requested to stop. OpenAPI documents `204 Got stopped successfully`; generated tests observed 204 with an empty body.
+On the OpenAPI success path, the scheduler transitions toward a running/started state and returns 204. No trigger or job definition is created. If the runtime start routine fails, generated tests show a 500 error response and no confirmed started state.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- OpenAPI does not require the scheduler to be running before stop is called.
-- The operation uses GET despite mutating scheduler state.
-- Extra query parameters are ignored in generated tests.
+- Authentication is required.
+- OpenAPI does not require a prior stopped state and does not define idempotency semantics.
+- The state-changing operation is exposed as GET.
+- No domain-specific error response is documented for invalid scheduler state or failed startup.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid caller context.
-- Failing function: `stop scheduler`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: `Authorization: Bearer {token}` is absent or invalid.
-- Failing function: `stop scheduler`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: The visible source does not show a user-controlled way to remove or misaddress the singleton scheduler.
-  - Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
+- Failing function: `start scheduler`
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 without valid bearer authentication.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
+- Failing function: `start scheduler`
+- Failure condition: Scheduler start routine fails internally.
+- Why it fails: Generated tests record 500 responses attributed to `SchedulerService_25_start`; the implementation source for that service is not present in the repository slice.
+- Violated prerequisite or constraint: The runtime scheduler state or configuration required by the start routine is not satisfied, but the precise precondition is not exposed.
+
+- Failing function: `start scheduler`
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but no API-realizable missing scheduler resource is visible.
+- Violated prerequisite or constraint: No concrete missing-resource constraint can be proven from available source.
 
 Implementation notes:
-Generated tests show `stop scheduler` succeeds more reliably than `start scheduler` and `resume scheduler`.
+OpenAPI documents 204 for successful start. Generated tests repeatedly observe 500 for `/quartz-manager/scheduler/run`, which indicates an implementation/runtime discrepancy and weak domain error mapping for scheduler startup.
 
-### Behavior 5: Pause Scheduler Execution
+<a id="behavior-5"></a>
+### Behavior 5: Stop scheduler execution
 
 Business goal:
-Pause scheduler activity without necessarily destroying scheduler configuration.
+Stop the scheduler so it no longer executes scheduled work.
+
+API group boundary:
+This is an atomic scheduler lifecycle transition. `stop scheduler` targets the singleton scheduler execution state.
 
 Domain context:
-Pausing is useful when scheduled execution should temporarily halt while preserving scheduler setup.
+Stopping is an operational safety control. It is modeled separately from pause because the service exposes a distinct endpoint and both transitions have different domain meanings.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A singleton scheduler exists and may be running, paused, or already stopped.
+- Transition trigger: The caller invokes the scheduler stop endpoint.
+- Intermediate states: The bearer token is validated; the scheduler stop routine is invoked.
+- State after: The scheduler is requested to stop, and successful calls return 204 with no body.
+- Invalid or blocked transitions: Missing authentication returns 401. OpenAPI declares 404, but no visible resource-selection state can produce it.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `pause scheduler` (`GET /quartz-manager/scheduler/pause`) with header `Authorization=Bearer {token}` to pause the scheduler.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `stop scheduler` (`GET /quartz-manager/scheduler/stop`) with header `Authorization=Bearer {token}` to stop the singleton scheduler.
 
 Optional verification workflow:
 1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the resulting scheduler status.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- No API setup is required to create the scheduler.
-- The pause action itself cannot be skipped for this behavior.
+- Step 1 can be skipped when a valid `{token}` is already available.
+- The singleton scheduler must exist through deployment/runtime configuration.
+- The stop action itself cannot be skipped when the business goal is to stop execution.
 
 Parameter and value bindings:
-- `{token}` from authentication is reused for pause and optional status inspection.
-- The operation targets the singleton scheduler; no scheduler id is accepted.
+- `{token}` from `authenticate user` is reused by `stop scheduler` and optional status inspection.
+- No scheduler id, body, or query value identifies the scheduler; the target is implicit.
+- Generated tests show extra query values are ignored for successful 204 stop calls.
 
 Business result:
-The scheduler is requested to pause. OpenAPI documents 204 success; generated tests observed 204 with an empty body.
+The scheduler receives a stop command. Generated tests observed 204 and an empty body. The API does not expose whether stopping is graceful, immediate, or idempotent.
 
 Constraints and invariants:
-- A valid bearer token is required.
+- Authentication is required.
+- OpenAPI does not require the scheduler to be running before stop.
+- The state-changing operation is exposed as GET.
+- No job, trigger, or scheduler configuration is deleted by the stop contract.
+
+Failure and exceptional cases:
+- Failing function: `authenticate user`
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
+- Failing function: `stop scheduler`
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated stop calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
+- Failing function: `stop scheduler`
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but the available source exposes no user-controlled way to remove or misaddress the singleton scheduler.
+- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+
+Implementation notes:
+Unlike `start scheduler` and `resume scheduler`, generated tests show repeated successful 204 responses for `stop scheduler`, including calls with unrelated query parameters.
+
+<a id="behavior-6"></a>
+### Behavior 6: Pause scheduler execution
+
+Business goal:
+Temporarily pause scheduler activity while retaining scheduler configuration and trigger definitions.
+
+API group boundary:
+This is an atomic scheduler lifecycle transition. `pause scheduler` targets the singleton scheduler execution state.
+
+Domain context:
+Pause is operationally useful when scheduled execution should be suspended without treating the scheduler as fully stopped or destroying trigger configuration.
+
+Starting point:
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A singleton scheduler exists and may be active or already inactive.
+- Transition trigger: The caller invokes the scheduler pause endpoint.
+- Intermediate states: The bearer token is validated; the scheduler pause routine is invoked.
+- State after: The scheduler is requested to enter a paused state, and successful calls return 204 with no body.
+- Invalid or blocked transitions: Missing authentication returns 401. No documented precondition requires the scheduler to be running first.
+
+Required execution workflow:
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `pause scheduler` (`GET /quartz-manager/scheduler/pause`) with header `Authorization=Bearer {token}` to pause the singleton scheduler.
+
+Optional verification workflow:
+1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the resulting scheduler status.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when a valid `{token}` is already available.
+- The singleton scheduler must already exist through service runtime configuration.
+- The pause action itself cannot be skipped when the business goal is to pause execution.
+
+Parameter and value bindings:
+- `{token}` from `authenticate user` is reused by `pause scheduler` and optional status inspection.
+- No scheduler id, trigger id, or body value is accepted.
+- Extra query parameters are not part of the domain model and were tolerated in generated tests.
+
+Business result:
+The scheduler receives a pause command. Generated tests observed 204 and an empty body. No trigger or job definitions are removed.
+
+Constraints and invariants:
+- Authentication is required.
 - OpenAPI does not require a prior running state.
-- The operation uses GET despite changing scheduler state.
-- Extra query parameters are ignored in generated tests.
+- The state-changing operation is exposed as GET.
+- Pause applies to the singleton scheduler, not to a specific trigger.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid bearer token.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `pause scheduler`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated pause calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `pause scheduler`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: No implementation-backed missing scheduler condition is visible.
-  - Violated prerequisite or constraint: No concrete resource constraint is visible.
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but no visible API state makes the singleton scheduler addressable as missing.
+- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
 
 Implementation notes:
-Generated tests observed successful pause calls for multiple configured users, which suggests no user-specific scheduler ownership check.
+Generated tests show `pause scheduler` succeeds with 204 under reset-state conditions, including calls with unexpected query parameters. The endpoint name and OpenAPI summary use GET for a mutating control operation.
 
-### Behavior 6: Start Scheduler Execution
+<a id="behavior-7"></a>
+### Behavior 7: Resume scheduler execution
 
 Business goal:
-Start the scheduler so it can execute scheduled work.
+Resume scheduler activity after it has been paused or otherwise made inactive.
+
+API group boundary:
+This is an atomic scheduler lifecycle transition. `resume scheduler` targets the singleton scheduler execution state and is separate from `start scheduler` because it is a distinct exposed operation.
 
 Domain context:
-Starting is a core operational transition for a scheduler service.
+Resume is the counterpart to pausing in a scheduler lifecycle. The API does not enforce or document that a prior pause call must exist before resume.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A singleton scheduler exists and may be paused or inactive.
+- Transition trigger: The caller invokes the scheduler resume endpoint.
+- Intermediate states: The bearer token is validated; the scheduler resume/start routine is invoked.
+- State after: On documented success, the scheduler resumes and the response is 204 with no body. In generated tests, resume returned 500 under reset-state conditions, so the final resumed state was not demonstrated.
+- Invalid or blocked transitions: Missing authentication returns 401. Internal resume failure can surface as 500 rather than a domain-specific invalid-state response.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `start scheduler` (`GET /quartz-manager/scheduler/run`) with header `Authorization=Bearer {token}` to start scheduler execution.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `resume scheduler` (`GET /quartz-manager/scheduler/resume`) with header `Authorization=Bearer {token}` to resume the singleton scheduler.
 
 Optional verification workflow:
-1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect whether status changed.
+1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the resulting scheduler status.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- No API setup creates the scheduler; it is a singleton deployment resource.
-- Calling `stop scheduler` first is an optional operational setup path, but OpenAPI does not require it.
+- Step 1 can be skipped when a valid `{token}` is already available.
+- If the scheduler has already been paused by external means or a previous service call, no API setup call is required before resume.
+- The resume action itself cannot be skipped when the business goal is to resume execution.
 
 Parameter and value bindings:
-- `{token}` is reused in the `Authorization` header.
-- No scheduler id or expected prior status is supplied.
+- `{token}` from `authenticate user` is reused by `resume scheduler` and optional status inspection.
+- No scheduler id is accepted; the operation applies to the singleton scheduler.
+- There is no value binding to a prior `pause scheduler` response because pause returns no body and resume accepts no transition token.
 
 Business result:
-By contract, the scheduler should start and return 204. However, generated tests repeatedly observed 500 Internal Server Error for this endpoint, with failure attributed to `SchedulerService_25_start`.
+On the OpenAPI success path, scheduler execution resumes and the endpoint returns 204. In generated tests, runtime failures returned 500, leaving the resumed state unconfirmed.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- No prior stopped state is documented as required.
-- The operation uses GET while mutating scheduler execution state.
-- The implementation evidence indicates the documented 204 path may not be reliable in the tested runtime.
+- Authentication is required.
+- OpenAPI does not require an existing paused state.
+- The state-changing operation is exposed as GET.
+- The implementation appears to share or call a start routine, based on generated-test fault labels.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
-- Failing function: `start scheduler`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
-- Failing function: `start scheduler`
-  - Failure condition: Runtime start operation throws.
-  - Why it fails: Generated tests observed 500 from `SchedulerService_25_start`.
-  - Violated prerequisite or constraint: The implementation cannot complete the scheduler start transition in the tested state.
-- Failing function: `start scheduler`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: No visible source exposes a user-controlled missing scheduler condition.
-  - Violated prerequisite or constraint: No concrete resource constraint is visible.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
+- Failing function: `resume scheduler`
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated resume calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
+- Failing function: `resume scheduler`
+- Failure condition: Scheduler resume routine fails internally.
+- Why it fails: Generated tests record 500 responses attributed to `SchedulerService_25_start`; the underlying service implementation is not present in the repository slice.
+- Violated prerequisite or constraint: The runtime scheduler state or configuration required by the resume/start routine is not satisfied, but the precise precondition is not exposed.
+
+- Failing function: `resume scheduler`
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but the available API has no scheduler id or delete operation that can create a missing scheduler address.
+- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
 
 Implementation notes:
-OpenAPI says 204 success, while generated tests show 500 for authenticated calls. This is a significant contract/runtime discrepancy.
+OpenAPI documents 204 for resume, but generated tests repeatedly observe 500. This is both a state-machine robustness issue and an error-contract discrepancy.
 
-### Behavior 7: Resume Scheduler Execution
+<a id="behavior-8"></a>
+### Behavior 8: List scheduler triggers
 
 Business goal:
-Resume scheduler processing after a pause.
+Read the global trigger inventory known to Quartz Manager.
+
+API group boundary:
+This is an atomic read-only trigger inventory behavior. `list triggers` targets the global trigger collection and does not consume a trigger name returned by another function.
 
 Domain context:
-Resume complements pause and should restore processing without rebuilding scheduler configuration.
+Operators need visibility into scheduled triggers. The API exposes a global list endpoint, separate from the named simple-trigger retrieve endpoint.
 
 Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: The scheduler has a trigger store that may be empty or populated.
+- Transition trigger: The caller requests the global trigger list.
+- Intermediate states: The bearer token is validated; the trigger service reads trigger keys or trigger summaries.
+- State after: Trigger and scheduler state remain unchanged; the caller receives the trigger list on success.
+- Invalid or blocked transitions: Missing authentication returns 401. Generated tests show internal trigger-service failures returning 500, despite OpenAPI documenting 200 and 404.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `resume scheduler` (`GET /quartz-manager/scheduler/resume`) with header `Authorization=Bearer {token}` to resume scheduler execution.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `list triggers` (`GET /quartz-manager/triggers`) with header `Authorization=Bearer {token}` to retrieve the global trigger list.
 
 Optional verification workflow:
-1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect scheduler status.
+None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Calling `pause scheduler` first is the natural setup path for a pause/resume workflow, but OpenAPI does not require it.
-- Direct scheduler state setup may establish a paused scheduler outside the exposed API.
+- Step 1 can be skipped when a valid `{token}` is already available.
+- Trigger rows can be established outside the API through the Quartz scheduler store, but the list behavior does not require a specific trigger.
+- The list action itself remains required when the business goal is inventory visibility.
 
 Parameter and value bindings:
-- `{token}` is reused in the `Authorization` header.
-- The same singleton scheduler is affected by both optional `pause scheduler` and `resume scheduler`.
+- `{token}` from `authenticate user` is reused by `list triggers`.
+- No trigger name, group, cursor, filter, or body value is accepted.
+- Extra query parameters used in generated tests are not documented domain inputs.
 
 Business result:
-By contract, the scheduler should resume and return 204. Generated tests repeatedly observed 500 Internal Server Error for authenticated resume calls, attributed to scheduler service start/resume handling.
+On success, the caller receives the current global trigger list or trigger-key view. No trigger state changes. Generated tests show 500 responses in several list-trigger calls, so successful list behavior is contract-supported but not demonstrated by those failing cases.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- OpenAPI does not state that `pause scheduler` must be called first.
-- The operation uses GET while mutating scheduler state.
-- Runtime behavior appears inconsistent with documented 204 success.
+- Authentication is required.
+- The trigger list is global and not scoped by caller identity.
+- OpenAPI references `TriggerKeyDTO` for the 200 response, but the schema is not defined.
+- No filtering, pagination, grouping, or ownership check is documented.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
-- Failing function: `resume scheduler`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
-- Failing function: `resume scheduler`
-  - Failure condition: Runtime resume/start operation throws.
-  - Why it fails: Generated tests observed 500 responses for authenticated calls.
-  - Violated prerequisite or constraint: The implementation cannot complete the transition in the tested state.
-- Failing function: `resume scheduler`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: No visible missing-scheduler setup path exists.
-  - Violated prerequisite or constraint: No concrete resource constraint is visible.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
+- Failing function: `list triggers`
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated trigger-list calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
+- Failing function: `list triggers`
+- Failure condition: Trigger inventory read fails internally.
+- Why it fails: Generated tests record 500 responses attributed to `TriggerService_28_fetchTriggers`; implementation source for that service is not present in the repository slice.
+- Violated prerequisite or constraint: The runtime trigger store or trigger service state required for listing is not satisfied, but the exact precondition is not visible.
+
+- Failing function: `list triggers`
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404, but no API input identifies a missing trigger collection.
+- Violated prerequisite or constraint: No concrete missing-resource state is exposed.
 
 Implementation notes:
-The API exposes both pause and resume, but generated tests show pause succeeds while resume fails in the tested runtime.
+The generated tests identify `GET /quartz-manager/triggers` as a potential fault path with 500 responses. This conflicts with the OpenAPI response model and weakens the endpoint as an operational inventory behavior.
 
-### Behavior 8: Schedule a Named Simple Trigger
+<a id="behavior-9"></a>
+### Behavior 9: Schedule a named simple trigger
 
 Business goal:
 Create a named simple trigger in the scheduler store.
 
+API group boundary:
+This is an atomic simple-trigger lifecycle transition. `schedule simple trigger` creates the trigger resource addressed by the caller-provided `{name}` path value.
+
 Domain context:
-Simple triggers represent scheduled firing rules. The trigger name is the stable handle used for later retrieval and rescheduling.
+Simple triggers are scheduler child resources that determine when work should fire. The API models the trigger name as the stable external identifier, not as a generated id returned by a create call.
 
 Starting point:
-No prior trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: No simple trigger named `{name}` exists, or the API is asked to schedule a new trigger under `{name}`.
+- Transition trigger: The caller submits a valid `SimpleTriggerInputDTO` body to the named simple-trigger endpoint.
+- Intermediate states: The bearer token is validated; request media type and body validation run; the scheduler store receives the new trigger definition.
+- State after: A simple trigger named `{name}` exists in the scheduler store, and the documented success response is 201 with `SimpleTriggerDTO`.
+- Invalid or blocked transitions: Missing authentication returns 401; missing JSON media type returns 415 in generated tests; invalid body returns 400; OpenAPI declares 404 for an unspecified missing dependency.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and body `{initialSimpleTriggerInput}` matching `SimpleTriggerInputDTO` to create the named trigger.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={name}`, `Content-Type=application/json`, and body `{simpleTriggerInput}` conforming to `SimpleTriggerInputDTO` to create the named simple trigger.
 
 Optional verification workflow:
-1. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={triggerName}` to inspect the created trigger.
-2. Use function `list triggers` (`GET /quartz-manager/triggers`) with header `Authorization=Bearer {token}` to inspect the global trigger list, noting generated tests observed 500 for this endpoint.
+1. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={name}` to inspect the created trigger.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Direct Quartz scheduler-store setup can create an equivalent trigger, but the same `{triggerName}` must be used by later retrieval/reschedule calls.
-- The schedule action cannot be skipped when the behavior is to create the trigger through the API.
+- Step 1 can be skipped when a valid `{token}` already exists.
+- Equivalent trigger state can be inserted directly into the Quartz scheduler store, but it must use the same `{name}` and be visible to this service instance.
+- The schedule action itself cannot be skipped when the business goal is API-level creation.
 
 Parameter and value bindings:
-- `{token}` from `authenticate user` is reused in the `Authorization` header.
-- Path `name={triggerName}` becomes the trigger identity consumed later by `retrieve simple trigger by name` and `reschedule simple trigger`.
-- `{initialSimpleTriggerInput}` creates the scheduling configuration; its exact fields are unavailable because `SimpleTriggerInputDTO` is referenced but not defined in OpenAPI.
+- `{token}` from `authenticate user` is reused by `schedule simple trigger` and optional retrieval.
+- The caller-provided path `name={name}` becomes the trigger identifier consumed by later `retrieve simple trigger by name` or `reschedule simple trigger` calls.
+- The JSON body `{simpleTriggerInput}` must satisfy `SimpleTriggerInputDTO`, but field names and validation rules are not defined in the OpenAPI components.
+- No generated trigger id is documented; the path name is the durable binding value.
 
 Business result:
-A simple trigger named `{triggerName}` should exist in the scheduler store with the submitted simple-trigger configuration. OpenAPI documents 201 success with `SimpleTriggerDTO`.
+On documented success, a simple trigger named `{name}` exists and is returned as `SimpleTriggerDTO` with HTTP 201. No separate job resource is created through a documented endpoint. If body validation fails, no valid trigger creation is established.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- `name` is required and identifies the trigger.
-- The request body must be valid JSON for `SimpleTriggerInputDTO`.
-- The OpenAPI does not define uniqueness/conflict behavior if `{triggerName}` already exists.
-- Generated tests show `{}` returns 400, and wrong/missing JSON media type returns 415.
+- Authentication is required.
+- `Content-Type=application/json` is required for the body; generated tests observe 415 when the media type is absent.
+- An empty JSON object fails with 400 in generated tests, so nontrivial body validation exists even though schema fields are missing.
+- The API does not document duplicate-name behavior or ownership scoping.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated create attempts.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: Body is syntactically acceptable JSON but violates `SimpleTriggerInputDTO`, such as `{}` in generated tests.
-  - Why it fails: OpenAPI documents `400 Invalid trigger configuration`; tests observed 400 Bad Request.
-  - Violated prerequisite or constraint: Required trigger configuration fields or rules are missing.
+- Failure condition: Request omits `Content-Type=application/json`.
+- Why it fails: Generated tests observe 415 Unsupported Media Type for POST calls without the required JSON media type.
+- Violated prerequisite or constraint: The required request media type is absent.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: `Content-Type` is missing or not `application/json`.
-  - Why it fails: Generated tests observed 415 Unsupported Media Type.
-  - Violated prerequisite or constraint: The endpoint requires JSON input.
+- Failure condition: `{simpleTriggerInput}` violates `SimpleTriggerInputDTO` validation.
+- Why it fails: OpenAPI declares 400 Invalid trigger configuration, and generated tests observe 400 for empty JSON objects.
+- Violated prerequisite or constraint: The trigger configuration body is invalid.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: The current visible source does not expose which dependency could be missing.
-  - Violated prerequisite or constraint: No concrete missing dependency is visible.
+- Failure condition: OpenAPI-declared not-found condition occurs.
+- Why it fails: The OpenAPI declares 404 but the missing dependency is not visible because DTO schemas and controller implementation are absent.
+- Violated prerequisite or constraint: An unspecified scheduler/job dependency may be missing, but no concrete API-realizable setup path is documented.
 
 Implementation notes:
-The lack of `SimpleTriggerInputDTO` schema prevents domain-level analysis of schedule fields such as start time, interval, repeat count, misfire handling, or job binding.
+No successful POST simple-trigger call appears in the generated tests, so the positive create path is supported by OpenAPI and `full-behavior.md` rather than directly observed in tests. The validation failures show that the missing DTO schema is operationally significant.
 
-### Behavior 9: Retrieve a Named Simple Trigger
+<a id="behavior-10"></a>
+### Behavior 10: Retrieve a named simple trigger
 
 Business goal:
-Inspect the scheduling definition for a specific simple trigger.
+Read the stored configuration for a specific named simple trigger.
+
+API group boundary:
+This is a named simple-trigger lookup behavior. The workflow uses the same `{name}` aggregate identifier across trigger creation and retrieval so the read is scoped to the trigger established earlier.
 
 Domain context:
-Operators need to inspect an individual trigger before deciding whether to reschedule or troubleshoot it.
+After a trigger is scheduled, operators need to inspect its persisted configuration and status. The API retrieves simple triggers by path name, not by generated id.
 
 Starting point:
-No prior trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A scheduler exists, and the workflow can create or rely on a simple trigger named `{name}`.
+- Transition trigger: The caller requests `GET /quartz-manager/simple-triggers/{name}`.
+- Intermediate states: The bearer token is validated; the trigger identified by `{name}` is looked up in the scheduler store.
+- State after: Trigger state is unchanged; the caller receives the named trigger on success.
+- Invalid or blocked transitions: Missing authentication returns 401. OpenAPI documents 404 for an absent trigger, but generated tests show 500 for unknown names, indicating missing not-found mapping.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and valid body `{initialSimpleTriggerInput}` to create the trigger to be retrieved.
-3. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={triggerName}` to retrieve it.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={name}`, `Content-Type=application/json`, and body `{simpleTriggerInput}` conforming to `SimpleTriggerInputDTO` to establish the trigger to be retrieved.
+3. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={name}` to retrieve the same simple trigger.
 
 Optional verification workflow:
 None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Step 2 can be skipped if a simple trigger already exists under the same `{triggerName}`, either from a prior API call or direct Quartz scheduler-store setup.
-- The `retrieve simple trigger by name` action cannot be skipped for this read behavior.
-- The existing trigger must be a simple trigger addressable by the same path name.
+- Step 1 can be skipped when a valid `{token}` already exists.
+- Step 2 can be skipped when an equivalent simple trigger already exists in the scheduler store under the same `{name}` and is visible to this service instance.
+- Direct Quartz scheduler-store setup is equivalent only when the trigger name, trigger type, and service visibility match the later GET path.
+- The retrieval action itself cannot be skipped when the business goal is inspection.
 
 Parameter and value bindings:
-- `{token}` is reused across create and read.
-- The same path `name={triggerName}` must be used in both `schedule simple trigger` and `retrieve simple trigger by name`.
-- If `GET` uses `{otherName}` instead of `{triggerName}`, it addresses a different trigger and does not retrieve the created one.
+- `{token}` from `authenticate user` is reused for both trigger creation and retrieval.
+- The exact path value `name={name}` used by `schedule simple trigger` must be reused by `retrieve simple trigger by name`.
+- The body `{simpleTriggerInput}` creates the persisted trigger configuration that the later GET reads.
+- No generated id is consumed by the retrieval; the caller-supplied name is the binding key.
 
 Business result:
-The caller receives the simple-trigger representation for `{triggerName}` without changing scheduler state.
+The caller receives the simple trigger stored under `{name}`. The trigger remains present and unchanged by the read. If the trigger was created in step 2, the workflow also establishes the trigger as persisted scheduler state before reading it.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- The named simple trigger must exist.
-- No group/scope parameter is exposed; name is the only API identity.
-- Generated tests show missing trigger retrieval may return 500 instead of the OpenAPI-declared 404.
+- Authentication is required for both setup and read.
+- The trigger name in the GET path must match an existing simple trigger.
+- OpenAPI documents 404 Trigger not found, but generated tests observe 500 for unknown trigger names.
+- No ownership or tenant scoping prevents one authenticated caller from reading a globally named trigger.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: Invalid initial body or unsupported media type.
-  - Why it fails: The setup trigger cannot be created; OpenAPI/test evidence shows 400/415.
-  - Violated prerequisite or constraint: Valid trigger state for `{triggerName}` is not established.
+- Failure condition: The setup body is missing, uses the wrong media type, or violates `SimpleTriggerInputDTO`.
+- Why it fails: Generated tests observe 415 without JSON media type and 400 for invalid JSON body; OpenAPI declares 400 for invalid trigger configuration.
+- Violated prerequisite or constraint: The required existing trigger state for the read cannot be established.
+
 - Failing function: `retrieve simple trigger by name`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated GET calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `retrieve simple trigger by name`
-  - Failure condition: No simple trigger named `{triggerName}` exists.
-  - Why it fails: OpenAPI documents `404 Trigger not found`, but generated tests observed 500 from `AbstractSchedulerService_18_getTriggerByName`.
-  - Violated prerequisite or constraint: Required trigger state is absent.
+- Failure condition: No simple trigger exists under `name={name}`.
+- Why it fails: OpenAPI documents 404 Trigger not found, but generated tests observe 500 attributed to `AbstractSchedulerService_18_getTriggerByName` for unknown names.
+- Violated prerequisite or constraint: The path name does not identify existing trigger state.
+
 - Failing function: `retrieve simple trigger by name`
-  - Failure condition: `name={otherName}` differs from the created trigger name.
-  - Why it fails: The path name is the trigger identity.
-  - Violated prerequisite or constraint: The lookup does not reference the established trigger.
+- Failure condition: The GET path uses `name={otherName}` after setup created `name={name}`.
+- Why it fails: The scheduler-store state is keyed by the original name, so the later path points at a different trigger identity.
+- Violated prerequisite or constraint: The required name binding across setup and retrieval is broken.
 
 Implementation notes:
-OpenAPI and `full-behavior.md` model missing trigger as 404, but tests show implementation may surface it as 500.
+The documented not-found response is 404, but generated tests show 500 for absent simple triggers. This is a significant state-transition quirk because a normal lookup miss is reported as an internal server error.
 
-### Behavior 10: Reschedule an Existing Simple Trigger
+<a id="behavior-11"></a>
+### Behavior 11: Reschedule a named simple trigger
 
 Business goal:
-Change the schedule configuration for an existing named simple trigger.
+Replace the timing or configuration of an existing named simple trigger.
+
+API group boundary:
+This is a simple-trigger lifecycle update behavior. It binds the same `{name}` across initial scheduling and rescheduling, and the second function consumes the trigger state created by the first.
 
 Domain context:
-Rescheduling lets operators adjust timing without creating a new trigger identity.
+Rescheduling is a core trigger lifecycle operation: an operator keeps the trigger identity stable while changing its scheduling configuration.
 
 Starting point:
-No prior trigger state; valid credentials are configured.
+Pre-existing service/upstream state required
+
+State transition summary:
+- State before: A simple trigger named `{name}` exists in the scheduler store.
+- Transition trigger: The caller submits a replacement `SimpleTriggerInputDTO` body to the PUT endpoint for the same `{name}`.
+- Intermediate states: The bearer token is validated; the replacement body is validated; the scheduler store updates the trigger schedule/configuration.
+- State after: The trigger named `{name}` still exists, but its schedule/configuration reflects `{replacementSimpleTriggerInput}`. The documented success response is 200 with `TriggerDTO`.
+- Invalid or blocked transitions: Missing authentication returns 401; missing JSON media type returns 415 in tests; invalid body returns 400; absent trigger is documented as 404; some generated invalid PUT calls return 500.
 
 Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and valid body `{initialSimpleTriggerInput}` to establish the trigger.
-3. Use function `reschedule simple trigger` (`PUT /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and valid body `{replacementSimpleTriggerInput}` matching `SimpleTriggerInputDTO` to replace the trigger schedule.
+1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with `Content-Type=application/x-www-form-urlencoded`, form `username={username}`, and form `password={password}` to obtain `{token}`.
+2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={name}`, `Content-Type=application/json`, and body `{initialSimpleTriggerInput}` conforming to `SimpleTriggerInputDTO` to create the trigger that will be rescheduled.
+3. Use function `reschedule simple trigger` (`PUT /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={name}`, `Content-Type=application/json`, and body `{replacementSimpleTriggerInput}` conforming to `SimpleTriggerInputDTO` to replace the trigger schedule/configuration.
 
 Optional verification workflow:
-1. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={triggerName}` to inspect the replacement state.
+1. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={name}` to inspect the updated trigger.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Step 2 can be skipped if a simple trigger already exists under `{triggerName}`, either through prior API use or direct Quartz store setup.
-- The reschedule action cannot be skipped for this behavior.
-- Direct database/scheduler-store setup must preserve the same trigger name and simple-trigger type.
+- Step 1 can be skipped when a valid `{token}` already exists.
+- Step 2 can be skipped when a simple trigger already exists under the same `{name}` in the scheduler store and is visible to this service instance.
+- Direct scheduler-store setup is equivalent only when the existing trigger is a simple trigger whose name matches the later PUT path.
+- The reschedule action itself cannot be skipped when the business goal is to update the trigger.
 
 Parameter and value bindings:
-- `{token}` is reused across schedule, reschedule, and optional retrieval.
-- Path `name={triggerName}` binds the initial trigger and replacement operation to the same domain resource.
-- `{replacementSimpleTriggerInput}` intentionally differs from `{initialSimpleTriggerInput}` to represent the new schedule configuration; the trigger identity remains the same.
+- `{token}` from `authenticate user` is reused by create, update, and optional read steps.
+- The exact path value `name={name}` must be reused between `schedule simple trigger`, `reschedule simple trigger`, and optional `retrieve simple trigger by name`.
+- `{initialSimpleTriggerInput}` establishes the prior trigger state; `{replacementSimpleTriggerInput}` is the state consumed by the update transition.
+- No generated trigger id or version token is used, so concurrency and lost-update protection are not represented.
 
 Business result:
-The trigger named `{triggerName}` should retain its identity while its simple-trigger schedule configuration changes to `{replacementSimpleTriggerInput}`. OpenAPI documents 200 success with `TriggerDTO`.
+The trigger named `{name}` remains present, but its scheduling configuration is replaced by the PUT body. On documented success, the response is 200 with `TriggerDTO`. The API does not document whether unchanged fields are preserved, recalculated, or overwritten when omitted from the DTO.
 
 Constraints and invariants:
-- A valid bearer token is required.
-- The trigger named `{triggerName}` must already exist.
-- The replacement body must be valid for `SimpleTriggerInputDTO`.
-- No partial update/patch behavior is exposed.
-- No optimistic locking, ETag, version, or last-modified guard is exposed.
+- Authentication is required.
+- The trigger identified by `{name}` must already exist.
+- `Content-Type=application/json` is required; generated tests observe 415 without it.
+- The replacement body must satisfy hidden `SimpleTriggerInputDTO` validation; empty JSON fails with 400 in generated tests.
+- No ETag, version, owner, or trigger group constraint is visible.
 
 Failure and exceptional cases:
 - Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
+- Failure condition: Invalid credentials are submitted.
+- Why it fails: Login returns 401 for incorrect credentials.
+- Violated prerequisite or constraint: A valid bearer token cannot be produced.
+
 - Failing function: `schedule simple trigger`
-  - Failure condition: Invalid initial trigger body.
-  - Why it fails: Setup cannot create the existing trigger; OpenAPI/test evidence shows 400/415.
-  - Violated prerequisite or constraint: Existing trigger state is not established.
+- Failure condition: The setup body is invalid or the request is not JSON.
+- Why it fails: The trigger required by the later PUT is not created because validation fails with 400 or media-type validation fails with 415.
+- Violated prerequisite or constraint: Existing trigger state for `name={name}` is missing.
+
 - Failing function: `reschedule simple trigger`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
+- Failure condition: Missing or invalid bearer token.
+- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated PUT calls.
+- Violated prerequisite or constraint: Authenticated caller context is missing.
+
 - Failing function: `reschedule simple trigger`
-  - Failure condition: No trigger exists for path `name={triggerName}`.
-  - Why it fails: The operation is documented as rescheduling an existing trigger and declares 404.
-  - Violated prerequisite or constraint: Existing trigger state is missing.
+- Failure condition: No simple trigger exists under `name={name}`.
+- Why it fails: The operation is documented as rescheduling an existing trigger and declares 404 for not found.
+- Violated prerequisite or constraint: The target trigger state does not exist.
+
 - Failing function: `reschedule simple trigger`
-  - Failure condition: Replacement body is invalid, such as `{}` in generated tests.
-  - Why it fails: OpenAPI documents `400 Invalid trigger configuration`; tests observed 400.
-  - Violated prerequisite or constraint: Replacement trigger configuration is invalid.
+- Failure condition: The request omits `Content-Type=application/json`.
+- Why it fails: Generated tests observe 415 Unsupported Media Type for PUT calls without JSON media type.
+- Violated prerequisite or constraint: The required request media type is absent.
+
 - Failing function: `reschedule simple trigger`
-  - Failure condition: Missing or non-JSON content type.
-  - Why it fails: Generated tests observed 415 Unsupported Media Type.
-  - Violated prerequisite or constraint: JSON request-body requirement is violated.
+- Failure condition: `{replacementSimpleTriggerInput}` violates `SimpleTriggerInputDTO`.
+- Why it fails: OpenAPI declares 400 Invalid trigger configuration, and generated tests observe 400 for empty JSON objects.
+- Violated prerequisite or constraint: The replacement trigger configuration is invalid.
+
 - Failing function: `reschedule simple trigger`
-  - Failure condition: Path contains problematic semicolon-style content.
-  - Why it fails: Generated tests observed a 500 attributed to authentication success handling for a semicolon path.
-  - Violated prerequisite or constraint: Path value handling is not robust for that name form.
+- Failure condition: The PUT path uses `name={otherName}` after setup created `name={name}`.
+- Why it fails: The update targets a different trigger identity from the one established in setup.
+- Violated prerequisite or constraint: The required path-name binding across create and update is broken.
+
+- Failing function: `reschedule simple trigger`
+- Failure condition: Internal processing fails during PUT.
+- Why it fails: Generated tests include a 500 response for a PUT request with JSON body, attributed to an authentication success handler path rather than a documented domain error.
+- Violated prerequisite or constraint: The exact implementation precondition is not visible in the available source.
 
 Implementation notes:
-The schema gap makes it impossible to distinguish valid schedule changes from invalid ones except by runtime validation.
-
-### Behavior 11: List Global Triggers
-
-Business goal:
-Inspect the scheduler’s global trigger list.
-
-Domain context:
-A scheduler operator needs a collection view to see what triggers exist before inspecting or rescheduling an individual trigger.
-
-Starting point:
-No prior trigger state; valid credentials are configured.
-
-Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `list triggers` (`GET /quartz-manager/triggers`) with header `Authorization=Bearer {token}` to list triggers.
-
-Optional verification workflow:
-None.
-
-Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- Direct Quartz scheduler-store setup can create triggers before listing if a non-empty list is required.
-- No setup function is required for an empty collection listing by contract.
-
-Parameter and value bindings:
-- `{token}` is reused in the `Authorization` header.
-- No trigger name, group, cursor, page, or filter value is accepted.
-
-Business result:
-By contract, the caller receives the global trigger list. Generated tests repeatedly observed 500 Internal Server Error for authenticated calls.
-
-Constraints and invariants:
-- A valid bearer token is required.
-- The list is global and unscoped.
-- OpenAPI response schema references `TriggerKeyDTO`, but the schema is missing.
-- No pagination or filtering is exposed.
-
-Failure and exceptional cases:
-- Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
-- Failing function: `list triggers`
-  - Failure condition: Missing or invalid bearer token.
-  - Why it fails: Security scheme rejects unauthenticated access.
-  - Violated prerequisite or constraint: Authenticated caller context is missing.
-- Failing function: `list triggers`
-  - Failure condition: Runtime trigger fetch throws.
-  - Why it fails: Generated tests observed 500 from `TriggerService_28_fetchTriggers`.
-  - Violated prerequisite or constraint: The implementation cannot produce the collection view in the tested state.
-- Failing function: `list triggers`
-  - Failure condition: OpenAPI-declared `404 Not Found`.
-  - Why it fails: No user-controlled missing collection condition is visible.
-  - Violated prerequisite or constraint: No concrete resource constraint is visible.
-
-Implementation notes:
-This is a documented behavior, but the tested implementation appears unreliable for normal authenticated calls.
-
-### Behavior 12: Create, Inspect, and Change a Simple Trigger
-
-Business goal:
-Carry out the normal operational workflow for a named trigger: create it, inspect it, and later change its schedule.
-
-Domain context:
-This is the meaningful trigger-management workflow assembled from the simple-trigger functions.
-
-Starting point:
-No prior trigger state; valid credentials are configured.
-
-Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `schedule simple trigger` (`POST /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and valid body `{initialSimpleTriggerInput}` to create the trigger.
-3. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={triggerName}` to inspect the created trigger.
-4. Use function `reschedule simple trigger` (`PUT /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}`, path `name={triggerName}`, `Content-Type=application/json`, and valid body `{replacementSimpleTriggerInput}` to change the schedule.
-
-Optional verification workflow:
-1. Use function `retrieve simple trigger by name` (`GET /quartz-manager/simple-triggers/{name}`) with header `Authorization=Bearer {token}` and path `name={triggerName}` to inspect the final replacement state.
-2. Use function `list triggers` (`GET /quartz-manager/triggers`) with header `Authorization=Bearer {token}` to inspect whether the trigger appears globally, noting observed 500 risk.
-
-Existing-state shortcuts:
-- Step 1 can be skipped with an existing valid `{token}`.
-- Step 2 can be skipped if `{triggerName}` already exists as a simple trigger and the business workflow starts at inspection/rescheduling existing state.
-- Direct Quartz store setup can replace step 2 only if it creates the same named simple trigger.
-- Steps 3 and 4 cannot be skipped if the behavior specifically requires both inspection and rescheduling.
-
-Parameter and value bindings:
-- `{token}` is reused across every step.
-- The same `name={triggerName}` binds create, retrieve, reschedule, and final verification to one domain trigger.
-- `{initialSimpleTriggerInput}` and `{replacementSimpleTriggerInput}` intentionally differ; the domain meaning is changing schedule configuration while retaining trigger identity.
-
-Business result:
-A named simple trigger exists, has been inspected, and has its schedule replaced by the submitted replacement configuration.
-
-Constraints and invariants:
-- Trigger identity is path-name based.
-- Body schema rules are enforced but undocumented.
-- No delete, disable, pause-trigger, or trigger-group operation is available.
-- No transaction covers the full workflow; a create can succeed while later read or reschedule fails.
-
-Failure and exceptional cases:
-- Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid API session.
-- Failing function: `schedule simple trigger`
-  - Failure condition: Invalid or unsupported request body.
-  - Why it fails: OpenAPI/tests show 400/415.
-  - Violated prerequisite or constraint: Valid initial trigger state is not created.
-- Failing function: `retrieve simple trigger by name`
-  - Failure condition: Trigger does not exist under `{triggerName}` or lookup throws.
-  - Why it fails: OpenAPI says 404 for missing trigger; tests observed 500 for missing-trigger paths.
-  - Violated prerequisite or constraint: The lookup must match an existing trigger identity.
-- Failing function: `reschedule simple trigger`
-  - Failure condition: Replacement body is invalid or the trigger is missing.
-  - Why it fails: OpenAPI documents 400/404; tests show invalid body returns 400.
-  - Violated prerequisite or constraint: Existing named trigger and valid replacement schedule are required.
-
-Implementation notes:
-This is the closest supported trigger lifecycle, but it is incomplete because no delete/unschedule function exists and trigger listing/retrieval have observed 500 failure modes.
-
-### Behavior 13: Operationally Quiesce the Scheduler
-
-Business goal:
-Move the scheduler into a non-executing state by pausing and/or stopping it.
-
-Domain context:
-Operations teams often need to halt scheduled work during maintenance.
-
-Starting point:
-No prior scheduler/job/trigger state; valid credentials are configured.
-
-Required execution workflow:
-1. Use function `authenticate user` (`POST /quartz-manager/auth/login`) with form `username={username}` and `password={password}` to obtain `{token}`.
-2. Use function `pause scheduler` (`GET /quartz-manager/scheduler/pause`) with header `Authorization=Bearer {token}` to pause execution.
-3. Use function `stop scheduler` (`GET /quartz-manager/scheduler/stop`) with header `Authorization=Bearer {token}` to stop the scheduler.
-
-Optional verification workflow:
-1. Use function `retrieve scheduler details` (`GET /quartz-manager/scheduler`) with header `Authorization=Bearer {token}` to inspect the final status.
-
-Existing-state shortcuts:
-- Step 1 can be skipped if a valid `{token}` already exists.
-- If the scheduler is already paused, step 2 may be skipped when the business goal is only final stopped state.
-- If the scheduler is already stopped, both state-change calls may be operationally unnecessary, but the API does not expose a conditional stop command.
-
-Parameter and value bindings:
-- `{token}` is reused across pause, stop, and optional status inspection.
-- Both state-changing calls operate on the same singleton scheduler.
-
-Business result:
-The scheduler is requested to be paused and then stopped. Generated tests show both functions can return 204.
-
-Constraints and invariants:
-- No scheduler id or tenant is exposed.
-- No precondition requires running state before pause/stop.
-- The API does not expose an atomic maintenance-mode transition.
-- Both mutating operations use GET.
-
-Failure and exceptional cases:
-- Failing function: `authenticate user`
-  - Failure condition: Invalid credentials.
-  - Why it fails: Login returns 401.
-  - Violated prerequisite or constraint: No valid token.
-- Failing function: `pause scheduler`
-  - Failure condition: Missing/invalid bearer token or undocumented missing scheduler condition.
-  - Why it fails: Security scheme enforces authentication; OpenAPI declares 404.
-  - Violated prerequisite or constraint: Authenticated singleton scheduler operation cannot be completed.
-- Failing function: `stop scheduler`
-  - Failure condition: Missing/invalid bearer token or undocumented missing scheduler condition.
-  - Why it fails: Security scheme enforces authentication; OpenAPI declares 404.
-  - Violated prerequisite or constraint: Authenticated singleton scheduler operation cannot be completed.
-
-Implementation notes:
-This composite workflow is better supported by tests than a full pause/resume/start cycle because `pause scheduler` and `stop scheduler` have observed 204 success, while `start scheduler` and `resume scheduler` show 500s.
+The positive PUT path is documented but not demonstrated in generated tests. The tests do demonstrate authentication, media-type, and validation behavior. Because the DTO schema is absent, consumers cannot infer a valid replacement body from OpenAPI alone.
 
 ## Unsupported or Missing Business Behaviors
 
-### Missing Behavior 1: Manage Users, Sessions, and Token Revocation
+### Missing Behavior 1: Unschedule or delete a simple trigger
 
 Priority:
 Critical domain gap
 
 Expected business goal:
-Administrators should be able to create users, list users, disable users, rotate credentials, refresh tokens, and revoke/logout active sessions.
+Remove a named trigger when it should no longer fire.
 
 Why it is unsupported:
-Only `authenticate user` exists. There is no OpenAPI operation for user creation, credential update, token refresh, token introspection, or logout. Source constants include `/quartz-manager/auth/logout`, but no matching OpenAPI operation or controller source is present.
+No DELETE endpoint exists for `/quartz-manager/simple-triggers/{name}` or `/quartz-manager/triggers/{name}`. The available functions can create, read, list, and update trigger state, but none removes it.
 
 Existing functions considered:
-- `authenticate user`: obtains a token from existing credentials, but cannot create, update, list, disable, or revoke credentials/tokens.
+- `schedule simple trigger`: creates a named trigger and cannot remove an existing one.
+- `retrieve simple trigger by name`: reads a named trigger and has no mutation effect.
+- `reschedule simple trigger`: changes an existing trigger but keeps the trigger identity alive.
+- `list triggers`: lists global trigger state but exposes no removal action.
 
 Missing capability:
-User/session lifecycle endpoints and token revocation behavior.
+A delete or unschedule endpoint that accepts the trigger name and removes the trigger from the scheduler store, with clear behavior for missing triggers and in-flight executions.
 
 Proof that function composition is insufficient:
-Repeated login calls can only create more tokens for credentials that already exist. They cannot create credential state, invalidate a token, distinguish active sessions, or revoke access after compromise.
+Rescheduling a trigger is not equivalent to deletion because the trigger remains present and may still fire under a different schedule. Stopping or pausing the entire scheduler is not equivalent because it affects all triggers globally rather than one named trigger.
 
 Evidence from existing functions/source:
-- `full-behavior.md` explicitly excludes logout because it appears only as a constant.
-- `QuartzManagerPaths` defines `QUARTZ_MANAGER_LOGOUT_PATH`, but `quartz-manager.json` has no logout path.
+- The OpenAPI path `/quartz-manager/simple-triggers/{name}` contains GET, POST, and PUT only.
+- `QuartzManagerPaths` only defines base auth/UI constants and does not expose a trigger delete path.
+- `list triggers` and `retrieve simple trigger by name` can show state but cannot remove it.
 
 Business impact:
-Authentication is usable for testing and access, but not administrable or safely revocable.
+Operators cannot complete the trigger lifecycle through REST. Obsolete or erroneous triggers require direct scheduler-store repair or full scheduler-level controls that are too broad.
 
-### Missing Behavior 2: Reliably Start or Resume Scheduler Execution
+### Missing Behavior 2: Trigger-level pause and resume
 
 Priority:
 Critical domain gap
 
 Expected business goal:
-Operators should be able to start a stopped scheduler and resume a paused scheduler with a documented, observable state transition.
+Pause or resume one trigger without changing the entire scheduler.
 
 Why it is unsupported:
-The functions exist by contract, but generated tests repeatedly observed 500 Internal Server Error for authenticated `start scheduler` and `resume scheduler` calls.
+The API exposes scheduler-level pause/resume only. No endpoint accepts a trigger name for pausing or resuming a specific trigger.
 
 Existing functions considered:
-- `start scheduler`: intended to start execution, but observed 500 from scheduler service start.
-- `resume scheduler`: intended to resume execution, but observed 500 in generated tests.
-- `pause scheduler`: can pause, but cannot resume.
-- `stop scheduler`: can stop, but cannot start.
-- `retrieve scheduler details`: can inspect status, but cannot repair the transition.
+- `pause scheduler`: pauses the singleton scheduler globally and cannot target a trigger.
+- `resume scheduler`: resumes the singleton scheduler globally and cannot target a trigger.
+- `retrieve simple trigger by name`: can locate a trigger by name but has no control transition.
+- `reschedule simple trigger`: changes trigger configuration but is not a pause/resume state transition.
 
 Missing capability:
-A reliable implementation-backed start/resume transition, plus clear state preconditions and error mapping.
+Trigger-scoped lifecycle endpoints, for example pause and resume operations keyed by `{name}` or a documented trigger key, with not-found and invalid-state responses.
 
 Proof that function composition is insufficient:
-No sequence of `pause scheduler`, `stop scheduler`, or `retrieve scheduler details` can replace a successful start/resume transition. The state that must be produced is an executing scheduler, and only the failing functions claim to produce it.
+Reading a trigger and then pausing the scheduler affects all triggers, not just the named trigger. Rescheduling cannot represent a reversible paused state unless the domain model explicitly treats a special schedule value as pause, and no such rule is documented.
 
 Evidence from existing functions/source:
-- OpenAPI documents 204 for `/scheduler/run` and `/scheduler/resume`.
-- Generated tests show 500 for authenticated calls to those paths.
+- Only `/quartz-manager/scheduler/pause` and `/quartz-manager/scheduler/resume` exist for pause/resume.
+- `retrieve simple trigger by name` and `reschedule simple trigger` are scoped to `{name}`, but neither exposes a trigger execution-state transition.
 
 Business impact:
-The API can quiesce the scheduler but may not be able to restore execution, making operational maintenance workflows unsafe.
+Operators lack safe fine-grained control. A single problematic trigger can only be addressed by global scheduler actions, direct store manipulation, or a risky schedule rewrite.
 
-### Missing Behavior 3: Unschedule or Delete a Simple Trigger
-
-Priority:
-Critical domain gap
-
-Expected business goal:
-Operators should be able to remove a trigger that should no longer fire.
-
-Why it is unsupported:
-No `DELETE /quartz-manager/simple-triggers/{name}` or equivalent unschedule endpoint exists.
-
-Existing functions considered:
-- `schedule simple trigger`: creates a trigger.
-- `retrieve simple trigger by name`: reads a trigger.
-- `reschedule simple trigger`: changes an existing trigger but does not remove it.
-- `list triggers`: lists triggers but does not mutate them.
-
-Missing capability:
-Delete/unschedule endpoint and persisted trigger removal behavior.
-
-Proof that function composition is insufficient:
-Rescheduling can change timing but cannot remove trigger identity from the scheduler store. Delete-and-recreate is not equivalent because there is no delete. Direct database cleanup would bypass API behavior and is not an API-realizable workflow.
-
-Evidence from existing functions/source:
-- `quartz-manager.json` exposes GET/POST/PUT for `/simple-triggers/{name}` only.
-- `full-behavior.md` lists no delete function.
-
-Business impact:
-Erroneous or obsolete triggers cannot be safely retired through the API.
-
-### Missing Behavior 4: Manage Job Definitions and Bind Triggers to Jobs Explicitly
+### Missing Behavior 3: Reliable not-found handling for trigger lookup
 
 Priority:
 Important robustness gap
 
 Expected business goal:
-A scheduler service normally lets users define which job a trigger fires, inspect job metadata, and manage job lifecycle.
+Return a clear domain-level not-found response when a caller requests a trigger name that does not exist.
 
 Why it is unsupported:
-The API only lists eligible job classes. It exposes no job creation, retrieval by class/name, activation, update, deletion, or explicit trigger-to-job binding endpoint. The trigger input schema is missing, so any job binding hidden inside `SimpleTriggerInputDTO` cannot be verified from the contract.
+OpenAPI documents 404 for missing simple triggers, but generated tests observe 500 for unknown names. No available composition can transform the server-side 500 into a true API-level 404.
 
 Existing functions considered:
-- `list eligible job classes`: lists static eligible classes only.
-- `schedule simple trigger`: may schedule a trigger, but the schema does not disclose job binding fields.
-- `retrieve simple trigger by name`: reads trigger state, not job metadata.
+- `retrieve simple trigger by name`: should provide the lookup result but returns 500 in generated tests for absent names.
+- `list triggers`: could be used by a client to inspect available triggers, but it also shows 500 failures in generated tests and has no documented filter.
+- `schedule simple trigger`: can create a trigger but cannot validate absence safely before lookup.
 
 Missing capability:
-Job lifecycle endpoints and documented trigger-to-job association fields.
+Implementation-level not-found mapping from scheduler lookup miss to the documented 404 response, plus a reliable trigger-list or existence-check endpoint.
 
 Proof that function composition is insufficient:
-Listing classes cannot create a job detail or bind a trigger to a specific job. Without a documented job identity in the API, a client cannot prove which job will run when a trigger fires.
+A client-side precheck with `list triggers` is not equivalent because the list endpoint itself can fail with 500 and has no guaranteed consistency with the subsequent GET. Creating a missing trigger before reading it changes business state and does not answer whether the original trigger existed.
 
 Evidence from existing functions/source:
-- OpenAPI only has `GET /quartz-manager/jobs`.
-- `SimpleTriggerInputDTO` is referenced but undefined.
+- OpenAPI documents `404 Trigger not found` for `retrieve simple trigger by name`.
+- Generated tests record 500 responses attributed to `AbstractSchedulerService_18_getTriggerByName`.
+- `list triggers` generated tests record 500 responses attributed to `TriggerService_28_fetchTriggers`.
 
 Business impact:
-Trigger scheduling is under-specified and cannot support reliable job orchestration from the API contract alone.
+Clients cannot distinguish an absent trigger from a server fault. Automated operations may retry, alert, or repair incorrectly.
 
-### Missing Behavior 5: Validate or Preview Trigger Configuration Without Persisting It
+### Missing Behavior 4: Safe scheduler start and resume with domain errors
 
 Priority:
 Important robustness gap
 
 Expected business goal:
-Clients should be able to validate a trigger schedule, preview next fire times, and detect invalid timing before creating or replacing a trigger.
+Start or resume the scheduler with predictable handling for invalid runtime state, missing configuration, or already-active conditions.
 
 Why it is unsupported:
-Only create and reschedule endpoints validate as part of mutation. There is no dry-run validation or preview endpoint.
+OpenAPI documents 204 for `start scheduler` and `resume scheduler`, but generated tests observe 500 responses. The API exposes no validation or preflight function that explains whether the scheduler can be started or resumed.
 
 Existing functions considered:
-- `schedule simple trigger`: validates while creating state.
-- `reschedule simple trigger`: validates while replacing state.
-- `retrieve simple trigger by name`: can inspect existing state only.
+- `start scheduler`: is the intended start transition but can return 500 in generated tests.
+- `resume scheduler`: is the intended resume transition but can return 500 in generated tests.
+- `retrieve scheduler details`: reads current status but does not validate whether start/resume is allowed.
+- `pause scheduler`: can pause successfully in tests but does not repair start/resume prerequisites.
+- `stop scheduler`: can stop successfully in tests but does not guarantee a later start will succeed.
 
 Missing capability:
-Validation/preview endpoint, next-fire-time calculation, and non-mutating schedule analysis.
+Domain-specific scheduler control validation and error mapping, including explicit responses for already running, not initialized, missing runtime resources, or illegal transition.
 
 Proof that function composition is insufficient:
-Using `schedule simple trigger` as validation mutates state on success. Without delete, a validation-by-create workaround leaves persistent triggers behind and is not equivalent to a dry run.
+Calling `retrieve scheduler details` before start/resume only reads status; it cannot create missing runtime prerequisites or force the start/resume endpoint to return a domain error. Stop-then-start is not equivalent because generated tests already show start failures under reset-state conditions.
 
 Evidence from existing functions/source:
-- OpenAPI has no validation or preview path.
-- No delete endpoint exists to clean up successful trial schedules.
+- Generated tests attribute 500 responses for `start scheduler` and `resume scheduler` to `SchedulerService_25_start`.
+- OpenAPI declares only 204 and 404 for those control endpoints.
+- No endpoint exposes scheduler health, readiness, or transition validation.
 
 Business impact:
-Clients must risk persistent scheduler changes to test schedule validity.
+Operational automation cannot safely distinguish transient runtime failures from invalid commands. Start/resume workflows may fail with generic 500s rather than actionable scheduler-state errors.
 
-### Missing Behavior 6: Query, Filter, or Page Triggers
+### Missing Behavior 5: Token revocation or logout
+
+Priority:
+Important robustness gap
+
+Expected business goal:
+End an authenticated API session or revoke a bearer token.
+
+Why it is unsupported:
+Only login is documented as an auth operation. A logout path constant exists in source, but there is no OpenAPI operation or controller evidence for it in the available files.
+
+Existing functions considered:
+- `authenticate user`: obtains a token but cannot revoke it.
+
+Missing capability:
+A logout or token-revocation endpoint, plus documented token lifetime and invalidation semantics.
+
+Proof that function composition is insufficient:
+Not using a token is only a client behavior; it does not invalidate the token server-side. Reauthenticating produces another token and does not revoke earlier credentials.
+
+Evidence from existing functions/source:
+- `QuartzManagerPaths` defines `/quartz-manager/auth/logout`.
+- `quartz-manager.json` exposes `/quartz-manager/auth/login` but no logout operation.
+- `authenticate user` has no documented paired revocation behavior.
+
+Business impact:
+The service lacks an API-level session lifecycle close. Compromised or stale tokens cannot be invalidated through the documented REST surface.
+
+### Missing Behavior 6: Self-describing simple-trigger configuration
 
 Priority:
 API ergonomics gap
 
 Expected business goal:
-Operators should be able to search triggers by name, group, status, job class, or schedule criteria, especially when many triggers exist.
+Allow API consumers to construct valid simple-trigger create and update payloads from the published contract.
 
 Why it is unsupported:
-`list triggers` takes no documented query parameters, and `retrieve simple trigger by name` requires exact name lookup.
+The OpenAPI references `SimpleTriggerInputDTO`, but `components.schemas` does not define it. Generated tests show empty JSON fails with 400, so validation exists but is not discoverable from the contract.
 
 Existing functions considered:
-- `list triggers`: global unfiltered list.
-- `retrieve simple trigger by name`: exact single-trigger lookup only.
+- `schedule simple trigger`: requires a valid `SimpleTriggerInputDTO` body but the schema is missing.
+- `reschedule simple trigger`: requires the same hidden body contract.
+- `retrieve simple trigger by name`: could show a returned trigger shape after creation, but it cannot create the initial valid request body.
 
 Missing capability:
-Trigger search/filter parameters, pagination cursor, sorting, and trigger group scoping.
+Complete OpenAPI schema definitions, examples, field-level validation rules, and response schemas for trigger DTOs and error DTOs.
 
 Proof that function composition is insufficient:
-A client can only list everything or fetch one exact name. If the list endpoint fails or is large, there is no alternative way to discover matching triggers or page through results.
+Calling read endpoints cannot reveal the required create body when no trigger exists. Trial-and-error POST/PUT calls cause validation failures and cannot be relied on as contract discovery.
 
 Evidence from existing functions/source:
-- OpenAPI defines no query parameters for `GET /quartz-manager/triggers`.
-- Generated tests show arbitrary extra query parameters do not provide filtering semantics.
+- OpenAPI references `SimpleTriggerInputDTO`, `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `SchedulerDTO`, and `ExceptionResponse`.
+- The `components` section defines only `securitySchemes`.
+- Generated tests observe 400 for empty JSON bodies submitted to `schedule simple trigger` and `reschedule simple trigger`.
 
 Business impact:
-Trigger discovery does not scale and is operationally brittle.
+Integrators cannot reliably create or update triggers from the published API specification. This raises integration cost and increases invalid configuration attempts.
 
-### Missing Behavior 7: Enforce or Expose Ownership and Tenant Scoping
-
-Priority:
-Important robustness gap
-
-Expected business goal:
-In multi-user operation, users should only control scheduler resources they own or are authorized to manage.
-
-Why it is unsupported:
-The API exposes global scheduler and trigger operations with bearer authentication but no owner, tenant, project, group, or role-scoped path/query/body field.
-
-Existing functions considered:
-- `authenticate user`: identifies a caller but exposes no role or scope in the API contract.
-- All scheduler and trigger functions: operate on singleton/global resources.
-- `list eligible job classes`: global discovery.
-
-Missing capability:
-Ownership model, tenant scoping, role authorization, and resource-level access checks.
-
-Proof that function composition is insufficient:
-Passing different valid tokens can authenticate different users, but no function creates owner links or scopes scheduler/trigger resources by owner. Composition cannot enforce a relationship that is neither represented nor checked by exposed parameters.
-
-Evidence from existing functions/source:
-- Generated tests use `foo` and `foo2` tokens against the same global endpoints.
-- No endpoint includes user/tenant/owner path or query parameters.
-
-Business impact:
-Any authenticated caller may be able to affect global scheduler state, depending on unseen security configuration.
-
-### Missing Behavior 8: Contract-Level DTO Schema Discovery
+### Missing Behavior 7: First-class job lifecycle management
 
 Priority:
 API ergonomics gap
 
 Expected business goal:
-Clients should know exactly which fields are required for trigger creation, trigger responses, scheduler responses, and error responses.
+Register, inspect, update, or remove scheduler jobs as domain resources before binding them to triggers.
 
 Why it is unsupported:
-The OpenAPI references DTO schemas but does not define them under `components.schemas`.
+The API only lists eligible job classes. No endpoint creates a job detail, assigns a job class to a trigger, lists scheduled jobs, or deletes a job.
 
 Existing functions considered:
-- `schedule simple trigger`: requires `SimpleTriggerInputDTO`, undefined.
-- `reschedule simple trigger`: requires `SimpleTriggerInputDTO`, undefined.
-- `retrieve scheduler details`: returns `SchedulerDTO`, undefined.
-- `list triggers`: returns `TriggerKeyDTO`, undefined.
+- `list eligible job classes`: discovers Java classes but does not create or manage job instances.
+- `schedule simple trigger`: may internally require job-related fields in `SimpleTriggerInputDTO`, but the schema is absent and no job aggregate is exposed.
+- `retrieve scheduler details`: reads scheduler metadata and does not manage jobs.
 
 Missing capability:
-Complete OpenAPI component schemas.
+Job resource endpoints for create, retrieve, list, update, delete, and trigger binding, or a documented trigger payload schema that explicitly covers job identity and job data.
 
 Proof that function composition is insufficient:
-No sequence of calls reveals the formal required fields, validation rules, formats, enums, or nullable fields needed to generate a correct client.
+A class list is not a persisted job. Creating a trigger with an undocumented body cannot provide a discoverable, manageable job lifecycle or job identity that later operations can reference.
 
 Evidence from existing functions/source:
-- `quartz-manager.json` contains `$ref` entries for missing schemas.
-- Generated tests only show negative examples such as `{}` returning 400.
+- OpenAPI exposes only `GET /quartz-manager/jobs` for jobs.
+- No path contains a job id, job name, job group, or job data map.
+- `list eligible job classes` generated tests return an empty list and do not create state.
 
 Business impact:
-API consumers cannot reliably construct valid trigger requests or strongly typed clients from the contract.
+The domain model is incomplete for clients that need to manage scheduled work, not only scheduler controls and trigger timing.
+
+### Missing Behavior 8: Ownership, tenancy, and audit trail for scheduler changes
+
+Priority:
+API ergonomics gap
+
+Expected business goal:
+Restrict and audit who can create, update, or control scheduler resources.
+
+Why it is unsupported:
+The exposed endpoints use bearer authentication but no path, body, or response field models owner, tenant, role, permission, or audit event. No audit lookup endpoint is available.
+
+Existing functions considered:
+- `authenticate user`: creates caller context but returns no documented role or scope.
+- `schedule simple trigger`: creates global trigger state without owner or tenant values.
+- `reschedule simple trigger`: updates global trigger state without version, owner, or audit parameters.
+- `start scheduler`: changes global scheduler state without actor-specific audit output.
+- `stop scheduler`: changes global scheduler state without actor-specific audit output.
+- `pause scheduler`: changes global scheduler state without actor-specific audit output.
+- `resume scheduler`: changes global scheduler state without actor-specific audit output.
+
+Missing capability:
+Role/scope enforcement, ownership fields, tenant scoping, audit event persistence, and audit search endpoints for scheduler and trigger mutations.
+
+Proof that function composition is insufficient:
+Passing the same bearer token to mutating endpoints authorizes the call but does not persist or expose ownership/audit records. Reading scheduler or trigger state after a mutation does not reveal who made the change.
+
+Evidence from existing functions/source:
+- OpenAPI security uses a single bearer scheme with no documented scopes.
+- Paths contain no tenant, owner, or audit identifiers.
+- No audit or history endpoints are present.
+
+Business impact:
+The API is difficult to operate in multi-user or regulated environments because resource ownership, accountability, and change history are not represented.
 
 ## Cross-Behavior Observations
 
-- All non-login domain APIs are protected by `quartz-manager-auth`.
-- Login success is under-documented: OpenAPI lists only 401, while tests extract `accessToken`.
-- Several mutating operations use GET: scheduler start, stop, pause, and resume.
-- The scheduler is modeled as a singleton global resource with no exposed scheduler id.
-- Trigger identity is path-name based; no trigger group or owner scope is exposed.
-- `SimpleTriggerInputDTO` validation exists but is not contractually described.
-- OpenAPI declares many 404 responses, but visible source and tests do not show clear user-controlled setup paths for most of them.
-- Generated tests show important runtime discrepancies: `list triggers`, missing simple-trigger retrieval, `start scheduler`, and `resume scheduler` can return 500 where the contract suggests normal 200/204/404 behavior.
-- `pause scheduler` and `stop scheduler` appear operationally successful in tests, returning 204.
-- No API-realizable cleanup path exists for created triggers.
+- The service is centered on a singleton scheduler and global trigger namespace. There is no scheduler collection, tenant id, or ownership boundary in the REST shape.
+- Authentication is the only cross-cutting value binding. `authenticate user` returns a token in generated tests, and every protected behavior reuses it in `Authorization: Bearer {token}`.
+- Simple triggers use caller-supplied path names as durable identifiers. No generated trigger id, version, ETag, or concurrency token is exposed.
+- Scheduler control operations are state-changing but use GET, which can surprise caches, crawlers, and clients that assume GET is safe.
+- Stop and pause are observed as successful 204 operations in generated tests, while start and resume are observed returning 500 despite OpenAPI documenting 204.
+- Trigger list and trigger lookup have weak error mapping. Generated tests show 500 for cases that the contract presents as successful reads or 404 not-found responses.
+- OpenAPI DTO references are incomplete because `components.schemas` contains only the security scheme. This is especially harmful for `schedule simple trigger` and `reschedule simple trigger`, where valid request bodies are required.
+- Extra query parameters are often ignored by scheduler and job reads/controls, but this tolerance is not documented as part of the domain contract.
+- Access control appears to be authentication-only in the visible contract. There are no scopes, roles, owners, tenants, or per-resource authorization checks.
+- No cascading delete, recalculation, audit trail, token revocation, trigger-specific pause/resume, or safe cleanup behavior is exposed.
 
 ## Coverage Summary
 
-Supported domain areas:
-- JWT-based access acquisition from existing credentials
-- global scheduler inspection
-- scheduler pause and stop controls
-- eligible job-class discovery
-- named simple-trigger create/read/reschedule by contract
+Fully supported workflow/state areas include obtaining an access token, reading scheduler details, listing eligible job classes, stopping the scheduler, and pausing the scheduler, subject to valid authentication and singleton service configuration.
 
-Partially supported domain areas:
-- scheduler start/resume, because functions exist but generated tests show 500 failures
-- trigger listing, because the function exists but generated tests show 500 failures
-- trigger scheduling, because the body schema and validation rules are missing from OpenAPI
+Partially supported areas include starting and resuming the scheduler, listing triggers, retrieving simple triggers, scheduling simple triggers, and rescheduling simple triggers. These are exposed in the contract, but tests reveal 500 responses for several paths and the trigger DTO schemas are missing.
 
-Unsupported domain areas:
-- user/session administration and token revocation
-- trigger deletion/unscheduling
-- job lifecycle management and explicit job binding
-- trigger validation/preview without mutation
-- trigger search, pagination, grouping, ownership, and tenant scoping
-- complete OpenAPI DTO schema support
+Unsupported or unsafe areas include trigger deletion, trigger-level pause/resume, reliable trigger not-found behavior, safe scheduler start/resume error modeling, token revocation, self-describing trigger payloads, first-class job lifecycle management, and ownership/audit controls.

@@ -1,1346 +1,4469 @@
-# Domain-Level Behavior Analysis
+# Domain-Level Workflow and State Behavior Analysis
+
+| No. | Behavior name | Business goal |
+|---:|---|---|
+| 1 | [Behavior 1: Establish a case and reuse the case identity](#behavior-1) | Create the domain parent case for later treatments, letters, complaints, repayment checks, and statistics. |
+| 2 | [Behavior 2: Inspect case views and locate cases by person](#behavior-2) | Read case state by known `fagsakId` and by person/type lookup. |
+| 3 | [Behavior 3: Resolve case participation and ongoing benefit relationships](#behavior-3) | Determine where a person participates in child-benefit cases and whether the person has ongoing benefit. |
+| 4 | [Behavior 4: Create and check manual repayment treatment on a case](#behavior-4) | Create a repayment treatment for a case and inspect whether open repayment state exists. |
+| 5 | [Behavior 5: Create a treatment and restart an early active treatment](#behavior-5) | Start a treatment on a case, then reuse and reset it when another creation request arrives before decision stage. |
+| 6 | [Behavior 6: Queue automated birth-event treatment processing](#behavior-6) | Accept a birth event and queue asynchronous treatment processing. |
+| 7 | [Behavior 7: Change treatment theme](#behavior-7) | Change treatment category and subcategory while treatment is editable. |
+| 8 | [Behavior 8: Execute the caseworker treatment step flow through decision](#behavior-8) | Move a treatment from application registration through result, repayment assessment, decision-maker handoff, and decision implementation. |
+| 9 | [Behavior 9: Dismiss an active treatment](#behavior-9) | Close a treatment by dismissal rather than full decision implementation. |
+| 10 | [Behavior 10: Register institution and guardian information on treatment](#behavior-10) | Store institution and/or guardian information required by the treatment flow. |
+| 11 | [Behavior 11: Add a child to treatment basis and reset later treatment steps](#behavior-11) | Add a child into the treatment person basis after treatment creation. |
+| 12 | [Behavior 12: Put treatment on wait, update wait, and resume](#behavior-12) | Pause a treatment with a deadline/reason, change the wait metadata, then resume the treatment. |
+| 13 | [Behavior 13: Read person information for case handling](#behavior-13) | Retrieve detailed, simple, and address-focused person information for casework. |
+| 14 | [Behavior 14: Refresh treatment register basis and manually record death](#behavior-14) | Update treatment person basis from register information and record manual death details for a person in the treatment. |
+| 15 | [Behavior 15: Maintain condition assessment records](#behavior-15) | Add, update, delete, and supplement condition assessment data on an editable treatment. |
+| 16 | [Behavior 16: Maintain EEA competence intervals](#behavior-16) | Create/replace competence periods and delete an existing competence interval. |
+| 17 | [Behavior 17: Maintain foreign period amounts](#behavior-17) | Update and delete an existing foreign benefit amount period. |
+| 18 | [Behavior 18: Update existing currency rate from ECB](#behavior-18) | Update an existing currency-rate period by fetching a rate from ECB when currency/date changes. |
+| 19 | [Behavior 19: Set historical ISK currency rate manually and delete currency rate](#behavior-19) | Store a manually supplied historical ISK rate, then remove the currency-rate row. |
+| 20 | [Behavior 20: Maintain changed payment shares and reset treatment result](#behavior-20) | Create, fill, remove, and explicitly reset changed-payment share state in an editable treatment. |
+| 21 | [Behavior 21: Inspect EEA timelines](#behavior-21) | Read calculated EEA timelines for a treatment. |
+| 22 | [Behavior 22: Maintain EEA refund periods](#behavior-22) | Add, list, update, and delete refund periods for EEA handling. |
+| 23 | [Behavior 23: Maintain overpaid currency periods](#behavior-23) | Add, list, update, and delete periods with overpaid currency amount. |
+| 24 | [Behavior 24: Activate and deactivate corrected decision metadata](#behavior-24) | Mark a treatment as having corrected decision metadata, then deactivate that metadata. |
+| 25 | [Behavior 25: Activate, list, and deactivate corrected after-payment metadata](#behavior-25) | Mark corrected after-payment metadata active, inspect all records, and deactivate the active correction. |
+| 26 | [Behavior 26: Add and remove small child supplement correction](#behavior-26) | Add a small-child supplement correction for a month and remove it later. |
+| 27 | [Behavior 27: Preview repayment warning letter](#behavior-27) | Generate a repayment warning letter preview without sending it. |
+| 28 | [Behavior 28: Generate and retrieve decision letter](#behavior-28) | Generate the persisted decision letter for an active decision and retrieve it. |
+| 29 | [Behavior 29: Preview and send manual treatment letter](#behavior-29) | Preview and send a manual letter tied to a treatment. |
+| 30 | [Behavior 30: Preview and send manual case letter](#behavior-30) | Preview and send a manual letter tied directly to a case. |
+| 31 | [Behavior 31: Maintain manual letter recipients](#behavior-31) | Add, list, and remove manual letter recipients for a treatment. |
+| 32 | [Behavior 32: Edit decision periods and regenerate letter explanations](#behavior-32) | Modify decision-period explanations, override change date, and generate final letter explanation texts. |
+| 33 | [Behavior 33: Retrieve treatment log](#behavior-33) | Read audit/log entries for a treatment. |
+| 34 | [Behavior 34: Retrieve external benefit data for BISYS](#behavior-34) | Provide BISYS with extended child benefit and small child supplement periods for a person. |
+| 35 | [Behavior 35: Retrieve pension child benefit](#behavior-35) | Provide Pension with child-benefit case and period data for one person. |
+| 36 | [Behavior 36: Order pension yearly export](#behavior-36) | Queue export of persons with child benefit for a Pension tax/reporting year. |
+| 37 | [Behavior 37: Production tax data export](#behavior-37) | Return Skatteetaten production person and period data for one tax year. |
+| 38 | [Behavior 38: Tax test endpoint data retrieval](#behavior-38) | Return Skatteetaten test-path person and period data for one tax year. |
+| 39 | [Behavior 39: Retrieve Infotrygd case and benefit context](#behavior-39) | Read legacy Infotrygd case, benefit, and ongoing-state information for an applicant. |
+| 40 | [Behavior 40: Discover collaborators by search and organization number](#behavior-40) | Find collaborator/institution information and retrieve details by organization number. |
+| 41 | [Behavior 41: Create and list complaint treatments for a case](#behavior-41) | Start a complaint treatment for a child-benefit case and list complaint treatments. |
+| 42 | [Behavior 42: Let complaint system create a revision after precheck](#behavior-42) | Let the external complaint system check and create a complaint-triggered revision on a case. |
+| 43 | [Behavior 43: Retrieve decisions for complaint system](#behavior-43) | Provide fagsystem decisions for a case to the complaint system. |
+| 44 | [Behavior 44: Search external tasks](#behavior-44) | Find external task ids that can be acted on by later task workflows. |
+| 45 | [Behavior 45: Assign external task](#behavior-45) | Assign a known task to a caseworker. |
+| 46 | [Behavior 46: Reset external task assignment](#behavior-46) | Clear assignment on a known external task. |
+| 47 | [Behavior 47: Retrieve journaling task data](#behavior-47) | Gather task, person, minimal case, and optional journalpost context for manual journaling. |
+| 48 | [Behavior 48: Complete external task](#behavior-48) | Close a known external task without linking a journalpost. |
+| 49 | [Behavior 49: Complete task while linking a journalpost](#behavior-49) | Link a journalpost to a case/treatment context and complete the related task. |
+| 50 | [Behavior 50: Retrieve open extended-benefit deadlines](#behavior-50) | Report deadlines for open extended child-benefit treatments. |
+| 51 | [Behavior 51: Clear application task ownership](#behavior-51) | Remove `behandlesAvApplikasjon` ownership markers from selected tasks. |
+| 52 | [Behavior 52: Inspect journalpost and retrieve documents](#behavior-52) | Read journalpost metadata and fetch documents in resource/PDF form. |
+| 53 | [Behavior 53: Journal an incoming journalpost](#behavior-53) | Journal an incoming journalpost to the correct unit/task context. |
+| 54 | [Behavior 54: Retrieve feature toggles](#behavior-54) | Return enabled/disabled state for requested feature toggles. |
+| 55 | [Behavior 55: Check person access](#behavior-55) | Determine whether the current caller may access a person and see the person’s discretion code. |
+| 56 | [Behavior 56: Queue identity event handling](#behavior-56) | Create asynchronous work for a new identity/PDL identity event. |
+| 57 | [Behavior 57: Queue transitional-benefit event handling](#behavior-57) | Create asynchronous work for a transitional-benefit decision event. |
+| 58 | [Behavior 58: Check rate-change eligibility for one case](#behavior-58) | Determine whether a case can undergo manual rate change. |
+| 59 | [Behavior 59: Queue rate change for one case](#behavior-59) | Queue rate-change processing for a single case. |
+| 60 | [Behavior 60: Queue rate change for multiple cases](#behavior-60) | Queue rate-change processing for a supplied set of cases. |
+| 61 | [Behavior 61: Run synchronous rate change for one case](#behavior-61) | Execute rate change immediately for one eligible case. |
+| 62 | [Behavior 62: Queue rate change from identities](#behavior-62) | Discover relevant cases from supplied identities and queue rate-change tasks. |
+| 63 | [Behavior 63: Queue technical dismissal for long-deadline treatments](#behavior-63) | Create dismissal tasks for treatments with deadlines beyond a validation date. |
+| 64 | [Behavior 64: Identify ongoing cases without latest rate](#behavior-64) | Start background discovery of ongoing cases missing the latest rate. |
+| 65 | [Behavior 65: Run consistency reconciliation dry run](#behavior-65) | Queue economy consistency reconciliation without sending to the economy system. |
+| 66 | [Behavior 66: Run real consistency reconciliation](#behavior-66) | Queue economy consistency reconciliation that sends to the economy system. |
+| 67 | [Behavior 67: Retrieve internal and application statistics](#behavior-67) | Read aggregate service statistics and application counts. |
+| 68 | [Behavior 68: Retrieve treatment statistics payload](#behavior-68) | Map one treatment to a DVH treatment statistics payload. |
+| 69 | [Behavior 69: Retrieve case statistics payload](#behavior-69) | Map one case to a DVH case statistics payload. |
+| 70 | [Behavior 70: Register statistics message as sent](#behavior-70) | Persist that an externally sent statistics message has been sent and should not be resent. |
+| 71 | [Behavior 71: Retrieve benefit statistics decisions](#behavior-71) | Map treatment ids to DVH V2 benefit-statistics decision payloads. |
+| 72 | [Behavior 72: Queue unsent benefit statistics](#behavior-72) | Queue publication tasks for supplied treatments that have not already been sent. |
+| 73 | [Behavior 73: Manually queue benefit statistics](#behavior-73) | Queue benefit-statistics publication for supplied treatments without the normal sent-state filter. |
+| 74 | [Behavior 74: Resend manual migration statistics](#behavior-74) | Backfill benefit statistics for eligible manual migration treatments. |
+| 75 | [Behavior 75: Complete an administrative task list with partial success](#behavior-75) | Attempt to complete a list of tasks administratively and report failures. |
+| 76 | [Behavior 76: Restart small child supplement job](#behavior-76) | Trigger manual restart logic for small child supplement processing. |
+| 77 | [Behavior 77: Send payment orders administratively](#behavior-77) | Generate and send payment orders to the economy system for supplied treatments. |
+| 78 | [Behavior 78: Bulk corrected payment-order resend](#behavior-78) | Generate and implement corrected payment orders for a list of treatments. |
+| 79 | [Behavior 79: Single-version corrected payment-order resend](#behavior-79) | Generate and implement a corrected payment order for one treatment and version. |
+| 80 | [Behavior 80: Run unvalidated rate change administratively](#behavior-80) | Run simplified rate change for supplied cases without normal validation. |
+| 81 | [Behavior 81: Identify payments over 100 percent](#behavior-81) | Start background analysis for payments exceeding 100 percent. |
+| 82 | [Behavior 82: Find payment-order issue candidates](#behavior-82) | Identify treatments with potentially incorrect payment orders. |
+| 83 | [Behavior 83: Check incorrect cessation dates for selected treatments](#behavior-83) | Validate payment-order cessation dates for supplied treatment ids. |
+| 84 | [Behavior 84: Populate support dates for one treatment](#behavior-84) | Populate support-from/support-to dates for one treatment. |
+| 85 | [Behavior 85: Populate support dates in bulk](#behavior-85) | Populate support end dates for multiple active treatments up to a limit. |
+| 86 | [Behavior 86: Find cases to close](#behavior-86) | Discover cases that should be closed because they have no ongoing entitlement. |
+| 87 | [Behavior 87: Update case ongoing status](#behavior-87) | Bulk update ongoing/closed status on cases according to service rules. |
+| 88 | [Behavior 88: Find migration duplicates with ongoing Infotrygd case](#behavior-88) | Identify open cases with multiple migration treatments and an ongoing Infotrygd case. |
+| 89 | [Behavior 89: Find migration duplicates](#behavior-89) | Identify open cases with multiple migration treatments. |
+| 90 | [Behavior 90: Fill empty condition start dates in preprod](#behavior-90) | Mutate preprod/local test data by filling missing condition start dates from birth dates. |
 
 ## Domain Summary
-This service manages Norwegian child benefit case handling. The central business resources are `fagsak` cases, `behandling` treatments, person and child bases, condition assessments, EEA competence and differential-payment records, payment-result corrections, decision periods, decision and manual letters, complaint integrations, external tasks, journalposts, statistics exports, rate-change jobs, reconciliation jobs, and administrative repair tools.
+The service manages Norwegian child-benefit case handling. The main aggregate roots are `fagsakId` for child-benefit cases, `behandlingId` for treatment workflows, `vedtakId` and `vedtaksperiodeId` for decisions and decision periods, `oppgaveId` for external tasks, and `journalpostId`/`dokumentInfoId` for journal documents.
 
-The domain model is process-heavy: most important state changes happen inside a case-scoped treatment workflow, where generated ids from earlier functions are reused by later case, treatment, decision-period, document, or child-resource functions.
-
-## Available Function Inventory
-
-### Case and repayment case functions
-- `create case` (`POST /api/fagsaker`): creates or finds a child-benefit case for a person/type/institution scope.
-- `return existing case` (`POST /api/fagsaker`): idempotently returns an existing matching case.
-- `retrieve full case` (`GET /api/fagsaker/{fagsakId}`): reads a full case with treatments and repayment treatments.
-- `retrieve minimal case` (`GET /api/fagsaker/minimal/{fagsakId}`): reads compact case information.
-- `find minimal case for person` (`POST /api/fagsaker/hent-fagsak-paa-person`): finds one case by person and type.
-- `find all minimal cases for person` (`POST /api/fagsaker/hent-fagsaker-paa-person`): finds cases by person and type set.
-- `search case participants` (`POST /api/fagsaker/sok`): searches participant records.
-- `search cases where person participates` (`POST /api/fagsaker/sok/fagsaker-hvor-person-er-deltaker`): finds cases where a person is applicant or ordinary-benefit recipient.
-- `search cases with ongoing benefit for person` (`POST /api/fagsaker/sok/fagsaker-hvor-person-mottar-lopende-ytelse`): finds cases with ongoing ordinary or extended benefit.
-- `resolve case participants` (`POST /api/fagsaker/sok/fagsakdeltagere`): resolves applicant and child participants.
-- `check open repayment case` (`GET /api/fagsaker/{fagsakId}/har-apen-tilbakekreving`): checks open repayment treatment state.
-- `create repayment treatment` (`GET /api/fagsaker/{fagsakId}/opprett-tilbakekreving`): starts a manual repayment treatment.
-
-### Treatment lifecycle functions
-- `create treatment` (`POST /api/behandlinger`): creates a treatment and initializes person basis and active decision.
-- `restart active early treatment` (`POST /api/behandlinger`): resets/reuses an early active treatment.
-- `queue treatment from birth event` (`PUT /api/behandlinger`): queues automated birth-event processing.
-- `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`): reads extended treatment state.
-- `change treatment theme` (`PUT /api/behandlinger/{behandlingId}/behandlingstema`): changes treatment category/subcategory.
-- `find invalid after-payment periods` (`GET /api/behandlinger/{behandlingId}/personer-med-ugyldig-etterbetalingsperiode`): detects invalid after-payment periods.
-- `get change date` (`GET /api/behandlinger/{behandlingId}/endringstidspunkt`): reads calculated or overridden change date.
-- `register application` (`POST /api/behandlinger/{behandlingId}/steg/registrer-søknad`): stores application data and advances step flow.
-- `validate conditions` (`POST /api/behandlinger/{behandlingId}/steg/vilkårsvurdering`): validates condition assessment.
-- `validate treatment result` (`GET /api/behandlinger/{behandlingId}/steg/behandlingsresultat/valider`): pre-validates result derivation.
-- `derive treatment result` (`POST /api/behandlinger/{behandlingId}/steg/behandlingsresultat`): derives and stores treatment result and decision periods.
-- `assess repayment` (`POST /api/behandlinger/{behandlingId}/steg/tilbakekreving`): stores repayment assessment.
-- `send to decision maker` (`POST /api/behandlinger/{behandlingId}/steg/send-til-beslutter`): sends treatment to decision maker.
-- `decide treatment` (`POST /api/behandlinger/{behandlingId}/steg/iverksett-vedtak`): records decision and implements approved/underapproved result.
-- `dismiss treatment` (`PUT /api/behandlinger/{behandlingId}/steg/henlegg`): dismisses treatment.
-- `register institution and guardian` (`POST /api/behandlinger/{behandlingId}/steg/registrer-institusjon-og-verge`): stores institution/guardian data.
-- `add child to basis` (`POST /api/behandlinger/{behandlingId}/legg-til-barn`): adds a child to treatment basis and resets later steps.
-
-### Waiting, person, and condition functions
-- `set treatment on wait` (`POST /api/sett-på-vent/{behandlingId}`): puts treatment on wait.
-- `update wait` (`PUT /api/sett-på-vent/{behandlingId}`): changes active wait metadata.
-- `resume treatment` (`PUT /api/sett-på-vent/{behandlingId}/fortsettbehandling`): resumes a waiting treatment.
-- `retrieve full person information` (`GET /api/person`): gets detailed person information.
-- `retrieve simple person information` (`GET /api/person/enkel`): gets simple person information.
-- `retrieve person address` (`GET /api/person/adresse`): gets person address.
-- `refresh register information` (`GET /api/person/oppdater-registeropplysninger/{behandlingId}`): refreshes treatment register basis.
-- `register manual death` (`POST /api/person/registrer-manuell-dodsfall/{behandlingId}`): manually records death information.
-- `add condition` (`POST /api/vilkaarsvurdering/{behandlingId}`): adds a condition result.
-- `update condition` (`PUT /api/vilkaarsvurdering/{behandlingId}/{vilkaarId}`): updates condition result.
-- `delete condition period` (`DELETE /api/vilkaarsvurdering/{behandlingId}/{vilkaarId}`): deletes one condition period.
-- `delete condition` (`DELETE /api/vilkaarsvurdering/{behandlingId}/vilkaar`): deletes a condition by payload.
-- `update other assessment` (`PUT /api/vilkaarsvurdering/{behandlingId}/annenvurdering/{annenVurderingId}`): updates another-assessment record.
-- `list condition explanation texts` (`GET /api/vilkaarsvurdering/vilkaarsbegrunnelser`): lists condition explanation metadata.
-
-### EEA, differential calculation, and payment adjustment functions
-- `upsert competence interval` (`PUT /api/kompetanse/{behandlingId}`): creates/replaces/splits/merges competence periods.
-- `delete competence interval` (`DELETE /api/kompetanse/{behandlingId}/{kompetanseId}`): deletes a competence interval.
-- `update foreign period amount` (`PUT /api/differanseberegning/utenlandskperidebeløp/{behandlingId}`): updates existing foreign amount period.
-- `delete foreign period amount` (`DELETE /api/differanseberegning/utenlandskperidebeløp/{behandlingId}/{utenlandskPeriodebeløpId}`): deletes foreign amount period.
-- `update currency rate from ECB` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`): updates currency rate using ECB.
-- `set historical ISK rate manually` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`): sets historical ISK rate manually.
-- `delete currency rate` (`DELETE /api/differanseberegning/valutakurs/{behandlingId}/{valutakursId}`): deletes currency rate.
-- `create changed payment share` (`POST /api/endretutbetalingandel/{behandlingId}`): creates empty changed-payment share and recalculates.
-- `update changed payment share` (`PUT /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`): updates changed-payment share and recalculates.
-- `delete changed payment share` (`DELETE /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`): removes changed-payment share and recalculates.
-- `reset treatment to treatment result` (`POST /api/endretutbetalingandel/{behandlingId}/tilbakestill`): resets treatment flow to result step.
-- `retrieve EØS timelines` (`GET /api/tidslinjer/{behandlingId}`): reads EEA timelines.
-- `add EØS refund period` (`POST /api/refusjon-eøs/behandlinger/{behandlingId}`): adds EEA refund period.
-- `list EØS refund periods` (`GET /api/refusjon-eøs/behandlinger/{behandlingId}`): lists EEA refund periods.
-- `update EØS refund period` (`PUT /api/refusjon-eøs/behandlinger/{behandlingId}/perioder/{id}`): updates EEA refund period.
-- `delete EØS refund period` (`DELETE /api/refusjon-eøs/behandlinger/{behandlingId}/perioder/{id}`): deletes EEA refund period.
-- `add overpaid currency period` (`POST /api/feilutbetalt-valuta/behandling/{behandlingId}`): adds overpaid-currency period.
-- `list overpaid currency periods` (`GET /api/feilutbetalt-valuta/behandling/{behandlingId}`): lists overpaid-currency periods.
-- `update overpaid currency period` (`PUT /api/feilutbetalt-valuta/behandling/{behandlingId}/periode/{id}`): updates overpaid-currency period.
-- `delete overpaid currency period` (`DELETE /api/feilutbetalt-valuta/behandling/{behandlingId}/periode/{id}`): deletes overpaid-currency period.
-
-### Correction, letters, decision periods, and log functions
-- `create corrected decision metadata` (`POST /api/korrigertvedtak/behandling/{behandlingId}`): creates active corrected-decision metadata.
-- `deactivate corrected decision metadata` (`PATCH /api/korrigertvedtak/behandling/{behandlingId}`): deactivates active corrected-decision metadata.
-- `create corrected after-payment metadata` (`POST /api/korrigertetterbetaling/behandling/{behandlingId}`): creates active corrected after-payment metadata.
-- `list corrected after-payment metadata` (`GET /api/korrigertetterbetaling/behandling/{behandlingId}`): lists corrected after-payment records.
-- `deactivate corrected after-payment metadata` (`PATCH /api/korrigertetterbetaling/behandling/{behandlingId}`): deactivates corrected after-payment metadata.
-- `add small child supplement correction` (`POST /api/småbarnstilleggkorrigering/behandling/{behandlingId}`): adds monthly supplement correction.
-- `remove small child supplement correction` (`DELETE /api/småbarnstilleggkorrigering/behandling/{behandlingId}`): removes monthly supplement correction.
-- `preview repayment warning letter` (`POST /api/tilbakekreving/{behandlingId}/forhandsvis-varselbrev`): previews repayment warning letter PDF.
-- `generate decision letter` (`POST /api/dokument/vedtaksbrev/{vedtakId}`): generates and stores decision letter.
-- `retrieve decision letter` (`GET /api/dokument/vedtaksbrev/{vedtakId}`): retrieves stored decision letter.
-- `preview treatment letter` (`POST /api/dokument/forhaandsvis-brev/{behandlingId}`): previews treatment-scoped manual letter.
-- `send treatment letter` (`POST /api/dokument/send-brev/{behandlingId}`): sends treatment-scoped manual letter.
-- `preview case letter` (`POST /api/dokument/fagsak/{fagsakId}/forhaandsvis-brev`): previews case-scoped manual letter.
-- `send case letter` (`POST /api/dokument/fagsak/{fagsakId}/send-brev`): sends case-scoped manual letter.
-- `add letter recipient` (`POST /api/brevmottaker/{behandlingId}`): adds manual letter recipient.
-- `list letter recipients` (`GET /api/brevmottaker/{behandlingId}`): lists manual letter recipients.
-- `delete letter recipient` (`DELETE /api/brevmottaker/{behandlingId}/{mottakerId}`): deletes manual letter recipient.
-- `update standard explanations` (`PUT /api/vedtaksperioder/standardbegrunnelser/{vedtaksperiodeId}`): updates standard period explanations.
-- `update decision free texts` (`PUT /api/vedtaksperioder/fritekster/{vedtaksperiodeId}`): updates period free-text explanations.
-- `regenerate decision periods` (`PUT /api/vedtaksperioder/endringstidspunkt`): overrides change date and regenerates periods.
-- `generate letter explanation texts` (`GET /api/vedtaksperioder/brevbegrunnelser/{vedtaksperiodeId}`): generates possible letter explanations.
-- `list decision periods` (`GET /api/vedtaksperioder/behandling/{behandlingId}/hent-vedtaksperioder`): lists decision periods.
-- `retrieve treatment log` (`GET /api/logg/{behandlingId}`): reads treatment log.
-
-### External, complaint, task, journal, event, job, statistics, and admin functions
-- `retrieve BISYS extended benefit` (`POST /api/bisys/hent-utvidet-barnetrygd`)
-- `retrieve pension child benefit` (`POST /api/ekstern/pensjon/hent-barnetrygd`)
-- `order pension yearly export` (`GET /api/ekstern/pensjon/bestill-personer-med-barnetrygd/{år}`)
-- `list tax persons` (`GET /api/skatt/personer`)
-- `list tax persons test` (`GET /api/skatt/personer/test`)
-- `retrieve tax periods` (`POST /api/skatt/perioder`)
-- `retrieve tax periods test` (`POST /api/skatt/perioder/test`)
-- `retrieve Infotrygd cases` (`POST /api/infotrygd/hent-infotrygdsaker-for-soker`)
-- `retrieve Infotrygd benefits` (`POST /api/infotrygd/hent-infotrygdstonader-for-soker`)
-- `check ongoing Infotrygd case` (`POST /api/infotrygd/har-lopende-sak`)
-- `retrieve collaborator by organization` (`GET /api/samhandler/orgnr/{orgnr}`)
-- `search collaborator` (`POST /api/samhandler/navn`)
-- `create complaint treatment` (`POST /api/fagsaker/{fagsakId}/opprett-klagebehandling`)
-- `list complaint treatments` (`GET /api/fagsaker/{fagsakId}/hent-klagebehandlinger`)
-- `check complaint revision creation` (`GET /api/klage/fagsaker/{fagsakId}/kan-opprette-revurdering-klage`)
-- `create complaint revision` (`POST /api/klage/fagsaker/{fagsakId}/opprett-revurdering-klage/`)
-- `retrieve complaint decisions` (`GET /api/klage/fagsaker/{fagsakId}/vedtak`)
-- `search tasks`, `assign task`, `reset task assignment`, `retrieve journaling task data`, `complete task`, `complete task and link journalpost`, `retrieve open treatment deadlines`, `clear application task ownership`
-- `retrieve journalpost`, `list user journalposts`, `retrieve journal document resource`, `retrieve journal document PDF`, `journal journalpost`
-- `retrieve feature toggles`, `check person access`, `handle identity event`, `handle transitional benefit event`
-- `trigger rate change for case`, `trigger rate change for cases`, `run synchronous rate change`, `check rate change eligibility`, `trigger rate change from identities`, `queue long-deadline dismissals`, `find cases without latest rate`
-- `run consistency dry run`, `run consistency reconciliation`
-- `retrieve internal statistics`, `retrieve application statistics`, `retrieve treatment statistics`, `retrieve case statistics`, `register statistics sent`, `retrieve benefit statistics decisions`, `queue unsent benefit statistics`, `queue benefit statistics manually`, `resend migration statistics`
-- `finish admin task list`, `restart small child supplement job`, `send payment orders administratively`, `run rate change without validation`, `identify payments over 100 percent`, `find payment-order issues`, `check incorrect cessation dates`, `resend corrected payment orders`, `resend corrected payment order version`, `populate support dates for treatment`, `populate support dates in bulk`, `find cases to close`, `update case ongoing status`, `find migration duplicates with Infotrygd`, `find migration duplicates`, `fill condition dates in preprod`
-- `trigger test autobrev scheduler`, `trigger test rate change`, `trigger test transitional event`, `trigger test birth event`, `trigger internal reconciliation tasks`, `trigger wait-deadline resume task`, `retrieve test simulation`, `retrieve explanation test text`, `retrieve decision-period test text`, `redirect to treatment UI`
+The strongest state machines are the `fagsak` lifecycle, the active `behandling` step flow, wait-state handling, decision/implementation flow, EEA and differential-calculation side records, manual payment adjustments, corrected-decision metadata, letter recipients, external complaint revision, task assignment/completion, journalføring, rate-change tasks, statistics publishing, and administrative repair jobs. Many endpoints are not independent CRUD: they mutate a treatment and deliberately reset later treatment steps, create asynchronous tasks, deactivate previous active metadata, or require ids returned from earlier reads/mutations.
 
 ## Supported Business Behaviors
 
-### Behavior 1: Establish and inspect a child-benefit case
+<a id="behavior-1"></a>
+### Behavior 1: Establish a case and reuse the case identity
+Business goal: Create the domain parent case for later treatments, letters, complaints, repayment checks, and statistics.
 
-Business goal:
-Create or locate a case for a person and inspect it at full, minimal, or person-search level.
+API group boundary: The functions share the `fagsak` aggregate and the uniqueness key `personIdent` + `fagsakType` + optional institution organization number.
 
-Domain context:
-A `fagsak` is the parent resource for treatments, complaints, letters, repayment checks, and statistics.
+Domain context: Case creation is idempotent by business key; the returned `fagsakId` is the parent id for most later workflows.
 
-Starting point:
-No prior service state.
+Starting point: `No prior service state`
+
+State transition summary:
+- State before: no matching case exists for the uniqueness key.
+- Transition trigger: case creation request.
+- Intermediate states: actor/person identity is resolved; case and shadow case/statistics side effects may be created.
+- State after: one case exists and repeated creation returns that case.
+- Invalid or blocked transitions: institution case without organization number fails; missing access to person blocks creation.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with body `personIdent=P1`, `fagsakType=NORMAL` to create the case and capture `RestMinimalFagsak.id=fagsakId`.
-2. To prove idempotent creation, use function `return existing case` (`POST /api/fagsaker`) again with the same `personIdent=P1`, `fagsakType=NORMAL`; it returns the same domain case instead of a duplicate.
-3. For institution cases, use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=INSTITUSJON`, `institusjon.orgNummer=ORG1`, and optional `institusjon.tssEksternId=TSS1`.
+1. Use function `create case` (`POST /api/fagsaker`) with body `personIdent=P1`, `fagsakType=NORMAL` to create a case and capture `RestMinimalFagsak.id=fagsakId`.
+2. Use function `return existing case` (`POST /api/fagsaker`) with body `personIdent=P1`, `fagsakType=NORMAL` to return the existing case for the same key.
 
 Optional verification workflow:
-1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId` from step 1.
-2. Use function `retrieve minimal case` (`GET /api/fagsaker/minimal/{fagsakId}`) with the same `fagsakId`.
-3. Use function `find minimal case for person` (`POST /api/fagsaker/hent-fagsak-paa-person`) with body `personIdent=P1`, `fagsakType=NORMAL`.
-4. Use function `find all minimal cases for person` (`POST /api/fagsaker/hent-fagsaker-paa-person`) with body `personIdent=P1`, `fagsakTyper=[NORMAL]`.
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId` from step 1 to inspect treatments and repayment treatments.
+2. Use function `retrieve minimal case` (`GET /api/fagsaker/minimal/{fagsakId}`) with the same `fagsakId` to inspect compact case data.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if a matching case already exists for the same person identity, case type, and institution organization number.
-- Direct database setup can replace step 1 only if actor, person-ident, case type, status, and institution relationship match.
-- The `fagsakId` reused by read and child workflows must belong to that same case scope.
+- Step 1 can be skipped when an equivalent case already exists for the same person, case type, and institution organization number.
+- Direct database setup can replace creation only when actor, person-ident, case type, institution relation, and case status are consistent.
+- The core idempotent return action cannot be skipped when proving duplicate prevention.
 
 Parameter and value bindings:
-- `personIdent=P1`, `fagsakType`, and `institusjon.orgNummer` define uniqueness.
-- The generated `fagsakId` is reused in all case-scoped functions and later treatment creation.
-- For institution cases, `orgNummer` must be reused to retrieve the same case.
+- `personIdent`, `fagsakType`, and `institusjon.orgNummer` define the uniqueness key.
+- `RestMinimalFagsak.id` becomes `fagsakId` for all later case-scoped and treatment-scoped functions.
+- Caller must have person access and caseworker permission for creation.
 
-Business result:
-A case exists for the person/type/scope. Repeated creation returns the existing case; it does not create duplicates for the same uniqueness key.
+Business result: Exactly one case exists for the business key. Repeating the creation call returns the same domain case rather than creating a duplicate.
 
 Constraints and invariants:
 - Institution cases require `institusjon.orgNummer`.
-- Case creation calls person identity lookup and may create person/actor state.
-- Case creation publishes case statistics and creates a shadow case in implementation.
+- The service validates person access before creation.
+- The implementation returns HTTP 201 even when it returns an existing case.
 
 Failure and exceptional cases:
 - Failing function: `create case`
-  - Failure condition: `fagsakType=INSTITUSJON` without `institusjon.orgNummer`.
+  - Failure condition: `fagsakType=INSTITUSJON` and missing `institusjon.orgNummer`.
   - Why it fails: `FagsakService.hentEllerOpprettFagsak` throws a functional error.
   - Violated prerequisite or constraint: institution-scoped case key is incomplete.
-- Failing function: `find minimal case for person`
-  - Failure condition: no matching case exists for `personIdent` and `fagsakType`.
-  - Why it fails: service returns a failure resource.
-  - Violated prerequisite or constraint: the case was not created or directly seeded.
+- Failing function: `return existing case`
+  - Failure condition: caller lacks access to `personIdent=P1`.
+  - Why it fails: controller validates person access before invoking the service.
+  - Violated prerequisite or constraint: caller context cannot create or retrieve the person-scoped case.
 
-Implementation notes:
-Implementation behavior matches the OpenAPI shape for case creation and reads. Creation returns HTTP 201 even when it returns an existing case.
+Implementation notes: Source and OpenAPI agree on endpoint shape. Implementation creates/updates surrounding identity/statistics/shadow-case state through services, not merely a case row.
 
-### Behavior 2: Search case participation and ongoing benefit relationships
+<a id="behavior-2"></a>
+### Behavior 2: Inspect case views and locate cases by person
+Business goal: Read case state by known `fagsakId` and by person/type lookup.
 
-Business goal:
-Find where a person participates in cases or receives ongoing child benefit.
+API group boundary: These functions are read-only views over the same `fagsak` aggregate and reuse the case id or person/type key created by case establishment.
 
-Domain context:
-Caseworkers need to understand whether a person is applicant, child, participant, or ongoing benefit recipient before starting or routing work.
+Domain context: Caseworkers and integrations need both full and minimal views before routing later treatment or complaint work.
 
-Starting point:
-No prior service state for generic search; complete case-backed workflow when verifying a known case.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: a case exists.
+- Transition trigger: read or lookup request.
+- Intermediate states: no persistent state change.
+- State after: case state is returned.
+- Invalid or blocked transitions: missing case/person/type returns failure or access error.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL` to establish an applicant case and capture `fagsakId`.
-2. Use function `search case participants` (`POST /api/fagsaker/sok`) with body `personIdent=P1` to search participant records.
-3. Use function `resolve case participants` (`POST /api/fagsaker/sok/fagsakdeltagere`) with body `personIdent=P1`, `barnasIdenter=[C1]` to resolve applicant and child participants.
-4. If treatment/payment state exists, use function `search cases where person participates` (`POST /api/fagsaker/sok/fagsaker-hvor-person-er-deltaker`) with `personIdent=P1`.
-5. If ongoing benefit exists, use function `search cases with ongoing benefit for person` (`POST /api/fagsaker/sok/fagsaker-hvor-person-mottar-lopende-ytelse`) with `personIdent=P1`.
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to retrieve the full case.
+2. Use function `retrieve minimal case` (`GET /api/fagsaker/minimal/{fagsakId}`) with `fagsakId=F1` to retrieve compact case data.
+3. Use function `find minimal case for person` (`POST /api/fagsaker/hent-fagsak-paa-person`) with body `personIdent=P1`, `fagsakType=NORMAL` to locate the case by person and type.
+4. Use function `find all minimal cases for person` (`POST /api/fagsaker/hent-fagsaker-paa-person`) with body `personIdent=P1`, `fagsakTyper=[NORMAL]` to locate matching case set.
 
 Optional verification workflow:
-1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with the case id returned by `create case`.
+None.
 
 Existing-state shortcuts:
-- Step 1 can be skipped when relevant case, participant, and ongoing benefit state already exists.
-- Direct database setup may create case, person, child, treatment, and benefit-share rows, but ongoing-benefit searches still require current benefit state of the expected type.
+- If `fagsakId` and the person/type key are already known from trusted upstream state, no setup API call is needed.
+- The `fagsakId` and `personIdent` must still refer to the same case scope when the lookup result is compared with id-based reads.
 
 Parameter and value bindings:
-- `personIdent=P1` is reused as applicant/search identity.
-- `barnasIdenter=[C1]` is consumed by participant resolution and must resolve to child actors.
-- Ongoing-benefit searches bind the returned `fagsakId` to benefit shares for ordinary or extended child benefit.
+- `fagsakId=F1` is reused for full and minimal reads.
+- `personIdent=P1` and `fagsakType=NORMAL` must match the case key.
+- The returned minimal case id can be reused as `fagsakId` for later workflows.
 
-Business result:
-The service returns participant rows and/or case ids showing where the person is involved or has ongoing benefit.
+Business result: The service returns full and compact views for the same case, and person-based lookup confirms the case can be found through the applicant/type key.
 
 Constraints and invariants:
-- Access is checked for person-scoped searches except `search case participants`, which has lighter explicit validation in the controller.
-- Search results depend on persisted treatments and benefit shares; case existence alone may not produce ongoing-benefit matches.
+- Access checks apply to id-based and person-based reads.
+- Person lookup resolves actor identity before querying case state.
+
+Failure and exceptional cases:
+- Failing function: `find minimal case for person`
+  - Failure condition: no case exists for `personIdent=P1` and `fagsakType=NORMAL`.
+  - Why it fails: service returns a failure resource when no matching case is found.
+  - Violated prerequisite or constraint: required case state does not exist.
+- Failing function: `find all minimal cases for person`
+  - Failure condition: `fagsakTyper` excludes the existing case type.
+  - Why it fails: filtered list is empty and returned as failure resource.
+  - Violated prerequisite or constraint: lookup filter does not match the case key.
+
+Implementation notes: These are pure reads. They are often verification steps for broader workflows, but they are also a standalone case-discovery capability.
+
+<a id="behavior-3"></a>
+### Behavior 3: Resolve case participation and ongoing benefit relationships
+Business goal: Determine where a person participates in child-benefit cases and whether the person has ongoing benefit.
+
+API group boundary: The functions share the person participation/search domain and bind `personIdent` or child identities to case/benefit rows.
+
+Domain context: This workflow supports manual routing, duplicate checks, and assessment of applicant/child relationships.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: service has participant and benefit state for the requested identities.
+- Transition trigger: search/resolve request.
+- Intermediate states: no persistent state change.
+- State after: matching participants, case ids, and benefit-bearing cases are returned.
+- Invalid or blocked transitions: unresolvable identifiers or missing access produce failure or empty result.
+
+Required execution workflow:
+1. Use function `search case participants` (`POST /api/fagsaker/sok`) with body `personIdent=P1` to search participant records.
+2. Use function `resolve case participants` (`POST /api/fagsaker/sok/fagsakdeltagere`) with body `personIdent=P1`, `barnasIdenter=[C1]` to resolve applicant and child participants.
+3. Use function `search cases where person participates` (`POST /api/fagsaker/sok/fagsaker-hvor-person-er-deltaker`) with body `personIdent=P1` to return cases where the person participates.
+4. Use function `search cases with ongoing benefit for person` (`POST /api/fagsaker/sok/fagsaker-hvor-person-mottar-lopende-ytelse`) with body `personIdent=P1` to return cases with ongoing ordinary or extended benefit.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with a `fagsakId` returned by steps 3 or 4 to inspect the case.
+
+Existing-state shortcuts:
+- No setup endpoint can guarantee ongoing benefit state by itself; benefit rows usually come from completed treatment/payment state or direct database setup.
+- Existing `personIdent` and `barnasIdenter` can be supplied directly when the identity mapping exists upstream.
+
+Parameter and value bindings:
+- `personIdent=P1` is reused across all searches.
+- `barnasIdenter=[C1]` are resolved to actor ids and bound to participant results.
+- Returned `fagsakId` values can be reused for case/treatment workflows.
+
+Business result: The caller receives participant rows and case ids showing applicant/child participation and current benefit relationships.
+
+Constraints and invariants:
+- Ongoing-benefit search depends on persisted benefit shares, not just case existence.
+- Access checks apply to person-based searches.
 
 Failure and exceptional cases:
 - Failing function: `resolve case participants`
-  - Failure condition: child identity cannot be resolved or participant lookup fails.
-  - Why it fails: controller catches lookup errors and returns a failure resource, using the exception status for functional errors.
-  - Violated prerequisite or constraint: applicant/child identities must be resolvable.
-- Failing function: `create case`
-  - Failure condition: invalid institution case input when used as setup.
-  - Why it fails: missing institution organization number.
-  - Violated prerequisite or constraint: case scope must be complete.
+  - Failure condition: applicant or child identifier cannot be resolved.
+  - Why it fails: controller catches actor/participant lookup failures and returns a failure resource.
+  - Violated prerequisite or constraint: identifiers must resolve to actors.
+- Failing function: `search cases where person participates`
+  - Failure condition: caller lacks access to `personIdent=P1`.
+  - Why it fails: controller validates person access before actor lookup.
+  - Violated prerequisite or constraint: caller context must be authorized for the person.
 
-Implementation notes:
-Participant search and ongoing-benefit search are not simple case lookup; they are relationship queries over person, case, and benefit state.
+Implementation notes: The participant search endpoint `POST /api/fagsaker/sok` does not explicitly perform the same visible access validation as the two ongoing/participant case-search endpoints in the controller.
 
-### Behavior 3: Create and manage an ordinary treatment workflow
+<a id="behavior-4"></a>
+### Behavior 4: Create and check manual repayment treatment on a case
+Business goal: Create a repayment treatment for a case and inspect whether open repayment state exists.
 
-Business goal:
-Create a treatment under a case, register application data, validate conditions, derive result, assess repayment, send to decision maker, and decide/implement.
+API group boundary: Both functions are scoped by `fagsakId` and interact with repayment treatment state for the case.
 
-Domain context:
-A treatment is the core case-processing workflow that moves from application registration to decision.
+Domain context: Repayment processing is a side lifecycle under a child-benefit case.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: a case exists and may have no open repayment treatment.
+- Transition trigger: manual repayment-treatment creation.
+- Intermediate states: repayment integration/service creates a repayment treatment reference.
+- State after: the case can report open repayment state.
+- Invalid or blocked transitions: missing case or insufficient role blocks creation.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with body `fagsakId={fagsakId}`, `søkersIdent=P1`, `behandlingType=FØRSTEGANGSBEHANDLING`, `behandlingÅrsak=SØKNAD`, `søknadMottattDato=2026-05-24`; capture `behandlingId` and active `vedtak.id=vedtakId`.
-3. Use function `register application` (`POST /api/behandlinger/{behandlingId}/steg/registrer-søknad`) with `{behandlingId}` and a valid `RestRegistrerSøknad` body.
-4. Use function `validate conditions` (`POST /api/behandlinger/{behandlingId}/steg/vilkårsvurdering`) with the same `behandlingId`.
-5. Use function `validate treatment result` (`GET /api/behandlinger/{behandlingId}/steg/behandlingsresultat/valider`) with the same `behandlingId`.
-6. Use function `derive treatment result` (`POST /api/behandlinger/{behandlingId}/steg/behandlingsresultat`) with the same `behandlingId`.
-7. Use function `assess repayment` (`POST /api/behandlinger/{behandlingId}/steg/tilbakekreving`) with body `RestTilbakekreving` or `null`, depending on repayment need.
-8. Use function `send to decision maker` (`POST /api/behandlinger/{behandlingId}/steg/send-til-beslutter`) with query `behandlendeEnhet=ENHET1`.
-9. Use function `decide treatment` (`POST /api/behandlinger/{behandlingId}/steg/iverksett-vedtak`) with body `beslutning=GODKJENT`, optional `begrunnelse`, and `kontrollerteSider=[...]`.
+1. Use function `create repayment treatment` (`GET /api/fagsaker/{fagsakId}/opprett-tilbakekreving`) with `fagsakId=F1` to create a repayment treatment.
 
 Optional verification workflow:
-1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect current step/status.
-2. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) to verify the treatment is attached to the case.
-3. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) to inspect workflow log entries.
+1. Use function `check open repayment case` (`GET /api/fagsaker/{fagsakId}/har-apen-tilbakekreving`) with `fagsakId=F1` to inspect open repayment state.
+2. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to inspect repayment treatments on the full case view.
 
 Existing-state shortcuts:
-- Step 1 can be skipped if the case exists for `P1`.
-- Step 2 can be skipped only if an equivalent active treatment already exists under the same `fagsakId`; otherwise later step functions lack the `behandlingId`.
-- Individual step functions can be skipped only if equivalent persisted step state already exists, but step ordering and current status must still match.
-- Direct database setup must include treatment, person basis, condition assessment, treatment result, decision, and step-state rows consistently.
+- Case creation can be skipped when `fagsakId=F1` already exists.
+- Direct database or external repayment setup can replace creation for verification, but the core manual creation action cannot be skipped when testing this behavior.
 
 Parameter and value bindings:
-- `fagsakId` from `create case` is consumed by `create treatment`.
-- `søkersIdent=P1` must match the case actor.
-- `behandlingId` from `create treatment` scopes all step functions.
-- `vedtakId` from treatment response later scopes decision-letter behavior.
-- `behandlendeEnhet` is set when sending to decision maker and influences decision workflow routing.
+- The same `fagsakId` is reused for creation and verification.
+- Caller must have caseworker permission for repayment creation.
 
-Business result:
-A treatment is created, evaluated, sent to a decision maker, and decided. On approval, implementation advances toward external/payment effects according to service step logic.
+Business result: A repayment treatment is created or triggered for the case, and open repayment state can be observed through the case-scoped check.
 
 Constraints and invariants:
-- `søknadMottattDato` is required for first-time and application-based revision treatments.
+- The function uses `GET` for a mutating creation action.
+- The check endpoint has no identified business failure beyond missing case/access conditions.
+
+Failure and exceptional cases:
+- Failing function: `create repayment treatment`
+  - Failure condition: `fagsakId=F1` does not identify an existing case.
+  - Why it fails: repayment service cannot create repayment treatment without the parent case.
+  - Violated prerequisite or constraint: parent `fagsakId` must exist.
+- Failing function: `create repayment treatment`
+  - Failure condition: caller lacks caseworker permission.
+  - Why it fails: controller verifies caseworker role before invoking service.
+  - Violated prerequisite or constraint: caller role must allow repayment creation.
+
+Implementation notes: The mutating endpoint is exposed as `GET`, which is an OpenAPI/API semantics mismatch even though source implements the mutation.
+
+<a id="behavior-5"></a>
+### Behavior 5: Create a treatment and restart an early active treatment
+Business goal: Start a treatment on a case, then reuse and reset it when another creation request arrives before decision stage.
+
+API group boundary: Both functions share the same `POST /api/behandlinger` endpoint and active-treatment state under one `fagsakId`.
+
+Domain context: A case may not have multiple active unfinished treatments. Early active treatments are reset rather than duplicated.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: a case exists without an active blocking treatment.
+- Transition trigger: treatment creation request.
+- Intermediate states: person basis and active decision are initialized; task/statistics side effects may be created.
+- State after: one active treatment exists; a repeated request before decision stage resets/reuses it.
+- Invalid or blocked transitions: active treatment at or after decision stage blocks new creation.
+
+Required execution workflow:
+1. Use function `create treatment` (`POST /api/behandlinger`) with body `fagsakId=F1`, `søkersIdent=P1`, `behandlingType=FØRSTEGANGSBEHANDLING`, `behandlingÅrsak=SØKNAD`, `søknadMottattDato=D1` to create a treatment and capture `behandlingId=B1`.
+2. Use function `restart active early treatment` (`POST /api/behandlinger`) with the same body values and `fagsakId=F1` while treatment `B1` is before `BESLUTTE_VEDTAK` to reset and reuse the active treatment.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect current step, person basis, and active decision.
+
+Existing-state shortcuts:
+- The case setup can be skipped when a valid `fagsakId` exists for `søkersIdent=P1`.
+- Direct database setup can seed an early active treatment, but the restart action must be performed through the core function to prove reset behavior.
+
+Parameter and value bindings:
+- `fagsakId=F1` from the case is reused in both requests.
+- `søkersIdent=P1` must be the applicant for the case.
+- `RestUtvidetBehandling.behandlingId` is reused as `behandlingId` for verification and later workflows.
+
+Business result: One active treatment exists under the case. The second creation request does not create a second active treatment; it resets the existing early treatment to initial step state.
+
+Constraints and invariants:
+- First-time and application-driven revision treatments require `søknadMottattDato`.
 - Manual migration requires `nyMigreringsdato`.
-- Step execution is ordered; earlier steps cannot generally be rerun after later steps.
-- Treatment must not be on wait or closed when executing active workflow steps.
-- Decision requires decision-maker role except special manual migration logic.
+- Active treatment at or after `BESLUTTE_VEDTAK` blocks creation/restart.
 
 Failure and exceptional cases:
 - Failing function: `create treatment`
-  - Failure condition: `fagsakId` does not exist.
-  - Why it fails: treatment service throws when case cannot be found.
-  - Violated prerequisite or constraint: treatment must be scoped to an existing case.
+  - Failure condition: `fagsakId=F404` does not exist.
+  - Why it fails: `BehandlingService.opprettBehandling` throws when the case cannot be found.
+  - Violated prerequisite or constraint: treatment must belong to an existing case.
 - Failing function: `create treatment`
-  - Failure condition: missing `søkersIdent`, missing `søknadMottattDato` for application treatment, or missing `nyMigreringsdato` for manual migration.
-  - Why it fails: `NyBehandling` validates required fields in its initializer.
-  - Violated prerequisite or constraint: treatment creation fields are incomplete.
-- Failing function: `register application`
-  - Failure condition: treatment has advanced beyond application registration.
-  - Why it fails: `StegService` rejects executing a caseworker step earlier than the current step.
-  - Violated prerequisite or constraint: step ordering.
-- Failing function: `validate conditions`
-  - Failure condition: treatment is on wait.
-  - Why it fails: `StegService.validerBehandlingIkkeSattPåVent` rejects step execution.
-  - Violated prerequisite or constraint: active treatment must not have status `SATT_PÅ_VENT`.
-
-Implementation notes:
-The implementation prioritizes step-state validation over raw endpoint availability. OpenAPI exposes endpoints, but successful use depends on treatment step state, editability, roles, and wait status.
-
-### Behavior 4: Restart or dismiss a treatment instead of completing it
-
-Business goal:
-Reuse an early active treatment or dismiss an active treatment that should not continue.
-
-Domain context:
-Case handling sometimes starts incorrectly, duplicates early work, or must be stopped before external sending.
-
-Starting point:
-No prior service state.
-
-Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with `fagsakId={fagsakId}`, `søkersIdent=P1`, valid treatment type/reason/date; capture `behandlingId`.
-3. To restart early work, use function `restart active early treatment` (`POST /api/behandlinger`) again with the same `fagsakId` and compatible body while the active treatment is before `BESLUTTE_VEDTAK`.
-4. To stop work, use function `dismiss treatment` (`PUT /api/behandlinger/{behandlingId}/steg/henlegg`) with body `årsak=FEILAKTIG_OPPRETTET` or another allowed value and `begrunnelse=...`.
-
-Optional verification workflow:
-1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect status/result.
-2. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) to inspect dismissal or reset logging.
-
-Existing-state shortcuts:
-- Existing case and early active treatment can replace steps 1 and 2.
-- Direct database setup must preserve active status and step before decision for restart.
-- Dismissal can use an existing treatment, but the treatment must not already have been sent to external services.
-
-Parameter and value bindings:
-- The same `fagsakId` is reused between the first and second `POST /api/behandlinger`.
-- `behandlingId` from created treatment is reused for dismissal.
-- Dismissal `årsak` maps to a treatment result.
-
-Business result:
-The treatment is either reset to early processing or dismissed with a dismissal result and possible dismissal letter side effect.
-
-Constraints and invariants:
-- Restart only applies to active treatments before decision step.
-- Dismissal is blocked after external sending.
-- Technical-maintenance dismissal and technical-treatment dismissal are feature-toggle constrained.
-
-Failure and exceptional cases:
+  - Failure condition: required `søkersIdent`, `søknadMottattDato`, or `nyMigreringsdato` is missing for the chosen type/reason.
+  - Why it fails: `NyBehandling` validates these fields.
+  - Violated prerequisite or constraint: request body must satisfy treatment-type requirements.
 - Failing function: `restart active early treatment`
   - Failure condition: active treatment is at or after `BESLUTTE_VEDTAK`.
-  - Why it fails: implementation throws a functional error for active unfinished decision-stage treatment.
-  - Violated prerequisite or constraint: restart is limited to early treatment.
-- Failing function: `dismiss treatment`
-  - Failure condition: treatment already sent to external services or disallowed dismissal reason.
-  - Why it fails: controller validates external-send state and dismissal type before invoking step.
-  - Violated prerequisite or constraint: dismissal must happen before external sending and with allowed reason.
-- Failing function: `create treatment`
-  - Failure condition: missing required creation fields.
-  - Why it fails: request object validation.
-  - Violated prerequisite or constraint: treatment cannot be initialized.
+  - Why it fails: implementation throws functional error for active unfinished decision-stage treatment.
+  - Violated prerequisite or constraint: only pre-decision active treatments can be reset through creation.
 
-Implementation notes:
-The same endpoint as treatment creation implements both new treatment creation and early active treatment restart; business effect depends on existing active treatment state.
+Implementation notes: Treatment creation initializes an active decision and may create a task. For first-time treatments, the service sends start-treatment information to Infotrygd feed.
 
-### Behavior 5: Handle birth-event-driven automated treatment creation
+<a id="behavior-6"></a>
+### Behavior 6: Queue automated birth-event treatment processing
+Business goal: Accept a birth event and queue asynchronous treatment processing.
 
-Business goal:
-Queue automated processing of a birth event.
+API group boundary: The function is an event-ingestion lifecycle resource keyed by mother and child identities, creating a task rather than an immediate treatment.
 
-Domain context:
-Birth events can trigger child-benefit processing asynchronously rather than through immediate manual treatment creation.
+Domain context: Birth events can automatically create or update child-benefit treatments without a synchronous caseworker flow.
 
-Starting point:
-No prior service state.
+Starting point: `No prior service state`
+
+State transition summary:
+- State before: event has not been queued.
+- Transition trigger: birth event request.
+- Intermediate states: a processing task is created.
+- State after: asynchronous task exists; treatment creation may occur later.
+- Invalid or blocked transitions: invalid payload or task repository failure returns failure resource.
 
 Required execution workflow:
-1. Use function `queue treatment from birth event` (`PUT /api/behandlinger`) with body `morsIdent=M1`, `barnasIdenter=[C1,C2]`.
+1. Use function `queue treatment from birth event` (`PUT /api/behandlinger`) with body `morsIdent=P1`, `barnasIdenter=[C1]` to create the birth-event processing task.
 
 Optional verification workflow:
-1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with a task-search body matching birth-event task criteria, if the external task system exposes it.
+None.
 
 Existing-state shortcuts:
-- None for the core behavior; queuing the task is the behavior.
-- Direct database setup could insert an equivalent task, but that bypasses the API behavior and task-creation validation.
+- No case setup is required because later task execution may create or locate the case.
+- Direct task-table setup can represent an already queued event, but the core queue action cannot be skipped when validating API behavior.
 
 Parameter and value bindings:
-- `morsIdent` and `barnasIdenter` become the payload of the background task.
-- There is no immediate `behandlingId`; later treatment creation is asynchronous.
+- `morsIdent` and `barnasIdenter` are serialized into the task payload.
+- Caller must have system-level permission.
 
-Business result:
-A task is persisted to process the birth event.
+Business result: A task for birth-event handling exists; no immediate treatment id is returned.
 
 Constraints and invariants:
-- Caller must have system-level access.
-- The endpoint creates a task, not an immediate treatment.
+- The endpoint creates a task only.
+- The task executor owns later case/treatment creation and retry behavior.
 
 Failure and exceptional cases:
 - Failing function: `queue treatment from birth event`
-  - Failure condition: invalid event payload or task repository failure.
-  - Why it fails: controller catches task creation errors and returns illegal-state resource.
-  - Violated prerequisite or constraint: task payload/storage must be valid.
-- Failing function: `search tasks`
-  - Failure condition: upstream task search fails during optional verification.
-  - Why it fails: task controller returns illegal-state response on retrieval failure.
-  - Violated prerequisite or constraint: external task system must be reachable.
+  - Failure condition: task creation fails.
+  - Why it fails: controller catches errors and returns an illegal-state resource.
+  - Violated prerequisite or constraint: valid event payload and available task persistence are required.
 
-Implementation notes:
-This is event-driven. The API does not provide a synchronous “birth event to completed treatment” workflow.
+Implementation notes: Lack of returned task id makes later API-level correlation weak.
 
-### Behavior 6: Put treatment on wait and resume it
+<a id="behavior-7"></a>
+### Behavior 7: Change treatment theme
+Business goal: Change treatment category and subcategory while treatment is editable.
 
-Business goal:
-Pause an active treatment until a deadline, update the wait reason/deadline, then resume processing.
+API group boundary: The function is a treatment-scoped mutation using `behandlingId`.
 
-Domain context:
-Caseworkers need to suspend treatments while waiting for information or deadlines.
+Domain context: Theme controls treatment classification and downstream handling.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists and is editable.
+- Transition trigger: theme update request.
+- Intermediate states: category/subcategory are persisted as manually updated values.
+- State after: treatment has new theme.
+- Invalid or blocked transitions: closed, waiting, or non-editable treatment blocks update through editability/access checks.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body and `fagsakId={fagsakId}`; capture `behandlingId`.
-3. Use function `set treatment on wait` (`POST /api/sett-på-vent/{behandlingId}`) with body `frist=2026-06-24`, `årsak=AVVENTER_DOKUMENTASJON` or another valid reason.
-4. To change waiting metadata, use function `update wait` (`PUT /api/sett-på-vent/{behandlingId}`) with changed `frist` or changed `årsak`.
-5. Use function `resume treatment` (`PUT /api/sett-på-vent/{behandlingId}/fortsettbehandling`) with the same `behandlingId`.
+1. Use function `change treatment theme` (`PUT /api/behandlinger/{behandlingId}/behandlingstema`) with `behandlingId=B1` and body `behandlingKategori=NASJONAL`, `behandlingUnderkategori=ORDINÆR` to update theme.
 
 Optional verification workflow:
-1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to confirm status changes.
-2. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) to inspect wait/resume events.
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect the updated theme.
 
 Existing-state shortcuts:
-- Steps 1 and 2 can be skipped when an editable active treatment already exists.
-- Step 3 can be skipped only for the update/resume variants if an active wait record already exists.
-- Direct database setup must set both active wait record and treatment status `SATT_PÅ_VENT`.
+- Treatment creation can be skipped when an editable treatment already exists.
+- Direct database state must still represent the same active treatment and caller-access scope.
 
 Parameter and value bindings:
-- `behandlingId` from treatment creation scopes all wait functions.
-- `frist` must be current/future; updated `frist`/`årsak` must differ from the active wait values.
-- Resume consumes the same treatment-scoped active wait state.
+- `behandlingId=B1` scopes the update and verification.
+- Body values become persisted treatment category/subcategory.
 
-Business result:
-The treatment is paused with active wait metadata, can have that metadata changed, and can be resumed to investigation state.
+Business result: Treatment theme values are changed on the existing treatment.
 
 Constraints and invariants:
-- Treatment must be active and status `UTREDES` to be put on wait.
-- A treatment cannot have duplicate active wait records.
-- Past deadlines are rejected.
-- Step execution is blocked while treatment is on wait.
+- Caller must have update access and caseworker role.
+- Treatment must pass `validerKanRedigereBehandling`.
 
 Failure and exceptional cases:
-- Failing function: `set treatment on wait`
-  - Failure condition: treatment is already on wait.
-  - Why it fails: validation rejects existing active wait record.
-  - Violated prerequisite or constraint: only one active wait state.
-- Failing function: `set treatment on wait`
-  - Failure condition: `frist` is before current date.
-  - Why it fails: deadline validation rejects past dates.
-  - Violated prerequisite or constraint: wait deadline must be current/future.
-- Failing function: `update wait`
-  - Failure condition: treatment is not currently on wait.
-  - Why it fails: service requires active wait state.
-  - Violated prerequisite or constraint: update requires prior `set treatment on wait`.
-- Failing function: `resume treatment`
-  - Failure condition: no active wait state.
-  - Why it fails: service requires active wait record and `SATT_PÅ_VENT`.
-  - Violated prerequisite or constraint: resume requires waiting treatment.
+- Failing function: `change treatment theme`
+  - Failure condition: treatment is not editable.
+  - Why it fails: controller validates editability before service update.
+  - Violated prerequisite or constraint: only editable active treatments can be changed.
 
-Implementation notes:
-Waiting also extends open task deadlines. Wait state is not just metadata; it blocks later step execution.
+Implementation notes: The update is direct and does not itself recalculate treatment result.
 
-### Behavior 7: Maintain person basis, child basis, death, and condition assessments
+<a id="behavior-8"></a>
+### Behavior 8: Execute the caseworker treatment step flow through decision
+Business goal: Move a treatment from application registration through result, repayment assessment, decision-maker handoff, and decision implementation.
 
-Business goal:
-Refresh person data, add a child, register manual death, and manage condition assessments that determine entitlement.
+API group boundary: All steps share the same `behandlingId` and the treatment step state machine.
 
-Domain context:
-The entitlement calculation depends on person basis, child relationships, death data, and condition periods.
+Domain context: This is the core manual caseworker lifecycle for a child-benefit treatment.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists at an early editable step.
+- Transition trigger: sequential step execution.
+- Intermediate states: application basis, condition validation, derived result, decision periods, repayment assessment, and decision-stage state are persisted.
+- State after: decision is recorded and implementation steps are advanced or queued.
+- Invalid or blocked transitions: step order violations, waiting status, closed treatment, decision-stage lock, and missing role block execution.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with `fagsakId={fagsakId}`, `søkersIdent=P1`, and valid type/reason/date; capture `behandlingId` and condition ids from the treatment view.
-3. Use function `refresh register information` (`GET /api/person/oppdater-registeropplysninger/{behandlingId}`) with the same `behandlingId` to refresh person basis.
-4. Use function `add child to basis` (`POST /api/behandlinger/{behandlingId}/legg-til-barn`) with body `barnIdent=C1`.
-5. Use function `register manual death` (`POST /api/person/registrer-manuell-dodsfall/{behandlingId}`) with body `personIdent=C1`, `dødsfallDato=2026-05-01`, `begrunnelse=...`.
-6. Use function `add condition` (`POST /api/vilkaarsvurdering/{behandlingId}`) with body `RestNyttVilkår`.
-7. Use function `update condition` (`PUT /api/vilkaarsvurdering/{behandlingId}/{vilkaarId}`) with `vilkaarId` from treatment condition results and body `RestPersonResultat`.
-8. Use function `update other assessment` (`PUT /api/vilkaarsvurdering/{behandlingId}/annenvurdering/{annenVurderingId}`) with an existing `annenVurderingId` from the treatment response and body `RestAnnenVurdering`.
+1. Use function `register application` (`POST /api/behandlinger/{behandlingId}/steg/registrer-søknad`) with `behandlingId=B1` and body `RestRegistrerSøknad` to store application data.
+2. Use function `validate conditions` (`POST /api/behandlinger/{behandlingId}/steg/vilkårsvurdering`) with `behandlingId=B1` to validate condition assessment.
+3. Use function `derive treatment result` (`POST /api/behandlinger/{behandlingId}/steg/behandlingsresultat`) with `behandlingId=B1` to derive result and decision periods.
+4. Use function `assess repayment` (`POST /api/behandlinger/{behandlingId}/steg/tilbakekreving`) with `behandlingId=B1` and body `RestTilbakekreving` to store repayment assessment.
+5. Use function `send to decision maker` (`POST /api/behandlinger/{behandlingId}/steg/send-til-beslutter`) with `behandlingId=B1`, query `behandlendeEnhet=E1` to send the treatment to decision maker.
+6. Use function `decide treatment` (`POST /api/behandlinger/{behandlingId}/steg/iverksett-vedtak`) with `behandlingId=B1` and body `beslutning=GODKJENT`, `begrunnelse=null`, `kontrollerteSider=[]` to record the decision.
 
 Optional verification workflow:
-1. Use function `retrieve full person information` (`GET /api/person`) with relevant person query/header values required by the endpoint.
-2. Use function `retrieve simple person information` (`GET /api/person/enkel`) for a compact person view.
-3. Use function `retrieve person address` (`GET /api/person/adresse`) for address.
-4. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect person basis and condition results.
-5. Use function `list condition explanation texts` (`GET /api/vilkaarsvurdering/vilkaarsbegrunnelser`) to inspect available explanation metadata.
+1. Use function `validate treatment result` (`GET /api/behandlinger/{behandlingId}/steg/behandlingsresultat/valider`) with `behandlingId=B1` before step 3 to inspect readiness without advancing.
+2. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` after step 6 to inspect step/status.
+3. Use function `list decision periods` (`GET /api/vedtaksperioder/behandling/{behandlingId}/hent-vedtaksperioder`) with `behandlingId=B1` to inspect generated periods.
 
 Existing-state shortcuts:
-- Existing editable treatment can replace case/treatment setup.
-- Child/person/condition records can be directly seeded, but `vilkaarId` and `annenVurderingId` must belong to the same `behandlingId`.
-- Person lookup functions can be used without service-created case state if the caller supplies valid person input and has access.
+- Prior setup can be skipped if an editable treatment already exists with valid application and condition basis at the correct step.
+- Direct database setup must preserve active treatment, active decision, step-state rows, caller access, and no wait state.
+- The core step execution cannot be skipped when validating state transitions.
 
 Parameter and value bindings:
-- `fagsakId` binds treatment to case.
-- `behandlingId` scopes person-basis refresh, child addition, manual death, and condition changes.
-- `barnIdent=C1` becomes child actor/person state consumed by condition and benefit logic.
-- `vilkaarId` and `annenVurderingId` must be generated by or attached to the same treatment.
+- `behandlingId=B1` is reused across all steps.
+- `behandlendeEnhet=E1` is bound to send-to-decision-maker handling.
+- `RestBeslutningPåVedtak.beslutning` drives approval or underapproval.
+- Caller role changes matter: caseworker role for earlier steps, decision-maker role for decision except special manual-migration logic.
 
-Business result:
-The treatment basis is enriched or corrected, condition state changes are persisted, and later treatment steps are reset where condition changes affect downstream results.
+Business result: Treatment has completed the caseworker/decision-maker API-visible flow, with result and decision state persisted and implementation continuation triggered by internal step logic.
+
+Constraints and invariants:
+- `StegService` rejects execution while status is `SATT_PÅ_VENT` or `SATT_PÅ_MASKINELL_VENT`.
+- A treatment at `BESLUTTE_VEDTAK` is locked for other changes except allowed decision/technical maintenance dismissal.
+- Step order is enforced; later caseworker steps cannot be executed before the current step reaches them.
+- Automatic decision can occur when `send to decision maker` determines the treatment should be automatically decided.
+
+Failure and exceptional cases:
+- Failing function: `register application`
+  - Failure condition: treatment has advanced beyond application registration and request differs from existing application basis.
+  - Why it fails: `StegService` rejects executing an earlier caseworker step than the current step.
+  - Violated prerequisite or constraint: required step ordering.
+- Failing function: `validate conditions`
+  - Failure condition: treatment status is `SATT_PÅ_VENT`.
+  - Why it fails: `StegService.validerBehandlingIkkeSattPåVent` rejects step execution.
+  - Violated prerequisite or constraint: waiting treatment cannot advance steps.
+- Failing function: `decide treatment`
+  - Failure condition: caller lacks decision-maker role for ordinary treatment.
+  - Why it fails: controller verifies `BehandlerRolle.BESLUTTER`.
+  - Violated prerequisite or constraint: decision action requires decision-maker authority.
+
+Implementation notes: Decision implementation may continue through internal tasks and later non-public steps; this API-visible flow is not a guaranteed synchronous final closure of the treatment.
+
+<a id="behavior-9"></a>
+### Behavior 9: Dismiss an active treatment
+Business goal: Close a treatment by dismissal rather than full decision implementation.
+
+API group boundary: The function is a treatment-scoped terminal transition using `behandlingId`.
+
+Domain context: Incorrectly created or withdrawn treatments must be closed with an explicit reason.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists and has not been sent to external services.
+- Transition trigger: dismissal request.
+- Intermediate states: dismissal reason/result is stored and finish-treatment step is executed.
+- State after: treatment is dismissed/finished.
+- Invalid or blocked transitions: external sending, disallowed dismissal type, missing feature toggle for technical reasons, or non-editable state blocks dismissal.
+
+Required execution workflow:
+1. Use function `dismiss treatment` (`PUT /api/behandlinger/{behandlingId}/steg/henlegg`) with `behandlingId=B1` and body `årsak=FEILAKTIG_OPPRETTET`, `begrunnelse=R1` to dismiss the treatment.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect status/result.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when a dismissible active treatment already exists.
+- Direct database setup must keep the treatment unsent to external services and in a dismissal-allowed state.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes the dismissal.
+- Body `årsak` maps to dismissal result; `begrunnelse` is stored/logged through step handling.
+
+Business result: The treatment is no longer an ordinary active treatment and carries a dismissal result/reason.
+
+Constraints and invariants:
+- Dismissal after external sending is rejected.
+- Technical-maintenance dismissal requires the corresponding feature toggle.
+- Technical treatment dismissal requires technical-change toggle.
+
+Failure and exceptional cases:
+- Failing function: `dismiss treatment`
+  - Failure condition: treatment has been sent to external services.
+  - Why it fails: controller calls `validerBehandlingIkkeSendtTilEksterneTjenester`.
+  - Violated prerequisite or constraint: externally sent treatments cannot be dismissed through this endpoint.
+- Failing function: `dismiss treatment`
+  - Failure condition: `årsak=TEKNISK_VEDLIKEHOLD` while feature toggle is disabled.
+  - Why it fails: dismissal-type validation rejects the reason.
+  - Violated prerequisite or constraint: feature-gated dismissal reason is not enabled.
+
+Implementation notes: Source finishes the treatment after handling dismissal; any dismissal letter side effect is handled by step services.
+
+<a id="behavior-10"></a>
+### Behavior 10: Register institution and guardian information on treatment
+Business goal: Store institution and/or guardian information required by the treatment flow.
+
+API group boundary: The function mutates treatment-scoped institution/guardian step state.
+
+Domain context: Institution and guardian information affects representation, routing, and letter recipients.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists and institution/guardian step data is missing or outdated.
+- Transition trigger: registration request.
+- Intermediate states: request is converted to institution and guardian domain objects.
+- State after: valid institution/guardian information is stored and step advances.
+- Invalid or blocked transitions: request converting to neither institution nor guardian returns failure resource.
+
+Required execution workflow:
+1. Use function `register institution and guardian` (`POST /api/behandlinger/{behandlingId}/steg/registrer-institusjon-og-verge`) with `behandlingId=B1` and body containing valid institution or guardian fields to persist the step data.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect institution/guardian data.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when `behandlingId=B1` already exists at a compatible step.
+- Direct database setup must preserve treatment ownership and editable/step state.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes the institution/guardian records.
+- Body values are converted against treatment context, so guardian relationship and institution fields must be valid for the treatment.
+
+Business result: The treatment has persisted institution and/or guardian step data.
+
+Constraints and invariants:
+- The controller accepts the request only when conversion yields at least one non-null institution or guardian object.
+- The function returns a failure resource rather than throwing for invalid converted data.
+
+Failure and exceptional cases:
+- Failing function: `register institution and guardian`
+  - Failure condition: request contains neither valid institution data nor valid guardian data.
+  - Why it fails: controller returns `Ressurs.failure("Ugydig verge info")`.
+  - Violated prerequisite or constraint: registration must provide meaningful institution or guardian information.
+
+Implementation notes: The failure response can be HTTP 200 with failure resource; clients must inspect the resource payload.
+
+<a id="behavior-11"></a>
+### Behavior 11: Add a child to treatment basis and reset later treatment steps
+Business goal: Add a child into the treatment person basis after treatment creation.
+
+API group boundary: The function mutates person basis for one `behandlingId` and resets downstream treatment state.
+
+Domain context: Missing child basis invalidates later condition/result/payment calculations.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists without the child in active person basis.
+- Transition trigger: add-child request.
+- Intermediate states: child identity is resolved and person basis is updated.
+- State after: child is part of treatment basis and later steps are reset to condition assessment.
+- Invalid or blocked transitions: non-editable treatment or unresolvable child blocks update.
+
+Required execution workflow:
+1. Use function `add child to basis` (`POST /api/behandlinger/{behandlingId}/legg-til-barn`) with `behandlingId=B1` and body `barnIdent=C1` to add the child.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect person basis and current step.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when an editable treatment exists and child `C1` is not already represented in the same basis.
+- Direct database setup must preserve active persongrunnlag and treatment step consistency.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes the basis.
+- `barnIdent=C1` is resolved to actor/person state and added under the same treatment.
+
+Business result: The child exists in the treatment basis, and treatment state is reset so later assessments can be redone with the new child.
 
 Constraints and invariants:
 - Treatment must be editable.
-- Manual death requires person to belong to treatment context.
-- Condition mutation resets later steps.
-- Deleting condition periods or whole conditions requires existing condition state.
+- Child identity must be valid and processable.
+- Downstream treatment state is reset; previous result/decision-derived state may become stale or removed.
 
 Failure and exceptional cases:
 - Failing function: `add child to basis`
-  - Failure condition: treatment is non-editable or child lookup fails.
-  - Why it fails: access/editability and person lookup validation.
-  - Violated prerequisite or constraint: child must be resolvable and treatment editable.
-- Failing function: `update condition`
-  - Failure condition: `vilkaarId` does not belong to treatment or treatment cannot be edited.
-  - Why it fails: condition/editability validation.
-  - Violated prerequisite or constraint: condition id must be scoped to `behandlingId`.
-- Failing function: `register manual death`
-  - Failure condition: `personIdent` is not in treatment context.
-  - Why it fails: person/treatment validation fails.
-  - Violated prerequisite or constraint: death registration is treatment-basis scoped.
-- Failing function: `create treatment`
-  - Failure condition: required treatment setup fields missing.
-  - Why it fails: `NyBehandling` validation.
-  - Violated prerequisite or constraint: treatment must exist before treatment-basis mutations.
+  - Failure condition: treatment is closed or locked.
+  - Why it fails: implementation validates editability.
+  - Violated prerequisite or constraint: person basis can be changed only on editable treatments.
+- Failing function: `add child to basis`
+  - Failure condition: `barnIdent=C1` cannot be resolved or processed.
+  - Why it fails: person lookup/validation fails while building basis.
+  - Violated prerequisite or constraint: child must be a valid treatment person.
 
-Implementation notes:
-Condition and person-basis changes are not isolated edits; they reset downstream treatment steps and can force recalculation.
+Implementation notes: This mutation has broader side effects than a child-row insert because later steps are reset.
 
-### Behavior 8: Configure EEA competence and differential calculation inputs
+<a id="behavior-12"></a>
+### Behavior 12: Put treatment on wait, update wait, and resume
+Business goal: Pause a treatment with a deadline/reason, change the wait metadata, then resume the treatment.
 
-Business goal:
-Maintain EEA competence intervals, foreign period amounts, and currency rates used for differential child-benefit calculation.
+API group boundary: All functions share the active wait record for one `behandlingId`.
 
-Domain context:
-EEA cases require time-bounded competence and foreign amount/currency data for children.
+Domain context: Waiting controls treatment status, task deadlines, and whether caseworker steps may execute.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: active treatment has status `UTREDES` and no active wait record.
+- Transition trigger: wait creation.
+- Intermediate states: active wait record is stored, treatment status becomes `SATT_PÅ_VENT`, task deadlines are extended, metadata can be updated.
+- State after: wait record is inactive, treatment status returns to `UTREDES`, open task deadlines are adjusted.
+- Invalid or blocked transitions: duplicate wait, past deadline, unchanged update, or resume without active wait fails.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid treatment body and `barnasIdenter=[C1]`; capture `behandlingId`.
-3. Use function `upsert competence interval` (`PUT /api/kompetanse/{behandlingId}`) with body `fom=2026-01`, `tom=2026-12`, `barnIdenter=[C1]`, and required activity/result fields.
-4. To remove competence, use function `delete competence interval` (`DELETE /api/kompetanse/{behandlingId}/{kompetanseId}`) with `kompetanseId` from treatment response or later treatment read.
-5. To update a foreign amount, use function `update foreign period amount` (`PUT /api/differanseberegning/utenlandskperidebeløp/{behandlingId}`) with body containing an existing `id`, `barnIdenter=[C1]`, period, non-negative `beløp`, and amount fields.
-6. Use function `update currency rate from ECB` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`) with existing `id`, `barnIdenter=[C1]`, `valutakode=EUR`, `valutakursdato=2026-05-01`.
-7. For historical Icelandic currency, use function `set historical ISK rate manually` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`) with `valutakode=ISK`, `valutakursdato` before `2018-02-01`, and manual `kurs`.
+1. Use function `set treatment on wait` (`POST /api/sett-på-vent/{behandlingId}`) with `behandlingId=B1` and body `frist=D_future`, `årsak=A1` to place the treatment on wait.
+2. Use function `update wait` (`PUT /api/sett-på-vent/{behandlingId}`) with `behandlingId=B1` and body `frist=D_later`, `årsak=A2` to update active wait metadata.
+3. Use function `resume treatment` (`PUT /api/sett-på-vent/{behandlingId}/fortsettbehandling`) with `behandlingId=B1` to resume the treatment.
 
 Optional verification workflow:
-1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect competence, foreign amounts, and currency rates.
-2. Use function `retrieve EØS timelines` (`GET /api/tidslinjer/{behandlingId}`) to inspect derived EEA timelines.
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` after step 1 or 3 to inspect status and active wait.
 
 Existing-state shortcuts:
-- Existing editable EEA treatment can replace steps 1 and 2.
-- `delete competence interval`, `delete foreign period amount`, and `delete currency rate` can start from directly seeded child records, but ids must belong to the target treatment for shared EEA schema services.
-- `update foreign period amount` specifically needs an existing record because the controller loads it by `id` to preserve `utbetalingsland`.
+- Step 1 can be skipped only when an equivalent active wait record already exists for the same treatment; then update/resume can use it.
+- Direct database setup must set both active wait row and treatment status consistently.
+- The core resume action cannot be skipped when validating wait closure.
 
 Parameter and value bindings:
-- `behandlingId` scopes all EEA data.
-- `barnIdenter=[C1]` bind competence, foreign amount, and currency-rate rows to child actors.
-- `kompetanseId`, `utenlandskPeriodebeløpId`, and `valutakursId` are generated child-resource ids reused for delete/update.
-- ECB update consumes `valutakode` and `valutakursdato`; historical ISK before `2018-02-01` consumes caller-supplied rate.
+- The same `behandlingId=B1` binds wait creation, update, and resume.
+- `frist` drives task-deadline extension; `årsak` is stored/logged.
+- `D_later` must differ from the existing deadline or `A2` must differ from existing reason.
 
-Business result:
-EEA calculation inputs exist, are updated, or are removed for the treatment and selected children.
+Business result: The treatment is paused, metadata is changed, then the active wait is deactivated and treatment resumes investigation status.
 
 Constraints and invariants:
-- Competence `fom` is required, `fom` cannot be after `tom`, and `barnIdenter` cannot be empty.
-- Competence activity combinations are validated against whether the other parent is covered by Norwegian legislation.
-- Foreign amount `beløp` cannot be negative.
+- `frist` cannot be before today.
+- Treatment must be active, `UTREDES`, and not already on wait for creation.
+- While waiting, ordinary treatment step execution is blocked by `StegService`.
+
+Failure and exceptional cases:
+- Failing function: `set treatment on wait`
+  - Failure condition: treatment already has active wait.
+  - Why it fails: `validerBehandlingKanSettesPåVent` rejects duplicate active wait.
+  - Violated prerequisite or constraint: only one active wait record per treatment.
+- Failing function: `set treatment on wait`
+  - Failure condition: `frist` is before today.
+  - Why it fails: deadline validation rejects past deadlines.
+  - Violated prerequisite or constraint: wait deadline must be current/future.
+- Failing function: `update wait`
+  - Failure condition: new `frist` and `årsak` equal existing values.
+  - Why it fails: service rejects no-op updates.
+  - Violated prerequisite or constraint: update must change wait state.
+- Failing function: `resume treatment`
+  - Failure condition: no active wait exists.
+  - Why it fails: `gjenopptaBehandling` requires active wait and waiting status.
+  - Violated prerequisite or constraint: treatment must currently be on wait.
+
+Implementation notes: Wait creation publishes treatment statistics and extends open task deadlines; resume sets open task deadlines to tomorrow and publishes statistics through wait save.
+
+<a id="behavior-13"></a>
+### Behavior 13: Read person information for case handling
+Business goal: Retrieve detailed, simple, and address-focused person information for casework.
+
+API group boundary: These are person lookup functions bound by the same person identity and caller access context.
+
+Domain context: Case creation, treatment basis, and letter addressing depend on person/register data.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: person exists in upstream person/register systems.
+- Transition trigger: person lookup requests.
+- Intermediate states: no service state mutation.
+- State after: person details or masked data are returned.
+- Invalid or blocked transitions: upstream lookup failures or missing access produce failures/masked data.
+
+Required execution workflow:
+1. Use function `retrieve full person information` (`GET /api/person`) with header `personIdent=P1` to read detailed person information.
+2. Use function `retrieve simple person information` (`GET /api/person/enkel`) with header `personIdent=P1` to read simple person information.
+3. Use function `retrieve person address` (`GET /api/person/adresse`) with header `personIdent=P1` to read name and address.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No local case state is required.
+- Upstream person data and caller identity must still exist and be authorized.
+
+Parameter and value bindings:
+- Header `personIdent=P1` is reused across all three reads.
+- Caller context determines whether full or masked information is returned.
+
+Business result: The caller receives person information suitable for casework and address/recipient decisions.
+
+Constraints and invariants:
+- Implementation uses the `personIdent` header.
+- Access-control result may mask data rather than fail for some person reads.
+
+Failure and exceptional cases:
+- Failing function: `retrieve full person information`
+  - Failure condition: upstream person lookup fails.
+  - Why it fails: person service depends on external register/PDL data.
+  - Violated prerequisite or constraint: `personIdent` must resolve upstream.
+
+Implementation notes: OpenAPI exposes `personIdentBody` for `GET /api/person`, but source uses the `personIdent` header and does not use that body-style parameter.
+
+<a id="behavior-14"></a>
+### Behavior 14: Refresh treatment register basis and manually record death
+Business goal: Update treatment person basis from register information and record manual death details for a person in the treatment.
+
+API group boundary: Both functions mutate the treatment person basis under the same `behandlingId`.
+
+Domain context: Register changes and death data can change benefit entitlement and require reassessment.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment has an active person basis.
+- Transition trigger: register refresh and manual death registration.
+- Intermediate states: external register data is reloaded; manual death date/reason is stored.
+- State after: treatment basis reflects refreshed register information and manual death metadata.
+- Invalid or blocked transitions: missing treatment, missing person in basis, or invalid death payload blocks mutation.
+
+Required execution workflow:
+1. Use function `refresh register information` (`GET /api/person/oppdater-registeropplysninger/{behandlingId}`) with `behandlingId=B1` to refresh register basis.
+2. Use function `register manual death` (`POST /api/person/registrer-manuell-dodsfall/{behandlingId}`) with `behandlingId=B1` and body `personIdent=P1`, `dødsfallDato=D_death`, `begrunnelse=R1` to store manual death data.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect treatment person basis.
+
+Existing-state shortcuts:
+- Refresh can be skipped when current basis is already known to be fresh, but manual death still requires the target person to belong to the treatment.
+- Direct database setup must preserve active persongrunnlag and person ownership under `behandlingId=B1`.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes both basis mutations.
+- `personIdent=P1` in manual death must identify a person in that treatment context.
+
+Business result: Register information is refreshed and manual death information exists on the relevant treatment person.
+
+Constraints and invariants:
+- Treatment access is validated.
+- Manual death body must include identity, death date, and reason.
+
+Failure and exceptional cases:
+- Failing function: `register manual death`
+  - Failure condition: `personIdent=P2` is not part of treatment `B1`.
+  - Why it fails: service validates treatment/person relationship.
+  - Violated prerequisite or constraint: manual death can only be recorded for a treatment participant.
+- Failing function: `refresh register information`
+  - Failure condition: `behandlingId=B404` does not exist.
+  - Why it fails: treatment lookup fails.
+  - Violated prerequisite or constraint: treatment must exist.
+
+Implementation notes: `refresh register information` is mutating despite being exposed as `GET`.
+
+<a id="behavior-15"></a>
+### Behavior 15: Maintain condition assessment records
+Business goal: Add, update, delete, and supplement condition assessment data on an editable treatment.
+
+API group boundary: The functions share one active vilkårsvurdering under `behandlingId` and reuse condition/assessment ids.
+
+Domain context: Condition assessment is core entitlement evidence; changes reset later result and decision state.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment has an active condition assessment.
+- Transition trigger: condition mutation requests.
+- Intermediate states: condition rows or periods are added/changed/deleted; other-assessment row is updated; later steps are reset.
+- State after: assessment reflects the requested changes and later treatment steps must be redone.
+- Invalid or blocked transitions: missing ids, non-editable treatment, or invalid payload fails.
+
+Required execution workflow:
+1. Use function `add condition` (`POST /api/vilkaarsvurdering/{behandlingId}`) with `behandlingId=B1` and body `RestNyttVilkår` to add a condition and capture `vilkaarId=V1` from the returned treatment.
+2. Use function `update condition` (`PUT /api/vilkaarsvurdering/{behandlingId}/{vilkaarId}`) with `behandlingId=B1`, `vilkaarId=V1`, and body `RestPersonResultat` to update the condition.
+3. Use function `delete condition period` (`DELETE /api/vilkaarsvurdering/{behandlingId}/{vilkaarId}`) with `behandlingId=B1`, `vilkaarId=V1`, and body `personIdent=P1` to delete one condition period.
+4. Use function `add condition` (`POST /api/vilkaarsvurdering/{behandlingId}`) with `behandlingId=B1` and body `RestNyttVilkår` to create another condition for deletion and capture `vilkaarId=V2`.
+5. Use function `delete condition` (`DELETE /api/vilkaarsvurdering/{behandlingId}/vilkaar`) with `behandlingId=B1` and body `RestSlettVilkår` referencing `vilkaarId=V2` to delete the condition.
+6. Use function `update other assessment` (`PUT /api/vilkaarsvurdering/{behandlingId}/annenvurdering/{annenVurderingId}`) with `behandlingId=B1`, `annenVurderingId=A1`, and body `RestAnnenVurdering` to update other assessment state.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect condition and assessment data.
+2. Use function `list condition explanation texts` (`GET /api/vilkaarsvurdering/vilkaarsbegrunnelser`) to inspect available explanation metadata.
+
+Existing-state shortcuts:
+- Steps creating condition ids can be skipped when valid `vilkaarId` values already exist under the same treatment.
+- `annenVurderingId=A1` may come from initial treatment setup or a later treatment read.
+- Direct database setup must preserve id ownership under the same active vilkårsvurdering.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes all condition mutations.
+- `vilkaarId` returned in a treatment response is reused for update/delete.
+- `personIdent` in delete-period body must map to the actor owning the condition period.
+- `annenVurderingId=A1` must belong to treatment `B1`.
+
+Business result: Condition assessment data is changed, deleted, and supplemented; later result/decision state is reset or invalidated by these changes.
+
+Constraints and invariants:
 - Treatment must be editable.
-- Shared EEA schema delete operations validate treatment ownership.
+- Existing condition/assessment ids must belong to the active assessment for the treatment.
+- Mutations reset later workflow state.
+
+Failure and exceptional cases:
+- Failing function: `update condition`
+  - Failure condition: `vilkaarId=V404` does not identify a condition in the treatment.
+  - Why it fails: service cannot load/update the condition result.
+  - Violated prerequisite or constraint: condition id must come from treatment state.
+- Failing function: `delete condition period`
+  - Failure condition: body person identity does not own the requested period.
+  - Why it fails: deletion resolves person/condition ownership.
+  - Violated prerequisite or constraint: period deletion must target the correct treatment person.
+- Failing function: `update other assessment`
+  - Failure condition: `annenVurderingId=A404` is missing.
+  - Why it fails: service cannot find the other-assessment record.
+  - Violated prerequisite or constraint: assessment id must exist under treatment.
+
+Implementation notes: These mutations are not isolated edits; they are treatment-state reset points.
+
+<a id="behavior-16"></a>
+### Behavior 16: Maintain EEA competence intervals
+Business goal: Create/replace competence periods and delete an existing competence interval.
+
+API group boundary: Both functions share `behandlingId` and competence interval ids.
+
+Domain context: EEA competence affects differential calculation and entitlement.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has EEA competence basis.
+- Transition trigger: competence upsert and delete.
+- Intermediate states: periods can be split/merged/replaced by body period and children.
+- State after: competence timeline reflects upserted/deleted intervals.
+- Invalid or blocked transitions: missing `fom`, empty children, reversed period, incompatible activities, or id/treatment mismatch fails.
+
+Required execution workflow:
+1. Use function `upsert competence interval` (`PUT /api/kompetanse/{behandlingId}`) with `behandlingId=B1` and body `fom=YM1`, `tom=YM2`, `barnIdenter=[C1]`, required activity/result fields to upsert competence and capture `kompetanseId=K1`.
+2. Use function `delete competence interval` (`DELETE /api/kompetanse/{behandlingId}/{kompetanseId}`) with `behandlingId=B1`, `kompetanseId=K1` to delete the interval.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect competence periods.
+2. Use function `retrieve EØS timelines` (`GET /api/tidslinjer/{behandlingId}`) with `behandlingId=B1` to inspect timelines.
+
+Existing-state shortcuts:
+- The upsert can be skipped for delete only when `kompetanseId=K1` already exists under `behandlingId=B1`.
+- Direct database setup must preserve the interval-to-treatment ownership and child actors.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes both functions.
+- `barnIdenter` are resolved to child actors.
+- The `kompetanseId` returned in treatment state is consumed by delete.
+
+Business result: Competence intervals are upserted, recalculated by the schema service, and then removed when requested.
+
+Constraints and invariants:
+- `fom` is required and cannot be after `tom`.
+- At least one child is required.
+- Activity combinations are validated.
 
 Failure and exceptional cases:
 - Failing function: `upsert competence interval`
   - Failure condition: missing `fom`, empty `barnIdenter`, or `fom > tom`.
-  - Why it fails: `KompetanseController.validerOppdatering` rejects invalid period/child list.
-  - Violated prerequisite or constraint: competence period and child scope are invalid.
-- Failing function: `upsert competence interval`
-  - Failure condition: incompatible activity values.
-  - Why it fails: controller validates activity values against parent-law coverage.
-  - Violated prerequisite or constraint: EEA activity semantics are inconsistent.
-- Failing function: `update foreign period amount`
-  - Failure condition: body `id` does not identify an existing foreign amount.
-  - Why it fails: controller calls repository `getById` before update.
-  - Violated prerequisite or constraint: function updates existing amount only.
+  - Why it fails: controller validation rejects invalid period/child list.
+  - Violated prerequisite or constraint: competence interval must be well-formed.
 - Failing function: `delete competence interval`
-  - Failure condition: `kompetanseId` belongs to another treatment.
-  - Why it fails: shared schema service rejects mismatched treatment id.
-  - Violated prerequisite or constraint: child record must be owned by `behandlingId`.
+  - Failure condition: `kompetanseId=K1` belongs to another treatment.
+  - Why it fails: shared schema deletion rejects treatment/id mismatch.
+  - Violated prerequisite or constraint: child resource id must belong to `behandlingId=B1`.
 
-Implementation notes:
-OpenAPI uses `PUT` for foreign amount and currency-rate changes, but source behavior differs by resource. Competence can upsert/split/merge; foreign amount update requires an existing id.
+Implementation notes: Competence upsert is period-and-child based, not simple row overwrite.
 
-### Behavior 9: Manage changed payment shares and after-payment validity
+<a id="behavior-17"></a>
+### Behavior 17: Maintain foreign period amounts
+Business goal: Update and delete an existing foreign benefit amount period.
 
-Business goal:
-Create, update, delete, and recalculate changed-payment shares that modify awarded benefit.
+API group boundary: Both functions share the differential-calculation amount resource under `behandlingId`.
 
-Domain context:
-Changed payment shares alter calculation/payment outcomes and reset treatment progress.
+Domain context: Foreign amounts feed EEA differential calculation.
 
-Starting point:
-No prior service state.
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: a foreign period amount row already exists for treatment.
+- Transition trigger: amount update and delete request.
+- Intermediate states: amount/monthly calculation is changed.
+- State after: the amount period is updated or removed.
+- Invalid or blocked transitions: missing amount id or negative amount fails.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body and `fagsakId={fagsakId}`; capture `behandlingId`.
-3. Use function `create changed payment share` (`POST /api/endretutbetalingandel/{behandlingId}`) with the same `behandlingId`; capture `endretUtbetalingAndelId` from returned treatment view.
-4. Use function `update changed payment share` (`PUT /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`) with body `RestEndretUtbetalingAndel`.
-5. To remove it, use function `delete changed payment share` (`DELETE /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`).
-6. Use function `reset treatment to treatment result` (`POST /api/endretutbetalingandel/{behandlingId}/tilbakestill`) when a manual reset to result step is needed.
+1. Use function `update foreign period amount` (`PUT /api/differanseberegning/utenlandskperidebeløp/{behandlingId}`) with `behandlingId=B1` and body `id=U1`, `beløp=100`, period fields to update the existing amount.
+2. Use function `delete foreign period amount` (`DELETE /api/differanseberegning/utenlandskperidebeløp/{behandlingId}/{utenlandskPeriodebeløpId}`) with `behandlingId=B1`, `utenlandskPeriodebeløpId=U1` to delete the amount.
 
 Optional verification workflow:
-1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect changed-payment shares and recalculated benefit.
-2. Use function `find invalid after-payment periods` (`GET /api/behandlinger/{behandlingId}/personer-med-ugyldig-etterbetalingsperiode`) to inspect invalid after-payment periods.
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect differential-calculation state.
 
 Existing-state shortcuts:
-- Existing editable treatment can replace setup.
-- Existing changed-payment share can replace creation for update/delete if `endretUtbetalingAndelId` belongs to `behandlingId`.
-- Direct database setup must include benefit-award state consistent enough for recalculation.
+- No API in this function set creates the initial foreign amount row; direct database setup or earlier internal EEA basis generation must provide `id=U1`.
+- The existing row must belong to `behandlingId=B1`.
 
 Parameter and value bindings:
-- `behandlingId` scopes all changed-payment operations.
-- `endretUtbetalingAndelId` is generated by creation and reused for update/delete.
-- Update body values change calculation state and trigger treatment reset to result.
+- Body `id=U1` identifies the existing amount row for update.
+- Path `utenlandskPeriodebeløpId=U1` consumes the same row id for deletion.
+- `behandlingId=B1` scopes access and returned treatment state.
 
-Business result:
-Changed-payment share state is created, changed, or removed; awarded benefit is recalculated and the treatment is reset to treatment-result step.
+Business result: The existing foreign amount period has updated amount data, then is deleted from the treatment.
+
+Constraints and invariants:
+- `beløp` cannot be negative.
+- Implementation preserves existing `utbetalingsland` when updating.
+
+Failure and exceptional cases:
+- Failing function: `update foreign period amount`
+  - Failure condition: `beløp < 0`.
+  - Why it fails: request model decimal-min validation rejects negative amount.
+  - Violated prerequisite or constraint: foreign amount must be non-negative.
+- Failing function: `update foreign period amount`
+  - Failure condition: body `id=U404` does not exist.
+  - Why it fails: implementation loads the existing row to preserve country data.
+  - Violated prerequisite or constraint: update requires pre-existing foreign amount row.
+
+Implementation notes: This area has update/delete but no API-realizable create workflow for the initial row.
+
+<a id="behavior-18"></a>
+### Behavior 18: Update existing currency rate from ECB
+Business goal: Update an existing currency-rate period by fetching a rate from ECB when currency/date changes.
+
+API group boundary: The function is the ECB branch of the currency-rate lifecycle under `behandlingId`.
+
+Domain context: Currency rates are required for EEA differential calculation when foreign currency amounts are present.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: currency-rate row exists for a treatment.
+- Transition trigger: update with currency code/date not matching the historical ISK manual branch.
+- Intermediate states: existing row is compared; ECB rate is fetched when date/code changed.
+- State after: row contains updated code/date/rate data.
+- Invalid or blocked transitions: missing existing id, ECB failure, non-editable treatment, or child identity failure blocks update.
+
+Required execution workflow:
+1. Use function `update currency rate from ECB` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`) with `behandlingId=B1` and body `id=VK1`, `valutakode=EUR`, `valutakursdato=D1`, `barnIdenter=[C1]` to update the existing currency rate.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect currency-rate state.
+
+Existing-state shortcuts:
+- Existing row `VK1` must be provided by prior internal generation or direct database setup.
+- Direct setup must keep `VK1` in the same treatment scope.
+
+Parameter and value bindings:
+- Body `id=VK1` is used to load existing row and detect change.
+- `valutakode` and `valutakursdato` drive ECB lookup.
+- `barnIdenter` bind the rate to child actors.
+
+Business result: The existing currency-rate period contains updated ECB-sourced rate data.
+
+Constraints and invariants:
+- This branch applies unless `valutakode=ISK` and `valutakursdato` is before 2018-02-01.
+- Treatment must be editable.
+
+Failure and exceptional cases:
+- Failing function: `update currency rate from ECB`
+  - Failure condition: `id=VK404` does not exist.
+  - Why it fails: controller/service loads existing rate for comparison.
+  - Violated prerequisite or constraint: update requires pre-existing currency-rate row.
+- Failing function: `update currency rate from ECB`
+  - Failure condition: ECB cannot provide a rate for supplied code/date.
+  - Why it fails: ECB service throws.
+  - Violated prerequisite or constraint: external rate data must be available.
+
+Implementation notes: Source compares incoming code/date against existing row and fetches from ECB only when changed.
+
+<a id="behavior-19"></a>
+### Behavior 19: Set historical ISK currency rate manually and delete currency rate
+Business goal: Store a manually supplied historical ISK rate, then remove the currency-rate row.
+
+API group boundary: The functions share the same currency-rate row under `behandlingId`; manual ISK is a distinct branch from ECB update.
+
+Domain context: ECB data is not used for Icelandic krona before 2018-02-01, so manual rate entry is required.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: historical ISK currency-rate row exists for treatment.
+- Transition trigger: manual ISK update and delete.
+- Intermediate states: supplied `kurs` is stored without ECB lookup.
+- State after: row is updated, then deleted.
+- Invalid or blocked transitions: missing existing rate id or mismatched treatment/rate id fails.
+
+Required execution workflow:
+1. Use function `set historical ISK rate manually` (`PUT /api/differanseberegning/valutakurs/{behandlingId}`) with `behandlingId=B1` and body `id=VK1`, `valutakode=ISK`, `valutakursdato=2018-01-31`, `kurs=K_manual`, `barnIdenter=[C1]` to store manual rate.
+2. Use function `delete currency rate` (`DELETE /api/differanseberegning/valutakurs/{behandlingId}/{valutakursId}`) with `behandlingId=B1`, `valutakursId=VK1` to delete the rate.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect currency-rate state.
+
+Existing-state shortcuts:
+- Existing rate `VK1` must already exist under treatment through internal generation or direct database setup.
+- The delete step can start from any valid existing rate id in the same treatment.
+
+Parameter and value bindings:
+- `valutakode=ISK` and `valutakursdato=2018-01-31` select the manual branch.
+- Manual `kurs` is stored.
+- `valutakursId=VK1` reuses the id updated in step 1.
+
+Business result: Historical ISK rate is manually stored, then the rate row is removed.
+
+Constraints and invariants:
+- Manual branch is limited to ISK before 2018-02-01.
+- Treatment must be editable.
+
+Failure and exceptional cases:
+- Failing function: `set historical ISK rate manually`
+  - Failure condition: `valutakode=EUR` with historical date and manual `kurs`.
+  - Why it fails: the code path is ECB branch, not manual branch; missing/invalid ECB data can fail.
+  - Violated prerequisite or constraint: manual branch requires historical ISK.
+- Failing function: `delete currency rate`
+  - Failure condition: `valutakursId=VK1` does not belong to `behandlingId=B1`.
+  - Why it fails: shared schema deletion rejects id/treatment mismatch.
+  - Violated prerequisite or constraint: currency-rate id must belong to the treatment.
+
+Implementation notes: The branch distinction is implemented in controller code with `LocalDate.of(2018, 2, 1)`.
+
+<a id="behavior-20"></a>
+### Behavior 20: Maintain changed payment shares and reset treatment result
+Business goal: Create, fill, remove, and explicitly reset changed-payment share state in an editable treatment.
+
+API group boundary: All functions share `behandlingId`, changed-payment share id, benefit recalculation, and treatment-result reset.
+
+Domain context: Changed payment shares modify payment allocation and require recalculation of granted benefit.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment is editable and has benefit/person basis.
+- Transition trigger: changed-payment share creation/update/delete/reset.
+- Intermediate states: empty share is created, filled, benefits recalculated, treatment reset to result step.
+- State after: share state is updated or removed and treatment result must be redone.
+- Invalid or blocked transitions: missing share id, non-treatment person, invalid/overlapping period, or non-editable treatment fails.
+
+Required execution workflow:
+1. Use function `create changed payment share` (`POST /api/endretutbetalingandel/{behandlingId}`) with `behandlingId=B1` to create an empty share and capture `endretUtbetalingAndelId=EUA1`.
+2. Use function `update changed payment share` (`PUT /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`) with `behandlingId=B1`, `endretUtbetalingAndelId=EUA1`, and body `personIdent=P1`, period and payment-share fields to update the share.
+3. Use function `delete changed payment share` (`DELETE /api/endretutbetalingandel/{behandlingId}/{endretUtbetalingAndelId}`) with `behandlingId=B1`, `endretUtbetalingAndelId=EUA1` to remove it.
+4. Use function `reset treatment to treatment result` (`POST /api/endretutbetalingandel/{behandlingId}/tilbakestill`) with `behandlingId=B1` to explicitly reset treatment to result step.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect share list and current step.
+2. Use function `find invalid after-payment periods` (`GET /api/behandlinger/{behandlingId}/personer-med-ugyldig-etterbetalingsperiode`) with `behandlingId=B1` to inspect after-payment validity.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when a valid `endretUtbetalingAndelId` already exists under treatment.
+- Direct database setup must preserve share ownership and treatment person ownership for `personIdent`.
+
+Parameter and value bindings:
+- `endretUtbetalingAndelId=EUA1` from creation is reused in update and delete.
+- Body `personIdent=P1` must identify a treatment person.
+- `behandlingId=B1` scopes recalculation and treatment reset.
+
+Business result: Changed-payment share state is created, updated, removed, and the treatment is reset to treatment-result state after recalculation-sensitive changes.
 
 Constraints and invariants:
 - Treatment must be editable.
-- Calculation update and step reset are side effects of create/update/delete.
-- Invalid after-payment detection is read-only.
+- `personIdent` must belong to treatment.
+- Period must be inside granted benefit and cannot violate overlap rules.
 
 Failure and exceptional cases:
 - Failing function: `update changed payment share`
-  - Failure condition: non-editable treatment or unknown share id.
-  - Why it fails: controller validates editability and service updates by id.
-  - Violated prerequisite or constraint: share must exist in editable treatment.
+  - Failure condition: `personIdent=P2` is not in the treatment.
+  - Why it fails: service resolves body person identity against treatment persons.
+  - Violated prerequisite or constraint: changed-payment share must target a treatment person.
 - Failing function: `delete changed payment share`
-  - Failure condition: unknown or mismatched `endretUtbetalingAndelId`.
-  - Why it fails: service cannot remove a share that is not present.
-  - Violated prerequisite or constraint: generated id must be reused correctly.
-- Failing function: `create treatment`
-  - Failure condition: setup case/treatment missing.
-  - Why it fails: changed-payment functions are treatment-scoped.
-  - Violated prerequisite or constraint: payment adjustment requires treatment.
+  - Failure condition: `endretUtbetalingAndelId=EUA404` does not exist.
+  - Why it fails: service cannot find share for deletion.
+  - Violated prerequisite or constraint: share id must come from creation or treatment state.
 
-Implementation notes:
-These functions are not mere CRUD. They update awarded benefit and reset downstream treatment state.
+Implementation notes: Create/update/delete all call the reset-to-treatment-result service after recalculation changes.
 
-### Behavior 10: Manage EEA refund and overpaid-currency periods
+<a id="behavior-21"></a>
+### Behavior 21: Inspect EEA timelines
+Business goal: Read calculated EEA timelines for a treatment.
 
-Business goal:
-Record, list, update, and delete EEA refund periods and overpaid foreign-currency periods in a treatment.
+API group boundary: The function is a treatment-scoped EEA read model.
 
-Domain context:
-Refund and overpaid-currency records document recovery/offset details associated with EEA or currency situations.
+Domain context: Timelines show how EEA basis affects entitlement and differential calculation.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment has EEA-relevant basis.
+- Transition trigger: timeline read request.
+- Intermediate states: no persistent mutation.
+- State after: calculated timelines are returned.
+- Invalid or blocked transitions: missing treatment or access failure blocks read.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`, `fagsakType=NORMAL`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body and `fagsakId={fagsakId}`; capture `behandlingId`.
-3. Use function `add EØS refund period` (`POST /api/refusjon-eøs/behandlinger/{behandlingId}`) with body `fom=2026-01`, `tom=2026-03`, `refusjonsbeløp=1000`, `land=SE`, `refusjonAvklart=true`; capture `id`.
-4. Use function `update EØS refund period` (`PUT /api/refusjon-eøs/behandlinger/{behandlingId}/perioder/{id}`) with the same path ids and updated refund body.
-5. Use function `add overpaid currency period` (`POST /api/feilutbetalt-valuta/behandling/{behandlingId}`) with body `fom=2026-01`, `tom=2026-03`, `feilutbetaltBeløp=500`, optional `erPerMåned=true`; capture `id`.
-6. Use function `update overpaid currency period` (`PUT /api/feilutbetalt-valuta/behandling/{behandlingId}/periode/{id}`) with updated body.
-7. To clean up, use function `delete EØS refund period` and `delete overpaid currency period` with the captured ids.
+1. Use function `retrieve EØS timelines` (`GET /api/tidslinjer/{behandlingId}`) with `behandlingId=B1` to retrieve timelines.
 
 Optional verification workflow:
-1. Use function `list EØS refund periods` (`GET /api/refusjon-eøs/behandlinger/{behandlingId}`).
-2. Use function `list overpaid currency periods` (`GET /api/feilutbetalt-valuta/behandling/{behandlingId}`).
-3. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect treatment-level returned state.
+None.
 
 Existing-state shortcuts:
-- Existing editable treatment can replace setup.
-- Existing refund/overpaid rows can replace add steps for update/delete, but ids must refer to intended records.
-- Direct database setup can insert rows, but ownership must be manually checked because implementation does not fully enforce it for all operations.
+- No setup API call is needed when `behandlingId=B1` already exists with EEA basis.
+- Direct database setup must preserve treatment and EEA basis consistency.
 
 Parameter and value bindings:
-- `behandlingId` from treatment setup scopes add/list endpoints.
-- Generated period `id` from add/list responses is reused by update/delete.
-- For overpaid currency, omitted `erPerMåned` is replaced by the feature-toggle value.
+- `behandlingId=B1` scopes timeline calculation.
 
-Business result:
-Refund and overpaid-currency periods exist, are changed, listed, or deleted for the treatment.
+Business result: Caller receives EEA timeline data for the treatment.
 
 Constraints and invariants:
-- Treatment must be editable for mutation.
-- `erPerMåned` may be derived from feature toggle if omitted.
-- Path structure implies child-resource ownership by `behandlingId`.
+- Timeline result is derived from treatment state and does not mutate it.
+
+Failure and exceptional cases:
+- Failing function: `retrieve EØS timelines`
+  - Failure condition: `behandlingId=B404` does not exist.
+  - Why it fails: treatment lookup/access fails.
+  - Violated prerequisite or constraint: treatment must exist.
+
+Implementation notes: This is a read-only behavior used frequently to verify EEA side-resource mutations.
+
+<a id="behavior-22"></a>
+### Behavior 22: Maintain EEA refund periods
+Business goal: Add, list, update, and delete refund periods for EEA handling.
+
+API group boundary: All functions share `behandlingId` and refund-period `id`.
+
+Domain context: EEA refund periods affect decision/payment handling.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has no target refund period.
+- Transition trigger: refund-period creation.
+- Intermediate states: period id is generated; list can return it; update changes it.
+- State after: period is deleted or no longer present.
+- Invalid or blocked transitions: missing period id or non-editable treatment fails.
+
+Required execution workflow:
+1. Use function `add EØS refund period` (`POST /api/refusjon-eøs/behandlinger/{behandlingId}`) with `behandlingId=B1` and body `RestRefusjonEøs` to create refund period and capture `id=R1`.
+2. Use function `list EØS refund periods` (`GET /api/refusjon-eøs/behandlinger/{behandlingId}`) with `behandlingId=B1` to retrieve and confirm `id=R1`.
+3. Use function `update EØS refund period` (`PUT /api/refusjon-eøs/behandlinger/{behandlingId}/perioder/{id}`) with `behandlingId=B1`, `id=R1`, and body `RestRefusjonEøs` to update the period.
+4. Use function `delete EØS refund period` (`DELETE /api/refusjon-eøs/behandlinger/{behandlingId}/perioder/{id}`) with `behandlingId=B1`, `id=R1` to delete the period.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect returned treatment state.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `id=R1` already exists under `behandlingId=B1`.
+- Direct database setup must ensure period ownership and treatment editability.
+
+Parameter and value bindings:
+- `id=R1` generated by creation or returned by list is reused for update/delete.
+- `behandlingId=B1` scopes access and response but update service loads by `id`.
+
+Business result: A refund period is created, made visible, updated, and removed.
+
+Constraints and invariants:
+- Treatment must be editable for create/update/delete.
+- Period id must exist for update/delete.
 
 Failure and exceptional cases:
 - Failing function: `update EØS refund period`
-  - Failure condition: period id does not exist.
-  - Why it fails: service lookup by id throws.
-  - Violated prerequisite or constraint: update requires existing refund id.
-- Failing function: `delete overpaid currency period`
-  - Failure condition: period id does not exist.
-  - Why it fails: service logs the period before deleting and throws on missing id.
-  - Violated prerequisite or constraint: delete requires existing overpaid-currency id.
-- Failing function: `create treatment`
-  - Failure condition: treatment setup is missing or non-editable.
-  - Why it fails: mutation is treatment-scoped and editability-protected.
-  - Violated prerequisite or constraint: mutable treatment required.
+  - Failure condition: `id=R404` does not exist.
+  - Why it fails: service lookup throws when refund period id is missing.
+  - Violated prerequisite or constraint: period id must come from creation/list.
+- Failing function: `delete EØS refund period`
+  - Failure condition: `id=R404` does not exist.
+  - Why it fails: service logs the period before deleting and lookup throws.
+  - Violated prerequisite or constraint: period id must exist.
 
-Implementation notes:
-Important discrepancy: the URL nests refund/overpaid records under `{behandlingId}`, but `RefusjonEøsService` update/delete and `FeilutbetaltValutaService` update/delete primarily load/delete by child `id`; they do not consistently verify that the child id belongs to the supplied `behandlingId`. This weakens ownership scoping implied by OpenAPI.
+Implementation notes: Update does not pass `behandlingId` to the service lookup, so id/path ownership is weaker than the endpoint shape implies.
 
-### Behavior 11: Record corrections for decision, after-payment, and small-child supplement
+<a id="behavior-23"></a>
+### Behavior 23: Maintain overpaid currency periods
+Business goal: Add, list, update, and delete periods with overpaid currency amount.
 
-Business goal:
-Store correction metadata for decisions, after-payment, and monthly small-child supplement state.
+API group boundary: All functions share `behandlingId` and overpaid-currency period `id`.
 
-Domain context:
-Caseworkers need to mark corrected decisions and adjust special supplement months without rebuilding the whole case externally.
+Domain context: Overpaid currency periods support repayment and correction calculations.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has no target overpaid-currency period.
+- Transition trigger: period creation.
+- Intermediate states: period id is generated; update changes amount/period/monthly flag.
+- State after: period is deleted.
+- Invalid or blocked transitions: missing id or invalid treatment/access fails.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body; capture `behandlingId`.
-3. Use function `create corrected decision metadata` (`POST /api/korrigertvedtak/behandling/{behandlingId}`) with body `KorrigerVedtakRequest`.
-4. To remove active corrected-decision marker, use function `deactivate corrected decision metadata` (`PATCH /api/korrigertvedtak/behandling/{behandlingId}`).
-5. Use function `create corrected after-payment metadata` (`POST /api/korrigertetterbetaling/behandling/{behandlingId}`) with body `KorrigertEtterbetalingRequest`.
-6. To remove active corrected after-payment marker, use function `deactivate corrected after-payment metadata` (`PATCH /api/korrigertetterbetaling/behandling/{behandlingId}`).
-7. Use function `add small child supplement correction` (`POST /api/småbarnstilleggkorrigering/behandling/{behandlingId}`) with body `årMåned=2026-05`.
-8. Use function `remove small child supplement correction` (`DELETE /api/småbarnstilleggkorrigering/behandling/{behandlingId}`) with body `årMåned=2026-05`.
+1. Use function `add overpaid currency period` (`POST /api/feilutbetalt-valuta/behandling/{behandlingId}`) with `behandlingId=B1` and body `RestFeilutbetaltValuta` to create period and capture `id=FV1`.
+2. Use function `list overpaid currency periods` (`GET /api/feilutbetalt-valuta/behandling/{behandlingId}`) with `behandlingId=B1` to retrieve and confirm `id=FV1`.
+3. Use function `update overpaid currency period` (`PUT /api/feilutbetalt-valuta/behandling/{behandlingId}/periode/{id}`) with `behandlingId=B1`, `id=FV1`, and body `RestFeilutbetaltValuta` to update period data.
+4. Use function `delete overpaid currency period` (`DELETE /api/feilutbetalt-valuta/behandling/{behandlingId}/periode/{id}`) with `behandlingId=B1`, `id=FV1` to delete it.
 
 Optional verification workflow:
-1. Use function `list corrected after-payment metadata` (`GET /api/korrigertetterbetaling/behandling/{behandlingId}`).
-2. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) to inspect treatment correction state where included.
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect treatment state.
 
 Existing-state shortcuts:
-- Existing editable treatment can replace setup.
-- Existing active correction metadata can replace create step for deactivation.
-- Direct database setup must link correction records to the same `behandlingId`.
+- Step 1 can be skipped when a valid `id=FV1` already exists for the treatment.
+- Direct database setup must keep the period under the same treatment and valid caller-access scope.
 
 Parameter and value bindings:
-- `behandlingId` scopes all correction functions.
-- `årMåned` used to add small-child supplement correction must be reused to remove the same month.
-- Create corrected decision/after-payment deactivates any previous active correction of the same type.
+- `id=FV1` created/listed is reused for update/delete.
+- If `erPerMåned` is absent, feature toggle value determines stored flag.
 
-Business result:
-Correction metadata is active or inactive as requested. Small-child supplement correction exists for a month or is removed.
+Business result: Overpaid-currency period exists, is updated, and is eventually removed.
 
 Constraints and invariants:
+- Treatment access is validated for create/update/delete/list.
+- Feature toggle can influence default monthly interpretation.
+
+Failure and exceptional cases:
+- Failing function: `update overpaid currency period`
+  - Failure condition: `id=FV404` does not exist.
+  - Why it fails: service lookup throws when id is not found.
+  - Violated prerequisite or constraint: period id must come from creation/list.
+- Failing function: `delete overpaid currency period`
+  - Failure condition: `id=FV404` does not exist.
+  - Why it fails: service logs the period before deleting and lookup throws.
+  - Violated prerequisite or constraint: period id must exist.
+
+Implementation notes: Update service loads by `id` and does not enforce `behandlingId` ownership in the service call itself.
+
+<a id="behavior-24"></a>
+### Behavior 24: Activate and deactivate corrected decision metadata
+Business goal: Mark a treatment as having corrected decision metadata, then deactivate that metadata.
+
+API group boundary: Both functions share active corrected-decision state under `behandlingId`.
+
+Domain context: Corrected decisions need explicit metadata that can be active for letter/decision handling.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has no active corrected-decision metadata or has an old active record.
+- Transition trigger: create corrected-decision metadata.
+- Intermediate states: previous active record is deactivated.
+- State after: new active metadata exists, then no active metadata after deactivation.
+- Invalid or blocked transitions: non-editable treatment or missing treatment blocks mutation.
+
+Required execution workflow:
+1. Use function `create corrected decision metadata` (`POST /api/korrigertvedtak/behandling/{behandlingId}`) with `behandlingId=B1` and body `KorrigerVedtakRequest` to create active metadata.
+2. Use function `deactivate corrected decision metadata` (`PATCH /api/korrigertvedtak/behandling/{behandlingId}`) with `behandlingId=B1` to deactivate active metadata.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect returned treatment state.
+
+Existing-state shortcuts:
+- Creation can start with an existing active correction; the service deactivates it before saving the new one.
+- Direct database setup must keep active flags scoped to the same treatment.
+
+Parameter and value bindings:
+- `behandlingId=B1` binds metadata to the treatment.
+- Body values become corrected-decision metadata.
+
+Business result: Corrected-decision metadata is activated and then inactivated; previous active metadata is deactivated when a new record is created.
+
+Constraints and invariants:
+- At most one active corrected-decision metadata record is intended per treatment.
 - Treatment must be editable.
-- Corrected decision and corrected after-payment allow one active record at a time by deactivating previous active records.
-- Deactivation with no active correction may return null/no explicit failure in implementation.
 
 Failure and exceptional cases:
 - Failing function: `create corrected decision metadata`
-  - Failure condition: treatment is non-editable.
-  - Why it fails: controller/service validates editability.
-  - Violated prerequisite or constraint: correction metadata requires editable treatment.
-- Failing function: `remove small child supplement correction`
-  - Failure condition: treatment/domain validation fails for requested month.
-  - Why it fails: supplement correction service validates treatment and month semantics.
-  - Violated prerequisite or constraint: correction must be valid for treatment/month.
-- Failing function: `create treatment`
-  - Failure condition: missing required setup fields.
-  - Why it fails: request validation.
-  - Violated prerequisite or constraint: correction requires treatment.
+  - Failure condition: treatment is not editable.
+  - Why it fails: controller calls `validerBehandlingKanRedigeres`.
+  - Violated prerequisite or constraint: correction metadata can be changed only on editable treatment.
+- Failing function: `deactivate corrected decision metadata`
+  - Failure condition: no active metadata exists.
+  - Why it fails: service returns null/no-op rather than throwing.
+  - Violated prerequisite or constraint: domain expectation of an active correction is not enforced as failure.
 
-Implementation notes:
-There is no `GET` for corrected decision metadata comparable to corrected after-payment listing.
+Implementation notes: There is no dedicated list/retrieve endpoint for corrected-decision metadata.
 
-### Behavior 12: Generate, retrieve, preview, and send letters
+<a id="behavior-25"></a>
+### Behavior 25: Activate, list, and deactivate corrected after-payment metadata
+Business goal: Mark corrected after-payment metadata active, inspect all records, and deactivate the active correction.
 
-Business goal:
-Generate decision letters, preview/send manual letters, manage manual recipients, and preview repayment warnings.
+API group boundary: Functions share corrected after-payment state under `behandlingId`.
 
-Domain context:
-Case handling produces formal communication tied to a treatment, decision, case, recipient, or repayment assessment.
+Domain context: Corrected after-payment metadata documents manual correction decisions around after-payment periods.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has no active corrected after-payment metadata or has an old active record.
+- Transition trigger: create correction metadata.
+- Intermediate states: previous active record is deactivated; list returns all records.
+- State after: new record is active, then active flag is cleared.
+- Invalid or blocked transitions: non-editable treatment blocks mutation.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body; capture `behandlingId` and active `vedtakId`.
-3. Use function `add letter recipient` (`POST /api/brevmottaker/{behandlingId}`) with body `RestBrevmottaker`; capture `mottakerId`.
-4. Use function `preview treatment letter` (`POST /api/dokument/forhaandsvis-brev/{behandlingId}`) with body `ManueltBrevRequest`.
-5. Use function `send treatment letter` (`POST /api/dokument/send-brev/{behandlingId}`) with the same treatment and compatible `ManueltBrevRequest`.
-6. Use function `preview case letter` (`POST /api/dokument/fagsak/{fagsakId}/forhaandsvis-brev`) with body `ManueltBrevRequest`.
-7. Use function `send case letter` (`POST /api/dokument/fagsak/{fagsakId}/send-brev`) with body `ManueltBrevRequest`.
-8. Use function `generate decision letter` (`POST /api/dokument/vedtaksbrev/{vedtakId}`) with `vedtakId` from treatment.
-9. Use function `preview repayment warning letter` (`POST /api/tilbakekreving/{behandlingId}/forhandsvis-varselbrev`) with body `fritekst=...` when repayment warning preview is needed.
-10. Use function `delete letter recipient` (`DELETE /api/brevmottaker/{behandlingId}/{mottakerId}`) to remove manual recipient.
+1. Use function `create corrected after-payment metadata` (`POST /api/korrigertetterbetaling/behandling/{behandlingId}`) with `behandlingId=B1` and body `KorrigertEtterbetalingRequest` to create active metadata.
+2. Use function `list corrected after-payment metadata` (`GET /api/korrigertetterbetaling/behandling/{behandlingId}`) with `behandlingId=B1` to list correction records.
+3. Use function `deactivate corrected after-payment metadata` (`PATCH /api/korrigertetterbetaling/behandling/{behandlingId}`) with `behandlingId=B1` to deactivate active metadata.
 
 Optional verification workflow:
-1. Use function `list letter recipients` (`GET /api/brevmottaker/{behandlingId}`).
-2. Use function `retrieve decision letter` (`GET /api/dokument/vedtaksbrev/{vedtakId}`).
-3. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`).
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect treatment state.
 
 Existing-state shortcuts:
-- Existing case/treatment/decision can replace setup if `vedtakId` belongs to that treatment.
-- Recipient setup can be skipped for letters that use default/generated recipient data.
-- Direct database setup can create decision PDF state for retrieval, but `vedtakId` must remain treatment-scoped.
+- Creation can start when a previous active correction exists; the service deactivates it.
+- Direct setup must maintain active flags and treatment ownership.
 
 Parameter and value bindings:
-- `fagsakId` scopes case letters.
-- `behandlingId` scopes treatment letters, recipients, and repayment warning preview.
-- `vedtakId` scopes decision letter generation/retrieval.
-- `mottakerId` from add/list recipient is reused for delete.
+- `behandlingId=B1` scopes creation/list/deactivation.
+- Body values are converted to corrected after-payment metadata for the treatment.
 
-Business result:
-Letters are generated as PDFs, sent where applicable, stored for decisions, and manual recipients are added/listed/deleted.
+Business result: Corrected after-payment metadata is created, visible in list output, and then inactivated.
 
 Constraints and invariants:
-- Treatment-letter recipient data is enriched from treatment person basis and work distribution.
-- Decision-letter generation stores PDF bytes on the decision.
-- Manual recipients require editable treatment; strict confidentiality rules can reject manual recipients.
+- At most one active corrected after-payment record is intended per treatment.
+- Treatment must be editable for create/deactivate.
 
 Failure and exceptional cases:
-- Failing function: `delete letter recipient`
-  - Failure condition: `mottakerId` does not exist.
-  - Why it fails: `BrevmottakerService.fjernBrevmottaker` throws.
-  - Violated prerequisite or constraint: delete requires generated recipient id.
-- Failing function: `retrieve decision letter`
-  - Failure condition: decision letter has not been generated/stored.
-  - Why it fails: document service cannot retrieve missing PDF.
-  - Violated prerequisite or constraint: retrieval requires prior `generate decision letter`.
-- Failing function: `preview repayment warning letter`
-  - Failure condition: treatment missing or letter generation fails.
-  - Why it fails: endpoint is treatment-scoped and delegates generation.
-  - Violated prerequisite or constraint: repayment warning preview requires valid treatment.
+- Failing function: `create corrected after-payment metadata`
+  - Failure condition: treatment is not editable.
+  - Why it fails: controller validates editability.
+  - Violated prerequisite or constraint: correction metadata requires editable treatment.
+- Failing function: `list corrected after-payment metadata`
+  - Failure condition: caller lacks access to the treatment.
+  - Why it fails: controller validates treatment access.
+  - Violated prerequisite or constraint: list requires authorized access.
 
-Implementation notes:
-Potential access discrepancy: case-scoped manual letter preview/send endpoints verify role but do not explicitly validate access to the supplied `fagsakId` in the controller, unlike treatment-scoped letter endpoints.
+Implementation notes: Deactivation without an active correction is effectively a no-op in service logic.
 
-### Behavior 13: Maintain decision periods and letter explanations
+<a id="behavior-26"></a>
+### Behavior 26: Add and remove small child supplement correction
+Business goal: Add a small-child supplement correction for a month and remove it later.
 
-Business goal:
-List decision periods, update standard/free-text explanations, override change date, and generate letter explanation candidates.
+API group boundary: Both functions share `behandlingId` and `årMåned`.
 
-Domain context:
-Decision periods structure what the decision letter explains and when entitlement changes apply.
+Domain context: Manual supplement corrections adjust entitlement for specific months.
 
-Starting point:
-No prior service state.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: editable treatment has no correction for target month.
+- Transition trigger: add correction request.
+- Intermediate states: monthly correction is persisted.
+- State after: correction exists, then is removed.
+- Invalid or blocked transitions: non-editable treatment or invalid month fails.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`; capture `fagsakId`.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body; capture `behandlingId`.
-3. Use function `register application`, `validate conditions`, and `derive treatment result` in order to generate decision-period state for that treatment.
-4. Use function `list decision periods` (`GET /api/vedtaksperioder/behandling/{behandlingId}/hent-vedtaksperioder`) and capture `vedtaksperiodeId`.
-5. Use function `update standard explanations` (`PUT /api/vedtaksperioder/standardbegrunnelser/{vedtaksperiodeId}`) with explanation enum names.
-6. Use function `update decision free texts` (`PUT /api/vedtaksperioder/fritekster/{vedtaksperiodeId}`) with body `RestPutVedtaksperiodeMedFritekster`.
-7. Use function `regenerate decision periods` (`PUT /api/vedtaksperioder/endringstidspunkt`) with body containing `behandlingId` and overridden change-date values.
+1. Use function `add small child supplement correction` (`POST /api/småbarnstilleggkorrigering/behandling/{behandlingId}`) with `behandlingId=B1` and body `årMåned=YM1` to add correction.
+2. Use function `remove small child supplement correction` (`DELETE /api/småbarnstilleggkorrigering/behandling/{behandlingId}`) with `behandlingId=B1` and body `årMåned=YM1` to remove correction.
 
 Optional verification workflow:
-1. Use function `generate letter explanation texts` (`GET /api/vedtaksperioder/brevbegrunnelser/{vedtaksperiodeId}`).
-2. Use function `list decision periods` again.
-3. Use function `get change date` (`GET /api/behandlinger/{behandlingId}/endringstidspunkt`).
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect treatment state.
 
 Existing-state shortcuts:
-- If treatment already has generated decision periods, steps 1-3 can be skipped.
-- Direct database setup can create periods, but `vedtaksperiodeId` must belong to the treatment and active decision state.
+- Add setup can be skipped for remove only when a correction for the same `årMåned` exists on the treatment.
+- Direct database setup must preserve the month/treatment ownership.
 
 Parameter and value bindings:
-- `behandlingId` scopes decision-period generation and listing.
-- `vedtaksperiodeId` from listing is reused for explanation/free-text updates.
-- Override change date consumes treatment-level id and regenerates period records.
+- `årMåned=YM1` must be reused exactly for removal.
+- `behandlingId=B1` scopes both actions.
 
-Business result:
-Decision periods have selected standard explanations and free texts; overridden change date can regenerate period structure.
+Business result: The monthly supplement correction is added and then removed from the treatment.
 
 Constraints and invariants:
-- Explanation enum names must be convertible to known decision explanation enums.
-- Decision periods must already exist before period-level updates.
-- Regeneration can replace prior period state.
+- Treatment must be editable.
+- There is no dedicated list endpoint for supplement corrections.
+
+Failure and exceptional cases:
+- Failing function: `remove small child supplement correction`
+  - Failure condition: no correction exists for `årMåned=YM1`.
+  - Why it fails: service cannot remove a non-existing correction for the treatment/month.
+  - Violated prerequisite or constraint: removal requires existing month correction.
+
+Implementation notes: The API depends on treatment reads to observe correction state.
+
+<a id="behavior-27"></a>
+### Behavior 27: Preview repayment warning letter
+Business goal: Generate a repayment warning letter preview without sending it.
+
+API group boundary: The function is scoped to a treatment’s repayment context.
+
+Domain context: Caseworkers preview repayment warning text before sending formal communication.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists.
+- Transition trigger: preview request.
+- Intermediate states: PDF preview is generated.
+- State after: no persisted letter/send state is required.
+- Invalid or blocked transitions: missing treatment or invalid free text/upstream document generation failure blocks preview.
+
+Required execution workflow:
+1. Use function `preview repayment warning letter` (`POST /api/tilbakekreving/{behandlingId}/forhandsvis-varselbrev`) with `behandlingId=B1` and body `fritekst=T1` to generate preview.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when a valid treatment exists.
+- Direct database setup must preserve repayment-relevant treatment data.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes the preview.
+- Body `fritekst=T1` is rendered into the preview.
+
+Business result: Caller receives preview PDF/resource; no send state is persisted by this function.
+
+Constraints and invariants:
+- Body must include free text.
+- Document generation depends on letter services.
+
+Failure and exceptional cases:
+- Failing function: `preview repayment warning letter`
+  - Failure condition: `behandlingId=B404` does not exist.
+  - Why it fails: treatment lookup/document-generation basis fails.
+  - Violated prerequisite or constraint: treatment must exist.
+
+Implementation notes: Preview and send are intentionally separated; this function is read-like but computational.
+
+<a id="behavior-28"></a>
+### Behavior 28: Generate and retrieve decision letter
+Business goal: Generate the persisted decision letter for an active decision and retrieve it.
+
+API group boundary: Both functions share `vedtakId`.
+
+Domain context: A decision letter is the formal document representation of a treatment decision.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: active decision exists without generated stored letter.
+- Transition trigger: decision-letter generation.
+- Intermediate states: PDF is generated and stored.
+- State after: stored decision letter can be retrieved.
+- Invalid or blocked transitions: missing decision id, generation failure, or retrieval before generation fails.
+
+Required execution workflow:
+1. Use function `generate decision letter` (`POST /api/dokument/vedtaksbrev/{vedtakId}`) with `vedtakId=Vd1` to generate and store the decision letter.
+2. Use function `retrieve decision letter` (`GET /api/dokument/vedtaksbrev/{vedtakId}`) with `vedtakId=Vd1` to retrieve the stored PDF.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to find the active `vedtak.id` when it is not already known.
+
+Existing-state shortcuts:
+- Treatment step setup can be skipped when `vedtakId=Vd1` already identifies an active decision.
+- Direct database setup must include decision/treatment relationship and document prerequisites.
+
+Parameter and value bindings:
+- `vedtakId=Vd1` must come from treatment active decision state.
+- The same `vedtakId` is reused for retrieval.
+
+Business result: A decision letter PDF exists for the decision and is retrievable.
+
+Constraints and invariants:
+- Retrieval requires prior generation.
+- Decision id must identify a valid decision.
+
+Failure and exceptional cases:
+- Failing function: `retrieve decision letter`
+  - Failure condition: letter has not been generated for `vedtakId=Vd1`.
+  - Why it fails: retrieval expects stored/generated document state.
+  - Violated prerequisite or constraint: generation must precede retrieval.
+- Failing function: `generate decision letter`
+  - Failure condition: `vedtakId=V404` does not exist.
+  - Why it fails: document service cannot load decision basis.
+  - Violated prerequisite or constraint: decision id must exist.
+
+Implementation notes: Decision letter generation is a mutating `POST`; retrieval is a binary/document response.
+
+<a id="behavior-29"></a>
+### Behavior 29: Preview and send manual treatment letter
+Business goal: Preview and send a manual letter tied to a treatment.
+
+API group boundary: Both functions share `behandlingId` and `ManueltBrevRequest`.
+
+Domain context: Treatment-scoped letters use treatment basis, recipients, and work distribution.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists and letter has not been sent.
+- Transition trigger: preview then send request.
+- Intermediate states: preview document is generated; send generates and dispatches/journals document.
+- State after: manual letter is sent for treatment.
+- Invalid or blocked transitions: missing treatment, invalid request, or document/distribution failure blocks send.
+
+Required execution workflow:
+1. Use function `preview treatment letter` (`POST /api/dokument/forhaandsvis-brev/{behandlingId}`) with `behandlingId=B1` and body `ManueltBrevRequest` to preview the letter.
+2. Use function `send treatment letter` (`POST /api/dokument/send-brev/{behandlingId}`) with `behandlingId=B1` and body `ManueltBrevRequest` to send the letter.
+
+Optional verification workflow:
+1. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) with `behandlingId=B1` to inspect logged communication events.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when `behandlingId=B1` exists and has required recipient/person basis.
+- Preview is not a persisted prerequisite for send, but it is part of this concrete quality-control workflow.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes preview and send.
+- The manual letter request body should be reused between preview and send to ensure the sent letter matches the preview.
+
+Business result: A treatment-scoped manual letter is sent; preview was generated with the same request values.
+
+Constraints and invariants:
+- Recipient data is enriched from treatment person basis and work distribution.
+- Send side effects occur in document/journal/distribution integrations.
+
+Failure and exceptional cases:
+- Failing function: `send treatment letter`
+  - Failure condition: `ManueltBrevRequest` lacks required template/recipient content.
+  - Why it fails: document service cannot generate/send a valid manual letter.
+  - Violated prerequisite or constraint: request body must define a valid manual letter.
+
+Implementation notes: Preview and send are separate; clients must control request equality if they require preview/send consistency.
+
+<a id="behavior-30"></a>
+### Behavior 30: Preview and send manual case letter
+Business goal: Preview and send a manual letter tied directly to a case.
+
+API group boundary: Both functions share `fagsakId` and `ManueltBrevRequest`.
+
+Domain context: Some manual communication belongs to the case rather than a specific treatment.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists and letter has not been sent.
+- Transition trigger: case-letter preview and send request.
+- Intermediate states: preview is generated; send dispatches/journals document.
+- State after: manual case letter is sent.
+- Invalid or blocked transitions: missing case, invalid request, or document integration failure blocks send.
+
+Required execution workflow:
+1. Use function `preview case letter` (`POST /api/dokument/fagsak/{fagsakId}/forhaandsvis-brev`) with `fagsakId=F1` and body `ManueltBrevRequest` to preview the letter.
+2. Use function `send case letter` (`POST /api/dokument/fagsak/{fagsakId}/send-brev`) with `fagsakId=F1` and body `ManueltBrevRequest` to send the letter.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to inspect case context.
+
+Existing-state shortcuts:
+- Case creation can be skipped when `fagsakId=F1` exists.
+- Preview is not a persisted prerequisite for send, but it is part of this concrete workflow.
+
+Parameter and value bindings:
+- `fagsakId=F1` scopes both functions.
+- Manual letter request body should be reused between preview and send.
+
+Business result: A case-scoped manual letter is sent.
+
+Constraints and invariants:
+- Case must exist and caller must have access.
+- Letter service owns distribution/journal side effects.
+
+Failure and exceptional cases:
+- Failing function: `send case letter`
+  - Failure condition: `fagsakId=F404` does not exist.
+  - Why it fails: case/document basis cannot be loaded.
+  - Violated prerequisite or constraint: parent case must exist.
+
+Implementation notes: This workflow is distinct from treatment-scoped letters because no `behandlingId` is required.
+
+<a id="behavior-31"></a>
+### Behavior 31: Maintain manual letter recipients
+Business goal: Add, list, and remove manual letter recipients for a treatment.
+
+API group boundary: All functions share `behandlingId` and recipient id.
+
+Domain context: Manual recipients affect who receives treatment letters and how addresses are constructed.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment has default or no manual recipients.
+- Transition trigger: recipient creation.
+- Intermediate states: recipient row is saved/logged and can be listed.
+- State after: recipient is deleted.
+- Invalid or blocked transitions: confidential-person rule, invalid recipient id, or non-editable treatment blocks mutation.
+
+Required execution workflow:
+1. Use function `add letter recipient` (`POST /api/brevmottaker/{behandlingId}`) with `behandlingId=B1` and body `RestBrevmottaker` to add recipient and capture `mottakerId=M1`.
+2. Use function `list letter recipients` (`GET /api/brevmottaker/{behandlingId}`) with `behandlingId=B1` to list recipients and confirm `mottakerId=M1`.
+3. Use function `delete letter recipient` (`DELETE /api/brevmottaker/{behandlingId}/{mottakerId}`) with `behandlingId=B1`, `mottakerId=M1` to delete the recipient.
+
+Optional verification workflow:
+1. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) with `behandlingId=B1` to inspect recipient add/remove logs.
+
+Existing-state shortcuts:
+- Add can be skipped for deletion only when a valid recipient id already exists.
+- Direct database setup must preserve recipient-to-treatment ownership.
+
+Parameter and value bindings:
+- `mottakerId=M1` from add/list is reused in delete.
+- `behandlingId=B1` scopes access and list, but deletion service deletes by recipient id.
+
+Business result: Manual recipient is added, visible in list, and removed.
+
+Constraints and invariants:
+- Treatment must be editable.
+- Strictly confidential person rules can reject manual recipients.
+- Recipient combinations are validated later when constructing actual letter recipients.
+
+Failure and exceptional cases:
+- Failing function: `add letter recipient`
+  - Failure condition: treatment contains strictly confidential person and manual recipient is disallowed.
+  - Why it fails: validation service rejects the combination.
+  - Violated prerequisite or constraint: confidentiality rules restrict manual recipients.
+- Failing function: `delete letter recipient`
+  - Failure condition: `mottakerId=M404` does not exist.
+  - Why it fails: service throws when recipient id is missing.
+  - Violated prerequisite or constraint: deletion requires existing recipient id.
+
+Implementation notes: Delete validates access to `behandlingId` but service deletes by `mottakerId`; ownership enforcement is weaker than the path shape suggests.
+
+<a id="behavior-32"></a>
+### Behavior 32: Edit decision periods and regenerate letter explanations
+Business goal: Modify decision-period explanations, override change date, and generate final letter explanation texts.
+
+API group boundary: Functions share generated decision-period state under `behandlingId` and `vedtaksperiodeId`.
+
+Domain context: Decision periods and explanations determine the content of decision letters.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment result has been derived and decision periods exist.
+- Transition trigger: list/read period ids, update explanations, override change date, generate text.
+- Intermediate states: standard explanations, free texts, and overridden change date are persisted; decision periods may be regenerated.
+- State after: periods contain updated explanation data and generated letter texts are available.
+- Invalid or blocked transitions: missing period id, invalid explanation enum, unsupported explanation data, or missing treatment state fails.
+
+Required execution workflow:
+1. Use function `list decision periods` (`GET /api/vedtaksperioder/behandling/{behandlingId}/hent-vedtaksperioder`) with `behandlingId=B1` to obtain `vedtaksperiodeId=VP1`.
+2. Use function `update standard explanations` (`PUT /api/vedtaksperioder/standardbegrunnelser/{vedtaksperiodeId}`) with `vedtaksperiodeId=VP1` and body `standardbegrunnelser=[S1]` to update standard explanations.
+3. Use function `update decision free texts` (`PUT /api/vedtaksperioder/fritekster/{vedtaksperiodeId}`) with `vedtaksperiodeId=VP1` and body `RestPutVedtaksperiodeMedFritekster` to update free texts.
+4. Use function `regenerate decision periods` (`PUT /api/vedtaksperioder/endringstidspunkt`) with body `behandlingId=B1`, overridden date fields to regenerate periods.
+5. Use function `list decision periods` (`GET /api/vedtaksperioder/behandling/{behandlingId}/hent-vedtaksperioder`) with `behandlingId=B1` to obtain current `vedtaksperiodeId=VP2`.
+6. Use function `generate letter explanation texts` (`GET /api/vedtaksperioder/brevbegrunnelser/{vedtaksperiodeId}`) with `vedtaksperiodeId=VP2` to generate final explanation text.
+
+Optional verification workflow:
+1. Use function `get change date` (`GET /api/behandlinger/{behandlingId}/endringstidspunkt`) with `behandlingId=B1` to inspect the change date.
+2. Use function `generate decision letter` (`POST /api/dokument/vedtaksbrev/{vedtakId}`) with `vedtakId=Vd1` to generate the full letter after explanations are set.
+
+Existing-state shortcuts:
+- The initial list can be skipped when a current `vedtaksperiodeId` is already known from treatment result generation.
+- After overriding change date, previous period ids may be stale; the period list should be refreshed before generating text.
+
+Parameter and value bindings:
+- `behandlingId=B1` is used to list/regenerate periods.
+- `vedtaksperiodeId=VP1` from list is reused for explanation updates.
+- `vedtaksperiodeId=VP2` after regeneration is used for explanation-text generation.
+- Explanation names must map to `IVedtakBegrunnelse` enum values.
+
+Business result: Decision-period explanation metadata and free texts are updated; change date override can regenerate the period set; final letter explanation text can be generated.
+
+Constraints and invariants:
+- Updating explanations derives treatment id from period id before access check.
+- Change-date override regenerates periods through the first change date.
+- Unsupported explanation data fails during generated text retrieval.
 
 Failure and exceptional cases:
 - Failing function: `update standard explanations`
-  - Failure condition: invalid explanation enum or missing period id.
-  - Why it fails: conversion or lookup fails.
-  - Violated prerequisite or constraint: explanations must be known and period must exist.
-- Failing function: `list decision periods`
-  - Failure condition: treatment has not advanced far enough to create periods.
-  - Why it fails: no generated decision periods are available.
-  - Violated prerequisite or constraint: treatment result must be derived.
-- Failing function: `derive treatment result`
-  - Failure condition: prior application/condition state missing.
-  - Why it fails: treatment-result step preconditions fail.
-  - Violated prerequisite or constraint: workflow step order.
+  - Failure condition: body contains an explanation string not convertible to a known enum.
+  - Why it fails: controller maps names through `IVedtakBegrunnelse.konverterTilEnumVerdi`.
+  - Violated prerequisite or constraint: explanation names must be recognized.
+- Failing function: `generate letter explanation texts`
+  - Failure condition: decision period contains unsupported explanation data.
+  - Why it fails: controller throws `Feil("Ukjent begrunnelsestype")`.
+  - Violated prerequisite or constraint: explanation data must be a supported type.
 
-Implementation notes:
-Decision-period work is tightly coupled to treatment-result derivation; it is not independent CRUD over arbitrary periods.
+Implementation notes: Period regeneration can invalidate ids acquired earlier in the workflow.
 
-### Behavior 14: Exchange data with external benefit, tax, Infotrygd, collaborator, task, and journal systems
+<a id="behavior-33"></a>
+### Behavior 33: Retrieve treatment log
+Business goal: Read audit/log entries for a treatment.
 
-Business goal:
-Read or send domain data through integrations used by other agencies and caseworker work queues.
+API group boundary: The function is scoped by `behandlingId`.
 
-Domain context:
-The service is not isolated. It provides child-benefit data to BISYS, pension, tax, complaint, and statistics systems, and consumes task/journal/collaborator systems.
+Domain context: Logs are used to inspect state-changing actions and communication events.
 
-Starting point:
-No prior service state for pure external lookup; complete workflow when linking to local case/treatment.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists with zero or more log entries.
+- Transition trigger: log read request.
+- Intermediate states: no persistent mutation.
+- State after: log entries are returned.
+- Invalid or blocked transitions: invalid id or repository failure returns bad-request resource.
 
 Required execution workflow:
-1. Use function `retrieve BISYS extended benefit` (`POST /api/bisys/hent-utvidet-barnetrygd`) with the external request body for a person/period.
-2. Use function `retrieve pension child benefit` (`POST /api/ekstern/pensjon/hent-barnetrygd`) with pension request body.
-3. Use function `order pension yearly export` (`GET /api/ekstern/pensjon/bestill-personer-med-barnetrygd/{år}`) with `år=2026`.
-4. Use function `list tax persons` (`GET /api/skatt/personer`) or `retrieve tax periods` (`POST /api/skatt/perioder`) with tax request body.
-5. Use function `retrieve Infotrygd cases`, `retrieve Infotrygd benefits`, or `check ongoing Infotrygd case` with body identifying the applicant.
-6. Use function `retrieve collaborator by organization` (`GET /api/samhandler/orgnr/{orgnr}`) with `orgnr=ORG1`, or `search collaborator` (`POST /api/samhandler/navn`) with name/location search body.
-7. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with `RestFinnOppgaveRequest`; capture `oppgaveId`.
-8. Use function `assign task` (`POST /api/oppgave/{oppgaveId}/fordel`) with query `saksbehandler=NAVIDENT`.
-9. Use function `retrieve journalpost` (`GET /api/journalpost/{journalpostId}/hent`) and capture `dokumentInfoId`.
-10. Use function `journal journalpost` (`POST /api/journalpost/{journalpostId}/journalfør/{oppgaveId}`) with query `journalfoerendeEnhet=ENHET1` and body `RestJournalføring` where every document has `dokumentTittel`.
+1. Use function `retrieve treatment log` (`GET /api/logg/{behandlingId}`) with `behandlingId=B1` to retrieve logs.
 
 Optional verification workflow:
-1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`).
-2. Use function `retrieve journal document resource` (`GET /api/journalpost/{journalpostId}/hent/{dokumentInfoId}`).
-3. Use function `retrieve journal document PDF` (`GET /api/journalpost/{journalpostId}/dokument/{dokumentInfoId}`).
-4. Use function `complete task` (`GET /api/oppgave/{oppgaveId}/ferdigstill`) or `complete task and link journalpost` (`POST /api/oppgave/{oppgaveId}/ferdigstillOgKnyttjournalpost`) when finishing the work queue item.
+None.
 
 Existing-state shortcuts:
-- External lookup functions can start with external system state only.
-- Task assignment/completion can skip `search tasks` if `oppgaveId` is already known.
-- Journal document retrieval can skip `retrieve journalpost` if `journalpostId` and `dokumentInfoId` are already known and valid.
-- Direct database setup is insufficient for upstream-only state unless external systems also contain the records.
+- No setup API call is required when `behandlingId=B1` already exists.
+- Direct database setup can seed log rows for verification.
 
 Parameter and value bindings:
-- `oppgaveId` from task search is reused for assign/reset/complete/journal workflows.
-- `journalpostId` and `dokumentInfoId` from journalpost metadata are reused for document retrieval.
-- `journalpostId`, `oppgaveId`, and `journalfoerendeEnhet` bind journaling to a concrete task and unit.
+- `behandlingId=B1` scopes the log query.
 
-Business result:
-External benefit/tax/Infotrygd/collaborator data is retrieved; tasks can be assigned, completed, or linked; journalposts can be journaled and documents retrieved.
+Business result: Caller receives log entries for the treatment.
 
 Constraints and invariants:
-- Upstream systems control existence and failure.
-- Journaling requires non-empty document titles.
-- Task assignment requires `saksbehandler` query value.
-- Task reset/complete are id-based and depend on external task state.
+- The function is read-only.
 
 Failure and exceptional cases:
-- Failing function: `search tasks`
-  - Failure condition: invalid search body or upstream task failure.
-  - Why it fails: controller catches errors and returns illegal-state response.
-  - Violated prerequisite or constraint: task search must be valid/upstream available.
-- Failing function: `journal journalpost`
-  - Failure condition: at least one document lacks `dokumentTittel`.
-  - Why it fails: controller throws functional error for null/blank titles.
-  - Violated prerequisite or constraint: all journaled documents need titles.
-- Failing function: `retrieve journal document PDF`
-  - Failure condition: `dokumentInfoId` is not part of `journalpostId`.
-  - Why it fails: upstream journal lookup fails.
-  - Violated prerequisite or constraint: document id must be from the journalpost.
+- Failing function: `retrieve treatment log`
+  - Failure condition: invalid treatment id or repository failure.
+  - Why it fails: controller catches retrieval errors and returns bad-request resource.
+  - Violated prerequisite or constraint: valid treatment/log state is required.
 
-Implementation notes:
-Many functions are integration facades. Their business behavior depends as much on upstream state as local state.
+Implementation notes: This behavior is often verification for other mutations.
 
-### Behavior 15: Handle complaints and complaint-triggered revisions
+<a id="behavior-34"></a>
+### Behavior 34: Retrieve external benefit data for BISYS
+Business goal: Provide BISYS with extended child benefit and small child supplement periods for a person.
 
-Business goal:
-Create/list complaint treatments and allow the complaint system to check and create complaint revisions.
+API group boundary: The function is a single external integration lookup.
 
-Domain context:
-Complaint handling connects the child-benefit case to complaint workflows and fagsystem decision history.
+Domain context: BISYS consumes child-benefit data but does not mutate local state through this endpoint.
 
-Starting point:
-No prior service state.
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: benefit/person data exists locally/upstream.
+- Transition trigger: BISYS lookup.
+- Intermediate states: no local mutation.
+- State after: benefit periods are returned.
+- Invalid or blocked transitions: too old `fraDato` or unknown person fails.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`; capture `fagsakId`.
-2. Use function `create complaint treatment` (`POST /api/fagsaker/{fagsakId}/opprett-klagebehandling`) with body `OpprettKlageDto`.
-3. Use function `check complaint revision creation` (`GET /api/klage/fagsaker/{fagsakId}/kan-opprette-revurdering-klage`) from the authorized complaint client.
-4. Use function `create complaint revision` (`POST /api/klage/fagsaker/{fagsakId}/opprett-revurdering-klage/`) from the same authorized complaint-client context.
+1. Use function `retrieve BISYS extended benefit` (`POST /api/bisys/hent-utvidet-barnetrygd`) with body `personIdent=P1`, `fraDato=D_within_5_years` to retrieve benefit periods.
 
 Optional verification workflow:
-1. Use function `list complaint treatments` (`GET /api/fagsaker/{fagsakId}/hent-klagebehandlinger`).
-2. Use function `retrieve complaint decisions` (`GET /api/klage/fagsaker/{fagsakId}/vedtak`).
+None.
 
 Existing-state shortcuts:
-- Existing case can replace setup.
-- Direct database setup can create complaint treatment state for listing, but complaint revision creation still requires authorized caller context and service validation.
-- `check complaint revision creation` is a recommended precheck, but implementation of `create complaint revision` performs its own validation.
+- No local API setup can guarantee returned benefit periods; completed benefit/payment state or test data must already exist.
 
 Parameter and value bindings:
-- The same `fagsakId` scopes complaint treatment, revision precheck, revision creation, and decision retrieval.
-- Complaint-client identity is a caller-context binding, not a path/body value.
+- `personIdent=P1` identifies the external subject.
+- `fraDato` controls period cutoff and must be no older than five years.
 
-Business result:
-Complaint treatment state exists, complaint revision may be created, and complaint system can retrieve case decisions.
+Business result: BISYS receives benefit period data or a controlled external-service error.
 
 Constraints and invariants:
-- Complaint revision endpoints require calls from the complaint client.
-- Ordinary case access applies unless machine-to-machine decision retrieval bypass applies.
-- Revision creation must be valid for the case’s current treatment state.
+- `fraDato` older than five years is rejected.
+- Unknown PDL person is converted to bad-request external-service error.
+
+Failure and exceptional cases:
+- Failing function: `retrieve BISYS extended benefit`
+  - Failure condition: `fraDato < today - 5 years`.
+  - Why it fails: controller throws BAD_REQUEST external-service error.
+  - Violated prerequisite or constraint: BISYS lookup window is limited.
+- Failing function: `retrieve BISYS extended benefit`
+  - Failure condition: unknown `personIdent`.
+  - Why it fails: PDL not-found `Feil` is converted to BAD_REQUEST external-service error.
+  - Violated prerequisite or constraint: person must exist upstream.
+
+Implementation notes: This is an integration read, not a caseworker workflow.
+
+<a id="behavior-35"></a>
+### Behavior 35: Retrieve pension child benefit
+Business goal: Provide Pension with child-benefit case and period data for one person.
+
+API group boundary: Atomic external lookup scoped by `ident` and `fraDato`.
+
+Domain context: Pension consumers need child-benefit state without entering the caseworker flow.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: benefit state may exist for the person.
+- Transition trigger: Pension lookup request.
+- Intermediate states: no local mutation.
+- State after: child-benefit data is returned or an error is raised.
+- Invalid or blocked transitions: `fraDato` older than two years or upstream failure blocks the lookup.
+
+Required execution workflow:
+1. Use function `retrieve pension child benefit` (`POST /api/ekstern/pensjon/hent-barnetrygd`) with body `ident=P1`, `fraDato=D_within_two_years` to retrieve child-benefit data for Pension.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No API setup is required when upstream person and benefit state already exists.
+- Direct database setup must still produce benefit periods that the Pension service can map for `P1`.
+
+Parameter and value bindings:
+- Body `ident=P1` is the person key; `fraDato` limits returned periods.
+- Caller identity is an external/system integration caller.
+
+Business result: Pension receives mapped child-benefit data for the requested person and date range.
+
+Constraints and invariants:
+- `fraDato` cannot be more than two years before the request date.
+- The function is read-only and does not create local tasks.
+
+Failure and exceptional cases:
+- Failing function: `retrieve pension child benefit`
+  - Failure condition: `fraDato` is older than the allowed two-year window.
+  - Why it fails: the controller throws a BAD_REQUEST external service error.
+  - Violated prerequisite or constraint: Pension lookup date window.
+
+Implementation notes: This is separate from yearly Pension export; no id returned here is consumed by the export endpoint.
+
+<a id="behavior-36"></a>
+### Behavior 36: Order pension yearly export
+Business goal: Queue export of persons with child benefit for a Pension tax/reporting year.
+
+API group boundary: Atomic asynchronous export order scoped by path year.
+
+Domain context: Pension can order a yearly population export through task/Kafka processing.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: yearly benefit population may exist.
+- Transition trigger: yearly export order.
+- Intermediate states: a task/Kafka flow is created.
+- State after: export work is queued; the person list is not returned synchronously.
+- Invalid or blocked transitions: year outside `1970..2300` fails.
+
+Required execution workflow:
+1. Use function `order pension yearly export` (`GET /api/ekstern/pensjon/bestill-personer-med-barnetrygd/{år}`) with `år=2026` to queue the yearly export.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No case setup is required when the export job is intended to scan existing state.
+- Direct task setup can represent an already queued export, but the order action itself cannot be skipped when validating this API behavior.
+
+Parameter and value bindings:
+- Path `år=2026` is serialized into the export task/event.
+
+Business result: A yearly export job for Pension is queued.
+
+Constraints and invariants:
+- `år` must be an integer in the accepted range.
+- The endpoint uses `GET` while creating asynchronous work.
+
+Failure and exceptional cases:
+- Failing function: `order pension yearly export`
+  - Failure condition: `år=1969` or `år=2301`.
+  - Why it fails: the controller throws `IllegalArgumentException` for year outside range.
+  - Violated prerequisite or constraint: allowed export year.
+
+Implementation notes: This behavior does not consume data returned by `retrieve pension child benefit`.
+
+<a id="behavior-37"></a>
+### Behavior 37: Production tax data export
+Business goal: Return Skatteetaten production person and period data for one tax year.
+
+API group boundary: The functions share production tax year `aar` and response-to-request binding from listed persons to requested period `identer`.
+
+Domain context: Skatteetaten receives extended child-benefit information for tax handling.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: tax-relevant benefit data exists for the year.
+- Transition trigger: production list and period requests.
+- Intermediate states: no local mutation.
+- State after: production person list and period data are returned.
+- Invalid or blocked transitions: invalid year/body or upstream failure blocks response.
+
+Required execution workflow:
+1. Use function `list tax persons` (`GET /api/skatt/personer`) with query `aar=2026` to list production tax persons and capture `ident=P1` from the response.
+2. Use function `retrieve tax periods` (`POST /api/skatt/perioder`) with body `identer=[P1]`, `aar=2026` to retrieve production tax periods for the listed person.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `P1` is already a trusted tax-relevant identity for `aar=2026`.
+- The identity must still belong to the same tax year and benefit population.
+
+Parameter and value bindings:
+- Query/body `aar=2026` is reused.
+- `P1` returned by `list tax persons` is consumed in body `identer` for `retrieve tax periods`.
+
+Business result: The production tax consumer receives period data for listed tax persons.
+
+Constraints and invariants:
+- `aar` must parse as a year string.
+- Production list may use real or fallback data according to feature-toggle state, but the endpoint is still the production path.
+
+Failure and exceptional cases:
+- Failing function: `retrieve tax periods`
+  - Failure condition: body lacks `identer` or `aar`.
+  - Why it fails: the request cannot map to a tax period query.
+  - Violated prerequisite or constraint: period lookup requires identities and year.
+
+Implementation notes: Production and test endpoints are separate exposed capabilities and are modeled separately.
+
+<a id="behavior-38"></a>
+### Behavior 38: Tax test endpoint data retrieval
+Business goal: Return Skatteetaten test-path person and period data for one tax year.
+
+API group boundary: The functions share test endpoint paths, tax year `aar`, and response-to-request binding from listed persons to requested period `identer`.
+
+Domain context: The test path exercises tax mapping without relying on the production feature-toggle route.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: test-path tax data exists.
+- Transition trigger: test list and period requests.
+- Intermediate states: no local mutation.
+- State after: test person list and periods are returned.
+- Invalid or blocked transitions: invalid year/body or upstream failure blocks response.
+
+Required execution workflow:
+1. Use function `list tax persons test` (`GET /api/skatt/personer/test`) with query `aar=2026` to list test-path tax persons and capture `ident=P1` from the response.
+2. Use function `retrieve tax periods test` (`POST /api/skatt/perioder/test`) with body `identer=[P1]`, `aar=2026` to retrieve test-path tax periods.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `P1` is already known from test fixture data for `aar=2026`.
+- Direct database/test fixture setup must still match the same year and identity scope.
+
+Parameter and value bindings:
+- Query/body `aar=2026` is reused.
+- `P1` returned by `list tax persons test` is consumed in `retrieve tax periods test`.
+
+Business result: Test callers receive mapped tax periods through the explicit test endpoints.
+
+Constraints and invariants:
+- Test endpoints always call the test-path service behavior.
+- They are not interchangeable required steps for production export.
+
+Failure and exceptional cases:
+- Failing function: `retrieve tax periods test`
+  - Failure condition: body lacks required identity/year fields.
+  - Why it fails: the test period query cannot be built.
+  - Violated prerequisite or constraint: test period lookup requires identities and year.
+
+Implementation notes: This behavior is intentionally split from production tax export.
+
+<a id="behavior-39"></a>
+### Behavior 39: Retrieve Infotrygd case and benefit context
+Business goal: Read legacy Infotrygd case, benefit, and ongoing-state information for an applicant.
+
+API group boundary: Functions share applicant `ident` and Infotrygd integration.
+
+Domain context: Legacy Infotrygd state affects migration, duplicate checks, and caseworker context.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: applicant may have legacy Infotrygd state.
+- Transition trigger: Infotrygd lookup requests.
+- Intermediate states: no local mutation.
+- State after: legacy cases, benefits, and ongoing boolean are returned.
+- Invalid or blocked transitions: missing access can return masked data; upstream failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve Infotrygd cases` (`POST /api/infotrygd/hent-infotrygdsaker-for-soker`) with body `ident=P1` to retrieve legacy cases.
+2. Use function `retrieve Infotrygd benefits` (`POST /api/infotrygd/hent-infotrygdstonader-for-soker`) with body `ident=P1` to retrieve legacy benefits.
+3. Use function `check ongoing Infotrygd case` (`POST /api/infotrygd/har-lopende-sak`) with body `ident=P1` to check ongoing state.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No local case setup is needed.
+- Upstream Infotrygd state must exist to return positive data.
+
+Parameter and value bindings:
+- `ident=P1` is reused across all three integration calls.
+
+Business result: Caller receives legacy context for the applicant.
+
+Constraints and invariants:
+- Access can affect masking.
+- These endpoints do not create local case/treatment state.
+
+Failure and exceptional cases:
+- Failing function: `retrieve Infotrygd cases`
+  - Failure condition: upstream Infotrygd service failure.
+  - Why it fails: controller delegates to integration service.
+  - Violated prerequisite or constraint: Infotrygd integration must be available.
+
+Implementation notes: These are lookup behaviors only; they do not establish migration state by themselves.
+
+<a id="behavior-40"></a>
+### Behavior 40: Discover collaborators by search and organization number
+Business goal: Find collaborator/institution information and retrieve details by organization number.
+
+API group boundary: Both functions access the collaborator/institution service and can bind search result organization number into detail lookup.
+
+Domain context: Institution cases and letters need collaborator data.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: collaborator exists upstream.
+- Transition trigger: collaborator search and lookup.
+- Intermediate states: no local mutation.
+- State after: collaborator details are returned.
+- Invalid or blocked transitions: no search variable or unknown organization number fails.
+
+Required execution workflow:
+1. Use function `search collaborator` (`POST /api/samhandler/navn`) with body `navn=N1` to search collaborators and capture `orgnr=ORG1` from a result.
+2. Use function `retrieve collaborator by organization` (`GET /api/samhandler/orgnr/{orgnr}`) with `orgnr=ORG1` to retrieve details.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Search can be skipped when `orgnr=ORG1` is known from upstream or existing case state.
+
+Parameter and value bindings:
+- `orgnr=ORG1` returned by search is consumed by organization lookup.
+- Search body must include at least `navn`, `postnummer`, or `område`.
+
+Business result: Collaborator details are available for institution/case workflows.
+
+Constraints and invariants:
+- Empty search request is invalid.
+- Unknown organization number maps to 404-style functional error.
+
+Failure and exceptional cases:
+- Failing function: `search collaborator`
+  - Failure condition: body has no `navn`, `postnummer`, or `område`.
+  - Why it fails: controller throws BAD_REQUEST.
+  - Violated prerequisite or constraint: at least one search variable is required.
+- Failing function: `retrieve collaborator by organization`
+  - Failure condition: `orgnr=UNKNOWN`.
+  - Why it fails: not-found exceptions are converted to functional 404.
+  - Violated prerequisite or constraint: collaborator must exist upstream.
+
+Implementation notes: This workflow can provide institution details but does not itself create an institution case.
+
+<a id="behavior-41"></a>
+### Behavior 41: Create and list complaint treatments for a case
+Business goal: Start a complaint treatment for a child-benefit case and list complaint treatments.
+
+API group boundary: Both functions share `fagsakId` and complaint integration state.
+
+Domain context: Complaint handling is a separate treatment lifecycle linked to a case.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists without the requested complaint treatment.
+- Transition trigger: complaint treatment creation request.
+- Intermediate states: complaint integration creates treatment.
+- State after: complaint treatment is listed for the case.
+- Invalid or blocked transitions: missing case or invalid complaint body fails.
+
+Required execution workflow:
+1. Use function `create complaint treatment` (`POST /api/fagsaker/{fagsakId}/opprett-klagebehandling`) with `fagsakId=F1` and body `OpprettKlageDto` to create complaint treatment.
+2. Use function `list complaint treatments` (`GET /api/fagsaker/{fagsakId}/hent-klagebehandlinger`) with `fagsakId=F1` to list complaint treatments.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to inspect case context.
+
+Existing-state shortcuts:
+- Case setup can be skipped when `fagsakId=F1` exists.
+- Direct complaint-system setup can seed complaint treatments for listing, but the core creation action cannot be skipped when testing creation.
+
+Parameter and value bindings:
+- `fagsakId=F1` scopes both creation and listing.
+- Body `OpprettKlageDto` carries complaint creation data.
+
+Business result: A complaint treatment exists for the case and is visible through the list endpoint.
+
+Constraints and invariants:
+- Parent case must exist.
+- Complaint integration owns detailed complaint treatment semantics.
+
+Failure and exceptional cases:
+- Failing function: `create complaint treatment`
+  - Failure condition: `fagsakId=F404` does not exist.
+  - Why it fails: complaint creation cannot bind to parent case.
+  - Violated prerequisite or constraint: complaint treatment requires existing case.
+
+Implementation notes: This is internal complaint integration under `/api/fagsaker`, distinct from external Klage M2M revision endpoints.
+
+<a id="behavior-42"></a>
+### Behavior 42: Let complaint system create a revision after precheck
+Business goal: Let the external complaint system check and create a complaint-triggered revision on a case.
+
+API group boundary: Both functions share `fagsakId` and require Klage caller context.
+
+Domain context: Complaint outcomes can require a revision treatment in the child-benefit system.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists and complaint system is authorized.
+- Transition trigger: precheck then revision creation.
+- Intermediate states: eligibility is evaluated.
+- State after: revision treatment is created for complaint workflow.
+- Invalid or blocked transitions: non-Klage caller or ineligible case blocks creation.
+
+Required execution workflow:
+1. Use function `check complaint revision creation` (`GET /api/klage/fagsaker/{fagsakId}/kan-opprette-revurdering-klage`) with `fagsakId=F1` and Klage machine-to-machine caller context to check eligibility.
+2. Use function `create complaint revision` (`POST /api/klage/fagsaker/{fagsakId}/opprett-revurdering-klage/`) with `fagsakId=F1` and Klage machine-to-machine caller context to create the revision.
+
+Optional verification workflow:
+1. Use function `retrieve complaint decisions` (`GET /api/klage/fagsaker/{fagsakId}/vedtak`) with `fagsakId=F1` to inspect decisions available to complaint system.
+
+Existing-state shortcuts:
+- Precheck can be skipped only when equivalent eligibility was already established by trusted complaint workflow state, but creation still requires authorized Klage context.
+- Direct database setup must preserve case state and lack of active blocking treatment where relevant.
+
+Parameter and value bindings:
+- `fagsakId=F1` is reused between precheck and creation.
+- Caller context must satisfy `SikkerhetContext.kallKommerFraKlage()`.
+
+Business result: A complaint-triggered revision treatment is created for the case.
+
+Constraints and invariants:
+- Klage caller is mandatory for precheck and creation.
+- Ordinary user access rules differ for `retrieve complaint decisions`; M2M callers bypass ordinary fagsak access check.
 
 Failure and exceptional cases:
 - Failing function: `check complaint revision creation`
-  - Failure condition: caller is not recognized as complaint client.
+  - Failure condition: caller is not recognized as Klage.
   - Why it fails: controller checks `SikkerhetContext.kallKommerFraKlage()`.
-  - Violated prerequisite or constraint: authorized complaint-client context required.
+  - Violated prerequisite or constraint: endpoint is reserved for complaint client.
 - Failing function: `create complaint revision`
-  - Failure condition: caller not complaint client or service validation rejects revision.
-  - Why it fails: controller and service validate caller and revision eligibility.
-  - Violated prerequisite or constraint: complaint revision must be allowed for this case.
-- Failing function: `create complaint treatment`
-  - Failure condition: `fagsakId` missing or caller lacks access.
-  - Why it fails: controller validates access to case and action.
-  - Violated prerequisite or constraint: complaint treatment is case-scoped.
+  - Failure condition: caller is not recognized as Klage.
+  - Why it fails: same Klage context validation is enforced.
+  - Violated prerequisite or constraint: endpoint is reserved for complaint client.
 
-Implementation notes:
-Complaint precheck and creation are exposed under `/api/klage`, while complaint treatment CRUD is exposed under `/api/fagsaker`.
+Implementation notes: Precheck and creation are separate API calls; no token or precheck result id is bound between them.
 
-### Behavior 16: Run rate change, reconciliation, statistics, event, and administrative operations
+<a id="behavior-43"></a>
+### Behavior 43: Retrieve decisions for complaint system
+Business goal: Provide fagsystem decisions for a case to the complaint system.
 
-Business goal:
-Trigger operational jobs, exports, statistics messages, event ingestion, and administrative repair routines.
+API group boundary: The function is case-scoped and externally exposed under Klage API.
 
-Domain context:
-The service includes operational APIs for scheduled or manual maintenance beyond normal caseworker flow.
+Domain context: Complaint handling needs the child-benefit decisions being complained about.
 
-Starting point:
-No prior service state for job triggers; case/treatment state required for targeted jobs.
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists with decision history.
+- Transition trigger: decision retrieval request.
+- Intermediate states: no mutation.
+- State after: decisions are returned.
+- Invalid or blocked transitions: missing case or access failure blocks retrieval.
 
 Required execution workflow:
-1. Use function `create case` (`POST /api/fagsaker`) with `personIdent=P1`; capture `fagsakId` when targeting a case.
-2. Use function `create treatment` (`POST /api/behandlinger`) with valid body; capture `behandlingId` when targeting a treatment.
-3. Use function `check rate change eligibility` (`GET /api/satsendring/{fagsakId}/kan-kjore-satsendring`) with `fagsakId`.
-4. Use one of `trigger rate change for case`, `trigger rate change for cases`, `run synchronous rate change`, or `trigger rate change from identities` with `fagsakId`, body case ids, or identity list.
-5. Use function `run consistency dry run` (`POST /api/konsistensavstemming/dryrun`) before `run consistency reconciliation` (`POST /api/konsistensavstemming/run`) when validating reconciliation.
-6. Use statistics reads/sends as needed: `retrieve treatment statistics`, `retrieve case statistics`, `register statistics sent`, `retrieve benefit statistics decisions`, `queue unsent benefit statistics`, `queue benefit statistics manually`, `resend migration statistics`.
-7. Use event functions `handle identity event` and `handle transitional benefit event` with their event payloads.
-8. Use admin repair functions such as `send payment orders administratively`, `run rate change without validation`, `find payment-order issues`, `resend corrected payment orders`, `populate support dates for treatment`, and `update case ongoing status` with their required ids/bodies.
+1. Use function `retrieve complaint decisions` (`GET /api/klage/fagsaker/{fagsakId}/vedtak`) with `fagsakId=F1` to retrieve decisions.
 
 Optional verification workflow:
-1. Use function `retrieve internal statistics` (`GET /api/internstatistikk`).
-2. Use function `retrieve application statistics` (`GET /api/internstatistikk/antallSoknader`).
-3. Use function `find cases without latest rate` (`POST /api/satsendring/saker-uten-sats`).
-4. Use function `find cases to close` (`GET /api/forvalter/finnFagsakerSomSkalAvsluttes`).
-5. Use function `retrieve treatment` or `retrieve full case` for targeted case/treatment changes.
+None.
 
 Existing-state shortcuts:
-- Targeted operations can skip case/treatment setup when valid ids already exist.
-- Bulk/admin jobs often operate from database state and can start from pre-existing production-like state.
-- Direct database setup must preserve statuses, dates, rates, benefit shares, payment order versions, and migration markers expected by each job.
+- No setup call is needed when `fagsakId=F1` is known and decisions exist.
+- Direct database setup must include implemented/decision state.
 
 Parameter and value bindings:
-- `fagsakId` binds rate-change and case-admin functions.
-- `behandlingId` binds payment-order repair and support-date functions.
-- `versjon` binds corrected payment-order resend to a treatment version.
-- Event payload identities bind event ingestion to person/case lookup.
-- `dryRun` path value controls whether migration-statistics resend mutates or only simulates.
+- `fagsakId=F1` scopes decision retrieval.
+- Caller context determines ordinary access check behavior.
 
-Business result:
-Jobs are queued or executed; statistics messages are read or marked sent; payment orders and support dates may be repaired; case ongoing status can be recalculated.
+Business result: Complaint system receives decision data for the case.
 
 Constraints and invariants:
-- Several admin endpoints catch per-item errors and continue, returning partial success details.
-- Some functions are intentionally powerful and bypass normal validations, especially `run rate change without validation`.
-- Consistency dry run does not perform the same persisted mutation as actual reconciliation.
+- Non-M2M callers are subject to ordinary fagsak access validation.
+
+Failure and exceptional cases:
+- Failing function: `retrieve complaint decisions`
+  - Failure condition: non-M2M caller lacks access to case.
+  - Why it fails: controller performs ordinary fagsak access check.
+  - Violated prerequisite or constraint: caller must be authorized.
+
+Implementation notes: This is a lookup behavior and does not create complaint/revision state.
+
+<a id="behavior-44"></a>
+### Behavior 44: Search external tasks
+Business goal: Find external task ids that can be acted on by later task workflows.
+
+API group boundary: Atomic task discovery returning upstream `oppgaveId` values.
+
+Domain context: Caseworker and admin task actions require ids from the external task service.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: external tasks may exist.
+- Transition trigger: task search request.
+- Intermediate states: no local mutation.
+- State after: task search result is returned.
+- Invalid or blocked transitions: invalid search body or upstream task failure returns illegal-state response.
+
+Required execution workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with body `RestFinnOppgaveRequest` to search tasks and capture `oppgaveId=O1`.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Discovery can be skipped when `oppgaveId=O1` is already trusted from upstream state.
+- The task id must still refer to the expected task domain and tenant/context.
+
+Parameter and value bindings:
+- Search body fields are converted to the upstream task query.
+- Returned `oppgaveId` can be reused by assignment, reset, retrieval, completion, and journal-link workflows.
+
+Business result: The caller receives task ids and task metadata from the external task system.
+
+Constraints and invariants:
+- The endpoint does not own task state; it proxies the integration.
+
+Failure and exceptional cases:
+- Failing function: `search tasks`
+  - Failure condition: invalid body or upstream task service failure.
+  - Why it fails: the controller catches retrieval errors and returns illegal state.
+  - Violated prerequisite or constraint: valid search request and available task integration.
+
+Implementation notes: Discovery is intentionally separate from repair or completion actions.
+
+<a id="behavior-45"></a>
+### Behavior 45: Assign external task
+Business goal: Assign a known task to a caseworker.
+
+API group boundary: Task state transition scoped by `oppgaveId` returned by task discovery.
+
+Domain context: Work distribution moves an external task to a named caseworker.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task exists and is assignable.
+- Transition trigger: assignment request.
+- Intermediate states: upstream task assignment is updated.
+- State after: task is assigned to the requested caseworker.
+- Invalid or blocked transitions: missing/unassignable task or insufficient role fails.
+
+Required execution workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with body `RestFinnOppgaveRequest` to capture `oppgaveId=O1`.
+2. Use function `assign task` (`POST /api/oppgave/{oppgaveId}/fordel`) with `oppgaveId=O1`, query `saksbehandler=S1` to assign the task.
+
+Optional verification workflow:
+1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` to inspect task context.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `O1` is already known and still assignable.
+- The caller must still have caseworker role.
+
+Parameter and value bindings:
+- `oppgaveId=O1` from search is reused in the assignment path.
+- Query `saksbehandler=S1` becomes the assignee.
+
+Business result: The upstream task is assigned and the response returns the assigned task id/string.
+
+Constraints and invariants:
+- The controller sets `overstyrFordeling=false`.
+
+Failure and exceptional cases:
+- Failing function: `assign task`
+  - Failure condition: `oppgaveId=O1` is missing or cannot be assigned.
+  - Why it fails: upstream task assignment fails through `OppgaveService`.
+  - Violated prerequisite or constraint: task must exist and be assignable.
+
+Implementation notes: Assignment is a distinct transition from reset and completion.
+
+<a id="behavior-46"></a>
+### Behavior 46: Reset external task assignment
+Business goal: Clear assignment on a known external task.
+
+API group boundary: Task state transition scoped by `oppgaveId`.
+
+Domain context: A wrongly or temporarily assigned task can be returned to unassigned state.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task exists with assignment state.
+- Transition trigger: reset request.
+- Intermediate states: upstream assignment is cleared.
+- State after: task assignment is reset.
+- Invalid or blocked transitions: invalid or unresettable task returns illegal-state response.
+
+Required execution workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with body `RestFinnOppgaveRequest` to capture `oppgaveId=O1`.
+2. Use function `reset task assignment` (`POST /api/oppgave/{oppgaveId}/tilbakestill`) with `oppgaveId=O1` to clear assignment.
+
+Optional verification workflow:
+1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` to inspect task state.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `O1` is already known and belongs to the external task scope.
+
+Parameter and value bindings:
+- `oppgaveId=O1` from discovery is reused in the reset path.
+
+Business result: The external task is no longer assigned to a caseworker.
+
+Constraints and invariants:
+- The task must exist and be mutable upstream.
+
+Failure and exceptional cases:
+- Failing function: `reset task assignment`
+  - Failure condition: reset fails upstream.
+  - Why it fails: the controller catches the exception and returns illegal state.
+  - Violated prerequisite or constraint: task must be resettable.
+
+Implementation notes: Reset is not a prerequisite for plain completion.
+
+<a id="behavior-47"></a>
+### Behavior 47: Retrieve journaling task data
+Business goal: Gather task, person, minimal case, and optional journalpost context for manual journaling.
+
+API group boundary: Atomic read scoped by `oppgaveId`.
+
+Domain context: Journalføring needs enriched task context before linking or journaling documents.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task exists and may reference actor/journalpost.
+- Transition trigger: task-data read.
+- Intermediate states: no local mutation.
+- State after: enriched manual-journaling context is returned.
+- Invalid or blocked transitions: missing task or upstream person/journal lookup failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` to retrieve task context.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Task search can be skipped when `O1` is already known.
+
+Parameter and value bindings:
+- Path `oppgaveId=O1` selects the external task.
+- Task actor id and journalpost id, when present, are used to enrich response data.
+
+Business result: The caller receives task details plus person, minimal case, and journalpost data when available.
+
+Constraints and invariants:
+- Missing optional actor or journalpost data yields partial enrichment, not necessarily endpoint failure.
+
+Failure and exceptional cases:
+- Failing function: `retrieve journaling task data`
+  - Failure condition: `oppgaveId=O1` cannot be loaded.
+  - Why it fails: `oppgaveService.hentOppgave` must return an upstream task.
+  - Violated prerequisite or constraint: task id must exist.
+
+Implementation notes: This is a read workflow; it does not complete or link the task.
+
+<a id="behavior-48"></a>
+### Behavior 48: Complete external task
+Business goal: Close a known external task without linking a journalpost.
+
+API group boundary: Task terminal transition scoped by `oppgaveId`.
+
+Domain context: Casework tasks can be closed after required work is complete.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task exists and is open.
+- Transition trigger: completion request.
+- Intermediate states: upstream task is loaded and completed.
+- State after: task is closed.
+- Invalid or blocked transitions: missing or already uncompletable task fails upstream.
+
+Required execution workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with body `RestFinnOppgaveRequest` to capture `oppgaveId=O1`.
+2. Use function `complete task` (`GET /api/oppgave/{oppgaveId}/ferdigstill`) with `oppgaveId=O1` to complete the task.
+
+Optional verification workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with the same search body to verify the task no longer appears as open.
+
+Existing-state shortcuts:
+- Step 1 can be skipped when `O1` is already known and open.
+
+Parameter and value bindings:
+- `oppgaveId=O1` from discovery is reused in the completion path.
+
+Business result: The upstream task is closed and the response says the task was closed.
+
+Constraints and invariants:
+- `complete task` is a mutating `GET`.
+
+Failure and exceptional cases:
+- Failing function: `complete task`
+  - Failure condition: `oppgaveId=O1` does not identify an open task.
+  - Why it fails: the service cannot load or complete the task.
+  - Violated prerequisite or constraint: task must exist and be completable.
+
+Implementation notes: Journalpost-link completion is modeled separately.
+
+<a id="behavior-49"></a>
+### Behavior 49: Complete task while linking a journalpost
+Business goal: Link a journalpost to a case/treatment context and complete the related task.
+
+API group boundary: The function binds `oppgaveId` to journalpost/fagsak data in the body.
+
+Domain context: Manual journaling work can be completed only after the journalpost is associated with the correct case context.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task and journalpost exist and are not completed/linked in this way.
+- Transition trigger: complete-and-link request.
+- Intermediate states: journalpost association is created/updated.
+- State after: task is completed and journalpost link exists.
+- Invalid or blocked transitions: missing task, missing journalpost, or invalid body fails.
+
+Required execution workflow:
+1. Use function `complete task and link journalpost` (`POST /api/oppgave/{oppgaveId}/ferdigstillOgKnyttjournalpost`) with `oppgaveId=O1` and body `RestFerdigstillOppgaveKnyttJournalpost` containing `journalpostId=J1`, `fagsakId=F1` to link and complete.
+
+Optional verification workflow:
+1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` before completion to inspect task context.
+2. Use function `retrieve journalpost` (`GET /api/journalpost/{journalpostId}/hent`) with `journalpostId=J1` to inspect journalpost metadata.
+
+Existing-state shortcuts:
+- Task search can be skipped when `oppgaveId=O1` is known.
+- Journalpost lookup can be skipped when `journalpostId=J1` is trusted upstream.
+
+Parameter and value bindings:
+- `oppgaveId=O1` scopes task completion.
+- Body `journalpostId=J1` is linked to case/treatment context in the body.
+- `fagsakId=F1` must identify the case for the link.
+
+Business result: Journalpost is connected to the case/treatment context and the task is completed.
+
+Constraints and invariants:
+- The body must provide enough link data for the integration service.
+- Upstream task and journal systems must accept the state transition.
+
+Failure and exceptional cases:
+- Failing function: `complete task and link journalpost`
+  - Failure condition: `oppgaveId=O404` or `journalpostId=J404` is invalid.
+  - Why it fails: task/journal integration cannot complete/link missing resources.
+  - Violated prerequisite or constraint: both upstream resources must exist.
+
+Implementation notes: This is an alternative to plain task completion and should be modeled separately.
+
+<a id="behavior-50"></a>
+### Behavior 50: Retrieve open extended-benefit deadlines
+Business goal: Report deadlines for open extended child-benefit treatments.
+
+API group boundary: Atomic operational report over open treatment task state.
+
+Domain context: Operations can inspect deadline state for open extended-benefit treatments.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: open extended-benefit treatment/task state may exist.
+- Transition trigger: deadline report request.
+- Intermediate states: no local mutation.
+- State after: deadline report string is returned.
+- Invalid or blocked transitions: upstream task lookup failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve open treatment deadlines` (`POST /api/oppgave/hent-frister-for-apne-utvidet-barnetrygd-behandlinger`) with no body to retrieve deadline information.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No setup function is required when open task state already exists.
+
+Parameter and value bindings:
+- No request ids are reused; the service scans open extended-benefit treatment task state.
+
+Business result: The caller receives current deadline information for open extended-benefit treatments.
+
+Constraints and invariants:
+- This is read-only and does not clear ownership markers.
+
+Failure and exceptional cases:
+- Failing function: `retrieve open treatment deadlines`
+  - Failure condition: deadline lookup fails in the task service.
+  - Why it fails: the controller depends on `OppgaveService` report generation.
+  - Violated prerequisite or constraint: available task integration/state.
+
+Implementation notes: This report is separate from the ownership-clear mutation.
+
+<a id="behavior-51"></a>
+### Behavior 51: Clear application task ownership
+Business goal: Remove `behandlesAvApplikasjon` ownership markers from selected tasks.
+
+API group boundary: Task mutation scoped by request body task ids.
+
+Domain context: Tasks locked to application processing can be released for manual or other handling.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: tasks exist with possible application ownership marker.
+- Transition trigger: clear ownership request.
+- Intermediate states: each requested task is updated upstream.
+- State after: ownership marker is removed for tasks the service can update.
+- Invalid or blocked transitions: invalid task ids or upstream update failures block or reduce success.
+
+Required execution workflow:
+1. Use function `clear application task ownership` (`POST /api/oppgave/fjern-behandles-av-applikasjon`) with body `[O1,O2]` to clear ownership markers.
+
+Optional verification workflow:
+1. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` to inspect a selected task.
+
+Existing-state shortcuts:
+- Task discovery can be skipped when task ids are already known.
+- The task ids must still be valid upstream task ids.
+
+Parameter and value bindings:
+- Body task ids are the exact tasks whose ownership marker is updated.
+
+Business result: The service reports which tasks had `behandlesAvApplikasjon` removed.
+
+Constraints and invariants:
+- The endpoint does not itself discover task ids.
+
+Failure and exceptional cases:
+- Failing function: `clear application task ownership`
+  - Failure condition: upstream task update fails.
+  - Why it fails: the service cannot remove the marker for invalid/unavailable task ids.
+  - Violated prerequisite or constraint: valid mutable task ids.
+
+Implementation notes: This is an independent repair action, not part of deadline reporting.
+
+<a id="behavior-52"></a>
+### Behavior 52: Inspect journalpost and retrieve documents
+Business goal: Read journalpost metadata and fetch documents in resource/PDF form.
+
+API group boundary: Functions share `journalpostId` and document ids returned by journalpost metadata.
+
+Domain context: Manual journaling and casework require reading incoming documents.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: journalpost and document exist in journal system.
+- Transition trigger: metadata and document read requests.
+- Intermediate states: no local mutation.
+- State after: metadata and document bytes are returned.
+- Invalid or blocked transitions: missing journalpost/document id or upstream journal failure blocks read.
+
+Required execution workflow:
+1. Use function `retrieve journalpost` (`GET /api/journalpost/{journalpostId}/hent`) with `journalpostId=J1` to retrieve metadata and capture `dokumentInfoId=DOK1`.
+2. Use function `retrieve journal document resource` (`GET /api/journalpost/{journalpostId}/hent/{dokumentInfoId}`) with `journalpostId=J1`, `dokumentInfoId=DOK1` to retrieve the document resource.
+3. Use function `retrieve journal document PDF` (`GET /api/journalpost/{journalpostId}/dokument/{dokumentInfoId}`) with `journalpostId=J1`, `dokumentInfoId=DOK1` to retrieve the document as PDF.
+
+Optional verification workflow:
+1. Use function `list user journalposts` (`POST /api/journalpost/for-bruker`) with body `PersonIdent=P1` to list journalposts for a person and find `journalpostId=J1`.
+
+Existing-state shortcuts:
+- Metadata retrieval can be skipped when both `journalpostId` and `dokumentInfoId` are trusted from upstream.
+- The document id must still belong to the journalpost.
+
+Parameter and value bindings:
+- `dokumentInfoId=DOK1` comes from retrieved journalpost metadata and is reused for document fetches.
+- `journalpostId=J1` scopes both document calls.
+
+Business result: The caller gets journalpost metadata and document bytes in both wrapped resource and PDF media forms.
+
+Constraints and invariants:
+- Document id must belong to the journalpost.
+- Upstream journal system is authoritative.
+
+Failure and exceptional cases:
+- Failing function: `retrieve journal document resource`
+  - Failure condition: `dokumentInfoId=DOK404` does not belong to `journalpostId=J1`.
+  - Why it fails: journal integration cannot retrieve the document.
+  - Violated prerequisite or constraint: document id must come from journalpost metadata.
+
+Implementation notes: Resource and PDF document retrieval are separate exposed representations of document bytes.
+
+<a id="behavior-53"></a>
+### Behavior 53: Journal an incoming journalpost
+Business goal: Journal an incoming journalpost to the correct unit/task context.
+
+API group boundary: The function binds `journalpostId`, `oppgaveId`, `journalfoerendeEnhet`, and document metadata.
+
+Domain context: Incoming documents must be journaled before task/case handling can be finalized.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: journalpost and task exist and journalpost is not journaled by this request.
+- Transition trigger: journalføring request.
+- Intermediate states: document metadata is validated; journalføring service updates journalpost state.
+- State after: journalpost is journaled.
+- Invalid or blocked transitions: blank document title, missing task/journalpost, or journal service failure blocks transition.
+
+Required execution workflow:
+1. Use function `journal journalpost` (`POST /api/journalpost/{journalpostId}/journalfør/{oppgaveId}`) with `journalpostId=J1`, `oppgaveId=O1`, query `journalfoerendeEnhet=E1`, and body `RestJournalføring` where every `dokumenter[].dokumentTittel` is non-empty to journal the post.
+
+Optional verification workflow:
+1. Use function `retrieve journalpost` (`GET /api/journalpost/{journalpostId}/hent`) with `journalpostId=J1` to inspect metadata after journaling.
+2. Use function `retrieve journaling task data` (`GET /api/oppgave/{oppgaveId}`) with `oppgaveId=O1` to inspect task context.
+
+Existing-state shortcuts:
+- Journalpost/task lookup can be skipped when ids are trusted from upstream.
+- The ids must still refer to resources that can be journaled together.
+
+Parameter and value bindings:
+- `journalpostId=J1` and `oppgaveId=O1` bind journalpost to task.
+- `journalfoerendeEnhet=E1` supplies journaling unit.
+- Body document titles are mandatory validation inputs.
+
+Business result: The journalpost is journaled with supplied document metadata and unit context.
+
+Constraints and invariants:
+- Every document title must be non-empty.
+- Upstream journal/task state must allow journaling.
+
+Failure and exceptional cases:
+- Failing function: `journal journalpost`
+  - Failure condition: any `dokumentTittel` is blank or missing.
+  - Why it fails: controller throws functional error before journalføring.
+  - Violated prerequisite or constraint: all documents must have titles.
+
+Implementation notes: The title validation is implemented directly in the controller.
+
+<a id="behavior-54"></a>
+### Behavior 54: Retrieve feature toggles
+Business goal: Return enabled/disabled state for requested feature toggles.
+
+API group boundary: Atomic read over feature-toggle ids.
+
+Domain context: UI and services can gate behavior by feature state.
+
+Starting point: `No prior service state`
+
+State transition summary:
+- State before: feature flags have configured values.
+- Transition trigger: toggle lookup request.
+- Intermediate states: no local mutation.
+- State after: toggle values are returned.
+- Invalid or blocked transitions: no implementation-backed domain failure identified.
+
+Required execution workflow:
+1. Use function `retrieve feature toggles` (`POST /api/feature`) with body `[T1,T2]` to retrieve toggle values.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No setup endpoint is required; toggle configuration is external/environment state.
+
+Parameter and value bindings:
+- Request body toggle ids are mapped directly to returned boolean states.
+
+Business result: The caller receives feature-toggle values.
+
+Constraints and invariants:
+- This is read-only.
+
+Failure and exceptional cases:
+- Failing function: `retrieve feature toggles`
+  - Failure condition: toggle service is unavailable.
+  - Why it fails: implementation depends on feature-toggle service/configuration.
+  - Violated prerequisite or constraint: toggle backend/configuration must be available.
+
+Implementation notes: This is separate from person access checking.
+
+<a id="behavior-55"></a>
+### Behavior 55: Check person access
+Business goal: Determine whether the current caller may access a person and see the person’s discretion code.
+
+API group boundary: Atomic access-control lookup scoped by `brukerIdent` and caller context.
+
+Domain context: Caseworker UI and integrations need explicit access feedback before showing person/case data.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: person and caller access state exist upstream.
+- Transition trigger: access check request.
+- Intermediate states: no local mutation.
+- State after: access result and address-protection/discretion information are returned.
+- Invalid or blocked transitions: unknown person or upstream access-service failure blocks response.
+
+Required execution workflow:
+1. Use function `check person access` (`POST /api/tilgang`) with body `brukerIdent=P1` and current caller context `C1` to check access.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No local case setup is required when person and access state exist upstream.
+
+Parameter and value bindings:
+- Body `brukerIdent=P1` is evaluated against the authenticated caller context.
+
+Business result: Caller receives an access decision and discretion/address-protection information.
+
+Constraints and invariants:
+- Result depends on caller identity and upstream access rules, not only request body.
+
+Failure and exceptional cases:
+- Failing function: `check person access`
+  - Failure condition: person lookup or access service fails.
+  - Why it fails: the endpoint delegates to access/person services.
+  - Violated prerequisite or constraint: upstream person/access state must be available.
+
+Implementation notes: This function is not a feature-toggle lookup and has no response binding to `retrieve feature toggles`.
+
+<a id="behavior-56"></a>
+### Behavior 56: Queue identity event handling
+Business goal: Create asynchronous work for a new identity/PDL identity event.
+
+API group boundary: Atomic event-ingestion workflow scoped by `PersonIdent`.
+
+Domain context: Identity changes must be processed asynchronously to update affected case state.
+
+Starting point: `No prior service state`
+
+State transition summary:
+- State before: identity event has not been queued.
+- Transition trigger: identity event request.
+- Intermediate states: task payload is persisted.
+- State after: identity handling task exists.
+- Invalid or blocked transitions: invalid payload or task persistence failure blocks queuing.
+
+Required execution workflow:
+1. Use function `handle identity event` (`POST /api/ident`) with body `ident=P1` to queue identity handling.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Direct task-table setup can represent already queued work, but the event-ingestion action cannot be skipped for API validation.
+
+Parameter and value bindings:
+- Body identity is serialized into the task payload.
+
+Business result: Asynchronous identity processing is queued.
+
+Constraints and invariants:
+- The endpoint returns task-queue result, not completed case mutation.
+
+Failure and exceptional cases:
+- Failing function: `handle identity event`
+  - Failure condition: task creation fails.
+  - Why it fails: implementation persists a task for later processing.
+  - Violated prerequisite or constraint: valid event payload and task repository availability.
+
+Implementation notes: This is independent from transitional-benefit event handling.
+
+<a id="behavior-57"></a>
+### Behavior 57: Queue transitional-benefit event handling
+Business goal: Create asynchronous work for a transitional-benefit decision event.
+
+API group boundary: Atomic event-ingestion workflow scoped by event `ident`.
+
+Domain context: Transitional-benefit decisions can affect small child supplement handling.
+
+Starting point: `No prior service state`
+
+State transition summary:
+- State before: transitional-benefit event has not been queued.
+- Transition trigger: event request.
+- Intermediate states: task payload is persisted.
+- State after: processing task exists.
+- Invalid or blocked transitions: invalid payload or task persistence failure blocks queuing.
+
+Required execution workflow:
+1. Use function `handle transitional benefit event` (`POST /api/overgangsstonad`) with body `ident=P1` to queue event handling.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Direct task setup can represent an already queued event, but the API ingestion action remains the core behavior.
+
+Parameter and value bindings:
+- Body `ident=P1` is serialized into the task payload.
+
+Business result: Asynchronous transitional-benefit processing is queued.
+
+Constraints and invariants:
+- No immediate treatment mutation is guaranteed in the response.
+
+Failure and exceptional cases:
+- Failing function: `handle transitional benefit event`
+  - Failure condition: task repository failure.
+  - Why it fails: the controller creates a processing task.
+  - Violated prerequisite or constraint: task persistence must be available.
+
+Implementation notes: This is independent from identity-event processing.
+
+<a id="behavior-58"></a>
+### Behavior 58: Check rate-change eligibility for one case
+Business goal: Determine whether a case can undergo manual rate change.
+
+API group boundary: Atomic read scoped by `fagsakId`.
+
+Domain context: Caseworkers/admins can preflight manual rate-change execution.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists with rate/benefit state.
+- Transition trigger: eligibility check.
+- Intermediate states: no local mutation.
+- State after: boolean eligibility result is returned.
+- Invalid or blocked transitions: missing case or service validation failure blocks response.
+
+Required execution workflow:
+1. Use function `check rate change eligibility` (`GET /api/satsendring/{fagsakId}/kan-kjore-satsendring`) with `fagsakId=F1` to check eligibility.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Case creation can be skipped when `F1` already exists and belongs to the target case.
+
+Parameter and value bindings:
+- Path `fagsakId=F1` scopes the eligibility check.
+
+Business result: The caller receives whether rate change can run for `F1`.
+
+Constraints and invariants:
+- This read does not queue or run a rate change.
+
+Failure and exceptional cases:
+- Failing function: `check rate change eligibility`
+  - Failure condition: `fagsakId=F1` is missing.
+  - Why it fails: rate-change service cannot evaluate a nonexistent case.
+  - Violated prerequisite or constraint: case must exist.
+
+Implementation notes: Synchronous execution is modeled separately.
+
+<a id="behavior-59"></a>
+### Behavior 59: Queue rate change for one case
+Business goal: Queue rate-change processing for a single case.
+
+API group boundary: Atomic asynchronous transition scoped by `fagsakId`.
+
+Domain context: A single ongoing case can be scheduled for rate update.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists and may have outdated rates.
+- Transition trigger: single-case queue request.
+- Intermediate states: a rate-change task is created.
+- State after: asynchronous rate-change work exists for the case.
+- Invalid or blocked transitions: missing case or task creation failure blocks queuing.
+
+Required execution workflow:
+1. Use function `trigger rate change for case` (`GET /api/satsendring/kjorsatsendring/{fagsakId}`) with `fagsakId=F1` to queue rate change for that case.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` after task execution to inspect resulting state.
+
+Existing-state shortcuts:
+- Case setup can be skipped when `F1` is already known.
+
+Parameter and value bindings:
+- Path `fagsakId=F1` is serialized into the rate-change task.
+
+Business result: A rate-change task is queued for one case.
+
+Constraints and invariants:
+- This is a mutating `GET`.
+- The response does not mean the rate change is completed.
+
+Failure and exceptional cases:
+- Failing function: `trigger rate change for case`
+  - Failure condition: task creation fails for `F1`.
+  - Why it fails: implementation queues asynchronous work.
+  - Violated prerequisite or constraint: valid case and task repository availability.
+
+Implementation notes: Multi-case and identity-based queueing are separate entry points.
+
+<a id="behavior-60"></a>
+### Behavior 60: Queue rate change for multiple cases
+Business goal: Queue rate-change processing for a supplied set of cases.
+
+API group boundary: Atomic asynchronous bulk transition scoped by body `fagsakId` set.
+
+Domain context: Operations can schedule rate updates for a known case set.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: requested cases exist.
+- Transition trigger: multi-case queue request.
+- Intermediate states: tasks are created for supplied cases.
+- State after: asynchronous rate-change work exists for the case set.
+- Invalid or blocked transitions: invalid ids or per-case task failures may reduce success.
+
+Required execution workflow:
+1. Use function `trigger rate change for cases` (`POST /api/satsendring/kjorsatsendring`) with body `[F1,F2]` to queue rate changes for the supplied cases.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Case lookup can be skipped when `F1` and `F2` are already trusted case ids.
+
+Parameter and value bindings:
+- Body case ids are the exact targets for task creation.
+
+Business result: Rate-change tasks are queued for the supplied case ids.
+
+Constraints and invariants:
+- This endpoint does not discover cases by identity.
+
+Failure and exceptional cases:
+- Failing function: `trigger rate change for cases`
+  - Failure condition: a supplied case id is invalid.
+  - Why it fails: rate-change task creation requires valid case ids.
+  - Violated prerequisite or constraint: all target ids should identify existing cases.
+
+Implementation notes: This is split from `trigger rate change from identities` because body values have different domain meaning.
+
+<a id="behavior-61"></a>
+### Behavior 61: Run synchronous rate change for one case
+Business goal: Execute rate change immediately for one eligible case.
+
+API group boundary: Concrete validation-to-execution chain scoped by the same `fagsakId`.
+
+Domain context: Manual synchronous rate change applies changes now instead of queuing a task.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists and is eligible.
+- Transition trigger: eligibility check followed by synchronous run.
+- Intermediate states: rate-change service recalculates/updates treatment/case state.
+- State after: case has been synchronously rate-changed or the execution fails.
+- Invalid or blocked transitions: ineligible case blocks execution.
+
+Required execution workflow:
+1. Use function `check rate change eligibility` (`GET /api/satsendring/{fagsakId}/kan-kjore-satsendring`) with `fagsakId=F1` to obtain `kanKjøre=true`.
+2. Use function `run synchronous rate change` (`PUT /api/satsendring/{fagsakId}/kjor-satsendring-synkront`) with `fagsakId=F1` to execute the rate change.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to inspect resulting treatment/case state.
+
+Existing-state shortcuts:
+- Eligibility preknowledge can skip step 1 for operational use, but the same case must still be eligible or step 2 may fail.
+
+Parameter and value bindings:
+- `fagsakId=F1` is reused across validation and execution.
+- The boolean from step 1 is the decision input for step 2.
+
+Business result: The case is rate-changed synchronously.
+
+Constraints and invariants:
+- Synchronous execution is not the same state transition as queueing.
 
 Failure and exceptional cases:
 - Failing function: `run synchronous rate change`
-  - Failure condition: case is not eligible or has incompatible active treatment state.
-  - Why it fails: rate-change service validation rejects the case.
-  - Violated prerequisite or constraint: rate change requires eligible ongoing case state.
-- Failing function: `resend corrected payment order version`
-  - Failure condition: treatment/version cannot produce corrected payment order.
-  - Why it fails: admin controller catches exception and returns it in `harFeil`.
-  - Violated prerequisite or constraint: treatment payment state/version must exist.
-- Failing function: `register statistics sent`
-  - Failure condition: message id/type does not correspond to known unsent statistics state.
-  - Why it fails: statistics service cannot mark unknown message correctly.
-  - Violated prerequisite or constraint: message must exist in statistics state.
+  - Failure condition: `F1` is not eligible for rate change.
+  - Why it fails: rate-change service validates business eligibility.
+  - Violated prerequisite or constraint: eligible ongoing case/rate state.
 
-Implementation notes:
-Operational APIs expose both safe checks and unsafe/repair actions. They should be treated as administrative capabilities rather than ordinary user workflows.
+Implementation notes: The required workflow binds the same `fagsakId` across check and execution.
+
+<a id="behavior-62"></a>
+### Behavior 62: Queue rate change from identities
+Business goal: Discover relevant cases from supplied identities and queue rate-change tasks.
+
+API group boundary: Atomic identity-based queueing scoped by person identifiers rather than explicit case ids.
+
+Domain context: Operations can schedule rate changes when they have identities instead of case ids.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: supplied identities may map to old-rate cases.
+- Transition trigger: identity-list queue request.
+- Intermediate states: service resolves identities and creates tasks for matching cases.
+- State after: rate-change tasks exist for resolved candidates.
+- Invalid or blocked transitions: unresolvable identities do not produce target tasks.
+
+Required execution workflow:
+1. Use function `trigger rate change from identities` (`POST /api/satsendring/kjorsatsendringForListeMedIdenter`) with body `[P1,P2]` to resolve identities and queue matching rate changes.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Identity resolution can be prepared upstream, but the endpoint itself accepts identities and performs the discovery.
+
+Parameter and value bindings:
+- Body identities are not case ids; they are resolved to cases inside service logic.
+
+Business result: Rate-change work is queued for old-rate cases found from supplied identities.
+
+Constraints and invariants:
+- A person without a matching case produces no meaningful task for that person.
+
+Failure and exceptional cases:
+- Failing function: `trigger rate change from identities`
+  - Failure condition: an identity cannot be resolved or has no relevant case.
+  - Why it fails or degrades: service cannot bind the identity to a rate-change candidate.
+  - Violated prerequisite or constraint: identity must map to a candidate case for task creation.
+
+Implementation notes: This is not equivalent to passing case ids to `trigger rate change for cases`.
+
+<a id="behavior-63"></a>
+### Behavior 63: Queue technical dismissal for long-deadline treatments
+Business goal: Create dismissal tasks for treatments with deadlines beyond a validation date.
+
+API group boundary: The function is a rate-change/maintenance task workflow scoped by treatment ids and validation date.
+
+Domain context: During rate-change maintenance, treatments with long deadlines can be queued for technical dismissal.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatments exist with task deadlines.
+- Transition trigger: dismissal queue request.
+- Intermediate states: validation date is checked and tasks are created for supplied treatments.
+- State after: dismissal tasks exist.
+- Invalid or blocked transitions: invalid or too-early validation date fails.
+
+Required execution workflow:
+1. Use function `queue long-deadline dismissals` (`POST /api/satsendring/henleggBehandlingerMedLangFristSenereEnn/{valideringsdato}`) with `valideringsdato=D_after_one_month` and body `["B1","B2"]` to queue technical dismissal tasks.
+
+Optional verification workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with task query for the treatment ids to inspect created tasks.
+
+Existing-state shortcuts:
+- Treatment discovery can be skipped when treatment ids are already known.
+- Direct database setup must preserve task deadline state for those treatments.
+
+Parameter and value bindings:
+- Path `valideringsdato` controls validation.
+- Body treatment id strings are task payload targets.
+
+Business result: Technical dismissal tasks are queued for selected treatments.
+
+Constraints and invariants:
+- Validation date must parse and be after one month from current date.
+
+Failure and exceptional cases:
+- Failing function: `queue long-deadline dismissals`
+  - Failure condition: `valideringsdato` is invalid or too early.
+  - Why it fails: controller returns bad request.
+  - Violated prerequisite or constraint: date must be a valid future maintenance threshold.
+
+Implementation notes: This queues work; it does not immediately dismiss the treatments.
+
+<a id="behavior-64"></a>
+### Behavior 64: Identify ongoing cases without latest rate
+Business goal: Start background discovery of ongoing cases missing the latest rate.
+
+API group boundary: The function is a service-wide rate-change discovery job.
+
+Domain context: Operations need a call id to track missing-rate analysis.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: ongoing cases may be missing latest rate.
+- Transition trigger: async search request.
+- Intermediate states: background analysis is started.
+- State after: call id is returned.
+- Invalid or blocked transitions: task/background infrastructure failure blocks job start.
+
+Required execution workflow:
+1. Use function `find cases without latest rate` (`POST /api/satsendring/saker-uten-sats`) with no case-specific body to start async search and capture `callId=CID1`.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No specific case setup is required for the service-wide scan.
+- Direct database setup can seed cases without latest rate for the job to find.
+
+Parameter and value bindings:
+- Returned `callId` is the only API-visible correlation value.
+
+Business result: A background analysis starts and returns a call id.
+
+Constraints and invariants:
+- Job result retrieval is not available through a function in `full-behavior.md`.
+
+Failure and exceptional cases:
+- Failing function: `find cases without latest rate`
+  - Failure condition: background task creation fails.
+  - Why it fails: service cannot start async analysis.
+  - Violated prerequisite or constraint: task infrastructure must be available.
+
+Implementation notes: Swagger includes shared `/api/task/callId/{callId}`, but no project controller implementation is present and it was not converted to a function.
+
+<a id="behavior-65"></a>
+### Behavior 65: Run consistency reconciliation dry run
+Business goal: Queue economy consistency reconciliation without sending to the economy system.
+
+API group boundary: Atomic reconciliation task trigger for dry-run mode.
+
+Domain context: Operations can validate reconciliation effects before real sending.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: reconciliation has not been queued.
+- Transition trigger: dry-run request.
+- Intermediate states: dry-run task is created.
+- State after: dry-run reconciliation work exists.
+- Invalid or blocked transitions: task/batch persistence failure blocks queuing.
+
+Required execution workflow:
+1. Use function `run consistency dry run` (`POST /api/konsistensavstemming/dryrun`) with no body to queue dry-run reconciliation.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Direct task setup can represent existing dry-run work, but the API trigger cannot be skipped for this behavior.
+
+Parameter and value bindings:
+- No request body values are reused.
+
+Business result: A dry-run reconciliation task is queued.
+
+Constraints and invariants:
+- It does not send reconciliation to the economy system.
+
+Failure and exceptional cases:
+- Failing function: `run consistency dry run`
+  - Failure condition: task persistence fails.
+  - Why it fails: the controller creates queued reconciliation work.
+  - Violated prerequisite or constraint: task/batch repository availability.
+
+Implementation notes: Real reconciliation is separate.
+
+<a id="behavior-66"></a>
+### Behavior 66: Run real consistency reconciliation
+Business goal: Queue economy consistency reconciliation that sends to the economy system.
+
+API group boundary: Atomic reconciliation task trigger using `triggerTid`.
+
+Domain context: Operations can start the actual economy reconciliation run.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: real reconciliation has not been queued for the trigger time.
+- Transition trigger: real-run request.
+- Intermediate states: real reconciliation task is created with reconciliation date.
+- State after: economy-sending reconciliation work exists.
+- Invalid or blocked transitions: missing/invalid `triggerTid` or persistence failure blocks queuing.
+
+Required execution workflow:
+1. Use function `run consistency reconciliation` (`POST /api/konsistensavstemming/run`) with body `triggerTid=T1` to queue real reconciliation.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Direct task setup can represent an already queued real run, but it is not equivalent to calling the endpoint.
+
+Parameter and value bindings:
+- Body `triggerTid=T1` becomes task trigger time and reconciliation date.
+
+Business result: Real consistency reconciliation is queued for economy sending.
+
+Constraints and invariants:
+- This behavior sends to economy when the task executes.
+
+Failure and exceptional cases:
+- Failing function: `run consistency reconciliation`
+  - Failure condition: missing or invalid `triggerTid`.
+  - Why it fails: the task cannot be built with a valid trigger time.
+  - Violated prerequisite or constraint: real reconciliation requires trigger time.
+
+Implementation notes: Dry run and real run are separate capabilities.
+
+<a id="behavior-67"></a>
+### Behavior 67: Retrieve internal and application statistics
+Business goal: Read aggregate service statistics and application counts.
+
+API group boundary: Both functions are internal statistics read models.
+
+Domain context: Operational reporting needs counts for cases, unfinished treatments, and applications over time.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: service has case/treatment/application data.
+- Transition trigger: statistics read.
+- Intermediate states: no mutation.
+- State after: aggregate statistics are returned.
+- Invalid or blocked transitions: invalid date parameters or repository failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve internal statistics` (`GET /api/internstatistikk`) with no parameters to retrieve aggregate counts.
+2. Use function `retrieve application statistics` (`GET /api/internstatistikk/antallSoknader`) with query `fom=D1`, `tom=D2` to retrieve application statistics.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No case-specific setup is required.
+- Omitting date parameters uses implementation defaults for the current four-month period.
+
+Parameter and value bindings:
+- `fom` and `tom` define application statistics range.
+
+Business result: Internal statistics are returned for operational reporting.
+
+Constraints and invariants:
+- Date query parameters must parse as dates.
+
+Failure and exceptional cases:
+- Failing function: `retrieve application statistics`
+  - Failure condition: invalid `fom` or `tom`.
+  - Why it fails: request parameter date binding fails.
+  - Violated prerequisite or constraint: date parameters must be valid dates.
+
+Implementation notes: These reads do not update statistics sent-state.
+
+<a id="behavior-68"></a>
+### Behavior 68: Retrieve treatment statistics payload
+Business goal: Map one treatment to a DVH treatment statistics payload.
+
+API group boundary: Atomic read scoped by `behandlingId`.
+
+Domain context: Statistics publishing and debugging need the mapped treatment message.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment exists with enough state for mapping.
+- Transition trigger: treatment statistics read.
+- Intermediate states: no local mutation.
+- State after: mapped treatment statistics payload is returned.
+- Invalid or blocked transitions: incomplete treatment state or mapping failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve treatment statistics` (`GET /api/saksstatistikk/behandling/{behandlingId}`) with `behandlingId=B1` to map treatment statistics.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when `B1` already exists and is mappable.
+
+Parameter and value bindings:
+- Path `behandlingId=B1` selects the treatment message.
+
+Business result: The caller receives a treatment-level statistics payload.
+
+Constraints and invariants:
+- Mapping can fail if required treatment fields are missing.
+
+Failure and exceptional cases:
+- Failing function: `retrieve treatment statistics`
+  - Failure condition: missing/incomplete treatment state.
+  - Why it fails: controller logs and rethrows mapping errors.
+  - Violated prerequisite or constraint: treatment must be mappable.
+
+Implementation notes: Case statistics and sent-registration are separate behaviors.
+
+<a id="behavior-69"></a>
+### Behavior 69: Retrieve case statistics payload
+Business goal: Map one case to a DVH case statistics payload.
+
+API group boundary: Atomic read scoped by `fagsakId`.
+
+Domain context: Statistics publishing and debugging need the mapped case message.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: case exists with enough state for mapping.
+- Transition trigger: case statistics read.
+- Intermediate states: no local mutation.
+- State after: mapped case statistics payload is returned.
+- Invalid or blocked transitions: missing case or mapping failure blocks response.
+
+Required execution workflow:
+1. Use function `retrieve case statistics` (`GET /api/saksstatistikk/sak/{fagsakId}`) with `fagsakId=F1` to map case statistics.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Case setup can be skipped when `F1` already exists.
+
+Parameter and value bindings:
+- Path `fagsakId=F1` selects the case message.
+
+Business result: The caller receives a case-level statistics payload.
+
+Constraints and invariants:
+- Mapping is read-only and does not mark messages sent.
+
+Failure and exceptional cases:
+- Failing function: `retrieve case statistics`
+  - Failure condition: `F1` cannot be mapped.
+  - Why it fails: statistics service requires valid case state.
+  - Violated prerequisite or constraint: case must exist and be mappable.
+
+Implementation notes: Treatment and case mappings use different aggregate ids.
+
+<a id="behavior-70"></a>
+### Behavior 70: Register statistics message as sent
+Business goal: Persist that an externally sent statistics message has been sent and should not be resent.
+
+API group boundary: Atomic statistics sent-state mutation scoped by message metadata and JSON payload.
+
+Domain context: Statistics outbox/mellomlagring needs sent markers to avoid duplicate sending.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: sent marker for the message does not exist.
+- Transition trigger: sent-registration request.
+- Intermediate states: JSON fields are parsed.
+- State after: intermediate statistics record is stored with sent timestamp.
+- Invalid or blocked transitions: required JSON fields missing blocks registration.
+
+Required execution workflow:
+1. Use function `register statistics sent` (`POST /api/saksstatistikk/registrer-sendt-fra-statistikk`) with body `offset=O1`, `type=SAK`, `json=J1`, `sendtTidspunkt=T1` to register sent state.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Message production can be external; this API only needs the sent metadata and JSON payload.
+
+Parameter and value bindings:
+- Body `json=J1` must contain `funksjonellId`, `versjon`, and the id field matching `type`.
+- `offset` and `sendtTidspunkt` are persisted with the sent marker.
+
+Business result: The statistics message is marked as sent.
+
+Constraints and invariants:
+- Required JSON nodes must exist.
+
+Failure and exceptional cases:
+- Failing function: `register statistics sent`
+  - Failure condition: `json` lacks `funksjonellId`, `versjon`, `sakId`, or `behandlingId` required by `type`.
+  - Why it fails: the controller reads required JSON nodes and rethrows parsing/null errors.
+  - Violated prerequisite or constraint: complete statistics message metadata.
+
+Implementation notes: This does not generate the statistics payload itself.
+
+<a id="behavior-71"></a>
+### Behavior 71: Retrieve benefit statistics decisions
+Business goal: Map treatment ids to DVH V2 benefit-statistics decision payloads.
+
+API group boundary: Atomic read scoped by body treatment ids.
+
+Domain context: Operators and publishers can inspect benefit-statistics payloads for implemented treatments.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment ids exist and are mappable.
+- Transition trigger: payload retrieval request.
+- Intermediate states: no local mutation.
+- State after: decision payloads are returned.
+- Invalid or blocked transitions: missing or unmappable treatment ids fail mapping.
+
+Required execution workflow:
+1. Use function `retrieve benefit statistics decisions` (`POST /api/stonadsstatistikk/vedtakV2`) with body `[B1,B2]` to retrieve benefit-statistics decisions.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when ids are known and mappable.
+
+Parameter and value bindings:
+- Body treatment ids select the decision payloads.
+
+Business result: The caller receives DVH V2 benefit-statistics payloads.
+
+Constraints and invariants:
+- This read does not queue publishing.
+
+Failure and exceptional cases:
+- Failing function: `retrieve benefit statistics decisions`
+  - Failure condition: a treatment id cannot be mapped.
+  - Why it fails: statistics mapping requires complete treatment/decision state.
+  - Violated prerequisite or constraint: mappable treatment ids.
+
+Implementation notes: Publication queueing is modeled separately.
+
+<a id="behavior-72"></a>
+### Behavior 72: Queue unsent benefit statistics
+Business goal: Queue publication tasks for supplied treatments that have not already been sent.
+
+API group boundary: Atomic publish-task creation scoped by treatment ids and sent-state filter.
+
+Domain context: Normal benefit-statistics publishing avoids duplicate sends.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment ids exist and may or may not have sent-state records.
+- Transition trigger: unsent publication request.
+- Intermediate states: sent-state filter is applied and tasks are created for unsent treatments.
+- State after: publish tasks exist for unsent eligible treatments.
+- Invalid or blocked transitions: mapping/task failures block affected treatments.
+
+Required execution workflow:
+1. Use function `queue unsent benefit statistics` (`POST /api/stonadsstatistikk/send-til-dvh`) with body `[B1,B2]` to queue unsent benefit-statistics publication.
+
+Optional verification workflow:
+1. Use function `retrieve benefit statistics decisions` (`POST /api/stonadsstatistikk/vedtakV2`) with body `[B1,B2]` to inspect payloads.
+
+Existing-state shortcuts:
+- Treatment discovery can be skipped when ids are known.
+- Existing sent-state records may intentionally prevent task creation.
+
+Parameter and value bindings:
+- Body treatment ids are publication candidates.
+- Sent-state lookup controls which ids become tasks.
+
+Business result: Publish tasks are created only for unsent eligible treatments.
+
+Constraints and invariants:
+- Already sent treatments are skipped.
+
+Failure and exceptional cases:
+- Failing function: `queue unsent benefit statistics`
+  - Failure condition: treatment mapping or task creation fails.
+  - Why it fails: service must map and queue each treatment.
+  - Violated prerequisite or constraint: eligible, mappable treatment ids and task repository availability.
+
+Implementation notes: Manual publication ignores the sent-state filter and is modeled separately.
+
+<a id="behavior-73"></a>
+### Behavior 73: Manually queue benefit statistics
+Business goal: Queue benefit-statistics publication for supplied treatments without the normal sent-state filter.
+
+API group boundary: Atomic manual publish-task creation scoped by treatment ids.
+
+Domain context: Operators can force statistics republishing when needed.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment ids exist and may already have sent-state records.
+- Transition trigger: manual publication request.
+- Intermediate states: tasks are created without skipping already sent ids.
+- State after: publish tasks exist for supplied treatments where mapping succeeds.
+- Invalid or blocked transitions: mapping/task failures block affected treatments.
+
+Required execution workflow:
+1. Use function `queue benefit statistics manually` (`POST /api/stonadsstatistikk/send-til-dvh-manuell`) with body `[B1,B2]` to manually queue benefit statistics.
+
+Optional verification workflow:
+1. Use function `retrieve benefit statistics decisions` (`POST /api/stonadsstatistikk/vedtakV2`) with body `[B1,B2]` to inspect payloads.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when ids are trusted.
+
+Parameter and value bindings:
+- Body treatment ids are direct publish targets.
+
+Business result: Benefit-statistics publish tasks are manually queued.
+
+Constraints and invariants:
+- Sent-state is not used as a skip filter.
+
+Failure and exceptional cases:
+- Failing function: `queue benefit statistics manually`
+  - Failure condition: a treatment cannot be mapped or queued.
+  - Why it fails: manual queueing still depends on mapping and task persistence.
+  - Violated prerequisite or constraint: valid treatment ids.
+
+Implementation notes: This differs from `queue unsent benefit statistics` by duplicate-send protection.
+
+<a id="behavior-74"></a>
+### Behavior 74: Resend manual migration statistics
+Business goal: Backfill benefit statistics for eligible manual migration treatments.
+
+API group boundary: Atomic service-wide migration-statistics backfill controlled by `dryRun`.
+
+Domain context: Historical manual migration treatments may need statistics backfill.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: eligible manual migration treatments may exist.
+- Transition trigger: backfill request.
+- Intermediate states: treatments are scanned; publish tasks are created when `dryRun=false`.
+- State after: dry-run report or queued publish tasks exist.
+- Invalid or blocked transitions: service scan/task failures block completion.
+
+Required execution workflow:
+1. Use function `resend migration statistics` (`POST /api/stonadsstatistikk/ettersend-manuell-migrering/{dryRun}`) with `dryRun=false` to create backfill tasks.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No treatment list is supplied; the service scans existing migration treatment state.
+
+Parameter and value bindings:
+- Path `dryRun=false` controls whether the behavior mutates task state.
+
+Business result: Publish tasks are created for eligible manual migration treatments.
+
+Constraints and invariants:
+- With `dryRun=true`, the endpoint reports without creating publish tasks.
+
+Failure and exceptional cases:
+- Failing function: `resend migration statistics`
+  - Failure condition: scanning or task creation fails.
+  - Why it fails: service-owned backfill process cannot complete.
+  - Violated prerequisite or constraint: available migration treatment state and task repository.
+
+Implementation notes: This is not the same as manually supplying treatment ids.
+
+<a id="behavior-75"></a>
+### Behavior 75: Complete an administrative task list with partial success
+Business goal: Attempt to complete a list of tasks administratively and report failures.
+
+API group boundary: The function is a bulk admin operation over task ids.
+
+Domain context: Operations may need to clean up task queues.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: task ids exist or some ids are invalid.
+- Transition trigger: admin bulk completion request.
+- Intermediate states: each task is attempted independently.
+- State after: valid tasks may be completed; failures are counted/reported.
+- Invalid or blocked transitions: invalid ids fail per item without necessarily failing whole endpoint.
+
+Required execution workflow:
+1. Use function `finish admin task list` (`POST /api/forvalter/ferdigstill-oppgaver`) with body `[O1,O2]` to complete tasks administratively.
+
+Optional verification workflow:
+1. Use function `search tasks` (`POST /api/oppgave/hent-oppgaver`) with a task query to inspect remaining open tasks.
+
+Existing-state shortcuts:
+- Task search can be skipped when task ids are known.
+- Upstream task state must permit completion.
+
+Parameter and value bindings:
+- Body task ids are processed independently.
+
+Business result: Some or all supplied tasks are completed; response reports failure count.
+
+Constraints and invariants:
+- Partial success is allowed.
+- This admin endpoint does not provide all-or-nothing transaction semantics.
+
+Failure and exceptional cases:
+- Failing function: `finish admin task list`
+  - Failure condition: one task id is invalid.
+  - Why it fails: per-task completion catches/logs failure and reports failed count.
+  - Violated prerequisite or constraint: each task id must be completable for full success.
+
+Implementation notes: This is explicitly partial-success admin behavior.
+
+<a id="behavior-76"></a>
+### Behavior 76: Restart small child supplement job
+Business goal: Trigger manual restart logic for small child supplement processing.
+
+API group boundary: The function is a single administrative job trigger.
+
+Domain context: Operations can replay supplement logic and optionally create tasks.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: supplement job is not currently triggered by this request.
+- Transition trigger: admin restart request.
+- Intermediate states: restart logic scans/acts on cases; tasks may be created.
+- State after: job logic has been started.
+- Invalid or blocked transitions: service failure blocks trigger.
+
+Required execution workflow:
+1. Use function `restart small child supplement job` (`POST /api/forvalter/start-manuell-restart-av-smaabarnstillegg-jobb/skalOppretteOppgaver/{skalOppretteOppgaver}`) with `skalOppretteOppgaver=true` to trigger restart and task creation.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No case-specific setup is required.
+- Direct database setup can seed cases affected by the job.
+
+Parameter and value bindings:
+- `skalOppretteOppgaver=true` controls task creation side effects.
+
+Business result: Manual restart logic runs and may create follow-up tasks.
+
+Constraints and invariants:
+- This is an administrative operation, not a caseworker treatment step.
+
+Failure and exceptional cases:
+- Failing function: `restart small child supplement job`
+  - Failure condition: job service throws during scan/restart.
+  - Why it fails: controller delegates to administrative service.
+  - Violated prerequisite or constraint: restart service and underlying data must be valid.
+
+Implementation notes: The endpoint starts logic synchronously at controller/service level but effects may include tasks.
+
+<a id="behavior-77"></a>
+### Behavior 77: Send payment orders administratively
+Business goal: Generate and send payment orders to the economy system for supplied treatments.
+
+API group boundary: Atomic partial-success admin mutation scoped by body treatment ids.
+
+Domain context: Operations can repair or force payment-order sending outside the ordinary treatment flow.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatments have payment basis that may need sending.
+- Transition trigger: admin send request.
+- Intermediate states: each treatment is attempted independently.
+- State after: successful treatments have payment orders sent; failures are logged.
+- Invalid or blocked transitions: invalid/payment-incomplete treatments fail per item without failing the whole endpoint.
+
+Required execution workflow:
+1. Use function `send payment orders administratively` (`POST /api/forvalter/lag-og-send-utbetalingsoppdrag-til-økonomi`) with body `[B1,B2]` to send payment orders.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Treatment ids can come from direct database/admin discovery, but must identify treatments with valid payment basis.
+
+Parameter and value bindings:
+- Body treatment ids are the exact payment-order targets.
+
+Business result: Payment orders are generated/sent where possible; per-treatment failures are logged while response can still be `OK`.
+
+Constraints and invariants:
+- Partial success is possible and not represented as endpoint failure.
+
+Failure and exceptional cases:
+- Failing function: `send payment orders administratively`
+  - Failure condition: a treatment cannot generate/send a payment order.
+  - Why it fails or degrades: exception is caught and logged for that treatment.
+  - Violated prerequisite or constraint: valid payment basis per treatment.
+
+Implementation notes: This behavior is independent from corrected resend workflows.
+
+<a id="behavior-78"></a>
+### Behavior 78: Bulk corrected payment-order resend
+Business goal: Generate and implement corrected payment orders for a list of treatments.
+
+API group boundary: Atomic partial-success admin repair scoped by body treatment ids.
+
+Domain context: Payment-order defects can be corrected in bulk after diagnosis.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatments have payment-order state requiring correction.
+- Transition trigger: bulk corrected resend request.
+- Intermediate states: each treatment is corrected and implemented independently.
+- State after: response lists `iverksattOk` successes and `harFeil` failures.
+- Invalid or blocked transitions: invalid or inconsistent treatments are returned in failure set.
+
+Required execution workflow:
+1. Use function `resend corrected payment orders` (`POST /api/forvalter/sendKorrigertUtbetalingsoppdragForBehandlinger`) with body `[B1,B2]` to resend corrected payment orders in bulk.
+
+Optional verification workflow:
+1. Use function `find payment-order issues` (`POST /api/forvalter/finnBehandlingerMedPotensieltFeilUtbetalingsoppdrag`) with no body to discover candidates before repair.
+
+Existing-state shortcuts:
+- Candidate discovery can be skipped when `B1` and `B2` are already known issue treatments.
+
+Parameter and value bindings:
+- Body treatment ids are corrected resend targets.
+- Response separates successful and failed treatment ids.
+
+Business result: Corrected payment orders are implemented for successful treatments; failures are reported without rolling back successes.
+
+Constraints and invariants:
+- Partial success is explicit in the response.
+
+Failure and exceptional cases:
+- Failing function: `resend corrected payment orders`
+  - Failure condition: a treatment cannot be corrected or implemented.
+  - Why it fails or degrades: exception is caught and added to `harFeil`.
+  - Violated prerequisite or constraint: treatment must have correctable payment-order state.
+
+Implementation notes: Single-version resend is a separate targeted repair.
+
+<a id="behavior-79"></a>
+### Behavior 79: Single-version corrected payment-order resend
+Business goal: Generate and implement a corrected payment order for one treatment and version.
+
+API group boundary: Atomic targeted admin repair scoped by `behandlingId` and `versjon`.
+
+Domain context: Operators can resend a specific payment-order version when bulk repair is too broad.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: one treatment has a payment-order version requiring correction.
+- Transition trigger: single-version corrected resend request.
+- Intermediate states: selected version is corrected and implemented.
+- State after: response lists success or failure for the treatment.
+- Invalid or blocked transitions: inactive treatment, missing version, or mismatched corrected periods produce failure response.
+
+Required execution workflow:
+1. Use function `resend corrected payment order version` (`POST /api/forvalter/sendKorrigertUtbetalingsoppdragForBehandling/{behandlingId}/{versjon}`) with `behandlingId=B1`, `versjon=V1` to resend that version.
+
+Optional verification workflow:
+1. Use function `check incorrect cessation dates` (`POST /api/forvalter/sjekkOmTilkjentYtelseForBehandlingHarUkorrektOpphørsdato`) with body `[B1]` to inspect cessation-date issue state before repair.
+
+Existing-state shortcuts:
+- Discovery can be skipped when `B1` and `V1` are already known.
+
+Parameter and value bindings:
+- Path `behandlingId=B1` and `versjon=V1` select the exact payment-order version.
+
+Business result: The selected corrected payment order is implemented or reported in `harFeil`.
+
+Constraints and invariants:
+- Failure is returned in the response rather than necessarily failing the HTTP request.
+
+Failure and exceptional cases:
+- Failing function: `resend corrected payment order version`
+  - Failure condition: treatment is not active or corrected periods do not match erroneous periods.
+  - Why it fails: `ForvalterService` validates active treatment and corrected-period consistency.
+  - Violated prerequisite or constraint: version-specific correction consistency.
+
+Implementation notes: This is intentionally split from bulk corrected resend.
+
+<a id="behavior-80"></a>
+### Behavior 80: Run unvalidated rate change administratively
+Business goal: Run simplified rate change for supplied cases without normal validation.
+
+API group boundary: The function is an administrative rate-change bypass over fagsak ids.
+
+Domain context: Operations may need to repair or force rate changes outside the normal validation path.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: cases exist and may need rate update.
+- Transition trigger: unvalidated admin request.
+- Intermediate states: each case is processed independently.
+- State after: successful cases are rate-changed; failures are logged.
+- Invalid or blocked transitions: missing/incompatible case causes per-case failure.
+
+Required execution workflow:
+1. Use function `run rate change without validation` (`POST /api/forvalter/kjor-satsendring-uten-validering`) with body `[F1,F2]` to run unvalidated rate change.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with `fagsakId=F1` to inspect case state.
+
+Existing-state shortcuts:
+- No eligibility check is required by this admin bypass, but case ids must exist.
+
+Parameter and value bindings:
+- Body fagsak ids are processed independently.
+
+Business result: Rate change is attempted for supplied cases without the normal validation gate.
+
+Constraints and invariants:
+- Normal validation is intentionally bypassed.
+- Per-case failures are logged.
+
+Failure and exceptional cases:
+- Failing function: `run rate change without validation`
+  - Failure condition: `fagsakId=F404` does not exist.
+  - Why it fails: service cannot load/process case; failure is logged.
+  - Violated prerequisite or constraint: case id must exist for successful processing.
+
+Implementation notes: This is not equivalent to the normal checked rate-change workflow.
+
+<a id="behavior-81"></a>
+### Behavior 81: Identify payments over 100 percent
+Business goal: Start background analysis for payments exceeding 100 percent.
+
+API group boundary: Atomic async admin discovery job returning a call id.
+
+Domain context: Operations need to identify overlapping or excessive payment state.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: payment state exists across cases.
+- Transition trigger: anomaly discovery request.
+- Intermediate states: a background thread starts and a `callId` is returned.
+- State after: analysis is running asynchronously.
+- Invalid or blocked transitions: service/thread failure blocks analysis.
+
+Required execution workflow:
+1. Use function `identify payments over 100 percent` (`POST /api/forvalter/identifiser-utbetalinger-over-100-prosent`) with no body to start analysis and capture `callId=C1`.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No target ids are required; the service scans payment state.
+
+Parameter and value bindings:
+- Returned `callId=C1` is for logs/correlation; no result retrieval endpoint is exposed here.
+
+Business result: Background payment-overlap analysis starts.
+
+Constraints and invariants:
+- The endpoint returns before analysis completes.
+
+Failure and exceptional cases:
+- Failing function: `identify payments over 100 percent`
+  - Failure condition: background analysis cannot start.
+  - Why it fails: implementation launches asynchronous service work.
+  - Violated prerequisite or constraint: service/runtime must permit background processing.
+
+Implementation notes: Missing result retrieval by `callId` is captured as a missing behavior.
+
+<a id="behavior-82"></a>
+### Behavior 82: Find payment-order issue candidates
+Business goal: Identify treatments with potentially incorrect payment orders.
+
+API group boundary: Atomic admin discovery over payment-order state.
+
+Domain context: Operators need candidate treatment ids before payment-order repair.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: treatments and payment orders exist.
+- Transition trigger: issue-discovery request.
+- Intermediate states: service validates affected payment orders.
+- State after: candidate treatments and validation details are returned.
+- Invalid or blocked transitions: service validation failure blocks response.
+
+Required execution workflow:
+1. Use function `find payment-order issues` (`POST /api/forvalter/finnBehandlingerMedPotensieltFeilUtbetalingsoppdrag`) with no body to return payment-order issue candidates.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No supplied ids are used; the service scans existing payment-order state.
+
+Parameter and value bindings:
+- Returned treatment ids can be used by corrected resend behaviors, but discovery is not required when ids are already known.
+
+Business result: Candidate treatments with payment-order issues are returned.
+
+Constraints and invariants:
+- This behavior is read/discovery; it does not repair payment orders.
+
+Failure and exceptional cases:
+- Failing function: `find payment-order issues`
+  - Failure condition: payment-order validation service fails.
+  - Why it fails: discovery depends on internal validation of payment-order state.
+  - Violated prerequisite or constraint: readable payment-order data.
+
+Implementation notes: Repair workflows are modeled separately.
+
+<a id="behavior-83"></a>
+### Behavior 83: Check incorrect cessation dates for selected treatments
+Business goal: Validate payment-order cessation dates for supplied treatment ids.
+
+API group boundary: Atomic targeted admin validation scoped by body treatment ids.
+
+Domain context: Operators can inspect whether specific treatments have incorrect cessation dates before repair.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: selected treatments have payment-order state.
+- Transition trigger: targeted validation request.
+- Intermediate states: each treatment is validated.
+- State after: treatments with errors are returned.
+- Invalid or blocked transitions: invalid treatment ids or validation failure blocks response.
+
+Required execution workflow:
+1. Use function `check incorrect cessation dates` (`POST /api/forvalter/sjekkOmTilkjentYtelseForBehandlingHarUkorrektOpphørsdato`) with body `[B1,B2]` to validate cessation dates.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- Candidate discovery can be skipped when treatment ids are already known.
+
+Parameter and value bindings:
+- Body treatment ids are the exact validation targets.
+
+Business result: The response contains only treatments whose payment orders have incorrect cessation dates.
+
+Constraints and invariants:
+- Validation does not repair state.
+
+Failure and exceptional cases:
+- Failing function: `check incorrect cessation dates`
+  - Failure condition: validation cannot load treatment/payment-order state.
+  - Why it fails: service must validate each supplied treatment.
+  - Violated prerequisite or constraint: valid treatment ids with payment-order state.
+
+Implementation notes: This can feed corrected resend, but corrected resend can also be called with known ids.
+
+<a id="behavior-84"></a>
+### Behavior 84: Populate support dates for one treatment
+Business goal: Populate support-from/support-to dates for one treatment.
+
+API group boundary: Atomic admin mutation scoped by `behandlingId`.
+
+Domain context: Operations can repair missing support date fields on a specific treatment.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment may lack support date fields.
+- Transition trigger: single-treatment population request.
+- Intermediate states: support dates are derived and persisted.
+- State after: treatment support dates are populated or the response indicates no update.
+- Invalid or blocked transitions: missing treatment or derivation failure blocks update.
+
+Required execution workflow:
+1. Use function `populate support dates for treatment` (`POST /api/forvalter/populer-stonad-fom-tom/{behandlingId}`) with `behandlingId=B1` to populate dates.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect updated treatment state.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when `B1` already exists.
+
+Parameter and value bindings:
+- Path `behandlingId=B1` selects the treatment to repair.
+
+Business result: The treatment has support-from/support-to values populated when derivation succeeds.
+
+Constraints and invariants:
+- The response is a boolean update result.
+
+Failure and exceptional cases:
+- Failing function: `populate support dates for treatment`
+  - Failure condition: treatment cannot be found or dates cannot be derived.
+  - Why it fails: service must load and update the treatment.
+  - Violated prerequisite or constraint: valid treatment with derivable support dates.
+
+Implementation notes: Bulk population is separate.
+
+<a id="behavior-85"></a>
+### Behavior 85: Populate support dates in bulk
+Business goal: Populate support end dates for multiple active treatments up to a limit.
+
+API group boundary: Atomic bulk admin job scoped by processing `limit`.
+
+Domain context: Operations can repair missing support dates across many active treatments.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: active treatments may lack support end dates.
+- Transition trigger: bulk population request.
+- Intermediate states: service finds candidates up to limit and attempts updates individually.
+- State after: successful candidates have support dates populated; failures are logged.
+- Invalid or blocked transitions: per-treatment failures do not fail the whole endpoint.
+
+Required execution workflow:
+1. Use function `populate support dates in bulk` (`POST /api/forvalter/populer-stonad-fom-tom-alle/{limit}`) with `limit=100` to populate dates in bulk.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No ids are supplied; the repository query finds candidate treatments.
+
+Parameter and value bindings:
+- Path `limit=100` caps candidate count.
+
+Business result: Candidate treatments are updated where possible and endpoint returns `ok`.
+
+Constraints and invariants:
+- Per-treatment failures are logged and do not necessarily fail the endpoint.
+
+Failure and exceptional cases:
+- Failing function: `populate support dates in bulk`
+  - Failure condition: one candidate cannot be updated.
+  - Why it fails or degrades: exception is caught and logged while processing continues.
+  - Violated prerequisite or constraint: each candidate must have derivable support dates for full success.
+
+Implementation notes: Bulk mutation is not the same as targeted single-treatment repair.
+
+<a id="behavior-86"></a>
+### Behavior 86: Find cases to close
+Business goal: Discover cases that should be closed because they have no ongoing entitlement.
+
+API group boundary: Atomic admin discovery over case status and benefit state.
+
+Domain context: Operations can inspect which cases are candidates for status closure.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: cases have current status and benefit state.
+- Transition trigger: discovery request.
+- Intermediate states: no local mutation.
+- State after: candidate `fagsakId` values are returned.
+- Invalid or blocked transitions: repository/query failure blocks response.
+
+Required execution workflow:
+1. Use function `find cases to close` (`GET /api/forvalter/finnFagsakerSomSkalAvsluttes`) with no body to retrieve closable case ids.
+
+Optional verification workflow:
+1. Use function `retrieve full case` (`GET /api/fagsaker/{fagsakId}`) with a returned `fagsakId=F1` to inspect a candidate case.
+
+Existing-state shortcuts:
+- No setup endpoint is required; the query scans existing case/payment state.
+
+Parameter and value bindings:
+- Returned `fagsakId` values may inform operational decisions, but the status-update endpoint performs its own scan.
+
+Business result: Operators receive a list of closable cases.
+
+Constraints and invariants:
+- This behavior does not update case status.
+
+Failure and exceptional cases:
+- Failing function: `find cases to close`
+  - Failure condition: case repository query fails.
+  - Why it fails: implementation directly queries closable-case state.
+  - Violated prerequisite or constraint: readable case/payment data.
+
+Implementation notes: Discovery and repair are split because update does not consume a request body of discovered ids.
+
+<a id="behavior-87"></a>
+### Behavior 87: Update case ongoing status
+Business goal: Bulk update ongoing/closed status on cases according to service rules.
+
+API group boundary: Atomic admin mutation over service-selected case state.
+
+Domain context: Operations can close cases that no longer have ongoing entitlement.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: cases may have stale ongoing status.
+- Transition trigger: bulk status update request.
+- Intermediate states: service scans cases and updates statuses.
+- State after: ongoing status is recalculated/persisted for selected cases.
+- Invalid or blocked transitions: repository/service failure blocks update.
+
+Required execution workflow:
+1. Use function `update case ongoing status` (`POST /api/forvalter/oppdaterLøpendeStatusPåFagsaker`) with no body to update case statuses.
+
+Optional verification workflow:
+1. Use function `find cases to close` (`GET /api/forvalter/finnFagsakerSomSkalAvsluttes`) with no body before the update to inspect likely candidates.
+
+Existing-state shortcuts:
+- Candidate discovery can be skipped because the update service performs its own selection.
+
+Parameter and value bindings:
+- No path/body ids are supplied; the service owns candidate selection.
+
+Business result: Case ongoing/closed statuses are updated according to current entitlement state.
+
+Constraints and invariants:
+- The caller cannot restrict the update to a supplied case list.
+
+Failure and exceptional cases:
+- Failing function: `update case ongoing status`
+  - Failure condition: status update service fails while scanning/updating cases.
+  - Why it fails: implementation delegates the bulk mutation to `FagsakService`.
+  - Violated prerequisite or constraint: readable and writable case status state.
+
+Implementation notes: This is not response-bound to `find cases to close`.
+
+<a id="behavior-88"></a>
+### Behavior 88: Find migration duplicates with ongoing Infotrygd case
+Business goal: Identify open cases with multiple migration treatments and an ongoing Infotrygd case.
+
+API group boundary: Atomic admin discovery over case, migration-treatment, and Infotrygd overlap state.
+
+Domain context: Migration duplicates with legacy ongoing cases are higher-risk anomalies.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: migration treatments and Infotrygd state exist.
+- Transition trigger: anomaly query request.
+- Intermediate states: no local mutation.
+- State after: `(fagsakId, ident)` pairs are returned.
+- Invalid or blocked transitions: Infotrygd/service query failure blocks response.
+
+Required execution workflow:
+1. Use function `find migration duplicates with Infotrygd` (`GET /api/forvalter/finnÅpneFagsakerMedFlereMigreringsbehandlingerOgLøpendeSakIInfotrygd`) with no body to list anomalies.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No setup endpoint is required; the query scans existing migration and Infotrygd state.
+
+Parameter and value bindings:
+- Returned `fagsakId` and identity values are report outputs for manual follow-up.
+
+Business result: Operators receive migration duplicate cases that also overlap an ongoing Infotrygd case.
+
+Constraints and invariants:
+- This behavior is read-only and does not repair duplicates.
+
+Failure and exceptional cases:
+- Failing function: `find migration duplicates with Infotrygd`
+  - Failure condition: Infotrygd overlap lookup fails.
+  - Why it fails: service must combine local migration state with Infotrygd state.
+  - Violated prerequisite or constraint: available local and legacy data.
+
+Implementation notes: Migration duplicate discovery without Infotrygd constraint is separate.
+
+<a id="behavior-89"></a>
+### Behavior 89: Find migration duplicates
+Business goal: Identify open cases with multiple migration treatments.
+
+API group boundary: Atomic admin discovery over local case and migration-treatment state.
+
+Domain context: Duplicate migration treatments can indicate unsafe or ambiguous case state.
+
+Starting point: `Pre-existing service/upstream state required`
+
+State transition summary:
+- State before: open cases and migration treatments exist.
+- Transition trigger: local duplicate query request.
+- Intermediate states: no local mutation.
+- State after: `(fagsakId, ident)` pairs are returned.
+- Invalid or blocked transitions: local query failure blocks response.
+
+Required execution workflow:
+1. Use function `find migration duplicates` (`GET /api/forvalter/finnÅpneFagsakerMedFlereMigreringsbehandlinger`) with no body to list local migration duplicates.
+
+Optional verification workflow:
+None.
+
+Existing-state shortcuts:
+- No setup endpoint is required; the query scans existing local migration state.
+
+Parameter and value bindings:
+- Returned ids are report outputs and are not consumed by an exposed repair endpoint.
+
+Business result: Operators receive open cases with multiple migration treatments.
+
+Constraints and invariants:
+- This behavior is read-only and does not close or merge duplicates.
+
+Failure and exceptional cases:
+- Failing function: `find migration duplicates`
+  - Failure condition: local migration duplicate query fails.
+  - Why it fails: service/repository cannot compute duplicate state.
+  - Violated prerequisite or constraint: readable local migration data.
+
+Implementation notes: This behavior intentionally differs from the Infotrygd-overlap query.
+
+<a id="behavior-90"></a>
+### Behavior 90: Fill empty condition start dates in preprod
+Business goal: Mutate preprod/local test data by filling missing condition start dates from birth dates.
+
+API group boundary: The function is an environment-gated treatment mutation.
+
+Domain context: Test/preprod environments need data repair shortcuts that must not run in production.
+
+Starting point: `Existing service state`
+
+State transition summary:
+- State before: treatment has condition results with empty start dates.
+- Transition trigger: preprod fill request.
+- Intermediate states: missing dates are calculated from birth dates.
+- State after: condition start dates are populated.
+- Invalid or blocked transitions: prod or unsupported runtime profile fails.
+
+Required execution workflow:
+1. Use function `fill condition dates in preprod` (`PUT /api/preprod/{behandlingId}/fyll-ut-vilkarsvurdering`) with `behandlingId=B1` in preprod/dev-postgres-preprod runtime to fill dates.
+
+Optional verification workflow:
+1. Use function `retrieve treatment` (`GET /api/behandlinger/{behandlingId}`) with `behandlingId=B1` to inspect condition dates.
+
+Existing-state shortcuts:
+- Treatment setup can be skipped when a preprod treatment with missing condition dates exists.
+- Direct database setup must run only in allowed environment.
+
+Parameter and value bindings:
+- `behandlingId=B1` scopes mutation.
+- Runtime profile controls whether function can execute.
+
+Business result: Empty condition start dates are filled for the treatment in preprod-like environments.
+
+Constraints and invariants:
+- The endpoint must not run in prod and explicitly rejects unsupported profiles.
+
+Failure and exceptional cases:
+- Failing function: `fill condition dates in preprod`
+  - Failure condition: active profile is prod or not preprod/dev-postgres-preprod.
+  - Why it fails: controller explicitly throws.
+  - Violated prerequisite or constraint: endpoint is environment-gated.
+
+Implementation notes: This is modeled as supported admin/test behavior, not ordinary production casework.
 
 ## Unsupported or Missing Business Behaviors
 
-### Missing Behavior 1: Safely enforce treatment ownership for refund and overpaid-currency child records
+### Missing Behavior 1: Fully synchronous treatment closure after decision implementation
+Priority: Critical domain gap
 
-Priority:
-Critical domain gap
+Expected business goal: A caller would expect to drive a treatment from decision approval to fully closed/finished state and verify payment, journal, distribution, and final status in one API-realizable lifecycle.
 
-Expected business goal:
-A caller updating or deleting a refund or overpaid-currency period under `/behandlinger/{behandlingId}` should only affect records belonging to that treatment.
-
-Why it is unsupported:
-No function composition can make `update EØS refund period`, `delete EØS refund period`, `update overpaid currency period`, or `delete overpaid currency period` enforce ownership when the implementation loads by child id without consistently checking `behandlingId`.
+Why it is unsupported: The exposed decision function records the decision and advances implementation, but later steps are internal/task-driven and not exposed as safe public functions in `full-behavior.md`.
 
 Existing functions considered:
-- `list EØS refund periods`: can list periods for one treatment, but cannot prevent a later update/delete using an id from another treatment.
-- `update EØS refund period`: updates by id and ignores treatment ownership in service logic.
-- `delete EØS refund period`: deletes by id.
-- `list overpaid currency periods`: can list scoped periods, but cannot enforce mutation scope.
-- `update overpaid currency period`: updates by id.
-- `delete overpaid currency period`: deletes by id.
+- `decide treatment`: records decision and invokes step handling, but does not expose every later implementation step as request-addressable workflow.
+- `generate decision letter`: generates a letter, but does not close treatment.
+- `send payment orders administratively`: admin repair/send path, not the ordinary treatment lifecycle.
 
-Missing capability:
-A repository/service check that child period `id` belongs to path `behandlingId` before mutation.
+Missing capability: Public, transactional, state-safe endpoints or observable workflow handles for post-decision implementation, economy status, journal/distribution, and final treatment closure.
 
-Proof that function composition is insufficient:
-A client can first obtain or guess a child id from another treatment. Chaining list/read functions does not change the mutation implementation. There is no preflight lock, ownership token, or scoped child lookup consumed by update/delete.
+Proof that function composition is insufficient: Chaining decision, letter generation, and admin payment-send functions does not reproduce the ordinary state machine because internal task steps, economy callbacks, and finalization rules are not exposed or bound by returned ids.
 
 Evidence from existing functions/source:
-`RefusjonEøsService.oppdaterRefusjonEøsPeriode` and `FeilutbetaltValutaService.oppdatertFeilutbetaltValutaPeriode` load by id. Delete functions also delete by id after logging. The OpenAPI path implies treatment scoping, but source does not fully enforce it.
+- `decide treatment` delegates to `StegService` and later steps exist in code as internal step handlers.
+- No function in `full-behavior.md` exposes ordinary `IVERKSETT_MOT_OPPDRAG`, `VENTE_PÅ_STATUS_FRA_ØKONOMI`, `JOURNALFØR_VEDTAKSBREV`, `DISTRIBUER_VEDTAKSBREV`, or finalization as direct public API.
 
-Business impact:
-A wrong child id can mutate or delete another treatment’s financial/currency documentation.
+Business impact: API clients cannot fully drive or deterministically test the full treatment lifecycle from public endpoints alone.
 
-### Missing Behavior 2: Create foreign period amounts directly through the public API
+### Missing Behavior 2: API-create foreign amount and currency-rate rows
+Priority: Critical domain gap
 
-Priority:
-Critical domain gap
+Expected business goal: A caseworker should be able to create, update, and delete foreign period amount and currency-rate rows through API workflows.
 
-Expected business goal:
-A caseworker should be able to add a new foreign period amount for a treatment as part of differential calculation.
-
-Why it is unsupported:
-The available function `update foreign period amount` requires an existing `id`; it loads the existing row to preserve `utbetalingsland`.
+Why it is unsupported: The available functions update/delete existing rows, but initial row creation for foreign period amount and currency rate is not exposed as a standalone create function.
 
 Existing functions considered:
-- `update foreign period amount`: updates existing row only.
-- `delete foreign period amount`: removes existing row.
-- `retrieve EØS timelines`: reads derived timelines but does not create amounts.
-- `retrieve treatment`: can expose existing amounts but cannot create one.
+- `update foreign period amount`: requires an existing `id` in body.
+- `delete foreign period amount`: requires existing `utenlandskPeriodebeløpId`.
+- `update currency rate from ECB`: requires existing `id`.
+- `set historical ISK rate manually`: requires existing `id`.
+- `delete currency rate`: requires existing `valutakursId`.
 
-Missing capability:
-A `POST` or true upsert behavior that can create initial foreign period amount state with required country, children, period, and amount.
+Missing capability: Create endpoints or upsert semantics for foreign period amount and currency-rate rows when none exists.
 
-Proof that function composition is insufficient:
-Without an existing foreign-period row id, the controller cannot build the new domain object because it calls `getById(restUtenlandskPeriodebeløp.id)`. Delete-and-recreate is impossible because creation is the missing operation.
+Proof that function composition is insufficient: Treatment creation and EEA competence upsert do not return a guaranteed foreign amount or currency-rate id. Update endpoints cannot create because they load existing rows by id.
 
 Evidence from existing functions/source:
-`UtenlandskPeriodebeløpController.oppdaterUtenlandskPeriodebeløp` loads existing period by request `id`.
+- `update foreign period amount` explicitly loads existing state to preserve `utbetalingsland`.
+- `update currency rate from ECB` compares request to `valutakursService.hentValutakurs(restValutakurs.id)`.
 
-Business impact:
-Differential calculation setup is incomplete through API-only workflows unless initial foreign period amount rows are created by some other internal process or database setup.
+Business impact: Complete EEA differential-calculation setup may require direct database/internal generation and cannot always be completed through REST alone.
 
-### Missing Behavior 3: Retrieve corrected decision metadata
+### Missing Behavior 3: Strong child-resource ownership enforcement for several treatment subresources
+Priority: Important robustness gap
 
-Priority:
-Important robustness gap
+Expected business goal: Updating or deleting a child row through `/behandling/{behandlingId}/.../{id}` should fail when the child id belongs to another treatment.
 
-Expected business goal:
-A caseworker should inspect active and historical corrected-decision metadata.
+Why it is unsupported: Several services validate access/editability for the path treatment, then load or delete the child row by child id without enforcing path-treatment ownership in the service call.
 
-Why it is unsupported:
-There are functions to create and deactivate corrected-decision metadata, but no corresponding list/retrieve function.
+Existing functions considered:
+- `update EØS refund period`: service updates by refund id only.
+- `delete EØS refund period`: service logs/deletes by id and accepts `behandlingId` mainly for response/log context.
+- `update overpaid currency period`: service updates by id only.
+- `delete overpaid currency period`: service logs/deletes by id.
+- `delete letter recipient`: service deletes by `mottakerId` only.
+
+Missing capability: Repository/service ownership checks that assert child row belongs to path `behandlingId` before mutation.
+
+Proof that function composition is insufficient: Calling list first can discover the correct id, but it cannot prevent a later request from sending a different valid child id from another treatment.
+
+Evidence from existing functions/source:
+- `RefusjonEøsService.oppdaterRefusjonEøsPeriode` loads by `id` and does not compare `behandlingId`.
+- `FeilutbetaltValutaService.oppdatertFeilutbetaltValutaPeriode` loads by `id`.
+- `BrevmottakerService.fjernBrevmottaker` deletes by id.
+
+Business impact: A caller with access to one editable treatment could potentially mutate a child resource from another treatment if they know the child id.
+
+### Missing Behavior 4: Query corrected decision metadata and small-child supplement corrections directly
+Priority: API ergonomics gap
+
+Expected business goal: A client should be able to list or retrieve current and historical corrected-decision metadata and small-child supplement corrections.
+
+Why it is unsupported: Create/deactivate or add/remove functions exist, but direct list/retrieve endpoints are missing for these resources.
 
 Existing functions considered:
 - `create corrected decision metadata`: creates active metadata.
 - `deactivate corrected decision metadata`: deactivates active metadata.
-- `retrieve treatment`: may expose some treatment state but is not a dedicated history/list function.
-- `list corrected after-payment metadata`: exists for after-payment, showing the asymmetry.
+- `add small child supplement correction`: adds monthly correction.
+- `remove small child supplement correction`: removes monthly correction.
+- `retrieve treatment`: may expose some state indirectly, but does not provide a narrow resource history/list contract.
 
-Missing capability:
-`GET /api/korrigertvedtak/behandling/{behandlingId}` or equivalent.
+Missing capability: Dedicated list/retrieve endpoints for corrected-decision metadata and supplement corrections.
 
-Proof that function composition is insufficient:
-Once metadata is created, no exact function can query the correction history or distinguish no correction from hidden active correction unless the treatment projection happens to expose it.
+Proof that function composition is insufficient: Treatment retrieval is broad and cannot reliably provide historical correction metadata or a resource-specific audit/list contract.
 
 Evidence from existing functions/source:
-Corrected after-payment has list support; corrected decision does not.
+- `list corrected after-payment metadata` exists for after-payment corrections, but no equivalent function exists for corrected decision metadata.
+- No list function exists for small-child supplement correction in `full-behavior.md`.
 
-Business impact:
-Auditability and operator confidence are weaker for corrected decisions than for corrected after-payment.
+Business impact: Clients cannot confidently verify correction history without broad treatment reads or database access.
 
-### Missing Behavior 4: Update an existing manual letter recipient
+### Missing Behavior 5: Async task correlation and result retrieval for queued domain jobs
+Priority: Important robustness gap
 
-Priority:
-Important robustness gap
+Expected business goal: When an endpoint queues a task, the API should return a task id/call id and provide a supported way to retrieve processing result.
 
-Expected business goal:
-A caseworker should correct a recipient address/name/type without deleting and recreating the recipient.
-
-Why it is unsupported:
-The API supports add, list, and delete only.
+Why it is unsupported: Many queue functions return generic success strings or no domain id; shared `/api/task/*` endpoints appear only as Swagger auxiliary endpoints without project controller implementation and were not converted to functions.
 
 Existing functions considered:
-- `add letter recipient`: creates a recipient.
-- `list letter recipients`: reads recipients.
-- `delete letter recipient`: removes recipient.
+- `queue treatment from birth event`: queues a task but returns no treatment id.
+- `handle identity event`: queues identity-event handling.
+- `handle transitional benefit event`: queues transitional-benefit handling.
+- `trigger rate change for case`: queues rate change.
+- `run consistency dry run`: queues reconciliation dry run.
+- `run consistency reconciliation`: queues real reconciliation.
 
-Missing capability:
-A `PUT /api/brevmottaker/{behandlingId}/{mottakerId}` update endpoint.
+Missing capability: Stable returned `taskId` or `callId` plus project-owned task status/result retrieval functions.
 
-Proof that function composition is insufficient:
-Delete-and-recreate changes the recipient id and may lose audit continuity. It is not equivalent to correcting the existing recipient record.
+Proof that function composition is insufficient: Later case or treatment reads do not identify which task ran, failed, retried, or produced the observed state. Auxiliary task endpoints lack implementation evidence in this project.
 
 Evidence from existing functions/source:
-Only `POST`, `GET`, and `DELETE` recipient endpoints are available.
+- `full-behavior.md` lists shared `/api/task/{id}`, `/api/task/callId/{callId}`, and related endpoints as auxiliary, not converted to functions due to missing project controller source.
 
-Business impact:
-Recipient correction is more error-prone and less auditable.
+Business impact: Clients cannot reliably correlate queued domain work with completed state, failures, or retries.
 
-### Missing Behavior 5: Public case closure or safe case deletion
+### Missing Behavior 6: Transactional all-or-nothing administrative bulk operations
+Priority: Important robustness gap
 
-Priority:
-Important robustness gap
+Expected business goal: Administrative bulk repair endpoints should support atomic mode or explicit per-item transaction/reporting semantics.
 
-Expected business goal:
-A caseworker or authorized admin should explicitly close a case or delete an erroneous empty case through a controlled domain action.
-
-Why it is unsupported:
-There is no ordinary case close/delete endpoint. Case status can only be recalculated in bulk by admin functions.
+Why it is unsupported: Several admin endpoints intentionally continue after per-item failures and return/log partial results.
 
 Existing functions considered:
-- `update case ongoing status`: bulk recalculates case ongoing status.
-- `find cases to close`: identifies cases to close.
-- `retrieve full case`: read-only.
-- `dismiss treatment`: dismisses a treatment, not the case.
+- `finish admin task list`: reports failed count.
+- `send payment orders administratively`: logs per-treatment errors.
+- `run rate change without validation`: logs per-case failures.
+- `resend corrected payment orders`: returns successes and failures.
+- `populate support dates in bulk`: logs per-treatment failures.
 
-Missing capability:
-A scoped, audited case status transition endpoint or safe-delete endpoint with validation.
+Missing capability: Atomic mode, rollback behavior, or a durable per-item audit/result resource.
 
-Proof that function composition is insufficient:
-Dismissing all treatments does not necessarily mark the case closed. Bulk admin recalculation cannot close one requested case with explicit caller intent, validation, or result details.
+Proof that function composition is insufficient: Retrying after partial success can duplicate side effects for successful items while still not repairing failed items; no composition can retroactively make the original bulk action atomic.
 
 Evidence from existing functions/source:
-`FagsakService.oppdaterLøpendeStatusPåFagsaker` bulk-updates cases found by repository query; no public targeted close/delete exists.
+- Forvalter controller/service code catches exceptions per item and accumulates success/failure sets.
 
-Business impact:
-Case lifecycle management depends on derived maintenance jobs, not explicit domain actions.
+Business impact: Administrative repair can leave mixed state that requires manual reconciliation.
 
-### Missing Behavior 6: Reevaluate all downstream calculations after every related data change
+### Missing Behavior 7: Public per-case close/reopen lifecycle
+Priority: Critical domain gap
 
-Priority:
-Important robustness gap
+Expected business goal: A caseworker or authorized system should be able to close or reopen a specific case with explicit reason and verification.
 
-Expected business goal:
-Changing person basis, condition state, EEA records, refund data, corrections, or currency data should consistently recompute all dependent treatment results.
-
-Why it is unsupported:
-Some functions reset/recalculate, such as changed-payment share functions, while others only mutate records and return treatment view.
+Why it is unsupported: Public case endpoints create/read/search cases but do not expose close/reopen. Admin endpoints discover and bulk-update ongoing status without taking a specific `fagsakId` request.
 
 Existing functions considered:
-- `update changed payment share`: recalculates awarded benefit and resets step.
-- `upsert competence interval`: uses shared schema services with subscribers.
-- `add EØS refund period`: stores refund period but does not visibly force full treatment-result derivation.
-- `register manual death`: updates basis, but downstream recalculation depends on later workflow steps.
+- `create case`: creates/returns case.
+- `retrieve full case`: reads case.
+- `find cases to close`: discovers candidates.
+- `update case ongoing status`: bulk recomputes status and accepts no explicit case id.
 
-Missing capability:
-A uniform “recalculate treatment from current basis” function or consistent event-driven recalculation contract.
+Missing capability: Case-scoped close/reopen endpoint with reason, caller authorization, and audit.
 
-Proof that function composition is insufficient:
-A client can manually call later treatment steps, but only if treatment step state permits it. There is no single safe recomputation function that handles every affected dependency and step reset consistently.
+Proof that function composition is insufficient: Finding closable cases and running a service-wide update cannot close a specific case selected by a business user, nor can it reopen an incorrectly closed case.
 
 Evidence from existing functions/source:
-Different controllers call different services and side effects; some explicitly reset to treatment result while others only save rows.
+- No `PUT/PATCH /api/fagsaker/{fagsakId}/status`-style function exists in `full-behavior.md`.
 
-Business impact:
-Treatment state can become stale or require caseworker knowledge of hidden recalculation rules.
+Business impact: Case status lifecycle is only indirectly and administratively controllable.
 
-### Missing Behavior 7: Strong access validation for case-scoped manual letters
+### Missing Behavior 8: Safe delete/update ownership for letter and document recipient effects
+Priority: Important robustness gap
 
-Priority:
-Important robustness gap
+Expected business goal: Manual letter recipient changes should be scoped to the treatment and auditable through a dedicated recipient resource history.
 
-Expected business goal:
-Sending or previewing a case letter should validate that the caller has access to the specific `fagsakId`.
-
-Why it is unsupported:
-The case-letter controller methods verify role but do not explicitly call case access validation for `fagsakId`.
+Why it is unsupported: Recipient delete uses `mottakerId` without service-level treatment ownership validation, and historical recipient state is available only via logs/broad treatment context.
 
 Existing functions considered:
-- `preview case letter`: previews by `fagsakId`.
-- `send case letter`: sends by `fagsakId`.
-- `retrieve full case`: performs access validation, but calling it first does not bind an authorization token to the later letter function.
+- `add letter recipient`: adds recipient and logs.
+- `list letter recipients`: lists current recipients by treatment.
+- `delete letter recipient`: deletes by recipient id.
+- `retrieve treatment log`: broad log read.
 
-Missing capability:
-Explicit `tilgangService.validerTilgangTilFagsak` or equivalent in case-letter endpoints.
+Missing capability: Recipient-specific history/retrieve endpoint and service-enforced treatment ownership on delete.
 
-Proof that function composition is insufficient:
-A caller can call the letter endpoint directly. A prior successful case read is not required or consumed by send/preview.
-
-Evidence from existing functions/source:
-Treatment-letter endpoints validate treatment access; case-letter endpoints in `DokumentController` only verify role before generating/sending.
-
-Business impact:
-Case letters risk being previewed or sent by a caller with role but without case-specific access.
-
-### Missing Behavior 8: Stable API workflow for full first-time treatment completion without external/manual data assumptions
-
-Priority:
-API ergonomics gap
-
-Expected business goal:
-A client should be able to create a case, create a treatment, provide all necessary basis/condition/payment data, and complete a decision fully through documented API calls.
-
-Why it is unsupported:
-Many required data structures are generated from register, application, condition, and calculation internals. Some necessary records, such as initial foreign period amounts, lack direct creation functions.
-
-Existing functions considered:
-- `create treatment`: initializes treatment but depends on person basis and required dates.
-- `register application`: stores application data.
-- `validate conditions`: requires valid condition assessment.
-- `derive treatment result`: requires valid prior state.
-- `update foreign period amount`: cannot create initial amount rows.
-
-Missing capability:
-A complete documented setup API for all basis and calculation records required by every treatment variant.
-
-Proof that function composition is insufficient:
-Chaining available functions can complete common flows only when generated basis and editable condition state already align. It cannot create every needed calculation input from empty service state.
+Proof that function composition is insufficient: Listing before deletion cannot enforce that the delete id belongs to the listed treatment; logs cannot reconstruct a typed recipient history contract.
 
 Evidence from existing functions/source:
-Treatment step functions depend on internal generated state and step validation; several domain records are update-only or derived.
+- `BrevmottakerService.fjernBrevmottaker` loads and deletes by id.
 
-Business impact:
-Automation clients and tests must rely on database fixtures, internal generation, or partial workflows.
+Business impact: Recipient management is harder to audit and may be vulnerable to cross-treatment id mistakes.
 
 ## Cross-Behavior Observations
-- The service is case/treatment scoped, and generated ids are central. `fagsakId`, `behandlingId`, `vedtakId`, `vedtaksperiodeId`, and child-resource ids must be captured and reused exactly.
-- Workflow behavior is stateful. Endpoint availability does not imply a function can run; treatment step, status, editability, role, and wait state decide success.
-- Several functions are not pure CRUD. Changed-payment shares recalculate awarded benefit and reset treatment state. Decision-period regeneration can replace existing period structure. Case creation can publish statistics and create shadow case state.
-- Validation is uneven. Competence and wait deadlines are strongly validated; EEA refund and overpaid-currency child ownership is weakly validated despite scoped paths.
-- External integration functions depend on upstream systems and cannot be made complete by local API composition alone.
-- Administrative endpoints include partial-success behavior and bypass/repair operations. They should be modeled separately from ordinary caseworker workflows.
-- OpenAPI path structure generally matches controllers, but implementation may be narrower or weaker than the path implies, especially for update-only foreign amount behavior and treatment-scoped child-resource ownership.
+- The treatment step machine is strict: waiting treatments, machine-waiting treatments, closed treatments, and decision-stage treatments block many mutations.
+- Generated ids are central: `fagsakId`, `behandlingId`, `vedtakId`, `vedtaksperiodeId`, condition ids, EEA ids, recipient ids, task ids, journalpost ids, and document ids are reused across workflows.
+- Several functions mutate state through `GET`, notably repayment creation, register refresh, task completion, and queued rate change for one case.
+- Many treatment-basis edits reset later workflow state: condition changes, child addition, changed-payment shares, and payment recalculation can invalidate derived result/decision data.
+- Corrected-decision and corrected after-payment metadata use active-flag semantics: creating a new active record deactivates the previous active record.
+- Validation strength varies. Competence and wait handling enforce clear constraints, while some child-resource endpoints rely on path treatment access but mutate by child id.
+- Access-control differs by context: ordinary caseworker access, system role, Klage machine-to-machine caller, and admin/internal endpoints have different gates.
+- Async/event-driven behavior is common: birth events, identity events, transitional benefit events, rate changes, reconciliation, statistics publishing, and several admin jobs create tasks rather than final business state synchronously.
+- Administrative bulk endpoints often allow partial success and may mutate state for successful items while reporting failures for others.
+- OpenAPI/source discrepancies include `GET /api/person` exposing `personIdentBody` while source uses the `personIdent` header, and Swagger auxiliary `/api/task/*` endpoints lacking project-owned controller implementation.
+- Some endpoints can return failure resources with HTTP 200-style response behavior, so clients must inspect `Ressurs` payloads rather than status code alone.
 
 ## Coverage Summary
-Supported domain areas:
-case creation and lookup; treatment creation and step workflow; wait/resume; person basis refresh and condition edits; EEA competence, currency, refund, and overpaid-currency records; changed-payment shares; correction metadata; decision periods and letters; complaint integration; task and journal integration; external reporting; statistics; rate changes; reconciliation; administrative repair.
-
-Partially supported domain areas:
-foreign period amount lifecycle, corrected-decision inspection, manual recipient correction, consistent recalculation after all mutations, explicit case lifecycle transitions, and access validation for case-scoped letters.
-
-Unsupported domain areas:
-safe scoped ownership enforcement for some nested child records, direct API-only creation of all differential-calculation inputs, explicit targeted case close/delete, and a single complete public workflow that can establish every treatment prerequisite from empty state for every treatment variant.
+- Fully supported workflow/state areas: case creation/idempotent return, treatment creation/restart, core treatment step execution through decision, wait lifecycle, condition mutations, competence intervals, changed-payment shares, refund/overpaid currency period lifecycles, correction active flags, manual recipient lifecycle, decision-period explanation editing, task assignment/completion, journalpost/document inspection, journalføring, external benefit lookups, complaint creation/revision, rate-change queueing, statistics mapping/queueing, and selected admin repair jobs.
+- Partially supported workflow/state areas: post-decision treatment completion, EEA differential setup, async task result tracking, corrected-decision and supplement correction inspection, payment-order repair, and case closure.
+- Unsupported or unsafe workflow/state areas: API creation of some EEA calculation rows, strict child-resource ownership enforcement for several ids, all-or-nothing admin bulk operations, public per-case close/reopen, and production business modeling of internal/test-tool endpoints.

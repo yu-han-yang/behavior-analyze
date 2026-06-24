@@ -15,6 +15,16 @@ Important terminology:
 - A behavior may also be composite and combine multiple functions into a meaningful domain workflow.
 - Include both atomic domain behaviors and composite domain behaviors when meaningful.
 
+Behavior granularity and denominator rule:
+- The output is a coverage-ready business behavior inventory. Preserve atomic behavior granularity unless there is a clear domain reason to compose functions.
+- Each distinct domain-facing function from `full-behavior.md` should normally become its own supported behavior when it has its own endpoint/action, business result, state transition, read model, operational effect, or failure surface.
+- A behavior may include setup or verification functions in its workflow, but those setup or verification functions must not cause several independent core capabilities to be merged into one behavior.
+- Do not group independent capabilities only because they belong to the same aggregate, controller, UI area, read screen, or operational category.
+- Composite behaviors are allowed only when multiple functions are required together to complete one indivisible business outcome and the later step consumes state produced by the earlier step. Even then, keep any independently meaningful function as its own behavior elsewhere when it has its own business result.
+- The supported behavior count should usually be close to the number of domain-facing functions, and may be higher when one endpoint supports role-specific or state-specific business behaviors. It should not be far lower than the function count unless excluded functions are purely technical and the exclusion is explicitly justified.
+- Keep separate behaviors for distinct lookup/read/export functions, distinct state transitions, distinct dry-run versus persistent operations, distinct admin repair operations, distinct bulk versus selected operations, and distinct publication/patching operations.
+- For example, do not collapse agreement detail retrieval, agreement-number retrieval, version listing, PDF download, account lookup, and Salesforce visibility into one behavior. Do not collapse user context, organization lookup, code lists, feature toggles, variants, and health into one behavior. Do not collapse DVH patching, selected event publication, all-event publication, and dry-run publication into one behavior.
+
 Function reference rule:
 - When describing workflow steps, reference the exact function name from `full-behavior.md`.
 - Do not write workflow steps only as raw endpoints.
@@ -54,6 +64,35 @@ Parameter and state binding rule:
   - generated ids, tokens, locations, ETags, cursor values, or response fields captured and reused
   - body/form/query/header values that create state and later path/body/form/query/header values that consume that state
 - If values intentionally differ, explain the mismatch and its domain meaning.
+
+Business failure branch scope rule:
+- In `Failure and exceptional cases`, include only concrete, implementation-backed business failure branches.
+- A countable business failure branch is a branch where the request has passed ordinary request parsing and generic endpoint access gates, and the implementation rejects or changes behavior because of a domain rule, lifecycle state, ownership/eligibility rule, business invariant, business resource state, or persisted data relationship.
+- Include all distinct source-level business failure branches for the behavior's core function. Do not choose only one representative failure when the source has multiple guards, exception types, `Feilkode` values, state-machine rejections, duplicate/idempotency checks, ownership checks, or domain not-found checks.
+- Treat each distinct business condition as a separate failure entry, even if several entries use the same endpoint, HTTP status, exception class, or failing function.
+- Use the implementation's most precise discriminator when splitting failures: each distinct `Feilkode`, exception class, explicit guard branch, state-machine rejection, or named validation method outcome must be its own failure entry.
+- Do not merge multiple source discriminators into a broad condition. For example, split separate date-limit `Feilkode` values such as start-after-end, too-early start, end-date upper bound, Sommerjobb too early, Sommerjobb too late, Sommerjobb too long, and temporary wage-subsidy 12/24-month duration limits. Split separate calculation failures such as invalid wage-subsidy percent and invalid OTP rate when the source exposes them separately.
+- Do not write umbrella failure entries such as "any creation rule fails", "same validation failures as the persistent update", "business validation fails", "invalid state", or "domain validation fails". Replace them with the individual concrete source-level conditions, each as its own failure entry.
+- Do not write semi-umbrella failure entries such as "required content fields are missing", "measure-specific date limits are violated", "calculation inputs are invalid", or "approval prerequisites are missing" when the source exposes individual fields, `Feilkode` values, exception classes, or guard branches. Split them to the source-level discriminator.
+- When a behavior reuses a setup function from another behavior, do not copy the setup function's concrete failures into this behavior's counted failure list. Instead, list the setup function under `Setup failure dependencies (not counted here)` and refer to the behavior or function where those failures are counted.
+- Include business-scoped access and eligibility failures when they are part of the domain workflow, such as advisor write access to a participant, employer Altinn eligibility for a selected company and measure type, notification ownership/readability, or agreement-party access tied to a specific aggregate.
+- Include business negative results from upstream/domain services when the result has business meaning, such as unknown organization, no employer account, protected participant status, missing NAV unit, or missing Altinn right.
+- Exclude framework-level or technical failures from `Failure and exceptional cases`. Do not count or list them as failure entries.
+- Excluded failures include parameter binding/parsing errors, malformed JSON, invalid UUID/string-to-enum conversion, generic missing request headers/cookies, generic authentication, generic authorization, unsupported role-cookie/token-issuer combinations before the domain operation starts, endpoint access gates such as configured system-user, developer-admin, DVH group, delete-marker-admin, or operational group checks, and infrastructure or external dependency availability failures.
+- Exclude these technical/access-gate failures even if `full-behavior.md` lists them, even if the implementation throws `FeilkodeException` or `TilgangskontrollException`, and even if they produce a 4xx/5xx response.
+- Before finalizing a behavior, audit every failure entry and remove it from `Failure and exceptional cases` if its condition is mainly "unsupported role/token", "role cookie and token issuer mismatch", "caller lacks developer-admin access", "caller lacks DVH group access", "caller is not configured system user", "caller is not delete-marker admin", "generic auth", "missing cookie/header", "malformed request", "invalid UUID/enum", "database unavailable", or "external dependency unavailable".
+- Business-scoped access is countable only when it is about a concrete domain object or domain eligibility relation after caller context exists, such as access to a specific agreement, participant, notification, employer company, Altinn right for a selected company and measure, or decision-maker NAV unit scope. Generic endpoint/group admission is not countable.
+- If an excluded technical or access-gate failure is important for implementers, mention it briefly under `Implementation notes`, not under `Failure and exceptional cases`.
+- If no concrete business failure branch is visible after excluding technical/access-gate failures, write exactly `None.` under `Failure and exceptional cases`. Do not create a `Failing function` row whose condition says "none identified", "not applicable", or similar.
+
+Failure deduplication and denominator rule:
+- The failure denominator is a unique source-level business failure inventory, not a repeated workflow dependency inventory.
+- Count a business failure exactly once by the tuple `{exact failing function, source discriminator, concrete failure condition}`.
+- The `source discriminator` must be the most precise implementation clue available, such as a `Feilkode` value, exception class, guard method plus branch condition, state-machine transition rejection, repository not-found lookup, or domain-service negative result.
+- Atomic behaviors count only failures of their own core function under `Core business failure branches (counted)`.
+- Setup functions that appear in `Required execution workflow` must be listed under `Setup failure dependencies (not counted here)` without repeating their individual failure entries. Include the exact setup function name and, when available, the behavior number/name where that setup function's core failures are counted.
+- Composite behaviors are explanatory workflows and must not create additional failure denominator entries. Under composite behaviors, reference the participating atomic behaviors/functions in `Setup failure dependencies (not counted here)` rather than copying their failure entries.
+- If a required setup function has no separate atomic behavior but has concrete business failures, create a separate atomic behavior for that function unless it is purely technical. Only as a last resort, list it under `Additional setup-only business failures (counted once)` and make clear that these entries are not repeated elsewhere.
 
 Analysis goals:
 1. Read `full-behavior.md` and identify all available functions and exact function names.
@@ -139,15 +178,30 @@ Constraints and invariants:
 - Mention side effects such as cascading deletes, automatic derivation, invalid-state persistence, cleanup, or lack of reevaluation.
 
 Failure and exceptional cases:
-- Cover both:
-  1. failures of the core behavior function, and
-  2. meaningful failures of required setup functions in the workflow.
-- For each meaningful failure case, use this structure:
+- Cover only concrete business failure branches as defined by the `Business failure branch scope rule`.
+- Use this exact subsection structure:
+  - `Core business failure branches (counted):`
+  - `Setup failure dependencies (not counted here):`
+  - Optional only when unavoidable: `Additional setup-only business failures (counted once):`
+- Under `Core business failure branches (counted)`, cover all concrete business failures of the behavior's core function only.
+- Under `Setup failure dependencies (not counted here)`, list setup functions required by the workflow whose failures are counted in their own atomic behaviors. Do not duplicate their failure rows here.
+- Use `Additional setup-only business failures (counted once)` only when a required setup function has concrete business failures but cannot reasonably be represented as its own atomic behavior.
+- Inspect implementation source, not only `full-behavior.md`, to find business failure branches. `full-behavior.md` may be incomplete or may contain only representative failures.
+- Do not collapse multiple source-level business guards into a single broad condition such as "required fields are incomplete", "measure-specific date limits are violated", "calculation inputs are invalid", "approval prerequisites are missing", "invalid state", or "business validation fails" when the implementation exposes distinct business conditions, exception classes, guard branches, or error codes.
+- Do not create failure entries for excluded technical/access-gate failures, including unsupported role-token combinations, role cookie/token issuer mismatch, generic missing `innlogget-part`, configured system-user checks, developer-admin checks, DVH group checks, delete-marker-admin checks, malformed request values, or infrastructure/database availability failures.
+- Do not create placeholder failure entries for functions with no retained business failures. If no retained core business failures exist for this behavior, write `None.` under `Core business failure branches (counted)`. If there are no setup dependencies, write `None.` under `Setup failure dependencies (not counted here)`.
+- For each counted core failure case, use this structure:
   - Failing function: `{exact function name}`
+  - Source discriminator: `{Feilkode value, exception class, guard method plus branch condition, state-machine rejection, repository lookup, or domain-service negative result}`
   - Failure condition: ...
   - Why it fails: implementation-backed explanation
   - Violated prerequisite or constraint: ...
+- For each setup dependency, use this structure:
+  - Setup function: `{exact function name}`
+  - Counted under: `{Behavior N: behavior name}` or `{function name}` if the behavior number is not known yet
+  - Dependency reason: why this setup function is required by the workflow
 - If a condition should fail by domain/API expectation but does not fail in the implementation, state that explicitly.
+- If a possible failure is excluded because it is framework-level, generic auth/access-gate, or infrastructure-only, do not list it here; optionally summarize the exclusion in `Implementation notes`.
 
 Implementation notes:
 - Mention relevant implementation details, discrepancies, or side effects.

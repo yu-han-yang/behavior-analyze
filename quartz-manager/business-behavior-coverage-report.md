@@ -2,510 +2,711 @@
 
 ## Executive Summary
 
-| Item | Result |
-|---|---|
-| Project under analysis | `/Users/yangyuhan/behavior-analyze/quartz-manager` |
-| Business behavior specification | `/Users/yangyuhan/behavior-analyze/quartz-manager/business-behavior.md` |
-| Function behavior inventory | `/Users/yangyuhan/behavior-analyze/quartz-manager/full-behavior.md` |
-| Test root analyzed | `/Users/yangyuhan/behavior-analyze/quartz-manager/tests` |
-| Total test files analyzed | 1 |
-| Total test cases analyzed | 45 |
-| JaCoCo XML reports used | `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.xml` |
-| JaCoCo CSV reports used | `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.csv` |
-| Source roots analyzed | `/Users/yangyuhan/behavior-analyze/quartz-manager/src/main/java` |
-| Total documented business behaviors | 11 |
-| Covered | 1 |
-| Partially covered | 10 |
-| Not covered | 0 |
-| Unclear | 0 |
-| Business behavior coverage | 54.5% |
-| Happy-path coverage | 45.5% (5/11) |
-| Failure/exceptional-case coverage | 72.1% (31/43) |
-| Behavior checklist coverage | 36/54 (66.7%) |
-| JaCoCo coverage signal | Line 53.8%, branch 29.5%, method 61.3%, class 79.3% |
+- Project under analysis: `/Users/yangyuhan/behavior-analyze/quartz-manager`
+- Business specification: `business-behavior.md`
+- Test suites analyzed: `/Users/yangyuhan/behavior-analyze/quartz-manager/tests/EM_quartz_manager_True_25_false_false_SPECIFIED_false_0_Test.java` with 45 generated JUnit tests
+- Application calls analyzed: 80 REST-assured calls across 12 normalized routes, including 11 documented business routes plus `/v3/api-docs`
+- Coverage reports analyzed: `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.xml` and `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.csv`
+- Source roots analyzed: `/Users/yangyuhan/behavior-analyze/quartz-manager/src/main/java`; local source contains shared constants/utilities only, so controller/service method evidence comes from JaCoCo runtime classes
+- Total documented behaviors: 11
+- Total documented failure entries: 0
+- Covered / Partially Covered / Not Covered / Unclear: 5 / 6 / 0 / 0
+- Business behavior coverage: 8.0/11 (72.7%)
+- Function/API invocation coverage: 11/11 (100.0%), plus 0 ambiguous shared-route attempts
+- Required-step attempt coverage: 23/23 (100.0%)
+- Required-step application-reach coverage: 17/23 (73.9%)
+- Required-step context-valid success coverage: 15/23 (65.2%)
+- Happy-path behavior coverage: 5/11 (45.5%)
+- Documented business-failure coverage: 0/0 (N/A)
+- Unique source business-branch coverage: 0/0 (N/A)
+- Behavior outcome checklist coverage: 5/11 (45.5%)
+- Optional verification execution coverage: 0/6 (0.0%)
+- Combined JaCoCo signal: 322/598 lines (53.8%), 36/122 branches (29.5%), 119/194 methods (61.3%), 46/58 classes (79.3%)
 
-There is one XML and one CSV report, so exact combined JaCoCo coverage can be taken from the XML top-level counters. The CSV was used as a per-class cross-check, not summed separately.
+The execution funnel is internally consistent: context-valid success 15 <= application reached 17 <= attempted 23. The generated tests broadly invoke the API surface, but behavior coverage drops at the application-reach and success layers. Login, job discovery, scheduler details, stop, and pause have complete happy-path evidence. Start, resume, trigger listing, and all simple-trigger lifecycle behaviors remain partial because their documented terminal results are not demonstrated.
 
-- Strongest behavior evidence is for authentication, eligible job discovery, scheduler details, stop scheduler, and pause scheduler.
-- Authentication failure and missing-bearer checks are broadly exercised across protected endpoints.
-- Major happy-path gaps remain for start scheduler, resume scheduler, list triggers, schedule simple trigger, retrieve simple trigger, and reschedule simple trigger.
-- Several documented 404/not-found cases are not covered, or are left flaky/ambiguous. Some tests assert 500 where the API contract expects 404 or 204.
-- Most generated tests assert HTTP status or error envelopes only. Only 5 tests assert business response content.
-- The current `src/main/java` checkout contains only shared constants/properties/utilities. Controller and service mapping therefore relies on `full-behavior.md` plus JaCoCo class names from the runtime SUT report.
+The prompt expected an 81-behavior and 461-failure document. The authoritative `business-behavior.md` in this project contains 11 supported behaviors and every supported behavior states `Failure and exceptional cases: None.`. Per the instruction to score against `business-behavior.md`, technical/auth/contract failures from `full-behavior.md` and generated tests are reported as execution evidence and gaps, not as documented business-failure checklist items.
 
-## Test Corpus Summary
+## Inventory Validation
 
-| Area | Count / Summary |
-|---|---|
-| Test files analyzed | 1 |
-| Test cases analyzed | 45 |
-| Primary test framework | EvoMaster generated JUnit 5 tests using REST-assured |
-| Main endpoints/functions exercised | `POST /quartz-manager/auth/login`, `GET /quartz-manager/jobs`, `GET /quartz-manager/scheduler`, scheduler run/stop/pause/resume, `GET /quartz-manager/triggers`, simple-trigger GET/POST/PUT, and `/v3/api-docs` |
-| Positive-path tests | 11 executable 2xx tests: 10 business endpoint tests plus 1 `/v3/api-docs` test |
-| Negative/failure tests | 33 executable negative tests, plus 1 flaky/ambiguous simple-trigger lookup test with no executable status assertion |
-| Tests with business assertions | 5 |
-| Tests with only status/code/error assertions | 40 |
+| Inventory Item | Parsed Result | Notes |
+|---|---:|---|
+| Supported behavior sections | 11 | Behaviors 1 through 11 parsed from `### Behavior N:` headings |
+| Required workflow steps | 23 | All numbered `Use function` steps parsed |
+| Optional verification steps | 6 | Behaviors 4, 5, 6, 7, 9, and 11 each have one optional verification step |
+| Behaviors with `Failure and exceptional cases: None.` | 11 | Every supported behavior has no documented failure item |
+| Parsed documented failure entries | 0 | No `Failing function` entries exist in `business-behavior.md` |
+| Distinct exact function names in required/optional steps | 11 | All map to `full-behavior.md` |
+| Exact-function-name mapping failures | 0 | No missing or renamed function names |
+| Malformed or unparsed behavior entries | 0 | No malformed supported behavior sections found |
+| Malformed or unparsed failure entries | 0 | No failure entries to parse |
 
-All generated tests call `controller.resetStateOfSUT()` before each test. Authenticated tests usually perform `POST /quartz-manager/auth/login` with form credentials `foo/bar` or `foo2/bar`, extract `accessToken`, and send `Authorization: Bearer {token}`. No direct database inserts or business fixtures appear in the generated test code. Cleanup is `controller.stopSut()` in `@AfterAll`.
-
-| Test File | Test Cases | Main Behavior Area | Evidence Quality |
-|---|---:|---|---|
-| `/Users/yangyuhan/behavior-analyze/quartz-manager/tests/EM_quartz_manager_True_25_false_false_SPECIFIED_false_0_Test.java` | 45 | Generated REST tests across all documented endpoint groups | Medium. Broad endpoint exercise, but limited state assertions and no successful trigger create/update/read workflow |
-
-## Function-to-Code Map
-
-| Business Function | Endpoint / Operation | Code Evidence | Failure Branch Evidence |
-|---|---|---|---|
-| `authenticate user` | `POST /quartz-manager/auth/login` | `QuartzManagerPaths` defines login path; `OpenAPIConfigConsts` defines bearer scheme; JaCoCo covers security config/helpers and `UserController` | 401 invalid/missing credentials in `test_36_postOnLoginReturns401` |
-| `list eligible job classes` | `GET /quartz-manager/jobs` | `JobController`, `JobService` in JaCoCo; endpoint behavior in `full-behavior.md` | 401 unauthenticated in `test_10_getOnJobsReturns401`; generic 404 not covered |
-| `retrieve scheduler details` | `GET /quartz-manager/scheduler` | `SchedulerController`, `SchedulerService`, `SchedulerToSchedulerDTO` in JaCoCo | 401 unauthenticated in `test_9` and `test_11`; generic 404 not covered |
-| `start scheduler` | `GET /quartz-manager/scheduler/run` | `SchedulerController`, `SchedulerService` in JaCoCo | 401 in `test_31`; internal 500 in `test_13`, `test_14`, `test_22`; 404 not covered |
-| `stop scheduler` | `GET /quartz-manager/scheduler/stop` | `SchedulerController`, `SchedulerService` in JaCoCo | 401 in `test_30`, `test_34`; 404 not covered |
-| `pause scheduler` | `GET /quartz-manager/scheduler/pause` | `SchedulerController`, `SchedulerService` in JaCoCo | 401 in `test_33`; 404 not covered |
-| `resume scheduler` | `GET /quartz-manager/scheduler/resume` | `SchedulerController`, `SchedulerService` in JaCoCo | 401 in `test_32`; internal 500 in `test_15`, `test_20`, `test_21`; 404 not covered |
-| `list triggers` | `GET /quartz-manager/triggers` | `TriggerController`, `TriggerService` in JaCoCo | 401 in `test_8`; internal 500 in `test_0`, `test_1`; 404 not covered |
-| `schedule simple trigger` | `POST /quartz-manager/simple-triggers/{name}` | `SimpleTriggerController`, `SimpleTriggerService`, validators/converters in JaCoCo | 401, 400 invalid body, 415 missing JSON media type covered; 404 not covered |
-| `retrieve simple trigger by name` | `GET /quartz-manager/simple-triggers/{name}` | `SimpleTriggerController`, `AbstractSchedulerService`, converters in JaCoCo | 401 covered; missing trigger exercised as 500; executable 404 and name-mismatch cases missing |
-| `reschedule simple trigger` | `PUT /quartz-manager/simple-triggers/{name}` | `SimpleTriggerController`, `SimpleTriggerService`, validators/converters in JaCoCo | 401, 400 invalid replacement body, 415 missing JSON media type covered; successful update, 404, name-mismatch, and internal PUT 500 missing |
+Denominator reconciliation: the expected prompt denominator `81 + 461 = 542` does not match this repository. The actual authoritative denominator is `11 happy-path items + 0 documented failure items = 11 behavior-outcome checklist items`.
 
 ## Coverage Matrix
 
-| ID | Business Behavior | Happy Path | Failure Cases | Optional Verification | Status | Confidence | Main Gap |
-|---|---|---|---|---|---|---|---|
-| B1 | Obtain API access token | Covered | Covered | None | Covered | High | No standalone explicit `accessToken` nonblank assertion |
-| B2 | Inspect eligible job classes | Covered | Partially Covered | None | Partially Covered | High | Generic 404 case missing |
-| B3 | Inspect scheduler status and configuration | Covered | Partially Covered | None | Partially Covered | High | Generic 404 case missing |
-| B4 | Start scheduler execution | Not Covered | Partially Covered | Not executed | Partially Covered | High | No 204 start success or started-state verification |
-| B5 | Stop scheduler execution | Covered | Partially Covered | Not executed | Partially Covered | Medium | No post-stop scheduler-status verification; 404 missing |
-| B6 | Pause scheduler execution | Covered | Partially Covered | Not executed | Partially Covered | Medium | No post-pause scheduler-status verification; 404 missing |
-| B7 | Resume scheduler execution | Not Covered | Partially Covered | Not executed | Partially Covered | High | No 204 resume success or resumed-state verification |
-| B8 | List scheduler triggers | Not Covered | Partially Covered | None | Partially Covered | High | Authenticated list returns asserted 500, not documented list result |
-| B9 | Schedule a named simple trigger | Not Covered | Partially Covered | Not executed | Partially Covered | High | No valid `SimpleTriggerInputDTO` POST producing 201 |
-| B10 | Retrieve a named simple trigger | Not Covered | Partially Covered | None | Partially Covered | Medium | No successful create/read same-name workflow; 404 is flaky/unasserted |
-| B11 | Reschedule a named simple trigger | Not Covered | Partially Covered | Not executed | Partially Covered | Medium | No successful create/PUT same-name workflow |
+| ID | Business Behavior | Required Steps Attempted | Application Reached | Context-Valid Steps | Happy Path | Failure Coverage | Optional Verification | Status | Confidence |
+|---|---|---:|---:|---:|---|---|---|---|---|
+| B1 | Obtain API access token | 1/1 | 1/1 | 1/1 | Covered | N/A 0/0 | N/A 0/0 | Covered | High |
+| B2 | Inspect eligible job classes | 2/2 | 2/2 | 2/2 | Covered | N/A 0/0 | N/A 0/0 | Covered | High |
+| B3 | Inspect scheduler status and configuration | 2/2 | 2/2 | 2/2 | Covered | N/A 0/0 | N/A 0/0 | Covered | High |
+| B4 | Start scheduler execution | 2/2 | 2/2 | 1/2 | Not Covered | N/A 0/0 | 0/1 | Partially Covered | High |
+| B5 | Stop scheduler execution | 2/2 | 2/2 | 2/2 | Covered | N/A 0/0 | 0/1 | Covered | Medium |
+| B6 | Pause scheduler execution | 2/2 | 2/2 | 2/2 | Covered | N/A 0/0 | 0/1 | Covered | Medium |
+| B7 | Resume scheduler execution | 2/2 | 2/2 | 1/2 | Not Covered | N/A 0/0 | 0/1 | Partially Covered | High |
+| B8 | List scheduler triggers | 2/2 | 1/2 | 1/2 | Not Covered | N/A 0/0 | N/A 0/0 | Partially Covered | Medium |
+| B9 | Schedule a named simple trigger | 2/2 | 1/2 | 1/2 | Not Covered | N/A 0/0 | 0/1 | Partially Covered | High |
+| B10 | Retrieve a named simple trigger | 3/3 | 1/3 | 1/3 | Not Covered | N/A 0/0 | N/A 0/0 | Partially Covered | High |
+| B11 | Reschedule a named simple trigger | 3/3 | 1/3 | 1/3 | Not Covered | N/A 0/0 | 0/1 | Partially Covered | High |
+
+## Function/API Invocation Checklist
+
+| Exact Function Name | Method/Route | Attempted? | Distinguishable? | Representative Tests | Result Classes |
+|---|---|---|---|---|---|
+| `authenticate user` | `POST /quartz-manager/auth/login` | Yes | Yes | `test_2`, `test_3`, `test_36` | Success inferred by extracted `accessToken` reused in protected 2xx/204 calls; one 401 invalid-form check |
+| `list eligible job classes` | `GET /quartz-manager/jobs` | Yes | Yes | `test_3`, `test_4`, `test_6`, `test_10` | 200 success with empty JSON list; 401 missing bearer |
+| `retrieve scheduler details` | `GET /quartz-manager/scheduler` | Yes | Yes | `test_2`, `test_5`, `test_9`, `test_11` | 200 success with scheduler fields; 401 missing bearer |
+| `start scheduler` | `GET /quartz-manager/scheduler/run` | Yes | Yes | `test_13`, `test_14`, `test_22`, `test_31` | Authenticated 500; 401 missing bearer |
+| `stop scheduler` | `GET /quartz-manager/scheduler/stop` | Yes | Yes | `test_23`, `test_26`, `test_30`, `test_34` | 204 success; 401 missing bearer |
+| `pause scheduler` | `GET /quartz-manager/scheduler/pause` | Yes | Yes | `test_24`, `test_25`, `test_27`, `test_33` | 204 success; 401 missing bearer |
+| `resume scheduler` | `GET /quartz-manager/scheduler/resume` | Yes | Yes | `test_15`, `test_20`, `test_21`, `test_32` | Authenticated 500; 401 missing bearer |
+| `list triggers` | `GET /quartz-manager/triggers` | Yes | Yes | `test_0`, `test_1`, `test_8` | Authenticated 500; 401 missing bearer; application method coverage not corroborated by JaCoCo |
+| `schedule simple trigger` | `POST /quartz-manager/simple-triggers/{name}` | Yes | Yes | `test_16`, `test_17`, `test_35`, `test_41`, `test_42` | 400 invalid JSON object, 415 missing JSON media type, 401 missing bearer; no successful function entry |
+| `retrieve simple trigger by name` | `GET /quartz-manager/simple-triggers/{name}` | Yes | Yes | `test_12`, `test_16`, `test_17`, `test_29`, `test_40` | Authenticated 500 for unknown names, 401 missing bearer, one unasserted/commented 404 probe |
+| `reschedule simple trigger` | `PUT /quartz-manager/simple-triggers/{name}` | Yes | Yes | `test_18`, `test_28`, `test_38`, `test_43`, `test_44` | 400 invalid JSON object, 415 missing JSON media type, 401 missing bearer; no successful function entry |
+
+No ambiguous shared-route attempts were found. `GET`, `POST`, and `PUT` on `/quartz-manager/simple-triggers/{name}` remain distinguishable by HTTP method.
 
 ## Behavior Details
 
 ### B1: Obtain API access token
 
-- Business goal: Authenticate credentials and obtain the bearer token used by protected APIs.
-- Status: Covered.
-- Confidence: High.
+- Business goal: Authenticate credentials and obtain the JWT bearer token required by protected APIs.
+- Starting point: Configured credential pair exists; caller has no reusable bearer token.
+- Expected business result: Caller receives `{token}` and can authorize protected scheduler/job/trigger calls.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | POST form credentials to `/quartz-manager/auth/login` and obtain `{token}` | Yes | Many authenticated tests extract `accessToken`; later 200/204 protected calls prove token acceptance | Security config/helpers covered; `UserController` method partly covered |
+#### Required execution workflow coverage
 
-Happy-path item: Covered. Valid login is exercised as setup and the token authorizes subsequent protected calls.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | `POST /quartz-manager/auth/login`, form `username=foo` or `foo2`, form `password=bar`, extract `accessToken` | Yes | Yes | Yes | Many tests extract `accessToken`; `test_2`, `test_3`, `test_23`, and `test_24` reuse it for protected 200/204 calls | Security config/helpers and JWT filter/helper classes covered; success is corroborated by accepted bearer token |
 
-Optional verification coverage: None documented.
+- Happy-path item: Covered. The login response itself is not explicitly asserted as 200, but the extracted token authorizes protected endpoints.
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | `username` or `password` missing, invalid, or not configured | Yes | `test_36_postOnLoginReturns401` posts an empty form and asserts 401/error/path | Authentication failure/security helper coverage present |
+#### Optional verification coverage
 
-Coverage item summary: Covered items 2/2.
+No optional verification workflow is documented.
 
-Gap: Add an explicit success assertion for HTTP 200 and nonblank `accessToken` to make the setup evidence self-contained.
+#### Concrete business-failure coverage
 
-Recommended tests: Valid-login test with `Content-Type=application/x-www-form-urlencoded`, known credentials, assert 200, JSON body contains nonblank `accessToken`, then use it on one protected endpoint.
+No documented failure entries. Generated 401 login evidence in `test_36` is technical/auth evidence only under the authoritative business checklist.
+
+- Required-step summary: attempted 1/1, application reached 1/1, context-valid success 1/1
+- Happy-path summary: 1/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 1/1
+- Status and confidence: Covered, High
+- Exact gap: Add a direct assertion that a valid login returns a nonblank `accessToken`.
+- Recommended test IDs that close the gap: none required for behavior coverage.
 
 ### B2: Inspect eligible job classes
 
-- Business goal: Discover the Java job classes available to the scheduler.
-- Status: Partially Covered.
-- Confidence: High.
+- Business goal: Discover the Java job classes available to Quartz Manager.
+- Starting point: Service has a configured eligible-job source; caller can authenticate.
+- Expected business result: Caller receives the current eligible job-class list without changing job or trigger state.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_3`, `test_4`, `test_6` log in first | Auth/security coverage present |
-| 2 | `list eligible job classes` | GET `/quartz-manager/jobs` with bearer token | Yes | `test_3`, `test_4`, `test_6` assert 200, JSON content, and `size() == 0` | `JobController` 4/4 lines; `JobService` 18/20 lines |
+#### Required execution workflow coverage
 
-Happy-path item: Covered. The required login-then-list workflow is directly tested.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_3`, `test_4`, `test_6` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `list eligible job classes` | `GET /quartz-manager/jobs` with `Authorization: Bearer {token}` | Yes | Yes | Yes | `test_3`, `test_4`, `test_6` assert 200, JSON content, and empty list | `JobController.listJobs` line 38 covered; `JobService` constructor/init/list methods covered |
 
-Optional verification coverage: None documented.
+- Happy-path item: Covered. Login and job-list read execute in the same reset-isolated test scenarios.
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `list eligible job classes` | Missing or invalid bearer token | Yes | `test_10_getOnJobsReturns401` | Security filter/entry point coverage |
-| `list eligible job classes` | OpenAPI-declared generic not-found condition | No | No test produces a 404 for `/jobs` | No source condition visible |
+#### Optional verification coverage
 
-Coverage item summary: Covered items 3/4.
+No optional verification workflow is documented.
 
-Gap: The documented 404 path is not exercised and has no visible setup condition.
+#### Concrete business-failure coverage
 
-Recommended tests: Add a contract/implementation clarification test only after a concrete `/jobs` not-found condition is defined.
+No documented failure entries. `test_10` shows 401 without a bearer token, but that is generic authentication evidence and not a documented business failure item.
+
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 2/2
+- Happy-path summary: 1/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 1/1
+- Status and confidence: Covered, High
+- Exact gap: No behavior-level gap. The OpenAPI says 200 is `type=string`, while tests assert a JSON array.
+- Recommended test IDs that close the gap: none required for behavior coverage.
 
 ### B3: Inspect scheduler status and configuration
 
 - Business goal: Read the singleton scheduler identity, instance id, status, and trigger-key view.
-- Status: Partially Covered.
-- Confidence: High.
+- Starting point: Scheduler exists as a configured singleton service resource; caller can authenticate.
+- Expected business result: Scheduler state remains unchanged and the caller receives scheduler details.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_2`, `test_5` log in first | Auth/security coverage present |
-| 2 | `retrieve scheduler details` | GET `/quartz-manager/scheduler` with bearer token | Yes | `test_2`, `test_5` assert name `example`, instance `NON_CLUSTERED`, status `STOPPED`, `triggerKeys` null | `SchedulerController` 14/18 lines; `SchedulerService` 7/9 lines |
+#### Required execution workflow coverage
 
-Happy-path item: Covered. Response fields are asserted.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_2` and `test_5` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `retrieve scheduler details` | `GET /quartz-manager/scheduler` with `Authorization: Bearer {token}` | Yes | Yes | Yes | `test_2`, `test_5` assert 200, `name=example`, `instanceId=NON_CLUSTERED`, `status=STOPPED`, `triggerKeys=null` | `SchedulerController.getScheduler` line 50 covered; `SchedulerService.getScheduler` line 18 covered; `SchedulerToSchedulerDTO` covered |
 
-Optional verification coverage: None documented.
+- Happy-path item: Covered. Response fields are asserted in reset-isolated tests.
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `retrieve scheduler details` | Missing or invalid bearer token | Yes | `test_9`, `test_11` assert 401 | Security filter/entry point coverage |
-| `retrieve scheduler details` | OpenAPI-declared not-found condition | No | No scheduler 404 test | No source condition visible |
+#### Optional verification coverage
 
-Coverage item summary: Covered items 3/4.
+No optional verification workflow is documented.
 
-Gap: Singleton scheduler 404 behavior is not covered.
+#### Concrete business-failure coverage
 
-Recommended tests: Define a realizable missing-scheduler condition or remove the contract response; then test it.
+No documented failure entries. `test_9` and `test_11` show generic 401 behavior only.
+
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 2/2
+- Happy-path summary: 1/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 1/1
+- Status and confidence: Covered, High
+- Exact gap: No behavior-level gap. Optional post-transition status reads for other behaviors are missing.
+- Recommended test IDs that close the gap: none required for this behavior.
 
 ### B4: Start scheduler execution
 
-- Business goal: Move the scheduler into active execution.
-- Status: Partially Covered.
-- Confidence: High.
+- Business goal: Move the singleton scheduler into active execution.
+- Starting point: Scheduler exists and may be stopped or inactive; caller can authenticate.
+- Expected business result: `GET /quartz-manager/scheduler/run` returns 204 and the scheduler is started.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_13`, `test_14`, `test_22` log in first | Auth/security coverage present |
-| 2 | `start scheduler` | GET `/quartz-manager/scheduler/run` and receive 204 | No | Authenticated start tests assert 500, not 204 | `SchedulerController` and `SchedulerService` executed |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. The documented 204 start transition is never demonstrated.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_13`, `test_14`, `test_22` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `start scheduler` | `GET /quartz-manager/scheduler/run` with bearer token; expect 204 | Yes | Yes | No | `test_13`, `test_14`, `test_22` assert 500, not 204 | `SchedulerController.run` line 83 partially covered; `SchedulerService.start` line 25 has 0 covered instructions |
 
-Optional verification coverage:
+- Happy-path item: Not Covered. The documented 204 start transition is never observed.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve scheduler details` | Inspect resulting scheduler status | No | No same-test read after successful start |
+| 1 | `retrieve scheduler details` | Read scheduler status after start | No | No same-test successful start followed by `GET /scheduler` |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `start scheduler` | Missing or invalid bearer token | Yes | `test_31_getOnRunReturns401` | Security coverage |
-| `start scheduler` | Scheduler start routine fails internally | Yes | `test_13`, `test_14`, `test_22` assert 500 and path `/scheduler/run` | `SchedulerService` executed |
-| `start scheduler` | OpenAPI-declared not-found condition | No | No start 404 test | No source condition visible |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 3/5.
+No documented failure entries. The 500 responses are implementation/runtime discrepancy evidence, not documented business-failure coverage.
 
-Gap: Success is missing, and internal failure is mapped to 500 rather than a documented domain error.
-
-Recommended tests: Start from a stopped scheduler, call login, call `/scheduler/run`, assert 204, then GET `/scheduler` and assert running/started status.
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 1/2
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, High
+- Exact gap: No test proves the scheduler can start successfully or verifies a running status afterward.
+- Recommended test IDs that close the gap: T1.
 
 ### B5: Stop scheduler execution
 
 - Business goal: Stop the scheduler from executing scheduled work.
-- Status: Partially Covered.
-- Confidence: Medium.
+- Starting point: Singleton scheduler exists; caller can authenticate.
+- Expected business result: `GET /quartz-manager/scheduler/stop` returns 204 and no job, trigger, or scheduler configuration is deleted.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_23`, `test_26` log in first | Auth/security coverage present |
-| 2 | `stop scheduler` | GET `/quartz-manager/scheduler/stop` and receive 204 | Yes | `test_23`, `test_26` assert 204 and empty body | Scheduler controller/service coverage present |
+#### Required execution workflow coverage
 
-Happy-path item: Covered. The required call sequence is executed, though no post-stop state read is made.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_23`, `test_26` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `stop scheduler` | `GET /quartz-manager/scheduler/stop` with bearer token; expect 204 empty body | Yes | Yes | Yes | `test_23`, `test_26` assert 204 and empty body | `SchedulerController.stop` line 94 covered; `SchedulerService.shutdown` line 28 covered |
 
-Optional verification coverage:
+- Happy-path item: Covered. The required command succeeds with the documented 204 result, although the resulting scheduler status is not read.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve scheduler details` | Inspect resulting scheduler status | No | No same-test scheduler detail read after stop |
+| 1 | `retrieve scheduler details` | Read scheduler status after stop | No | No same-test `GET /scheduler` after the stop call |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `stop scheduler` | Missing or invalid bearer token | Yes | `test_30`, `test_34` assert 401 | Security coverage |
-| `stop scheduler` | OpenAPI-declared not-found condition | No | No stop 404 test | No source condition visible |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 3/4.
+No documented failure entries. `test_30` and `test_34` demonstrate generic 401 only.
 
-Gap: 404 and post-stop status are unverified.
-
-Recommended tests: Stop scheduler, assert 204, then retrieve scheduler details and assert the documented stopped state; add a concrete 404 test if the implementation can expose one.
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 2/2
+- Happy-path summary: 1/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 1/1
+- Status and confidence: Covered, Medium
+- Exact gap: Optional status verification is absent.
+- Recommended test IDs that close the gap: none required for behavior coverage.
 
 ### B6: Pause scheduler execution
 
-- Business goal: Temporarily pause scheduler activity while retaining configuration.
-- Status: Partially Covered.
-- Confidence: Medium.
+- Business goal: Temporarily pause scheduler activity while retaining scheduler configuration and trigger definitions.
+- Starting point: Singleton scheduler exists; caller can authenticate.
+- Expected business result: `GET /quartz-manager/scheduler/pause` returns 204 and scheduler execution is paused.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_24`, `test_25`, `test_27` log in first | Auth/security coverage present |
-| 2 | `pause scheduler` | GET `/quartz-manager/scheduler/pause` and receive 204 | Yes | `test_24`, `test_25`, `test_27` assert 204 and empty body | Scheduler controller/service coverage present |
+#### Required execution workflow coverage
 
-Happy-path item: Covered. The required call sequence is executed.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_24`, `test_25`, `test_27` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `pause scheduler` | `GET /quartz-manager/scheduler/pause` with bearer token; expect 204 empty body | Yes | Yes | Yes | `test_24`, `test_25`, `test_27` assert 204 and empty body | `SchedulerController.pause` line 61 covered; `SchedulerService.standby` line 22 covered |
 
-Optional verification coverage:
+- Happy-path item: Covered. The required command succeeds with the documented 204 result, although the resulting scheduler status is not read.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve scheduler details` | Inspect resulting scheduler status | No | No same-test scheduler detail read after pause |
+| 1 | `retrieve scheduler details` | Read scheduler status after pause | No | No same-test `GET /scheduler` after the pause call |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `pause scheduler` | Missing or invalid bearer token | Yes | `test_33_getOnPauseReturns401` | Security coverage |
-| `pause scheduler` | OpenAPI-declared not-found condition | No | No pause 404 test | No source condition visible |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 3/4.
+No documented failure entries. `test_33` demonstrates generic 401 only.
 
-Gap: 404 and post-pause status are unverified.
-
-Recommended tests: Pause scheduler, assert 204, then retrieve scheduler details and assert a paused/inactive status if the API exposes it.
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 2/2
+- Happy-path summary: 1/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 1/1
+- Status and confidence: Covered, Medium
+- Exact gap: Optional status verification is absent.
+- Recommended test IDs that close the gap: none required for behavior coverage.
 
 ### B7: Resume scheduler execution
 
-- Business goal: Resume scheduler activity after pause or inactive state.
-- Status: Partially Covered.
-- Confidence: High.
+- Business goal: Resume scheduler activity after a pause or stopped-like inactive condition.
+- Starting point: Singleton scheduler exists and is paused or inactive; caller can authenticate.
+- Expected business result: `GET /quartz-manager/scheduler/resume` returns 204 and scheduler activity is resumed.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_15`, `test_20`, `test_21` log in first | Auth/security coverage present |
-| 2 | `resume scheduler` | GET `/quartz-manager/scheduler/resume` and receive 204 | No | Authenticated resume tests assert 500 | Scheduler controller/service coverage present |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. No test proves successful resume.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_15`, `test_20`, `test_21` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `resume scheduler` | `GET /quartz-manager/scheduler/resume` with bearer token; expect 204 | Yes | Yes | No | `test_15`, `test_20`, `test_21` assert 500, not 204 | `SchedulerController.resume` line 72 partially covered; `SchedulerService.start` line 25 has 0 covered instructions |
 
-Optional verification coverage:
+- Happy-path item: Not Covered. The documented 204 resume transition is never observed.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve scheduler details` | Inspect resulting scheduler status | No | No same-test read after successful resume |
+| 1 | `retrieve scheduler details` | Read scheduler status after resume | No | No same-test successful resume followed by `GET /scheduler` |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `resume scheduler` | Missing or invalid bearer token | Yes | `test_32_getOnResumeReturns401` | Security coverage |
-| `resume scheduler` | Scheduler resume routine fails internally | Yes | `test_15`, `test_20`, `test_21` assert 500 | `SchedulerService` executed |
-| `resume scheduler` | OpenAPI-declared not-found condition | No | No resume 404 test | No source condition visible |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 3/5.
+No documented failure entries. The 500 responses are implementation/runtime discrepancy evidence, not documented business-failure coverage.
 
-Gap: The documented 204 resume path and resumed state are absent.
-
-Recommended tests: Pause or otherwise prepare the scheduler, call resume, assert 204, then retrieve scheduler details and assert resumed/running status.
+- Required-step summary: attempted 2/2, application reached 2/2, context-valid success 1/2
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, High
+- Exact gap: No test proves resume can succeed or verifies resumed status afterward.
+- Recommended test IDs that close the gap: T2.
 
 ### B8: List scheduler triggers
 
-- Business goal: Read the global trigger inventory.
-- Status: Partially Covered.
-- Confidence: High.
+- Business goal: Read the global trigger inventory known to Quartz Manager.
+- Starting point: Scheduler has a trigger store that may be empty or populated; caller can authenticate.
+- Expected business result: Caller receives the global trigger list or trigger-key view without changing state.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | `test_0`, `test_1` log in first | Auth/security coverage present |
-| 2 | `list triggers` | GET `/quartz-manager/triggers` and receive trigger list | No | Authenticated list tests assert 500 | `TriggerController` and `TriggerService` executed |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. No 200 list response is asserted.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_0`, `test_1` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `list triggers` | `GET /quartz-manager/triggers` with bearer token; expect 200 trigger list | Yes | No | No | `test_0`, `test_1` assert 500; `test_8` asserts 401 without token | `TriggerController.listTriggers` line 44 and `TriggerService.fetchTriggers` line 28 have 0 covered instructions in XML |
 
-Optional verification coverage: None documented.
+- Happy-path item: Not Covered. No authenticated test returns the documented trigger list.
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `list triggers` | Missing or invalid bearer token | Yes | `test_8_getOnTriggersReturns401` | Security coverage |
-| `list triggers` | Trigger inventory read fails internally | Yes | `test_0`, `test_1` assert 500 and path `/triggers` | `TriggerService` covered 4/8 lines |
-| `list triggers` | OpenAPI-declared not-found condition | No | No trigger-list 404 test | No source condition visible |
+#### Optional verification coverage
 
-Coverage item summary: Covered items 3/5.
+No optional verification workflow is documented.
 
-Gap: The operational inventory success path is not proven.
+#### Concrete business-failure coverage
 
-Recommended tests: With an empty or seeded trigger store, call `/triggers`, assert 200 and the expected trigger-key array/object shape.
+No documented failure entries. The authenticated 500s and missing-bearer 401 are not documented business-failure items.
+
+- Required-step summary: attempted 2/2, application reached 1/2, context-valid success 1/2
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, Medium
+- Exact gap: No successful list response; test comments attribute a service fault, but JaCoCo does not corroborate controller/service method entry.
+- Recommended test IDs that close the gap: T3.
 
 ### B9: Schedule a named simple trigger
 
 - Business goal: Create a named simple trigger in the scheduler store.
-- Status: Partially Covered.
-- Confidence: High.
+- Starting point: No simple trigger named `{name}` exists, or the API is asked to schedule a new trigger under `{name}`; caller can authenticate.
+- Expected business result: `POST /quartz-manager/simple-triggers/{name}` returns 201 with `SimpleTriggerDTO`, and the trigger exists under `{name}`.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | Authenticated POST tests log in first | Auth/security coverage present |
-| 2 | `schedule simple trigger` | POST valid JSON `SimpleTriggerInputDTO` to `/simple-triggers/{name}` and receive 201 | No | No successful POST. Tests cover 400, 401, and 415 only | `SimpleTriggerController` low coverage; validators executed |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. No valid create payload is used.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_16`, `test_17`, `test_19`, `test_41`, `test_42` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `schedule simple trigger` | `POST /quartz-manager/simple-triggers/{name}` with bearer token, JSON content type, and valid `SimpleTriggerInputDTO`; expect 201 | Yes | No | No | Authenticated POSTs assert 400 for `{}` or 415 without JSON media type; no 201 | `SimpleTriggerController.postSimpleTrigger` line 62 and `SimpleTriggerService.scheduleSimpleTrigger` line 24 have 0 covered instructions; validators have partial coverage |
 
-Optional verification coverage:
+- Happy-path item: Not Covered. No valid trigger body is submitted and no trigger is created.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve simple trigger by name` | Inspect created trigger | No | No successful POST followed by same-name GET |
+| 1 | `retrieve simple trigger by name` | Read the trigger created by the POST | No | Follow-up GETs occur only after failed POSTs and return 500, so they do not verify a created trigger |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `schedule simple trigger` | Missing or invalid bearer token | Yes | `test_35`, `test_37`, `test_39` assert 401 | Security coverage |
-| `schedule simple trigger` | Missing `Content-Type=application/json` | Yes | `test_41`, `test_42`, plus `test_16`, `test_19` assert 415 | Spring/media-type handling covered |
-| `schedule simple trigger` | Invalid `SimpleTriggerInputDTO` body | Yes | `test_17` asserts 400 for `{}` | Validator/converter coverage partial |
-| `schedule simple trigger` | OpenAPI-declared not-found condition | No | No POST 404 test | No source condition visible |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 4/6.
+No documented failure entries. The 400/415/401 tests are useful technical evidence but not authoritative business-failure items.
 
-Gap: No documented success path because a valid DTO payload is absent from tests and the OpenAPI schema is missing.
-
-Recommended tests: Provide a valid `SimpleTriggerInputDTO`, POST to a unique `{name}`, assert 201 and response DTO fields, then GET the same `{name}`.
+- Required-step summary: attempted 2/2, application reached 1/2, context-valid success 1/2
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, High
+- Exact gap: The local OpenAPI references `SimpleTriggerInputDTO` but does not define the schema; current tests cannot construct a valid body.
+- Recommended test IDs that close the gap: BT4 and BT5 are blocked until the DTO schema/source is available.
 
 ### B10: Retrieve a named simple trigger
 
-- Business goal: Read the stored configuration for a specific named simple trigger.
-- Status: Partially Covered.
-- Confidence: Medium.
+- Business goal: Read the stored configuration for a specific simple trigger.
+- Starting point: Caller can authenticate and a simple trigger named `{name}` can be established.
+- Expected business result: The same `{name}` used for creation is retrieved successfully with 200.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | Authenticated simple-trigger GET tests log in first | Auth/security coverage present |
-| 2 | `schedule simple trigger` | Establish trigger under `name={name}` | No | POST setup attempts fail with 400 or 415 | `SimpleTriggerService` only 2/16 lines |
-| 3 | `retrieve simple trigger by name` | GET same `{name}` and receive trigger DTO | No | GET unknown/uncreated names returns asserted 500 or flaky unasserted 404/500 | `AbstractSchedulerService` and controller partially covered |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. No test creates or seeds a trigger and then retrieves the same name successfully.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_12`, `test_16`, `test_17`, `test_18`, `test_19`, `test_40` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `schedule simple trigger` | Create trigger under `{name}` with valid `SimpleTriggerInputDTO` | Yes | No | No | POST attempts before GET return 400 or 415; no valid creation | `SimpleTriggerController.postSimpleTrigger` and service schedule method have 0 covered instructions |
+| 3 | `retrieve simple trigger by name` | `GET /quartz-manager/simple-triggers/{name}` using the same created `{name}` | Yes | No | No | Authenticated GET probes assert 500 for unknown names; `test_40` has the 404 assertion commented out | `SimpleTriggerController.getSimpleTrigger` line 48, `SimpleTriggerService.getSimpleTriggerByName` line 19, and `AbstractSchedulerService.getTriggerByName` line 18 have 0 covered instructions |
 
-Optional verification coverage: None documented.
+- Happy-path item: Not Covered. No continuous stateful test creates a valid trigger and retrieves the same name.
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `schedule simple trigger` | Setup body missing/wrong/invalid | Yes | `test_16`, `test_17`, `test_19` assert setup 415 or 400 | Media/validation coverage partial |
-| `retrieve simple trigger by name` | Missing or invalid bearer token | Yes | `test_29_getOnSimple_triggReturns401` | Security coverage |
-| `retrieve simple trigger by name` | No trigger exists under `{name}` | Yes, with discrepancy | `test_12`, `test_16`, `test_17`, `test_19` assert 500; `test_40` comments 404 vs 500 but does not execute status assertion | `AbstractSchedulerService` covered; `TriggerNotFoundException` not covered |
-| `retrieve simple trigger by name` | GET uses `{otherName}` after setup created `{name}` | No | No successful setup plus mismatched GET path | Not corroborated |
+#### Optional verification coverage
 
-Coverage item summary: Covered items 4/6.
+No optional verification workflow is documented.
 
-Gap: The actual documented 404 behavior and successful same-name retrieval are not covered.
+#### Concrete business-failure coverage
 
-Recommended tests: Create a valid simple trigger named `n`, GET `/simple-triggers/n`, assert 200 and persisted fields. Separately, GET a known-missing name and assert the documented 404 error DTO.
+No documented failure entries. Unknown-name 500s are discrepancy evidence, not documented failure coverage.
+
+- Required-step summary: attempted 3/3, application reached 1/3, context-valid success 1/3
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, High
+- Exact gap: Missing valid trigger creation prevents retrieval coverage; absent-trigger behavior returns/probes 500 or unasserted 404.
+- Recommended test IDs that close the gap: BT4 and BT5 are blocked until the DTO schema/source is available.
 
 ### B11: Reschedule a named simple trigger
 
 - Business goal: Replace the timing or configuration of an existing named simple trigger.
-- Status: Partially Covered.
-- Confidence: Medium.
+- Starting point: Caller can authenticate and a simple trigger named `{name}` exists in the scheduler store.
+- Expected business result: `PUT /quartz-manager/simple-triggers/{name}` returns 200 with `TriggerDTO`, and the trigger under `{name}` reflects the replacement configuration.
 
-| Step | Function Name | Expected Operation | Covered? | Test Evidence | JaCoCo Evidence |
-|---:|---|---|---|---|---|
-| 1 | `authenticate user` | Obtain `{token}` | Yes | Authenticated PUT tests log in first | Auth/security coverage present |
-| 2 | `schedule simple trigger` | Establish existing trigger under `name={name}` | No | No valid setup POST exists | `SimpleTriggerService` low coverage |
-| 3 | `reschedule simple trigger` | PUT valid replacement DTO to same `{name}` and receive 200 | No | PUT tests assert 400, 401, or 415 only | `SimpleTriggerController` 2/5 methods; `SimpleTriggerService` 1/4 methods |
+#### Required execution workflow coverage
 
-Happy-path item: Not Covered. No successful create-then-update workflow is present.
+| Step | Exact Function Name | Operation And Required Bindings | Attempted? | Application Reached? | Context-Valid Success? | Test Evidence | JaCoCo Evidence |
+|---:|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Login form credentials and bind `{token}` | Yes | Yes | Yes | `test_18`, `test_28`, `test_43`, `test_44` extract `accessToken` | Security/JWT helpers covered |
+| 2 | `schedule simple trigger` | Create trigger under `{name}` with valid initial `SimpleTriggerInputDTO` | Yes | No | No | POST attempts elsewhere return 400/415/401; no valid creation | `SimpleTriggerController.postSimpleTrigger` and service schedule method have 0 covered instructions |
+| 3 | `reschedule simple trigger` | `PUT /quartz-manager/simple-triggers/{name}` with same `{name}` and valid replacement `SimpleTriggerInputDTO`; expect 200 | Yes | No | No | Authenticated PUTs assert 400 for `{}` or 415 without JSON media type; no 200 | `SimpleTriggerController.rescheduleSimpleTrigger` line 82 and `SimpleTriggerService.rescheduleSimpleTrigger` line 37 have 0 covered instructions |
 
-Optional verification coverage:
+- Happy-path item: Not Covered. No test establishes an existing trigger and then replaces its configuration.
 
-| Step | Function Name | Expected Verification | Executed? | Evidence |
+#### Optional verification coverage
+
+| Step | Exact Function Name | Operation | Executed? | Evidence |
 |---:|---|---|---|---|
-| 1 | `retrieve simple trigger by name` | Inspect updated trigger | No | No successful PUT followed by same-name GET |
+| 1 | `retrieve simple trigger by name` | Inspect updated trigger | No | GETs occur only after failed PUT/POST attempts and return 500 |
 
-| Failing Function | Failure Condition | Covered? | Test Evidence | JaCoCo Evidence |
-|---|---|---|---|---|
-| `authenticate user` | Invalid credentials | Yes | `test_36` | Auth failure coverage |
-| `schedule simple trigger` | Setup body invalid or request not JSON | Yes | POST 400/415 setup failures in `test_16`, `test_17`, `test_19` | Media/validation coverage partial |
-| `reschedule simple trigger` | Missing or invalid bearer token | Yes | `test_38`, `test_39` assert 401 | Security coverage |
-| `reschedule simple trigger` | No simple trigger exists under `{name}` | No | No valid replacement body isolates missing-target behavior | `TriggerNotFoundException` not covered |
-| `reschedule simple trigger` | Missing `Content-Type=application/json` | Yes | `test_43`, `test_44` assert 415 | Media handling covered |
-| `reschedule simple trigger` | Invalid replacement DTO | Yes | `test_18`, `test_28` assert 400 for `{}` | Validator/converter coverage partial |
-| `reschedule simple trigger` | PUT uses `{otherName}` after setup created `{name}` | No | No successful setup plus mismatched PUT | Not corroborated |
-| `reschedule simple trigger` | Internal processing fails during PUT | No | No executable PUT 500 found in the generated tests | Not corroborated |
+#### Concrete business-failure coverage
 
-Coverage item summary: Covered items 5/9.
+No documented failure entries. The 400/415/401 tests are technical validation/auth evidence only.
 
-Gap: Positive update behavior and several identity/not-found branches are missing.
-
-Recommended tests: Create trigger `n` with valid initial DTO, PUT a valid replacement DTO to `/simple-triggers/n`, assert 200 and changed schedule fields, then GET `n` to verify persistence. Add separate tests for missing target and name mismatch.
+- Required-step summary: attempted 3/3, application reached 1/3, context-valid success 1/3
+- Happy-path summary: 0/1
+- Failure summary: 0/0
+- Behavior outcome checklist summary: 0/1
+- Status and confidence: Partially Covered, High
+- Exact gap: Missing valid create and replacement bodies prevent reschedule coverage.
+- Recommended test IDs that close the gap: BT4 and BT5 are blocked until the DTO schema/source is available.
 
 ## Cross-Behavior Gaps
 
-- Successful trigger lifecycle coverage is absent. There is no valid POST, no successful GET of an existing trigger, and no successful PUT update.
-- Scheduler start and resume are executed only as 500 failures, not as documented 204 transitions.
-- Generic 404 cases are broadly missing. The simple-trigger lookup 404 is explicitly flaky in `test_40` because the executable status assertion is commented out.
-- Tests do not stitch workflows across isolated cases, correctly, because every test resets SUT state. This means POST failures in one test cannot establish preconditions for later GET or PUT behavior.
-- Direct database setup is not used. That is fine for preconditions, but no equivalent fixture establishes existing trigger state for retrieve/reschedule.
-- Many endpoint lines are covered without behavior-level confidence. For example, `SimpleTriggerController`, converters, and validators are touched by 400/415 paths but not by successful business creation/update.
-- Optional read-after-write/read-after-transition checks are missing for stop, pause, start, resume, schedule, and reschedule.
-- The missing `SimpleTriggerInputDTO` schema prevents generated tests from discovering a valid create/update payload, which directly blocks behavior-level trigger coverage.
+- The generated tests reset the SUT before every test, so multi-step trigger behavior cannot be composed across methods.
+- No generated test performs a continuous valid `POST -> GET -> PUT -> GET` simple-trigger lifecycle.
+- `SimpleTriggerInputDTO`, `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `SchedulerDTO`, and `ExceptionResponse` are referenced in OpenAPI but absent from `components.schemas`.
+- Many negative tests are status-only or generic-envelope assertions. They help diagnose auth/media/validation behavior but do not prove documented business failures because none are documented.
+- `start scheduler`, `resume scheduler`, `list triggers`, and simple-trigger GET probes produce or probe 500 responses where the contract documents 200, 201, 204, or 404 behavior.
+- Optional verification workflows are never executed after successful lifecycle transitions.
+- Login is used as setup but the successful login response is not directly asserted as HTTP 200 with nonblank `accessToken`.
+- Current local `src/main/java` does not include the controller/service classes named in JaCoCo, limiting source-level branch attribution.
+- JaCoCo XML contradicts some EvoMaster fault comments: `TriggerController.listTriggers`, `TriggerService.fetchTriggers`, `SimpleTriggerController.get/post/put`, and simple-trigger services are uncovered at method level even when generated comments label fault targets.
 
 ## Suggested Additional Tests
 
-| Priority | Behavior ID | Test Intent | Minimal Setup | Calls / Operations | Required Assertions | Coverage Type |
-|---:|---|---|---|---|---|---|
-| 1 | B9, B10, B11 | Full simple-trigger lifecycle | Valid user and valid `SimpleTriggerInputDTO` | Login, POST `/simple-triggers/{name}`, GET same name, PUT replacement, GET same name | 201 create, 200 read/update, fields match initial then replacement state | Success |
-| 2 | B4 | Successful scheduler start | Scheduler configured in stopped/inactive state | Login, GET `/scheduler/run`, GET `/scheduler` | 204 start, scheduler status running/started | Success |
-| 3 | B7 | Successful scheduler resume | Scheduler paused or inactive | Login, optionally pause, GET `/scheduler/resume`, GET `/scheduler` | 204 resume, scheduler status active/running | Success |
-| 4 | B8 | Successful trigger inventory read | Empty or seeded trigger store | Login, GET `/triggers` | 200 and expected empty/listed trigger-key response | Success |
-| 5 | B10 | Reliable missing-trigger response | Authenticated caller; ensure no trigger with name | Login, GET `/simple-triggers/{missing}` | Documented 404 and error DTO, not 500 | Failure |
-| 6 | B11 | Reschedule missing trigger | Authenticated caller; valid replacement DTO; no target trigger | Login, PUT `/simple-triggers/{missing}` | Documented 404, no trigger created | Failure |
-| 7 | B2-B8 | Clarify singleton/generic 404 cases | Defined way to simulate missing singleton/resource | Call each documented endpoint under missing-resource state | Contract-aligned 404 or remove unreachable contract response | Regression |
-| 8 | B5, B6 | Verify lifecycle side effects | Running scheduler where possible | Login, stop/pause, then GET `/scheduler` | Status reflects stopped/paused state | Success |
-| 9 | B1 | Explicit login success contract | Valid credentials | POST `/auth/login` | 200, nonblank `accessToken`, usable bearer header | Regression |
+### Test T1: Start scheduler and verify started status
 
-## Appendix: Coverage Artifacts Used
+- Priority: P0
+- Target behavior ID and name: B4, Start scheduler execution
+- Target checklist item: happy path and required step for exact function `start scheduler`; optional verification through `retrieve scheduler details`
+- Test category: success, state transition
+- Why needed: Authenticated generated tests for `/scheduler/run` assert 500, so the documented 204 start transition has no successful evidence.
+- Coverage delta if passing: B4 required step 2 context-valid success, B4 happy-path item, B4 optional verification item, B4 behavior outcome checklist item, headline status from Partially Covered to Covered.
 
-### JaCoCo XML Files
+#### Initial state and fixture plan
 
-- `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.xml`
-  - Extracted counters: line 322/598 (53.8%), branch 36/122 (29.5%), method 119/194 (61.3%), class 46/58 (79.3%).
-  - Relevant class signals: `JobController` 100% line/method; `SchedulerController` 77.8% line and 100% method; `TriggerController` 80.0% line and 66.7% method; `SimpleTriggerController` 19.0% line and 40.0% method; `SimpleTriggerService` 12.5% line and 25.0% method.
-  - Limitation: XML references controller/service/source files not present under the current local `src/main/java` checkout. It is valid as JaCoCo evidence for the executed SUT, but source-level interpretation is limited by the missing local implementation files.
+State:
+- Database/SUT reset occurs before the test.
+- Scheduler bean exists with instance name `example` and instance id `NON_CLUSTERED`.
+- Scheduler starts in `STOPPED` or equivalent inactive state, matching generated scheduler-detail observations.
+- Actor identity: configured in-memory user `foo` with password `bar`; token issuer is Quartz Manager form-login/JWT flow.
+- Fixed clock/date assumptions: none.
+- Feature/config values: `quartz-manager-auth` bearer scheme enabled; no direct database setup.
+- External-domain stub results: none.
+- Transaction and asynchronous waiting strategy: after start, poll `GET /quartz-manager/scheduler` up to 5 seconds for a non-`STOPPED` status if the status update is asynchronous.
 
-### JaCoCo CSV Files
+#### Complete API call sequence
 
-- `/Users/yangyuhan/behavior-analyze/quartz-manager/reports/report.csv`
-  - Used as a per-class cross-check for line, branch, method, and class coverage.
-  - Not summed separately because the XML already provides the aggregate report for the same SUT run.
+| Order | Behavior Step/Exact Function | Actor And Auth Context | Method And Resolved Path | Headers/Cookies | Path/Query/Form Parameters | Complete Request Body | Value Source/Binding | Expected Response | Expected State After Call |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Unauthenticated caller using configured user `foo` | `POST /quartz-manager/auth/login` | `Content-Type: application/x-www-form-urlencoded` | form `username=foo`, form `password=bar` | `username=foo&password=bar` | Response body `accessToken -> token` | 200; JSON body contains nonblank `accessToken` | Caller has bearer token |
+| 2 | `start scheduler` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/scheduler/run` | `Authorization: Bearer {token}` | none | empty | `{token}` from order 1 | 204; empty body | Scheduler transitions toward started/running |
+| 3 | `retrieve scheduler details` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/scheduler` | `Authorization: Bearer {token}`, `Accept: application/json` | none | empty | `{token}` from order 1 | 200; JSON `name=example`, `instanceId=NON_CLUSTERED`, `status` is not `STOPPED` | Scheduler reports started/running state |
 
-## Appendix: Test Inventory
+#### Parameter and state constraints
 
-Most authenticated tests include setup login via `POST /quartz-manager/auth/login` and reuse `Authorization: Bearer {token}`. The operations below list the business operation under test.
+| Call Order | Parameter/State | Location | Concrete Value | Type/Format | Required? | Allowed Values/Range | Cross-Field Or Lifecycle Constraint | Why This Value |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | `username` | form | `foo` | string | Yes | configured username | Must match password `bar` | Known generated-test valid user |
+| 1 | `password` | form | `bar` | string/password | Yes | configured password | Must match username `foo` | Known generated-test valid password |
+| 2 | bearer token | header | value from `accessToken` | JWT bearer | Yes | nonblank JWT | Must come from order 1 | Required by `quartz-manager-auth` |
+| 3 | scheduler status | response body | not `STOPPED` | enum/string | Yes | implementation status values | Must reflect order 2 transition | Proves business result beyond raw 204 |
 
-| Test File | Test Case | Operations | Assertions | Related Behavior IDs |
-|---|---|---|---|---|
-| `EM_quartz_manager_True_25_false_false_SPECIFIED_false_0_Test.java` | `test_0_getOnQuartz_managerTriggersCauses500_internalServerError` | GET `/quartz-manager/triggers` | 500, JSON error/path | B8 |
-| same | `test_1_getOnQuartz_managerTriggersWithQueryParamsCauses500_internalServerError` | GET `/quartz-manager/triggers` with extra query params | 500, JSON error/path | B8 |
-| same | `test_2_getOnQuartz_managerSchedulerWithQueryParamReturnsObject` | GET `/quartz-manager/scheduler` | 200, scheduler name/instance/status/triggerKeys | B3 |
-| same | `test_3_getOnQuartz_managerJobsReturnsEmptyList` | GET `/quartz-manager/jobs` | 200, JSON array size 0 | B2 |
-| same | `test_4_getOnQuartz_managerJobsWithQueryParamsReturnsEmptyList` | GET `/quartz-manager/jobs` with extra query params | 200, JSON array size 0 | B2 |
-| same | `test_5_getOnQuartz_managerSchedulerWithQueryParamsReturnsObject` | GET `/quartz-manager/scheduler` with extra query params | 200, scheduler fields | B3 |
-| same | `test_6_getOnQuartz_managerJobsWithQueryParamReturnsEmptyList` | GET `/quartz-manager/jobs` with extra query param | 200, JSON array size 0 | B2 |
-| same | `test_7_getOnApi_docsReturnsObject` | GET `/v3/api-docs` | 200 only | None |
-| same | `test_8_getOnTriggersReturns401` | GET `/quartz-manager/triggers` without bearer | 401, empty body | B8 |
-| same | `test_9_getOnQuartz_managerSchedulerReturns401` | GET `/quartz-manager/scheduler` without bearer | 401, empty body | B3 |
-| same | `test_10_getOnJobsReturns401` | GET `/quartz-manager/jobs` without bearer | 401, empty body | B2 |
-| same | `test_11_getOnQuartz_managerSchedulerWithQueryParamReturns401` | GET `/quartz-manager/scheduler` without bearer | 401, empty body | B3 |
-| same | `test_12_getOnSimple_triggCauses500_internalServerError` | GET missing `/quartz-manager/simple-triggers/{name}` | 500, JSON error/path | B10 |
-| same | `test_13_getOnSchedulerRunWithQueryParamCauses500_internalServerError` | GET `/quartz-manager/scheduler/run` | 500, JSON error/path | B4 |
-| same | `test_14_getOnSchedulerRunCauses500_internalServerError` | GET `/quartz-manager/scheduler/run` | 500, JSON error/path | B4 |
-| same | `test_15_getOnSchedulerResumeWithQueryParamCauses500_internalServerError` | GET `/quartz-manager/scheduler/resume` | 500, JSON error/path | B7 |
-| same | `test_16_getOnQuartz_managerSimple_triggWithQueryParamsCauses500_internalServerError` | POST simple trigger without JSON type, then GET same name | 415 then 500 | B9, B10 |
-| same | `test_17_getOnQuartz_managerSimple_triggCauses500_internalServerError` | POST simple trigger with `{}`, then GET same name | 400 then 500 | B9, B10 |
-| same | `test_18_getOnSimple_triggCauses500_internalServerError` | PUT simple trigger with `{}`, then GET same name | 400 then 500 | B11, B10 |
-| same | `test_19_getOnSimple_triggCauses500_internalServerError` | POST simple trigger without JSON type, then GET same name | 415 then 500 | B9, B10 |
-| same | `test_20_getOnResumeCauses500_internalServerError` | GET `/quartz-manager/scheduler/resume` | 500, JSON error/path | B7 |
-| same | `test_21_getOnResumeCauses500_internalServerError` | GET `/quartz-manager/scheduler/resume` | 500, JSON error/path | B7 |
-| same | `test_22_getOnSchedulerRunWithQueryParamsCauses500_internalServerError` | GET `/quartz-manager/scheduler/run` | 500, JSON error/path | B4 |
-| same | `test_23_getOnSchedulerStopWithQueryParamReturns204` | GET `/quartz-manager/scheduler/stop` | 204, empty body | B5 |
-| same | `test_24_getOnSchedulerPauseReturns204` | GET `/quartz-manager/scheduler/pause` | 204, empty body | B6 |
-| same | `test_25_getOnPauseReturns204` | GET `/quartz-manager/scheduler/pause` | 204, empty body | B6 |
-| same | `test_26_getOnSchedulerStopWithQueryParamsReturns204` | GET `/quartz-manager/scheduler/stop` | 204, empty body | B5 |
-| same | `test_27_getOnPauseReturns204` | GET `/quartz-manager/scheduler/pause` | 204, empty body | B6 |
-| same | `test_28_putOnSimple_triggReturns400` | PUT simple trigger with `{}` | 400, JSON error/path | B11 |
-| same | `test_29_getOnSimple_triggReturns401` | GET simple trigger without bearer | 401, empty body | B10 |
-| same | `test_30_getOnStopReturns401` | GET `/quartz-manager/scheduler/stop` without bearer | 401, empty body | B5 |
-| same | `test_31_getOnRunReturns401` | GET `/quartz-manager/scheduler/run` without bearer | 401, empty body | B4 |
-| same | `test_32_getOnResumeReturns401` | GET `/quartz-manager/scheduler/resume` without bearer | 401, empty body | B7 |
-| same | `test_33_getOnPauseReturns401` | GET `/quartz-manager/scheduler/pause` without bearer | 401, empty body | B6 |
-| same | `test_34_getOnStopReturns401` | GET `/quartz-manager/scheduler/stop` without bearer | 401, empty body | B5 |
-| same | `test_35_postOnSimple_triggReturns401` | POST simple trigger without bearer | 401, empty body | B9 |
-| same | `test_36_postOnLoginReturns401` | POST login with empty form | 401, JSON error/path | B1 |
-| same | `test_37_postOnSimple_triggReturns401` | POST simple trigger without bearer | 401, empty body | B9 |
-| same | `test_38_putOnSimple_triggReturns401` | PUT simple trigger without bearer | 401, empty body | B11 |
-| same | `test_39_putOnSimple_triggReturns401` | POST then PUT simple trigger without bearer | 401 responses | B9, B11 |
-| same | `test_40_getOnSimple_triggReturns404` | GET missing simple trigger | No executable status assertion; comments note flaky 404 vs 500 | B10 |
-| same | `test_41_postOnSimple_triggReturns415` | POST simple trigger without JSON type | 415, JSON error/path | B9 |
-| same | `test_42_postOnSimple_triggReturns415` | POST simple trigger without JSON type | 415, JSON error/path | B9 |
-| same | `test_43_putOnQuartz_managerSimple_triggWithQueryParamReturns415` | PUT simple trigger without JSON type | 415, JSON error/path | B11 |
-| same | `test_44_putOnQuartz_managerSimple_triggReturns415` | PUT simple trigger without JSON type | 415, JSON error/path | B11 |
+#### Assertions
+
+- Order 1: HTTP 200; JSON body has nonblank `accessToken`.
+- Order 2: HTTP 204; no response body; no JSON error envelope.
+- Order 3: HTTP 200; `name` equals `example`; `instanceId` equals `NON_CLUSTERED`; `status` is not `STOPPED`; no trigger/job definitions are unexpectedly created.
+- JaCoCo corroboration should cover `SchedulerController.run`, `SchedulerService.start`, and `SchedulerController.getScheduler`.
+
+#### Isolation and variants
+
+State reset before the test is required. If start is asynchronous, poll the scheduler-detail endpoint with a bounded timeout. Add a separate idempotency variant only after the first successful start path is stable.
+
+### Test T2: Resume a paused scheduler and verify resumed status
+
+- Priority: P0
+- Target behavior ID and name: B7, Resume scheduler execution
+- Target checklist item: happy path and required step for exact function `resume scheduler`; optional verification through `retrieve scheduler details`
+- Test category: success, state transition
+- Why needed: Authenticated generated tests for `/scheduler/resume` assert 500, so the documented resume transition has no successful evidence.
+- Coverage delta if passing: B7 required step 2 context-valid success, B7 happy-path item, B7 optional verification item, B7 behavior outcome checklist item, headline status from Partially Covered to Covered.
+
+#### Initial state and fixture plan
+
+State:
+- Database/SUT reset occurs before the test.
+- Scheduler bean exists.
+- The test establishes a paused prerequisite through the documented `pause scheduler` API because generated tests show pause returns 204.
+- Actor identity: configured user `foo` with password `bar`.
+- Fixed clock/date assumptions: none.
+- Feature/config values: `quartz-manager-auth` bearer scheme enabled.
+- External-domain stub results: none.
+- Transaction and asynchronous waiting strategy: after resume, poll scheduler details up to 5 seconds for a resumed/running status.
+
+#### Complete API call sequence
+
+| Order | Behavior Step/Exact Function | Actor And Auth Context | Method And Resolved Path | Headers/Cookies | Path/Query/Form Parameters | Complete Request Body | Value Source/Binding | Expected Response | Expected State After Call |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Unauthenticated caller using configured user `foo` | `POST /quartz-manager/auth/login` | `Content-Type: application/x-www-form-urlencoded` | form `username=foo`, form `password=bar` | `username=foo&password=bar` | Response body `accessToken -> token` | 200; JSON body contains nonblank `accessToken` | Caller has bearer token |
+| 2 | setup using `pause scheduler` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/scheduler/pause` | `Authorization: Bearer {token}` | none | empty | `{token}` from order 1 | 204; empty body | Scheduler is paused/standby |
+| 3 | `resume scheduler` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/scheduler/resume` | `Authorization: Bearer {token}` | none | empty | `{token}` from order 1 | 204; empty body | Scheduler resumes activity |
+| 4 | `retrieve scheduler details` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/scheduler` | `Authorization: Bearer {token}`, `Accept: application/json` | none | empty | `{token}` from order 1 | 200; JSON `status` is not `STOPPED` | Scheduler reports resumed/running state |
+
+#### Parameter and state constraints
+
+| Call Order | Parameter/State | Location | Concrete Value | Type/Format | Required? | Allowed Values/Range | Cross-Field Or Lifecycle Constraint | Why This Value |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | `username` | form | `foo` | string | Yes | configured username | Must match password `bar` | Known generated-test valid user |
+| 1 | `password` | form | `bar` | string/password | Yes | configured password | Must match username `foo` | Known generated-test valid password |
+| 2 | paused prerequisite | scheduler state | paused/standby | lifecycle state | Yes | scheduler pause states | Must precede resume | Establishes documented resume context |
+| 3 | bearer token | header | value from `accessToken` | JWT bearer | Yes | nonblank JWT | Must come from order 1 | Required by `quartz-manager-auth` |
+| 4 | scheduler status | response body | not `STOPPED` | enum/string | Yes | implementation status values | Must reflect order 3 transition | Proves terminal result |
+
+#### Assertions
+
+- Order 1: HTTP 200 and nonblank `accessToken`.
+- Order 2: HTTP 204 and empty body.
+- Order 3: HTTP 204 and empty body; no 500 error envelope.
+- Order 4: HTTP 200; status indicates resumed/running activity; no scheduler identity change.
+- JaCoCo corroboration should cover `SchedulerController.pause`, `SchedulerService.standby`, `SchedulerController.resume`, `SchedulerService.start`, and `SchedulerController.getScheduler`.
+
+#### Isolation and variants
+
+Reset SUT before the test and do not compose with another test method. Add a separate variant for resuming an already running scheduler only after the paused-state success path is covered.
+
+### Test T3: List global trigger inventory successfully
+
+- Priority: P0
+- Target behavior ID and name: B8, List scheduler triggers
+- Target checklist item: happy path and required step for exact function `list triggers`
+- Test category: success
+- Why needed: Authenticated generated tests for `/quartz-manager/triggers` assert 500 and JaCoCo does not corroborate controller/service method entry.
+- Coverage delta if passing: B8 required step 2 application reached and context-valid success, B8 happy-path item, B8 behavior outcome checklist item, headline status from Partially Covered to Covered.
+
+#### Initial state and fixture plan
+
+State:
+- Database/SUT reset occurs before the test.
+- Scheduler exists with an empty trigger store, unless the SUT creates a default trigger during startup.
+- Actor identity: configured user `foo` with password `bar`.
+- Fixed clock/date assumptions: none.
+- Feature/config values: `quartz-manager-auth` bearer scheme enabled.
+- External-domain stub results: none.
+- Transaction and asynchronous waiting strategy: none; this is a read-only request.
+
+#### Complete API call sequence
+
+| Order | Behavior Step/Exact Function | Actor And Auth Context | Method And Resolved Path | Headers/Cookies | Path/Query/Form Parameters | Complete Request Body | Value Source/Binding | Expected Response | Expected State After Call |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Unauthenticated caller using configured user `foo` | `POST /quartz-manager/auth/login` | `Content-Type: application/x-www-form-urlencoded` | form `username=foo`, form `password=bar` | `username=foo&password=bar` | Response body `accessToken -> token` | 200; JSON body contains nonblank `accessToken` | Caller has bearer token |
+| 2 | `list triggers` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/triggers` | `Authorization: Bearer {token}`, `Accept: application/json` | none | empty | `{token}` from order 1 | 200; JSON trigger inventory response | Scheduler and trigger state unchanged |
+
+#### Parameter and state constraints
+
+| Call Order | Parameter/State | Location | Concrete Value | Type/Format | Required? | Allowed Values/Range | Cross-Field Or Lifecycle Constraint | Why This Value |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | `username` | form | `foo` | string | Yes | configured username | Must match password `bar` | Known generated-test valid user |
+| 1 | `password` | form | `bar` | string/password | Yes | configured password | Must match username `foo` | Known generated-test valid password |
+| 2 | bearer token | header | value from `accessToken` | JWT bearer | Yes | nonblank JWT | Must come from order 1 | Required by `quartz-manager-auth` |
+| 2 | trigger store | scheduler state | empty trigger store | collection state | No specific trigger required | empty or populated | Read must not mutate it | Simplest deterministic inventory case |
+
+#### Assertions
+
+- Order 1: HTTP 200 and nonblank `accessToken`.
+- Order 2: HTTP 200; `Content-Type` is JSON; response body is parseable as the contract's trigger inventory shape; no 500 envelope; no scheduler or trigger mutation.
+- If the runtime returns an array, assert `size() == 0` for an empty store. If it returns a `TriggerKeyDTO` object as the local OpenAPI states, assert the documented fields once that schema is restored.
+- JaCoCo corroboration should cover `TriggerController.listTriggers` and `TriggerService.fetchTriggers`.
+
+#### Isolation and variants
+
+Reset SUT before the test. Add a populated-inventory variant after a valid trigger creation fixture exists.
+
+### Blocked Test BT4: Restore the simple-trigger DTO contract
+
+- Priority: P0
+- Target behavior ID and name: B9, B10, and B11 simple-trigger lifecycle behaviors
+- Target checklist item: prerequisite for `schedule simple trigger`, `retrieve simple trigger by name`, and `reschedule simple trigger`
+- Test category: regression, contract
+- Why needed: A complete implementation-ready POST/PUT happy-path test cannot be specified from the available local artifacts because `SimpleTriggerInputDTO` is referenced but not defined.
+- Coverage delta if passing: no behavior numerator changes directly; it unblocks BT5 by providing the complete request/response schema needed to construct valid bodies without guessing.
+
+#### Initial state and fixture plan
+
+State:
+- Database/SUT reset is not required.
+- OpenAPI generation is enabled as shown by `test_7_getOnApi_docsReturnsObject`.
+- Actor identity: none if `/v3/api-docs` remains public; otherwise use `foo/bar` login and bearer token.
+- Fixed clock/date assumptions: none.
+- Feature/config values: `quartz-manager.oas.enabled=true`.
+- External-domain stub results: none.
+- Transaction and asynchronous waiting strategy: none.
+
+#### Complete API call sequence
+
+| Order | Behavior Step/Exact Function | Actor And Auth Context | Method And Resolved Path | Headers/Cookies | Path/Query/Form Parameters | Complete Request Body | Value Source/Binding | Expected Response | Expected State After Call |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | contract prerequisite | public caller | `GET /v3/api-docs` | `Accept: application/json` | none | empty | none | 200; JSON OpenAPI document | No business state changes |
+
+#### Parameter and state constraints
+
+| Call Order | Parameter/State | Location | Concrete Value | Type/Format | Required? | Allowed Values/Range | Cross-Field Or Lifecycle Constraint | Why This Value |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | OpenAPI route | path | `/v3/api-docs` | URI path | Yes | exactly `/v3/api-docs` | Must expose local contract | Current generated suite already probes it |
+| 1 | `components.schemas.SimpleTriggerInputDTO` | response body | present object schema | OpenAPI schema object | Yes | valid OpenAPI object schema | Must be referenced by POST and PUT request bodies | Required to build valid lifecycle tests |
+| 1 | simple-trigger response schemas | response body | `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `ExceptionResponse` present | OpenAPI schema objects | Yes | valid OpenAPI object schemas | Must match referenced `$ref` values | Required for response assertions |
+
+#### Assertions
+
+- HTTP 200.
+- `components.schemas.SimpleTriggerInputDTO` exists.
+- POST `/quartz-manager/simple-triggers/{name}` request body `$ref` resolves to that schema.
+- PUT `/quartz-manager/simple-triggers/{name}` request body `$ref` resolves to that schema.
+- `SimpleTriggerDTO`, `TriggerDTO`, `TriggerKeyDTO`, `SchedulerDTO`, and `ExceptionResponse` references resolve.
+- At least one valid request example for `SimpleTriggerInputDTO` is present, or all required fields have concrete types and constraints.
+
+#### Isolation and variants
+
+No cleanup is needed. This test does not replace behavior tests; it makes them possible.
+
+### Blocked Test BT5: Full simple-trigger lifecycle success after DTO contract is available
+
+- Priority: P0
+- Target behavior ID and name: B9 Schedule a named simple trigger, B10 Retrieve a named simple trigger, B11 Reschedule a named simple trigger
+- Target checklist item: happy path for `schedule simple trigger`, `retrieve simple trigger by name`, and `reschedule simple trigger`
+- Test category: success, state transition, regression
+- Why needed: These three behaviors remain uncovered because no valid `SimpleTriggerInputDTO` payload is available in the local contract or source.
+- Coverage delta if passing: B9 required step 2 context-valid success, B9 happy path, B9 optional verification, B10 steps 2 and 3 context-valid success, B10 happy path, B11 steps 2 and 3 context-valid success, B11 happy path, B11 optional verification, three behavior outcome checklist items, and headline statuses for B9-B11 from Partially Covered to Covered.
+
+#### Initial state and fixture plan
+
+State:
+- Database/SUT reset occurs before the test.
+- Scheduler exists and uses an in-memory trigger store.
+- No trigger named `coverage-simple-trigger-001` exists at test start.
+- Actor identity: configured user `foo` with password `bar`.
+- Fixed clock/date assumptions: use a fixed test clock only if the restored DTO schema contains absolute start/end date fields.
+- Feature/config values: `quartz-manager-auth` bearer scheme enabled.
+- External-domain stub results: none.
+- Transaction and asynchronous waiting strategy: after POST and PUT, read back the trigger with bounded polling only if scheduler persistence is asynchronous.
+
+This test is blocked because the complete JSON body cannot be written without fabricating the `SimpleTriggerInputDTO` fields. Once BT4 supplies the schema or source, replace `initialSimpleTriggerInput` and `replacementSimpleTriggerInput` below with concrete JSON bodies whose every required field and constraint is explicit.
+
+#### Complete API call sequence
+
+This sequence is intentionally not counted as implementation-ready until BT4 passes.
+
+| Order | Behavior Step/Exact Function | Actor And Auth Context | Method And Resolved Path | Headers/Cookies | Path/Query/Form Parameters | Complete Request Body | Value Source/Binding | Expected Response | Expected State After Call |
+|---:|---|---|---|---|---|---|---|---|---|
+| 1 | `authenticate user` | Unauthenticated caller using configured user `foo` | `POST /quartz-manager/auth/login` | `Content-Type: application/x-www-form-urlencoded` | form `username=foo`, form `password=bar` | `username=foo&password=bar` | Response body `accessToken -> token` | 200; JSON body contains nonblank `accessToken` | Caller has bearer token |
+| 2 | `schedule simple trigger` | `Authorization: Bearer {token}` for user `foo` | `POST /quartz-manager/simple-triggers/coverage-simple-trigger-001` | `Authorization: Bearer {token}`, `Content-Type: application/json`, `Accept: application/json` | path `name=coverage-simple-trigger-001` | blocked: missing `SimpleTriggerInputDTO` schema | `{token}` from order 1 | 201; response body is `SimpleTriggerDTO` for `coverage-simple-trigger-001` | Trigger exists under `coverage-simple-trigger-001` |
+| 3 | `retrieve simple trigger by name` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/simple-triggers/coverage-simple-trigger-001` | `Authorization: Bearer {token}`, `Accept: application/json` | path `name=coverage-simple-trigger-001` | empty | `{token}` from order 1 and name from order 2 | 200; response body describes the trigger created at order 2 | Trigger remains unchanged |
+| 4 | `reschedule simple trigger` | `Authorization: Bearer {token}` for user `foo` | `PUT /quartz-manager/simple-triggers/coverage-simple-trigger-001` | `Authorization: Bearer {token}`, `Content-Type: application/json`, `Accept: application/json` | path `name=coverage-simple-trigger-001` | blocked: missing `SimpleTriggerInputDTO` schema | `{token}` from order 1 and name from order 2 | 200; response body is `TriggerDTO` for updated trigger | Trigger schedule/configuration reflects replacement input |
+| 5 | `retrieve simple trigger by name` | `Authorization: Bearer {token}` for user `foo` | `GET /quartz-manager/simple-triggers/coverage-simple-trigger-001` | `Authorization: Bearer {token}`, `Accept: application/json` | path `name=coverage-simple-trigger-001` | empty | `{token}` from order 1 and name from order 2 | 200; response body reflects replacement state from order 4 | Updated trigger remains persisted |
+
+#### Parameter and state constraints
+
+| Call Order | Parameter/State | Location | Concrete Value | Type/Format | Required? | Allowed Values/Range | Cross-Field Or Lifecycle Constraint | Why This Value |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | `username` | form | `foo` | string | Yes | configured username | Must match password `bar` | Known generated-test valid user |
+| 1 | `password` | form | `bar` | string/password | Yes | configured password | Must match username `foo` | Known generated-test valid password |
+| 2 | trigger name | path | `coverage-simple-trigger-001` | string | Yes | valid path segment | Must be reused by GET and PUT | Stable business identifier |
+| 2 | request body | JSON body | blocked by missing schema | `SimpleTriggerInputDTO` | Yes | schema-dependent | Must be valid and create a simple trigger | Cannot be supplied without guessing |
+| 4 | replacement body | JSON body | blocked by missing schema | `SimpleTriggerInputDTO` | Yes | schema-dependent | Must update same trigger name | Cannot be supplied without guessing |
+
+#### Assertions
+
+- Order 1: HTTP 200 and nonblank `accessToken`.
+- Order 2: HTTP 201; no 400/415/500; response represents trigger `coverage-simple-trigger-001`; persisted trigger exists.
+- Order 3: HTTP 200; retrieved body matches order 2 state.
+- Order 4: HTTP 200; no 400/415/500; returned body reflects replacement state.
+- Order 5: HTTP 200; retrieved body matches order 4 replacement state.
+- JaCoCo corroboration should cover `SimpleTriggerController.postSimpleTrigger`, `SimpleTriggerService.scheduleSimpleTrigger`, `SimpleTriggerController.getSimpleTrigger`, `SimpleTriggerService.getSimpleTriggerByName`, `AbstractSchedulerService.getTriggerByName`, `SimpleTriggerController.rescheduleSimpleTrigger`, and `SimpleTriggerService.rescheduleSimpleTrigger`.
+
+#### Isolation and variants
+
+Reset SUT before the test and use a unique trigger name. Add separate invalid-body, missing-trigger, and wrong-name variants only after the successful lifecycle is stable and after those failures are documented in `business-behavior.md`.
+
+## Notes And Assumptions
+
+- The API was not executed during this review.
+- JaCoCo XML was preferred over CSV. The CSV was used only as a class-level cross-check.
+- Current local source under `src/main/java` lacks the controller/service classes present in the JaCoCo report, so method-level source attribution is limited to JaCoCo method names, line numbers, and counters.
+- The generated suite contains 45 tests and 80 REST-assured calls. Thirty login setup calls extract `accessToken` without direct status assertions; success is inferred when the token authorizes later protected calls.
+- Prompt-provided expected counts, 81 behaviors and 461 failures, do not match the actual authoritative file. This report uses the parsed 11 behaviors and 0 documented failures.
+- `full-behavior.md` contains technical/auth/contract failure branches, but those are not counted in documented business-failure metrics because `business-behavior.md` is authoritative and lists no supported failure entries.
+- The public upstream repository was checked only to avoid guessing the missing simple-trigger DTO. Its current API shape differs from this local artifact, so upstream current-master behavior was not used for scoring.
+- `test_40_getOnSimple_triggReturns404` has the `.statusCode(404)` assertion commented out and therefore does not provide executable 404 evidence.

@@ -133,10 +133,7 @@ Constraints and invariants:
 - `innlogget-part` selects the role. Query fields from `AvtalePredicate` constrain the repository search. `page` and `size` are normalized with `Math.abs`.
 
 Failure and exceptional cases:
-- Failing function: `list accessible agreements`
-  - Failure condition: the role cookie and token issuer are not a supported combination
-  - Why it fails: `InnloggingService.hentAvtalepart` rejects invalid issuer-role combinations.
-  - Violated prerequisite or constraint: Use an unsupported `innlogget-part` for the authenticated token.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -183,9 +180,95 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create advisor agreement`
-  - Failure condition: advisor lacks write access to the participant
-  - Why it fails: `Veileder.sjekkTilgangskontroll` throws access failure before saving.
-  - Violated prerequisite or constraint: Use a `deltakerFnr` the advisor cannot access.
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: the advisor lacks write access to the concrete participant
+  - Why it fails: The candidate-scoped access service returns false before aggregate creation.
+  - Violated prerequisite or constraint: The advisor must have write access to this participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkTilgangskontroll`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Deltakers fnr må være satt.`
+  - Failure condition: the parsed creation body has no participant identity
+  - Why it fails: The aggregate constructor explicitly requires a participant before it can create domain state.
+  - Violated prerequisite or constraint: `deltakerFnr` must identify the participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Arbeidsgivers bedriftnr må være satt.`
+  - Failure condition: the parsed creation body has no employer business number
+  - Why it fails: The aggregate constructor explicitly requires a company before it can create domain state.
+  - Violated prerequisite or constraint: `bedriftNr` must identify the employer business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `SOMMERJOBB_IKKE_GAMMEL_NOK`
+  - Failure condition: the participant is under 16 years old
+  - Why it fails: The aggregate constructor rejects creation for a participant below the minimum age.
+  - Violated prerequisite or constraint: Participants must be at least 16 years old.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL`
+  - Failure condition: a summer-job participant is over 30 on 1 January
+  - Why it fails: The aggregate constructor applies the summer-job age ceiling before creation.
+  - Violated prerequisite or constraint: A summer-job participant must satisfy the measure's age limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor creation path rejects protected participants after retrieving person data.
+  - Violated prerequisite or constraint: This advisor flow may not create an agreement for a code-6-protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkKode6`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: Complete follow-up and qualification data must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The participant's qualification group must confer a recognized right.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for temporary wage subsidy, summer job, or mentor
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for the selected measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for permanent wage subsidy.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `EnhetErJuridiskException`
+  - Failure condition: Ereg identifies `bedriftNr` as a legal entity rather than a business unit
+  - Why it fails: The organization result is rejected before the created agreement is saved.
+  - Violated prerequisite or constraint: Agreements must target an operational business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `EnhetErOrganisasjonsleddException`
+  - Failure condition: Ereg identifies `bedriftNr` as an organizational link
+  - Why it fails: The organization result is rejected before the created agreement is saved.
+  - Violated prerequisite or constraint: Agreements must target a valid business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create advisor agreement`
+  - Source discriminator: `EnhetFinnesIkkeException`
+  - Failure condition: Ereg cannot find the requested business unit
+  - Why it fails: The organization result is rejected before the created agreement is saved.
+  - Violated prerequisite or constraint: The employer business unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -232,9 +315,95 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create Arena cleanup agreement`
-  - Failure condition: agreement creation itself is invalid
-  - Why it fails: The cleanup marker is only saved after a valid agreement is created.
-  - Violated prerequisite or constraint: Omit required body fields or use a participant the advisor cannot access.
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: the advisor lacks write access to the concrete participant
+  - Why it fails: The candidate-scoped access service returns false before aggregate creation.
+  - Violated prerequisite or constraint: The advisor must have write access to this participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkTilgangskontroll`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Deltakers fnr må være satt.`
+  - Failure condition: the parsed creation body has no participant identity
+  - Why it fails: The aggregate constructor explicitly requires a participant before it can create domain state.
+  - Violated prerequisite or constraint: `deltakerFnr` must identify the participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Arbeidsgivers bedriftnr må være satt.`
+  - Failure condition: the parsed creation body has no employer business number
+  - Why it fails: The aggregate constructor explicitly requires a company before it can create domain state.
+  - Violated prerequisite or constraint: `bedriftNr` must identify the employer business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `SOMMERJOBB_IKKE_GAMMEL_NOK`
+  - Failure condition: the participant is under 16 years old
+  - Why it fails: The aggregate constructor rejects creation for a participant below the minimum age.
+  - Violated prerequisite or constraint: Participants must be at least 16 years old.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL`
+  - Failure condition: a summer-job participant is over 30 on 1 January
+  - Why it fails: The aggregate constructor applies the summer-job age ceiling before creation.
+  - Violated prerequisite or constraint: A summer-job participant must satisfy the measure's age limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor creation path rejects protected participants after retrieving person data.
+  - Violated prerequisite or constraint: This advisor flow may not create an agreement for a code-6-protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkKode6`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: Complete follow-up and qualification data must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The participant's qualification group must confer a recognized right.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for temporary wage subsidy, summer job, or mentor
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for the selected measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for permanent wage subsidy.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `EnhetErJuridiskException`
+  - Failure condition: Ereg identifies `bedriftNr` as a legal entity rather than a business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target an operational business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `EnhetErOrganisasjonsleddException`
+  - Failure condition: Ereg identifies `bedriftNr` as an organizational link
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target a valid business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create Arena cleanup agreement`
+  - Source discriminator: `EnhetFinnesIkkeException`
+  - Failure condition: Ereg cannot find the requested business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: The employer business unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -281,9 +450,39 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create employer agreement`
-  - Failure condition: employer lacks Altinn access for `bedriftNr` and `tiltakstype`
-  - Why it fails: `Arbeidsgiver.tilgangTilBedriftVedOpprettelseAvAvtale` rejects the creation.
-  - Violated prerequisite or constraint: Use a company or measure not present in the employer’s Altinn rights.
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the employer lacks an Altinn right for the requested company and measure
+  - Why it fails: The employer's persisted/external business-right relationship does not cover the selected company and measure.
+  - Violated prerequisite or constraint: The employer must have the measure-specific Altinn right for the company.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.tilgangTilBedriftVedOpprettelseAvAvtale`
+
+- Failing function: `create employer agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Deltakers fnr må være satt.`
+  - Failure condition: the parsed creation body has no participant identity
+  - Why it fails: The aggregate constructor explicitly requires a participant before it can create domain state.
+  - Violated prerequisite or constraint: `deltakerFnr` must identify the participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create employer agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Arbeidsgivers bedriftnr må være satt.`
+  - Failure condition: the parsed creation body has no employer business number
+  - Why it fails: The aggregate constructor explicitly requires a company before it can create domain state.
+  - Violated prerequisite or constraint: `bedriftNr` must identify the employer business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create employer agreement`
+  - Source discriminator: `SOMMERJOBB_IKKE_GAMMEL_NOK`
+  - Failure condition: the participant is under 16 years old
+  - Why it fails: The aggregate constructor rejects creation for a participant below the minimum age.
+  - Violated prerequisite or constraint: Participants must be at least 16 years old.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create employer agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL`
+  - Failure condition: a summer-job participant is over 30 on 1 January
+  - Why it fails: The aggregate constructor applies the summer-job age ceiling before creation.
+  - Violated prerequisite or constraint: A summer-job participant must satisfy the measure's age limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -330,9 +529,102 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create mentor agreement as advisor`
-  - Failure condition: participant and mentor have the same national identity number
-  - Why it fails: The controller explicitly rejects equal `deltakerFnr` and `mentorFnr`.
-  - Violated prerequisite or constraint: Set `deltakerFnr` equal to `mentorFnr`.
+  - Source discriminator: `DELTAGER_OG_MENTOR_KAN_IKKE_HA_SAMME_FØDSELSNUMMER`
+  - Failure condition: the participant and mentor have the same national identity number
+  - Why it fails: The controller rejects a person serving as both participant and mentor in the agreement.
+  - Violated prerequisite or constraint: Participant and mentor must be different people.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController.opprettMentorAvtale`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: the advisor lacks write access to the concrete participant
+  - Why it fails: The candidate-scoped access service returns false before aggregate creation.
+  - Violated prerequisite or constraint: The advisor must have write access to this participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkTilgangskontroll`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `TiltaksgjennomforingException: Deltakers fnr må være satt.`
+  - Failure condition: the parsed creation body has no participant identity
+  - Why it fails: The aggregate constructor explicitly requires a participant before it can create domain state.
+  - Violated prerequisite or constraint: `deltakerFnr` must identify the participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `TiltaksgjennomforingException: Arbeidsgivers bedriftnr må være satt.`
+  - Failure condition: the parsed creation body has no employer business number
+  - Why it fails: The aggregate constructor explicitly requires a company before it can create domain state.
+  - Violated prerequisite or constraint: `bedriftNr` must identify the employer business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `SOMMERJOBB_IKKE_GAMMEL_NOK`
+  - Failure condition: the participant is under 16 years old
+  - Why it fails: The aggregate constructor rejects creation for a participant below the minimum age.
+  - Violated prerequisite or constraint: Participants must be at least 16 years old.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL`
+  - Failure condition: a summer-job participant is over 30 on 1 January
+  - Why it fails: The aggregate constructor applies the summer-job age ceiling before creation.
+  - Violated prerequisite or constraint: A summer-job participant must satisfy the measure's age limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor creation path rejects protected participants after retrieving person data.
+  - Violated prerequisite or constraint: This advisor flow may not create an agreement for a code-6-protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.sjekkKode6`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: Complete follow-up and qualification data must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The participant's qualification group must confer a recognized right.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for temporary wage subsidy, summer job, or mentor
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for the selected measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the participant's qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The Arena business result is evaluated against the selected measure and rejects creation.
+  - Violated prerequisite or constraint: The qualification group must be eligible for permanent wage subsidy.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `EnhetErJuridiskException`
+  - Failure condition: Ereg identifies `bedriftNr` as a legal entity rather than a business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target an operational business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `EnhetErOrganisasjonsleddException`
+  - Failure condition: Ereg identifies `bedriftNr` as an organizational link
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target a valid business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create mentor agreement as advisor`
+  - Source discriminator: `EnhetFinnesIkkeException`
+  - Failure condition: Ereg cannot find the requested business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: The employer business unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -379,9 +671,67 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create mentor agreement as employer`
-  - Failure condition: `avtalerolle` is neither `VEILEDER` nor `ARBEIDSGIVER`
-  - Why it fails: The implementation never creates an agreement and throws `Opprett Mentor fant ingen avtale å behandle`.
-  - Violated prerequisite or constraint: Use `avtalerolle=DELTAKER`, `MENTOR`, or `BESLUTTER`.
+  - Source discriminator: `DELTAGER_OG_MENTOR_KAN_IKKE_HA_SAMME_FØDSELSNUMMER`
+  - Failure condition: the participant and mentor have the same national identity number
+  - Why it fails: The controller rejects a person serving as both participant and mentor in the agreement.
+  - Violated prerequisite or constraint: Participant and mentor must be different people.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController.opprettMentorAvtale`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the employer lacks an Altinn right for the requested company and measure
+  - Why it fails: The employer's persisted/external business-right relationship does not cover the selected company and measure.
+  - Violated prerequisite or constraint: The employer must have the measure-specific Altinn right for the company.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.tilgangTilBedriftVedOpprettelseAvAvtale`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `TiltaksgjennomforingException: Deltakers fnr må være satt.`
+  - Failure condition: the parsed creation body has no participant identity
+  - Why it fails: The aggregate constructor explicitly requires a participant before it can create domain state.
+  - Violated prerequisite or constraint: `deltakerFnr` must identify the participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `TiltaksgjennomforingException: Arbeidsgivers bedriftnr må være satt.`
+  - Failure condition: the parsed creation body has no employer business number
+  - Why it fails: The aggregate constructor explicitly requires a company before it can create domain state.
+  - Violated prerequisite or constraint: `bedriftNr` must identify the employer business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `SOMMERJOBB_IKKE_GAMMEL_NOK`
+  - Failure condition: the participant is under 16 years old
+  - Why it fails: The aggregate constructor rejects creation for a participant below the minimum age.
+  - Violated prerequisite or constraint: Participants must be at least 16 years old.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL`
+  - Failure condition: a summer-job participant is over 30 on 1 January
+  - Why it fails: The aggregate constructor applies the summer-job age ceiling before creation.
+  - Violated prerequisite or constraint: A summer-job participant must satisfy the measure's age limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale(OpprettAvtale/OpprettMentorAvtale)`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `EnhetErJuridiskException`
+  - Failure condition: Ereg identifies `bedriftNr` as a legal entity rather than a business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target an operational business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `EnhetErOrganisasjonsleddException`
+  - Failure condition: Ereg identifies `bedriftNr` as an organizational link
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: Agreements must target a valid business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `create mentor agreement as employer`
+  - Source discriminator: `EnhetFinnesIkkeException`
+  - Failure condition: Ereg cannot find the requested business unit
+  - Why it fails: The organization result is rejected before the agreement and any cleanup marker are saved.
+  - Violated prerequisite or constraint: The employer business unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -427,10 +777,7 @@ Constraints and invariants:
 - Requires `deltakerFnr` and `tiltakstype`. If `avtaleId`, `startDato`, and `sluttDato` are all provided, the check excludes that agreement and uses the full date interval; otherwise it checks from `startDato` or today.
 
 Failure and exceptional cases:
-- Failing function: `check participant overlap`
-  - Failure condition: `avtaleId` is supplied but is not a UUID
-  - Why it fails: The controller calls `UUID.fromString(avtaleId)`.
-  - Violated prerequisite or constraint: Use a non-UUID `avtaleId`.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -477,14 +824,7 @@ Constraints and invariants:
 - `POST /avtaler/sok` produces `sokId`; `GET /avtaler/sok` consumes that exact `sokId`. The same role constraints apply to the result filtering.
 
 Failure and exceptional cases:
-- Failing function: `search agreements and save search`
-  - Failure condition: unsupported role/token combination
-  - Why it fails: The search is role-scoped through `InnloggingService.hentAvtalepart`.
-  - Violated prerequisite or constraint: Use an `innlogget-part` role not valid for the authenticated issuer.
-- Failing function: `replay saved agreement search`
-  - Failure condition: `sokId` is unknown
-  - Why it fails: It does not throw; it returns an empty result with `sokId=""`, which is an exceptional successful branch.
-  - Violated prerequisite or constraint: Omit the prior `POST /avtaler/sok` or use an unrelated `sokId`.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -531,9 +871,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve agreement by id`
-  - Failure condition: agreement does not exist
-  - Why it fails: `Avtalepart.hentAvtale` throws when the repository cannot find the id.
-  - Violated prerequisite or constraint: Omit any agreement creation endpoint and use an unknown `{avtaleId}`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.hentAvtale/hentAvtaleFraAvtaleNr/hentAvtaleVersjoner`
+
+- Failing function: `retrieve agreement by id`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `retrieve agreement by id`
+  - Source discriminator: `IKKE_TILGANG_TIL_AVTALE`
+  - Failure condition: a mentor owns the agreement but has not signed the confidentiality declaration
+  - Why it fails: Mentor detail retrieval applies an additional object-state gate after ownership succeeds.
+  - Violated prerequisite or constraint: The mentor must sign the confidentiality declaration before viewing agreement details.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Mentor.java — Mentor.hentAvtale`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -580,9 +936,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve agreement by agreement number`
-  - Failure condition: `avtaleNr` is unknown
-  - Why it fails: Repository lookup by `avtaleNr` throws resource-not-found.
-  - Violated prerequisite or constraint: Use an `avtaleNr` not obtained from a created agreement.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.hentAvtale/hentAvtaleFraAvtaleNr/hentAvtaleVersjoner`
+
+- Failing function: `retrieve agreement by agreement number`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -629,9 +994,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `list agreement versions`
-  - Failure condition: agreement is missing or inaccessible
-  - Why it fails: The implementation first loads the agreement and checks access.
-  - Violated prerequisite or constraint: Use an unknown `{avtaleId}` or a role without access.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.hentAvtale/hentAvtaleFraAvtaleNr/hentAvtaleVersjoner`
+
+- Failing function: `list agreement versions`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -678,9 +1052,179 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update agreement`
-  - Failure condition: stale or missing concurrency timestamp
-  - Why it fails: `Avtale.sjekkSistEndret` rejects a timestamp before the current `sistEndret`.
-  - Violated prerequisite or constraint: Send an old `If-Unmodified-Since` value.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `update agreement`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `update agreement`
+  - Source discriminator: `KAN_IKKE_ENDRE`
+  - Failure condition: the concrete agreement party role is not permitted to edit agreement content
+  - Why it fails: The role implementation reports that it cannot perform agreement edits.
+  - Violated prerequisite or constraint: The party must be an editing-capable advisor or employer.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.endreAvtale`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_DATO_TILBAKE_I_TID`
+  - Failure condition: an employer edits an unassigned agreement with a start date before today
+  - Why it fails: Employer editing of an unassigned agreement rejects a past start date.
+  - Violated prerequisite or constraint: The unassigned employer-created agreement must start today or later.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.avvisDatoerTilbakeITid`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_DATO_TILBAKE_I_TID`
+  - Failure condition: an employer edits an unassigned agreement with an end date before today
+  - Why it fails: Employer editing of an unassigned agreement rejects a past end date.
+  - Violated prerequisite or constraint: The unassigned employer-created agreement must end today or later.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.avvisDatoerTilbakeITid`
+
+- Failing function: `update agreement`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `update agreement`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: participant, employer, or advisor approval already exists
+  - Why it fails: Content is locked until all approvals are revoked.
+  - Violated prerequisite or constraint: No party approval may exist when draft content is edited.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAvtalenKanEndres`
+
+- Failing function: `update agreement`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or older than `sistEndret`
+  - Why it fails: The aggregate rejects a stale edit.
+  - Violated prerequisite or constraint: The edit must target the latest version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `update agreement`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: start date is after end date
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Start date must not follow end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `FORTIDLIG_STARTDATO`
+  - Failure condition: an unentered agreement not approved for after-registration starts more than seven days in the past
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Past starts beyond the grace period require after-registration approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: end date is after 2089-12-31
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The domain upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: work training exceeds 18 months
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Work training may last at most 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: inclusion subsidy exceeds 12 months
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Inclusion subsidy may not extend beyond its 12-month limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: mentor duration exceeds 36 months for specially or permanently adapted effort
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Eligible adapted-effort mentor agreements are limited to 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: mentor duration exceeds 6 months for other qualification groups
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Other mentor agreements are limited to 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: temporary wage subsidy exceeds 24 months for specially or permanently adapted effort
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: temporary wage subsidy exceeds 12 months for situational or missing qualification group
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The applicable maximum is 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: summer-job start or end is before its permitted summer window
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job dates must fall within the source-defined summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: summer-job start is after 31 August or end is after 27 September
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job dates must remain inside the source-defined latest bounds.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: summer job lasts longer than four weeks
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job duration may not exceed four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `update agreement`
+  - Source discriminator: `FEIL_OTP_SATS`
+  - Failure condition: the occupational-pension rate is below 0.0 or above 0.3
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The wage-subsidy calculation restricts the pension rate to the implemented interval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/LonnstilskuddStrategy.java — LonnstilskuddStrategy.endre`
+
+- Failing function: `update agreement`
+  - Source discriminator: `LONNSTILSKUDD_PROSENT_ER_UGYLDIG`
+  - Failure condition: the wage-subsidy percentage is outside the measure-specific allowed values or range
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The selected wage-subsidy strategy rejects its percentage.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/MidlertidigLonnstilskuddStrategy.java — MidlertidigLonnstilskuddStrategy.endre; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/VarigLonnstilskuddStrategy.java — VarigLonnstilskuddStrategy.endre; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/SommerjobbStrategy.java — SommerjobbStrategy.endre`
+
+- Failing function: `update agreement`
+  - Source discriminator: `INKLUDERINGSTILSKUDD_SUM_FOR_HØY`
+  - Failure condition: the persisted inclusion-subsidy expense total already exceeds 136700 when the update enters the strategy
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The inclusion strategy enforces the maximum against the current content before copying the proposed list.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/InkluderingstilskuddStrategy.java — InkluderingstilskuddStrategy.sjekkTotalBeløp`
+
+- Failing function: `update agreement`
+  - Source discriminator: `TiltaksgjennomforingException: Maks lengde for mål er 1000 tegn`
+  - Failure condition: a work-training goal description exceeds 1000 characters
+  - Why it fails: The work-training content strategy validates each goal description before copying it into the agreement.
+  - Violated prerequisite or constraint: Every work-training goal description must be at most 1000 characters.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Maal.java — Maal.sjekkMaalLengde`
+
+- Failing function: `update agreement`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: the advisor refresh reaches a participant with address protection code 6
+  - Why it fails: The advisor update path rejects the protected participant while refreshing person data.
+  - Violated prerequisite or constraint: The advisor may not update this code-6-protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.oppdaterePersondataFraPdlVedEndreAvtale`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -727,9 +1271,179 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dry-run agreement update`
-  - Failure condition: agreement has already been approved
-  - Why it fails: Agreements with approvals cannot be edited until approvals are revoked.
-  - Violated prerequisite or constraint: Attempt dry-run editing after an approval exists.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `KAN_IKKE_ENDRE`
+  - Failure condition: the concrete agreement party role is not permitted to edit agreement content
+  - Why it fails: The role implementation reports that it cannot perform agreement edits.
+  - Violated prerequisite or constraint: The party must be an editing-capable advisor or employer.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.endreAvtale`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_DATO_TILBAKE_I_TID`
+  - Failure condition: an employer edits an unassigned agreement with a start date before today
+  - Why it fails: Employer editing of an unassigned agreement rejects a past start date.
+  - Violated prerequisite or constraint: The unassigned employer-created agreement must start today or later.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.avvisDatoerTilbakeITid`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_DATO_TILBAKE_I_TID`
+  - Failure condition: an employer edits an unassigned agreement with an end date before today
+  - Why it fails: Employer editing of an unassigned agreement rejects a past end date.
+  - Violated prerequisite or constraint: The unassigned employer-created agreement must end today or later.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Arbeidsgiver.java — Arbeidsgiver.avvisDatoerTilbakeITid`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: participant, employer, or advisor approval already exists
+  - Why it fails: Content is locked until all approvals are revoked.
+  - Violated prerequisite or constraint: No party approval may exist when draft content is edited.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAvtalenKanEndres`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or older than `sistEndret`
+  - Why it fails: The aggregate rejects a stale edit.
+  - Violated prerequisite or constraint: The edit must target the latest version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: start date is after end date
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Start date must not follow end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `FORTIDLIG_STARTDATO`
+  - Failure condition: an unentered agreement not approved for after-registration starts more than seven days in the past
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Past starts beyond the grace period require after-registration approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: end date is after 2089-12-31
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The domain upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: work training exceeds 18 months
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Work training may last at most 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: inclusion subsidy exceeds 12 months
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Inclusion subsidy may not extend beyond its 12-month limit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: mentor duration exceeds 36 months for specially or permanently adapted effort
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Eligible adapted-effort mentor agreements are limited to 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: mentor duration exceeds 6 months for other qualification groups
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Other mentor agreements are limited to 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: temporary wage subsidy exceeds 24 months for specially or permanently adapted effort
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: temporary wage subsidy exceeds 12 months for situational or missing qualification group
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The applicable maximum is 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: summer-job start or end is before its permitted summer window
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job dates must fall within the source-defined summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: summer-job start is after 31 August or end is after 27 September
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job dates must remain inside the source-defined latest bounds.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: summer job lasts longer than four weeks
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: Summer-job duration may not exceed four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `FEIL_OTP_SATS`
+  - Failure condition: the occupational-pension rate is below 0.0 or above 0.3
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The wage-subsidy calculation restricts the pension rate to the implemented interval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/LonnstilskuddStrategy.java — LonnstilskuddStrategy.endre`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `LONNSTILSKUDD_PROSENT_ER_UGYLDIG`
+  - Failure condition: the wage-subsidy percentage is outside the measure-specific allowed values or range
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The selected wage-subsidy strategy rejects its percentage.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/MidlertidigLonnstilskuddStrategy.java — MidlertidigLonnstilskuddStrategy.endre; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/VarigLonnstilskuddStrategy.java — VarigLonnstilskuddStrategy.endre; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/SommerjobbStrategy.java — SommerjobbStrategy.endre`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `INKLUDERINGSTILSKUDD_SUM_FOR_HØY`
+  - Failure condition: the persisted inclusion-subsidy expense total already exceeds 136700 when the update enters the strategy
+  - Why it fails: The reachable measure-specific content or date strategy rejects the agreement state.
+  - Violated prerequisite or constraint: The inclusion strategy enforces the maximum against the current content before copying the proposed list.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/InkluderingstilskuddStrategy.java — InkluderingstilskuddStrategy.sjekkTotalBeløp`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `TiltaksgjennomforingException: Maks lengde for mål er 1000 tegn`
+  - Failure condition: a work-training goal description exceeds 1000 characters
+  - Why it fails: The work-training content strategy validates each goal description before copying it into the agreement.
+  - Violated prerequisite or constraint: Every work-training goal description must be at most 1000 characters.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Maal.java — Maal.sjekkMaalLengde`
+
+- Failing function: `dry-run agreement update`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: the advisor refresh reaches a participant with address protection code 6
+  - Why it fails: The advisor update path rejects the protected participant while refreshing person data.
+  - Violated prerequisite or constraint: The advisor may not update this code-6-protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.oppdaterePersondataFraPdlVedEndreAvtale`
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -776,9 +1490,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `share agreement with party`
-  - Failure condition: phone number for the selected party is missing or invalid
-  - Why it fails: `Avtale.delMedAvtalepart` validates the party’s phone number before registering the event.
-  - Violated prerequisite or constraint: Omit the content update that supplies a valid phone number.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `share agreement with party`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `share agreement with party`
+  - Source discriminator: `UGYLDIG_TLF`
+  - Failure condition: the selected participant, employer, advisor, or mentor has no valid mobile number
+  - Why it fails: The aggregate validates the selected party's persisted phone number before registering the share event.
+  - Violated prerequisite or constraint: The selected agreement party must have a valid mobile number.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.delMedAvtalepart`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -825,9 +1555,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve agreement as participant`
-  - Failure condition: required agreement fields are incomplete
-  - Why it fails: `sjekkOmAltErKlarTilGodkjenning` rejects incomplete agreement content.
-  - Violated prerequisite or constraint: Omit `PUT /avtaler/{avtaleId}` with the required fields.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or older than the agreement's current `sistEndret`
+  - Why it fails: The aggregate refuses approval based on a stale version.
+  - Violated prerequisite or constraint: Approval must target the latest agreement version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The selected `AvtaleInnholdStrategy` reports an incomplete required-field set.
+  - Violated prerequisite or constraint: All fields required for the agreement's measure type must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleInnhold.java — AvtaleInnhold.felterSomIkkeErFyltUt`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a wage-subsidy agreement lacks total subsidy, subsidy percentage, or generated subsidy periods
+  - Why it fails: Subsidy-backed agreements require a complete calculation before approval.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: Approval is blocked for an unassigned agreement.
+  - Violated prerequisite or constraint: An advisor must be assigned before any party approves.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as participant`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_DELTAKER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the participant has already approved
+  - Why it fails: Duplicate participant approval is rejected.
+  - Violated prerequisite or constraint: Participant approval may be recorded only once per current version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForDeltaker`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -874,9 +1655,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve agreement as employer`
-  - Failure condition: employer has already approved
-  - Why it fails: `godkjennForArbeidsgiver` rejects duplicate employer approval.
-  - Violated prerequisite or constraint: Repeat employer approval without revoking approvals.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or older than the agreement's current `sistEndret`
+  - Why it fails: The aggregate refuses approval based on a stale version.
+  - Violated prerequisite or constraint: Approval must target the latest agreement version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The selected `AvtaleInnholdStrategy` reports an incomplete required-field set.
+  - Violated prerequisite or constraint: All fields required for the agreement's measure type must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleInnhold.java — AvtaleInnhold.felterSomIkkeErFyltUt`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a wage-subsidy agreement lacks total subsidy, subsidy percentage, or generated subsidy periods
+  - Why it fails: Subsidy-backed agreements require a complete calculation before approval.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: Approval is blocked for an unassigned agreement.
+  - Violated prerequisite or constraint: An advisor must be assigned before any party approves.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as employer`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_ARBEIDSGIVER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the employer has already approved
+  - Why it fails: Duplicate employer approval is rejected.
+  - Violated prerequisite or constraint: Employer approval may be recorded only once per current version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForArbeidsgiver`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -923,9 +1755,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `sign mentor confidentiality declaration`
-  - Failure condition: caller is not logged in as mentor
-  - Why it fails: The controller explicitly checks `avtalepart.rolle() == MENTOR`.
-  - Violated prerequisite or constraint: Use `innlogget-part` other than `MENTOR`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `sign mentor confidentiality declaration`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `sign mentor confidentiality declaration`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or stale
+  - Why it fails: The common approval wrapper rejects a stale agreement version.
+  - Violated prerequisite or constraint: The signature must target the latest agreement version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `sign mentor confidentiality declaration`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_MENTOR_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the mentor has already signed the confidentiality declaration
+  - Why it fails: Duplicate mentor signing is rejected.
+  - Violated prerequisite or constraint: The confidentiality signature may be recorded only once.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForMentor`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -972,9 +1827,123 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve agreement as advisor`
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or older than the agreement's current `sistEndret`
+  - Why it fails: The aggregate refuses approval based on a stale version.
+  - Violated prerequisite or constraint: Approval must target the latest agreement version.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The selected `AvtaleInnholdStrategy` reports an incomplete required-field set.
+  - Violated prerequisite or constraint: All fields required for the agreement's measure type must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning; src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleInnhold.java — AvtaleInnhold.felterSomIkkeErFyltUt`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a wage-subsidy agreement lacks total subsidy, subsidy percentage, or generated subsidy periods
+  - Why it fails: Subsidy-backed agreements require a complete calculation before approval.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: Approval is blocked for an unassigned agreement.
+  - Violated prerequisite or constraint: An advisor must be assigned before any party approves.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6
+  - Why it fails: Advisor approval explicitly blocks code-6 participants.
+  - Violated prerequisite or constraint: The advisor may not approve this protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.godkjennForAvtalepart`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status
+  - Why it fails: Advisor approval requires a complete Arena business result.
+  - Violated prerequisite or constraint: Complete follow-up status must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.godkjennForAvtalepart`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The participant lacks a recognized qualification right.
+  - Violated prerequisite or constraint: The qualification group must be valid.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.godkjennForAvtalepart`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary wage subsidy, summer-job, or mentor measure
+  - Why it fails: The measure eligibility check fails.
+  - Violated prerequisite or constraint: The group must qualify for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.godkjennForAvtalepart`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The permanent-subsidy eligibility check fails.
+  - Violated prerequisite or constraint: The group must qualify for permanent wage subsidy.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.godkjennForAvtalepart`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the advisor has already approved
+  - Why it fails: Duplicate advisor approval is rejected.
+  - Violated prerequisite or constraint: Advisor approval may be recorded only once.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeileder`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `MENTOR_MÅ_SIGNERE_TAUSHETSERKLÆRING`
+  - Failure condition: a mentor agreement lacks the mentor confidentiality signature
+  - Why it fails: Final advisor approval is ordered after the mentor signature.
+  - Violated prerequisite or constraint: The mentor must sign first.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeileder`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `VEILEDER_SKAL_GODKJENNE_SIST`
   - Failure condition: participant or employer approval is missing
-  - Why it fails: Advisor approval must happen last.
-  - Violated prerequisite or constraint: Call advisor approval before participant and employer approvals.
+  - Why it fails: The advisor must be the last agreement party to approve.
+  - Violated prerequisite or constraint: Participant and employer approvals must already exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeileder`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO`
+  - Failure condition: the summer-job participant is over 30 at the agreement start
+  - Why it fails: The approval-time age rule uses the persisted start date.
+  - Violated prerequisite or constraint: The participant must meet the summer-job age ceiling at start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeileder`
+
+- Failing function: `approve agreement as advisor`
+  - Source discriminator: `DELTAKER_72_AAR`
+  - Failure condition: a non-summer-job participant is over 72 at the agreement end
+  - Why it fails: The approval-time upper age rule rejects the persisted end date.
+  - Violated prerequisite or constraint: The participant must not exceed 72 at end.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeileder`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1021,9 +1990,137 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve on behalf of participant`
-  - Failure condition: no on-behalf reason is selected
-  - Why it fails: `GodkjentPaVegneGrunn.valgtMinstEnGrunn` rejects an all-false body.
-  - Violated prerequisite or constraint: Send all participant reason booleans as false.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor on-behalf path explicitly blocks code-6 processing.
+  - Violated prerequisite or constraint: The advisor may not approve this protected participant through the on-behalf flow.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.blokkereKode6Prosessering`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary wage subsidy, summer-job, or mentor measure
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The agreement cannot be approved while its required-field inventory is incomplete.
+  - Violated prerequisite or constraint: All measure-specific required fields must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a subsidy-backed agreement lacks a complete calculation or subsidy periods
+  - Why it fails: The agreement cannot be approved without its subsidy calculation.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: The aggregate requires an assigned advisor for approval.
+  - Violated prerequisite or constraint: An advisor must be assigned.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `DELTAKER_HAR_GODKJENT`
+  - Failure condition: the participant has already approved
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The advisor cannot replace an existing participant approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `ARBEIDSGIVER_SKAL_GODKJENNE_FOER_VEILEDER`
+  - Failure condition: the employer has not approved
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Employer approval must precede this combined advisor/participant approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the advisor has already approved
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Advisor approval may be recorded only once.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO`
+  - Failure condition: the summer-job participant is over 30 at start
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The participant must meet the summer-job age ceiling at start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `MENTOR_MÅ_SIGNERE_TAUSHETSERKLÆRING`
+  - Failure condition: a mentor agreement lacks the mentor signature
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The mentor must sign before advisor on-behalf approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `DELTAKER_72_AAR`
+  - Failure condition: a permanent-wage-subsidy participant is over 72 at end
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Permanent wage subsidy must end before the participant exceeds 72.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `DELTAKER_67_AAR`
+  - Failure condition: a non-permanent-subsidy participant is over 67 at end
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The applicable agreement must end before the participant exceeds 67.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
+
+- Failing function: `approve on behalf of participant`
+  - Source discriminator: `GODKJENT_PAA_VEGNE_GRUNN_MAA_VELGES`
+  - Failure condition: no participant on-behalf reason is selected
+  - Why it fails: The aggregate's participant on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: At least one concrete on-behalf reason must be recorded.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltaker`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1070,9 +2167,123 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve on behalf of employer`
-  - Failure condition: measure type is not supported for employer on-behalf approval
-  - Why it fails: Implementation rejects measure types outside the three subsidized decision-maker measures.
-  - Violated prerequisite or constraint: Use `ARBEIDSTRENING`, `INKLUDERINGSTILSKUDD`, or `MENTOR`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor on-behalf path explicitly blocks code-6 processing.
+  - Violated prerequisite or constraint: The advisor may not approve this protected participant through the on-behalf flow.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.blokkereKode6Prosessering`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary wage subsidy, summer-job, or mentor measure
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The agreement cannot be approved while its required-field inventory is incomplete.
+  - Violated prerequisite or constraint: All measure-specific required fields must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a subsidy-backed agreement lacks a complete calculation or subsidy periods
+  - Why it fails: The agreement cannot be approved without its subsidy calculation.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: The aggregate requires an assigned advisor for approval.
+  - Violated prerequisite or constraint: An advisor must be assigned.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `GODKJENN_PAA_VEGNE_AV_FEIL_TILTAKSTYPE`
+  - Failure condition: the measure is not summer job, temporary wage subsidy, or permanent wage subsidy
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Employer on-behalf approval is restricted to the three implemented measures.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `ARBEIDSGIVER_HAR_GODKJENT`
+  - Failure condition: the employer has already approved
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The advisor cannot replace an existing employer approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `DELTAKER_SKAL_GODKJENNE_FOER_VEILEDER`
+  - Failure condition: the participant has not approved
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Participant approval must precede employer on-behalf approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the advisor has already approved
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Advisor approval may be recorded only once.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO`
+  - Failure condition: the summer-job participant is over 30 at start
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The participant must satisfy the summer-job age ceiling at start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
+
+- Failing function: `approve on behalf of employer`
+  - Source discriminator: `GODKJENT_PAA_VEGNE_GRUNN_MAA_VELGES`
+  - Failure condition: no employer on-behalf reason is selected
+  - Why it fails: The aggregate's employer on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: At least one concrete employer reason must be recorded.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgArbeidsgiver`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1119,9 +2330,130 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve on behalf of participant and employer`
-  - Failure condition: participant or employer has already approved
-  - Why it fails: The combined endpoint only applies when neither participant nor employer has approved yet.
-  - Violated prerequisite or constraint: Create a prior participant or employer approval before the combined call.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The advisor on-behalf path explicitly blocks code-6 processing.
+  - Violated prerequisite or constraint: The advisor may not approve this protected participant through the on-behalf flow.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.blokkereKode6Prosessering`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status for the participant
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary wage subsidy, summer-job, or mentor measure
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The on-behalf approval path rejects the Arena business result before mutating approvals.
+  - Violated prerequisite or constraint: The participant must have complete, eligible follow-up status for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `ALT_MA_VAERE_FYLT_UT`
+  - Failure condition: at least one measure-specific required agreement field is empty
+  - Why it fails: The agreement cannot be approved while its required-field inventory is incomplete.
+  - Violated prerequisite or constraint: All measure-specific required fields must be filled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `MANGLER_BEREGNING`
+  - Failure condition: a subsidy-backed agreement lacks a complete calculation or subsidy periods
+  - Why it fails: The agreement cannot be approved without its subsidy calculation.
+  - Violated prerequisite or constraint: Calculation values and subsidy periods must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `MANGLER_VEILEDER_PÅ_AVTALE`
+  - Failure condition: the agreement has no assigned advisor
+  - Why it fails: The aggregate requires an assigned advisor for approval.
+  - Violated prerequisite or constraint: An advisor must be assigned.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkOmAltErKlarTilGodkjenning`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `GODKJENN_PAA_VEGNE_AV_FEIL_TILTAKSTYPE`
+  - Failure condition: the measure is not summer job, temporary wage subsidy, or permanent wage subsidy
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Combined on-behalf approval is restricted to the implemented measures.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `DELTAKER_HAR_GODKJENT`
+  - Failure condition: the participant has already approved
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The combined call requires no prior participant approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `ARBEIDSGIVER_HAR_GODKJENT`
+  - Failure condition: the employer has already approved
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The combined call requires no prior employer approval.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `KAN_IKKE_GODKJENNE_VEILEDER_HAR_ALLEREDE_GODKJENT`
+  - Failure condition: the advisor has already approved
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: Advisor approval may be recorded only once.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `SOMMERJOBB_FOR_GAMMEL_FRA_OPPSTARTDATO`
+  - Failure condition: the summer-job participant is over 30 at start
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: The participant must satisfy the summer-job age ceiling at start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `GODKJENT_PAA_VEGNE_GRUNN_MAA_VELGES`
+  - Failure condition: no employer on-behalf reason is selected
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: At least one employer on-behalf reason must be recorded.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
+
+- Failing function: `approve on behalf of participant and employer`
+  - Source discriminator: `GODKJENT_PAA_VEGNE_GRUNN_MAA_VELGES`
+  - Failure condition: no participant on-behalf reason is selected
+  - Why it fails: The aggregate's combined on-behalf approval guard rejects the request.
+  - Violated prerequisite or constraint: At least one participant on-behalf reason must be recorded.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennForVeilederOgDeltakerOgArbeidsgiver`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1168,9 +2500,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `revoke approvals`
-  - Failure condition: no approvals exist
-  - Why it fails: The implementation requires at least one approval to revoke.
-  - Violated prerequisite or constraint: Omit all approval endpoints.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `revoke approvals`
+  - Source discriminator: `KAN_IKKE_OPPHEVE`
+  - Failure condition: the selected role is not permitted to revoke approvals, or an employer attempts revocation after advisor approval
+  - Why it fails: The role-specific revocation predicate rejects the transition.
+  - Violated prerequisite or constraint: Only an advisor, or an employer before advisor approval, may revoke.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.opphevGodkjenninger`
+
+- Failing function: `revoke approvals`
+  - Source discriminator: `KAN_IKKE_OPPHEVE`
+  - Failure condition: no participant, employer, or advisor approval exists
+  - Why it fails: There is no approval state to revoke.
+  - Violated prerequisite or constraint: At least one approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.opphevGodkjenninger`
+
+- Failing function: `revoke approvals`
+  - Source discriminator: `KAN_IKKE_OPPHEVE_GODKJENNINGER_VED_INNGAATT_AVTALE`
+  - Failure condition: the agreement is already entered
+  - Why it fails: Approval state is final after agreement entry.
+  - Violated prerequisite or constraint: The agreement must not be entered.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.opphevGodkjenninger`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1217,9 +2572,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `mark agreement eligible for after-registration`
-  - Failure condition: agreement is already entered
-  - Why it fails: Entered agreements cannot be marked for after-registration.
-  - Violated prerequisite or constraint: Enter the agreement before toggling the flag.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `mark agreement eligible for after-registration`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `mark agreement eligible for after-registration`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `mark agreement eligible for after-registration`
+  - Source discriminator: `KAN_IKKE_MERKES_FOR_ETTERREGISTRERING_AVTALE_GODKJENT`
+  - Failure condition: the agreement is already entered
+  - Why it fails: The toggle is frozen after agreement entry.
+  - Violated prerequisite or constraint: After-registration eligibility may change only before entry.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.togglegodkjennEtterregistrering`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1266,9 +2644,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `remove after-registration eligibility`
-  - Failure condition: decision-maker access is missing
-  - Why it fails: The controller calls `innloggingService.hentBeslutter()`.
-  - Violated prerequisite or constraint: Call without a valid decision-maker role/group.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `remove after-registration eligibility`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `remove after-registration eligibility`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `remove after-registration eligibility`
+  - Source discriminator: `KAN_IKKE_MERKES_FOR_ETTERREGISTRERING_AVTALE_GODKJENT`
+  - Failure condition: the agreement is already entered
+  - Why it fails: The toggle is frozen after agreement entry.
+  - Violated prerequisite or constraint: After-registration eligibility may change only before entry.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.togglegodkjennEtterregistrering`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1315,9 +2716,67 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `approve subsidy period`
-  - Failure condition: `enhet` is not four digits
-  - Why it fails: `Avtale.godkjennTilskuddsperiode` requires `enhet` to match `^\d{4}$`.
-  - Violated prerequisite or constraint: Send a non-four-digit `enhet`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_KAN_KUN_BEHANDLES_VED_INNGAATT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Subsidy-period treatment is blocked before advisor approval.
+  - Violated prerequisite or constraint: The agreement must be advisor-approved.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennTilskuddsperiode/avslåTilskuddsperiode`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET`
+  - Failure condition: the current subsidy period is not `UBEHANDLET`
+  - Why it fails: A decided, rejected, annulled, or Arena-treated period cannot be decided again.
+  - Violated prerequisite or constraint: The current active period must be untreated.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.sjekkOmKanBehandles`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_BEHANDLE_FOR_TIDLIG`
+  - Failure condition: the current subsidy period is more than three months in the future and is not the first period
+  - Why it fails: The period has not reached its decision window.
+  - Violated prerequisite or constraint: A later period may be decided no earlier than three months before start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.sjekkOmKanBehandles`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `ENHET_FINNES_IKKE`
+  - Failure condition: Norg2 returns no NAV unit for the requested cost-center unit
+  - Why it fails: The decision-maker service requires a real unit before approval.
+  - Violated prerequisite or constraint: The supplied unit must exist in Norg2.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Beslutter.java — Beslutter.godkjennTilskuddsperiode`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_ENHET_FIRE_SIFFER`
+  - Failure condition: the unit is absent or is not exactly four digits
+  - Why it fails: The aggregate enforces the business unit-number format.
+  - Violated prerequisite or constraint: Approval must record a four-digit NAV unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennTilskuddsperiode`
+
+- Failing function: `approve subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_IKKE_GODKJENNE_EGNE`
+  - Failure condition: the decision-maker is the same advisor who approved the agreement
+  - Why it fails: Separation of duties blocks approval of one's own agreement.
+  - Violated prerequisite or constraint: The subsidy-period decision-maker must differ from the approving advisor.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennTilskuddsperiode`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1364,9 +2823,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `reject subsidy period`
-  - Failure condition: rejection explanation is blank
-  - Why it fails: `TilskuddPeriode.avslå` requires a non-blank explanation.
-  - Violated prerequisite or constraint: Send empty `avslagsforklaring`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_KAN_KUN_BEHANDLES_VED_INNGAATT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Subsidy-period treatment is blocked before advisor approval.
+  - Violated prerequisite or constraint: The agreement must be advisor-approved.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.godkjennTilskuddsperiode/avslåTilskuddsperiode`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET`
+  - Failure condition: the current subsidy period is not `UBEHANDLET`
+  - Why it fails: A decided, rejected, annulled, or Arena-treated period cannot be decided again.
+  - Violated prerequisite or constraint: The current active period must be untreated.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.sjekkOmKanBehandles`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_BEHANDLE_FOR_TIDLIG`
+  - Failure condition: the current subsidy period is more than three months in the future and is not the first period
+  - Why it fails: The period has not reached its decision window.
+  - Violated prerequisite or constraint: A later period may be decided no earlier than three months before start.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.sjekkOmKanBehandles`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_AVSLAGSFORKLARING_PAAKREVD`
+  - Failure condition: the rejection explanation is blank
+  - Why it fails: The period entity requires a substantive explanation.
+  - Violated prerequisite or constraint: A non-blank rejection explanation is mandatory.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.avslå`
+
+- Failing function: `reject subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_INGEN_AVSLAGSAARSAKER`
+  - Failure condition: the rejection-cause set is empty
+  - Why it fails: The period entity requires at least one rejection cause.
+  - Violated prerequisite or constraint: At least one rejection cause is mandatory.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/TilskuddPeriode.java — TilskuddPeriode.avslå`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1413,9 +2923,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `send rejected subsidy period back`
-  - Failure condition: agreement is annulled or interrupted
-  - Why it fails: `sendTilbakeTilBeslutter` rejects annulled/interrupted agreements.
-  - Violated prerequisite or constraint: Annul the agreement before sending it back.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `send rejected subsidy period back`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `send rejected subsidy period back`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1462,9 +2988,130 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `shorten agreement`
-  - Failure condition: new end date is not before current end date
-  - Why it fails: The implementation rejects shortening to the same or a later end date.
-  - Violated prerequisite or constraint: Send `sluttDato` equal to or after the current `sluttDato`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `KAN_IKKE_FORKORTE_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Only approved agreements can be shortened.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `KAN_IKKE_FORKORTE_ETTER_SLUTTDATO`
+  - Failure condition: the proposed end date is equal to or later than the current end date
+  - Why it fails: The request is not a domain shortening.
+  - Violated prerequisite or constraint: A shortening must reduce the end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `KAN_IKKE_FORKORTE_FOR_UTBETALT_TILSKUDDSPERIODE`
+  - Failure condition: the proposed end date falls before the end of the latest active period with a sent, paid, failed-payment, approved-minus, or approved-zero refund
+  - Why it fails: The shortening would invalidate a financially final period.
+  - Violated prerequisite or constraint: The new end date must preserve all financially committed periods.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `KAN_IKKE_FORKORTE_GRUNN_MANGLER`
+  - Failure condition: the shortening reason is blank, or reason `Annet` has no free-text explanation
+  - Why it fails: A persisted shortening requires a concrete reason.
+  - Violated prerequisite or constraint: A reason, and explanation for `Annet`, is mandatory.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: the new end date is before the persisted start date
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Start must not follow end.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: the new end date is after 2089-12-31
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: the resulting work-training duration exceeds 18 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Work training is limited to 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: the resulting inclusion-subsidy duration exceeds 12 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Inclusion subsidy is limited to its implemented maximum.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: the resulting adapted-effort mentor duration exceeds 36 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort mentor maximum is 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: the resulting other mentor duration exceeds 6 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The ordinary mentor maximum is 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: the resulting adapted-effort temporary subsidy exceeds 24 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: the resulting temporary subsidy exceeds the applicable 12-month maximum
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Situational or missing qualification group is limited to 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: the resulting summer-job date is before its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: the resulting summer-job date is after its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `shorten agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: the resulting summer job exceeds four weeks
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer jobs are limited to four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
 
 Implementation notes:
 The controller accepts `If-Unmodified-Since`, but the source path does not consume it in the domain call.
@@ -1511,9 +3158,123 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dry-run agreement shortening`
-  - Failure condition: agreement is not advisor-approved
-  - Why it fails: `forkortAvtale` requires advisor approval.
-  - Violated prerequisite or constraint: Omit the approval sequence.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `KAN_IKKE_FORKORTE_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Only approved agreements can be shortened.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `KAN_IKKE_FORKORTE_ETTER_SLUTTDATO`
+  - Failure condition: the proposed end date is equal to or later than the current end date
+  - Why it fails: The request is not a domain shortening.
+  - Violated prerequisite or constraint: A shortening must reduce the end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `KAN_IKKE_FORKORTE_FOR_UTBETALT_TILSKUDDSPERIODE`
+  - Failure condition: the proposed end date falls before the end of the latest active period with a sent, paid, failed-payment, approved-minus, or approved-zero refund
+  - Why it fails: The shortening would invalidate a financially final period.
+  - Violated prerequisite or constraint: The new end date must preserve all financially committed periods.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forkortAvtale`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: the new end date is before the persisted start date
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Start must not follow end.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: the new end date is after 2089-12-31
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: the resulting work-training duration exceeds 18 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Work training is limited to 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: the resulting inclusion-subsidy duration exceeds 12 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Inclusion subsidy is limited to its implemented maximum.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: the resulting adapted-effort mentor duration exceeds 36 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort mentor maximum is 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: the resulting other mentor duration exceeds 6 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The ordinary mentor maximum is 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: the resulting adapted-effort temporary subsidy exceeds 24 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: the resulting temporary subsidy exceeds the applicable 12-month maximum
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Situational or missing qualification group is limited to 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: the resulting summer-job date is before its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: the resulting summer-job date is after its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement shortening`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: the resulting summer job exceeds four weeks
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer jobs are limited to four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -1560,9 +3321,144 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `extend agreement`
-  - Failure condition: new end date is not after current end date
-  - Why it fails: The implementation rejects extension unless `sluttDato` increases.
-  - Violated prerequisite or constraint: Send a same or earlier `sluttDato`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary subsidy, summer-job, or mentor measure
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KAN_IKKE_FORLENGE_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Only approved agreements can be extended.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forlengAvtale`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `KAN_IKKE_FORLENGE_FEIL_SLUTTDATO`
+  - Failure condition: the proposed end date is not later than the current end date
+  - Why it fails: The request is not a domain extension.
+  - Violated prerequisite or constraint: An extension must increase the end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forlengAvtale`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: the new end date is before the persisted start date
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Start must not follow end.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: the new end date is after 2089-12-31
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: the resulting work-training duration exceeds 18 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Work training is limited to 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: the resulting inclusion-subsidy duration exceeds 12 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Inclusion subsidy is limited to its implemented maximum.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: the resulting adapted-effort mentor duration exceeds 36 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort mentor maximum is 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: the resulting other mentor duration exceeds 6 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The ordinary mentor maximum is 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: the resulting adapted-effort temporary subsidy exceeds 24 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: the resulting temporary subsidy exceeds the applicable 12-month maximum
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Situational or missing qualification group is limited to 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: the resulting summer-job date is before its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: the resulting summer-job date is after its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `extend agreement`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: the resulting summer job exceeds four weeks
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer jobs are limited to four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
 
 Implementation notes:
 The controller accepts `If-Unmodified-Since`, but the source path does not consume it in the domain call.
@@ -1609,9 +3505,144 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dry-run agreement extension`
-  - Failure condition: agreement is not advisor-approved
-  - Why it fails: Extension is only allowed on advisor-approved agreements.
-  - Violated prerequisite or constraint: Omit the approval sequence.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary subsidy, summer-job, or mentor measure
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: Extension refreshes and validates the participant's measure eligibility before changing dates.
+  - Violated prerequisite or constraint: The participant must remain eligible for the measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KAN_IKKE_FORLENGE_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Only approved agreements can be extended.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forlengAvtale`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `KAN_IKKE_FORLENGE_FEIL_SLUTTDATO`
+  - Failure condition: the proposed end date is not later than the current end date
+  - Why it fails: The request is not a domain extension.
+  - Violated prerequisite or constraint: An extension must increase the end date.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.forlengAvtale`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `START_ETTER_SLUTT`
+  - Failure condition: the new end date is before the persisted start date
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Start must not follow end.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `SLUTTDATO_GRENSE_NÅDD`
+  - Failure condition: the new end date is after 2089-12-31
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The upper end-date bound is 2089-12-31.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/StartOgSluttDatoStrategy.java — StartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_ARBEIDSTRENING`
+  - Failure condition: the resulting work-training duration exceeds 18 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Work training is limited to 18 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/ArbeidstreningStartOgSluttDatoStrategy.java — ArbeidstreningStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_INKLUDERINGSTILSKUDD`
+  - Failure condition: the resulting inclusion-subsidy duration exceeds 12 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Inclusion subsidy is limited to its implemented maximum.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/InkluderingstilskuddStartOgSluttDatoStrategy.java — InkluderingstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_36_MND`
+  - Failure condition: the resulting adapted-effort mentor duration exceeds 36 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort mentor maximum is 36 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_MENTOR_6_MND`
+  - Failure condition: the resulting other mentor duration exceeds 6 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The ordinary mentor maximum is 6 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MentorStartOgSluttDatoStrategy.java — MentorStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_24_MND`
+  - Failure condition: the resulting adapted-effort temporary subsidy exceeds 24 months
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: The adapted-effort maximum is 24 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `VARIGHET_FOR_LANG_MIDLERTIDIG_LONNSTILSKUDD_12_MND`
+  - Failure condition: the resulting temporary subsidy exceeds the applicable 12-month maximum
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Situational or missing qualification group is limited to 12 months minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/MidlertidigLonnstilskuddStartOgSluttDatoStrategy.java — MidlertidigLonnstilskuddStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `SOMMERJOBB_FOR_TIDLIG`
+  - Failure condition: the resulting summer-job date is before its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `SOMMERJOBB_FOR_SENT`
+  - Failure condition: the resulting summer-job date is after its permitted window
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer-job dates must remain in the summer window.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
+
+- Failing function: `dry-run agreement extension`
+  - Source discriminator: `SOMMERJOBB_FOR_LANG_VARIGHET`
+  - Failure condition: the resulting summer job exceeds four weeks
+  - Why it fails: The selected date strategy rejects the resulting period.
+  - Violated prerequisite or constraint: Summer jobs are limited to four weeks minus one day.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/startOgSluttDatoStrategy/SommerjobbStartOgSluttDatoStrategy.java — SommerjobbStartOgSluttDatoStrategy.sjekkStartOgSluttDato`
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -1658,9 +3689,67 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change subsidy calculation`
-  - Failure condition: agreement is not approved by advisor
-  - Why it fails: Economy changes require an advisor-approved agreement.
-  - Violated prerequisite or constraint: Omit the approval sequence.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not temporary wage subsidy, permanent wage subsidy, or summer job
+  - Why it fails: Only subsidy-backed measures support this calculation change.
+  - Violated prerequisite or constraint: The agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.krevEnAvTiltakstyper`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Economy changes are post-approval version changes.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `arbeidsgiveravgift` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsgiveravgift` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `feriepengesats` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `feriepengesats` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `manedslonn` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `manedslonn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `change subsidy calculation`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `otpSats` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `otpSats` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1707,9 +3796,67 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dry-run subsidy calculation change`
-  - Failure condition: required calculation input is missing
-  - Why it fails: The implementation requires all calculation inputs.
-  - Violated prerequisite or constraint: Omit one of `manedslonn`, `feriepengesats`, `arbeidsgiveravgift`, or `otpSats`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not temporary wage subsidy, permanent wage subsidy, or summer job
+  - Why it fails: Only subsidy-backed measures support this calculation change.
+  - Violated prerequisite or constraint: The agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.krevEnAvTiltakstyper`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: Economy changes are post-approval version changes.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `arbeidsgiveravgift` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsgiveravgift` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `feriepengesats` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `feriepengesats` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `manedslonn` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `manedslonn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
+
+- Failing function: `dry-run subsidy calculation change`
+  - Source discriminator: `KAN_IKKE_ENDRE_OKONOMI_UGYLDIG_INPUT`
+  - Failure condition: `otpSats` is missing
+  - Why it fails: The calculation-change guard requires this input before creating a new approved version.
+  - Violated prerequisite or constraint: `otpSats` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreTilskuddsberegning`
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -1756,9 +3903,95 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change contact information`
-  - Failure condition: required contact field is missing
-  - Why it fails: `endreKontaktInformasjon` rejects missing contact fields.
-  - Violated prerequisite or constraint: Omit one required name or phone field.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change contact information`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `deltakerFornavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `deltakerFornavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `deltakerEtternavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `deltakerEtternavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `deltakerTlf` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `deltakerTlf` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `veilederFornavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `veilederFornavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `veilederEtternavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `veilederEtternavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `veilederTlf` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `veilederTlf` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `arbeidsgiverFornavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsgiverFornavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `arbeidsgiverEtternavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsgiverEtternavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
+
+- Failing function: `change contact information`
+  - Source discriminator: `KAN_IKKE_ENDRE_KONTAKTINFO_GRUNN_MANGLER`
+  - Failure condition: `arbeidsgiverTlf` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsgiverTlf` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreKontaktInformasjon`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1805,9 +4038,74 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change job description`
-  - Failure condition: agreement is not advisor-approved
-  - Why it fails: Job description changes are only allowed on approved agreements.
-  - Violated prerequisite or constraint: Omit the approval sequence.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change job description`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `stillingstittel` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `stillingstittel` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `arbeidsoppgaver` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `arbeidsoppgaver` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `stillingStyrk08` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `stillingStyrk08` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `stillingKonseptId` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `stillingKonseptId` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `stillingprosent` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `stillingprosent` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
+
+- Failing function: `change job description`
+  - Source discriminator: `KAN_IKKE_ENDRE_STILLINGSBESKRIVELSE_GRUNN_MANGLER`
+  - Failure condition: `antallDagerPerUke` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `antallDagerPerUke` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreStillingsbeskrivelse`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1854,9 +4152,46 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change follow-up and adaptation text`
-  - Failure condition: follow-up or adaptation text is missing
-  - Why it fails: The implementation rejects missing text fields.
-  - Violated prerequisite or constraint: Omit `oppfolging` or `tilrettelegging`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change follow-up and adaptation text`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change follow-up and adaptation text`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change follow-up and adaptation text`
+  - Source discriminator: `KAN_IKKE_ENDRE_OPPFØLGING_OG_TILRETTELEGGING_GRUNN_IKKE_GODKJENT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOppfølgingOgTilrettelegging`
+
+- Failing function: `change follow-up and adaptation text`
+  - Source discriminator: `KAN_IKKE_ENDRE_OPPFØLGING_OG_TILRETTELEGGING_GRUNN_MANGLER`
+  - Failure condition: `oppfolging` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `oppfolging` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOppfølgingOgTilrettelegging`
+
+- Failing function: `change follow-up and adaptation text`
+  - Source discriminator: `KAN_IKKE_ENDRE_OPPFØLGING_OG_TILRETTELEGGING_GRUNN_MANGLER`
+  - Failure condition: `tilrettelegging` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `tilrettelegging` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOppfølgingOgTilrettelegging`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1903,9 +4238,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change work-training goals`
-  - Failure condition: agreement is not work training
-  - Why it fails: `endreMål` requires `Tiltakstype.ARBEIDSTRENING`.
-  - Violated prerequisite or constraint: Create any other `tiltakstype`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not work training
+  - Why it fails: The aggregate restricts this versioned change to its matching measure.
+  - Violated prerequisite or constraint: The agreement must have `ARBEIDSTRENING`.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.krevEnAvTiltakstyper`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_MAAL_IKKE_INNGAATT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreMål`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_MAAL_TOM_LISTE`
+  - Failure condition: the replacement goal list is empty
+  - Why it fails: The operation requires at least one goal.
+  - Violated prerequisite or constraint: At least one work-training goal must remain.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreMål`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_MAAL_IKKE_BESKRIVELSE_ELLER_KATEGORI`
+  - Failure condition: a replacement goal has no description
+  - Why it fails: Each goal is validated independently.
+  - Violated prerequisite or constraint: Every goal must have a description.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreMål`
+
+- Failing function: `change work-training goals`
+  - Source discriminator: `KAN_IKKE_ENDRE_MAAL_IKKE_BESKRIVELSE_ELLER_KATEGORI`
+  - Failure condition: a replacement goal has no category
+  - Why it fails: Each goal is validated independently.
+  - Violated prerequisite or constraint: Every goal must have a category.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreMål`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -1952,9 +4338,74 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change inclusion subsidy expenses`
-  - Failure condition: total inclusion subsidy amount is too high
-  - Why it fails: `endreInkluderingstilskudd` rejects totals above the configured code limit.
-  - Violated prerequisite or constraint: Send expense lines whose total exceeds the allowed maximum.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not inclusion subsidy
+  - Why it fails: The aggregate restricts this versioned change to its matching measure.
+  - Violated prerequisite or constraint: The agreement must have `INKLUDERINGSTILSKUDD`.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.krevEnAvTiltakstyper`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_IKKE_INNGAATT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_TOM_LISTE`
+  - Failure condition: the replacement expense list is empty
+  - Why it fails: At least one expense is required.
+  - Violated prerequisite or constraint: The inclusion-subsidy expense list must not be empty.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `INKLUDERINGSTILSKUDD_SUM_FOR_HØY`
+  - Failure condition: the replacement expense total exceeds 136000
+  - Why it fails: The post-approval change applies its explicit maximum.
+  - Violated prerequisite or constraint: The replacement total must be at most 136000.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_IKKE_BELOP_ELLER_TYPE`
+  - Failure condition: an expense line has no amount
+  - Why it fails: Each replacement line is validated independently.
+  - Violated prerequisite or constraint: Every expense line must have an amount.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_IKKE_BELOP_ELLER_TYPE`
+  - Failure condition: an expense line has no expense type
+  - Why it fails: Each replacement line is validated independently.
+  - Violated prerequisite or constraint: Every expense line must have an expense type.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
+
+- Failing function: `change inclusion subsidy expenses`
+  - Source discriminator: `KAN_IKKE_ENDRE_INKLUDERINGSTILSKUDD_TOM_LISTE`
+  - Failure condition: the count of submitted existing expense IDs differs from the persisted previous-version expense count
+  - Why it fails: The aggregate detects a stale/incomplete client representation before versioning.
+  - Violated prerequisite or constraint: Every persisted previous expense must be represented by ID.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreInkluderingstilskudd`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2001,9 +4452,81 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change mentor details`
-  - Failure condition: agreement is not a mentor agreement
-  - Why it fails: `endreOmMentor` requires `Tiltakstype.MENTOR`.
-  - Violated prerequisite or constraint: Use a non-mentor agreement.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not a mentor agreement
+  - Why it fails: The aggregate restricts this versioned change to its matching measure.
+  - Violated prerequisite or constraint: The agreement must have `MENTOR`.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.krevEnAvTiltakstyper`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_IKKE_INNGAATT_AVTALE`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: The operation is a post-approval version change.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorFornavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorFornavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorEtternavn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorEtternavn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorTlf` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorTlf` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorTimelonn` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorTimelonn` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorAntallTimer` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorAntallTimer` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
+
+- Failing function: `change mentor details`
+  - Source discriminator: `KAN_IKKE_ENDRE_OM_MENTOR_UGYLDIG_INPUT`
+  - Failure condition: `mentorOppgaver` is missing
+  - Why it fails: The named change guard requires this concrete field before creating a new approved version.
+  - Violated prerequisite or constraint: `mentorOppgaver` must be supplied.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.endreOmMentor`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2050,9 +4573,39 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change cost center`
-  - Failure condition: norg2 does not return a unit for `enhet`
-  - Why it fails: `Veileder.oppdatereKostnadssted` throws `ENHET_FINNES_IKKE`.
-  - Violated prerequisite or constraint: Use an unknown unit number.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `change cost center`
+  - Source discriminator: `ENHET_FINNES_IKKE`
+  - Failure condition: Norg2 returns no unit for the requested cost center
+  - Why it fails: The requested cost center has no domain unit name.
+  - Violated prerequisite or constraint: The cost-center unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.oppdatereKostnadssted`
+
+- Failing function: `change cost center`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_IKKE_SATT`
+  - Failure condition: the agreement has no active untreated or rejected subsidy period
+  - Why it fails: There is no mutable period on which to apply the cost center.
+  - Violated prerequisite or constraint: At least one active untreated or rejected period must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.oppdatereKostnadssted`
+
+- Failing function: `change cost center`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `change cost center`
+  - Source discriminator: `KAN_IKKE_OPPDATERE_KOSTNADSSTED_INGAATT_AVTALE`
+  - Failure condition: the agreement is already entered
+  - Why it fails: The aggregate freezes cost-center assignment after entry.
+  - Violated prerequisite or constraint: The agreement must not be entered.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.oppdatereKostnadsstedForTilskuddsperioder`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2099,9 +4652,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `adjust Arena migration date`
-  - Failure condition: agreement is already entered
-  - Why it fails: The controller rejects migration-date changes on entered agreements.
-  - Violated prerequisite or constraint: Enter the agreement before adjusting migration date.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `adjust Arena migration date`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `adjust Arena migration date`
+  - Source discriminator: `FORLENG_MIDLERTIDIG_IKKE_TILGJENGELIG`
+  - Failure condition: the persisted reduced-percentage date lies after the entire agreement period being regenerated
+  - Why it fails: The subsidy-period calculator has no valid branch for a period wholly before the stored reduction date.
+  - Violated prerequisite or constraint: The stored reduction date must be consistent with the agreement start and end dates.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/RegnUtTilskuddsperioderForAvtale.java — RegnUtTilskuddsperioderForAvtale.beregnTilskuddsperioderForAvtale`
+
+- Failing function: `adjust Arena migration date`
+  - Source discriminator: `KAN_IKKE_ENDRE_ARENA_MIGRERINGSDATO_INNGAATT_AVTALE`
+  - Failure condition: the agreement is already entered
+  - Why it fails: The persisted migration marker cannot be moved after entry.
+  - Violated prerequisite or constraint: The agreement must not be entered.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController.justerArenaMigreringsdato`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2148,9 +4724,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dry-run Arena migration date adjustment`
-  - Failure condition: agreement is missing
-  - Why it fails: Repository lookup by `{avtaleId}` throws resource-not-found.
-  - Violated prerequisite or constraint: Omit the agreement creation endpoint.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `dry-run Arena migration date adjustment`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `dry-run Arena migration date adjustment`
+  - Source discriminator: `FORLENG_MIDLERTIDIG_IKKE_TILGJENGELIG`
+  - Failure condition: the persisted reduced-percentage date lies after the entire agreement period being regenerated
+  - Why it fails: The subsidy-period calculator has no valid branch for a period wholly before the stored reduction date.
+  - Violated prerequisite or constraint: The stored reduction date must be consistent with the agreement start and end dates.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/RegnUtTilskuddsperioderForAvtale.java — RegnUtTilskuddsperioderForAvtale.beregnTilskuddsperioderForAvtale`
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -2197,9 +4789,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `get employer account number`
-  - Failure condition: account register has no company account
-  - Why it fails: The real account-register client maps 404 to `KONTOREGISTER_FEIL_BEDRIFT_IKKE_FUNNET`.
-  - Violated prerequisite or constraint: Use an agreement whose company is not found in the account register.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `get employer account number`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `get employer account number`
+  - Source discriminator: `KONTOREGISTER_FEIL_BEDRIFT_IKKE_FUNNET`
+  - Failure condition: the account register has no employer account for the agreement's company
+  - Why it fails: A business-significant not-found result is mapped to the specific company-not-found code.
+  - Violated prerequisite or constraint: The persisted agreement company must have an account-register entry.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/okonomi/KontoregisterServiceImpl.java — KontoregisterServiceImpl.hentKontonummer`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2246,9 +4854,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `download agreement PDF`
-  - Failure condition: agreement is not approved by advisor
-  - Why it fails: The controller throws `KAN_IKKE_LASTE_NED_PDF`.
-  - Violated prerequisite or constraint: Omit advisor approval.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `download agreement PDF`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `download agreement PDF`
+  - Source discriminator: `KAN_IKKE_LASTE_NED_PDF`
+  - Failure condition: the agreement lacks advisor approval
+  - Why it fails: PDF generation is available only for advisor-approved content.
+  - Violated prerequisite or constraint: Advisor approval must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController.hentAvtalePdf`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2295,9 +4919,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `check Salesforce dialog visibility`
-  - Failure condition: agreement is missing or inaccessible
-  - Why it fails: The controller loads the agreement through access-checked `hentAvtale`.
-  - Violated prerequisite or constraint: Use an unknown `{avtaleId}` or unauthorized role.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `check Salesforce dialog visibility`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2344,9 +4977,53 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `refresh follow-up unit`
-  - Failure condition: participant has protected address code 6 when person data is refreshed
-  - Why it fails: Person-data refresh uses the same code-6 guard as agreement creation/update.
-  - Violated prerequisite or constraint: Use an agreement participant with code 6 protection.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `IKKE_TILGANG_TIL_DELTAKER`
+  - Failure condition: PDL reports address protection code 6 for the participant
+  - Why it fails: The refresh reuses the advisor creation person-data guard.
+  - Violated prerequisite or constraint: The advisor may not refresh this protected participant.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.hentPersonDataForOpprettelseAvAvtale/sjekkKode6`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status
+  - Why it fails: The refreshed Arena business result is incompatible with the agreement.
+  - Violated prerequisite or constraint: The participant must retain complete, eligible follow-up status.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: The refreshed Arena business result is incompatible with the agreement.
+  - Violated prerequisite or constraint: The participant must retain complete, eligible follow-up status.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the temporary-subsidy, summer-job, or mentor measure
+  - Why it fails: The refreshed Arena business result is incompatible with the agreement.
+  - Violated prerequisite or constraint: The participant must retain complete, eligible follow-up status.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `refresh follow-up unit`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: The refreshed Arena business result is incompatible with the agreement.
+  - Violated prerequisite or constraint: The participant must retain complete, eligible follow-up status.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2393,9 +5070,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `take over agreement as advisor`
-  - Failure condition: logged-in advisor is already the agreement advisor
-  - Why it fails: `Veileder.overtaAvtale` throws `ER_ALLEREDE_VEILEDER`.
-  - Violated prerequisite or constraint: Use the same advisor who created or already owns the agreement.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `HENTING_AV_INNSATS_BEHOV_FEILET`
+  - Failure condition: Arena has no complete follow-up status
+  - Why it fails: Takeover refreshes and validates follow-up status before ownership changes.
+  - Violated prerequisite or constraint: The participant must be eligible for the agreement's measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_IKKE_RETTIGHET`
+  - Failure condition: Arena returns an invalid qualification group
+  - Why it fails: Takeover refreshes and validates follow-up status before ownership changes.
+  - Violated prerequisite or constraint: The participant must be eligible for the agreement's measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_MIDLERTIDIG_LONNTILSKUDD_OG_SOMMERJOBB_FEIL`
+  - Failure condition: the qualification group is ineligible for the selected temporary-subsidy, summer-job, or mentor measure
+  - Why it fails: Takeover refreshes and validates follow-up status before ownership changes.
+  - Violated prerequisite or constraint: The participant must be eligible for the agreement's measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `KVALIFISERINGSGRUPPE_VARIG_LONNTILSKUDD_FEIL`
+  - Failure condition: the qualification group is ineligible for permanent wage subsidy
+  - Why it fails: Takeover refreshes and validates follow-up status before ownership changes.
+  - Violated prerequisite or constraint: The participant must be eligible for the agreement's measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/enhet/VeilarbArenaClient.java — VeilarbArenaClient.sjekkStatus`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `ER_ALLEREDE_VEILEDER`
+  - Failure condition: the logged-in advisor is already assigned to the agreement
+  - Why it fails: The operation requires an actual advisor ownership change.
+  - Violated prerequisite or constraint: The new advisor must differ from the persisted advisor.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Veileder.java — Veileder.overtaAvtale`
+
+- Failing function: `take over agreement as advisor`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2442,9 +5170,39 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `annul agreement`
-  - Failure condition: agreement contains a paid subsidy period
-  - Why it fails: `sjekkAtIkkeAvtalenInneholderUtbetaltTilskuddsperiode` blocks annulment when a period is paid or refund-approved.
-  - Violated prerequisite or constraint: Annul after period/refund state blocks annulment.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `annul agreement`
+  - Source discriminator: `SAMTIDIGE_ENDRINGER`
+  - Failure condition: the supplied concurrency timestamp is absent or stale
+  - Why it fails: Annulment must target the latest aggregate state.
+  - Violated prerequisite or constraint: The caller must use the current `sistEndret` value.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkSistEndret`
+
+- Failing function: `annul agreement`
+  - Source discriminator: `AVTALE_INNEHOLDER_UTBETALT_TILSKUDDSPERIODE`
+  - Failure condition: an active subsidy period has refund status `UTBETALT` or `KORRIGERT`
+  - Why it fails: Paid/corrected financial state prevents agreement annulment.
+  - Violated prerequisite or constraint: No paid or corrected subsidy period may exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtalenInneholderUtbetaltTilskuddsperiode`
+
+- Failing function: `annul agreement`
+  - Source discriminator: `AVTALE_INNEHOLDER_TILSKUDDSPERIODE_MED_GODKJENT_REFUSJON`
+  - Failure condition: an active subsidy period has refund status `SENDT_KRAV`, `GODKJENT_MINUSBELØP`, or `GODKJENT_NULLBELØP`
+  - Why it fails: A committed refund prevents agreement annulment.
+  - Violated prerequisite or constraint: No subsidy period with an approved/sent refund may exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtalenInneholderUtbetaltTilskuddsperiode`
+
+- Failing function: `annul agreement`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2491,9 +5249,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `soft-delete agreement`
-  - Failure condition: advisor is not configured as a delete-marker admin
-  - Why it fails: `Veileder.slettemerk` checks configured allowed NAV idents.
-  - Violated prerequisite or constraint: Call as a valid advisor not in the configured admin ident list.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AvtaleController.java — AvtaleController repository lookup`
+
+- Failing function: `soft-delete agreement`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2539,10 +5306,7 @@ Constraints and invariants:
 - Query `bedriftNr` is required. Employer must have Altinn access to the company/measure; old annulled, interrupted, or ended agreements may be filtered out.
 
 Failure and exceptional cases:
-- Failing function: `list employer agreements`
-  - Failure condition: caller is not an employer token/role
-  - Why it fails: The controller calls `innloggingService.hentArbeidsgiver()`.
-  - Violated prerequisite or constraint: Call with non-employer token/role.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2589,9 +5353,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `list decision-maker agreements`
-  - Failure condition: decision-maker has no NAV units
-  - Why it fails: `Beslutter.finnGodkjente...` throws `NAV_ENHET_IKKE_FUNNET`.
-  - Violated prerequisite or constraint: Use a decision-maker identity with no AXsys units.
+  - Source discriminator: `NAV_ENHET_IKKE_FUNNET`
+  - Failure condition: the decision-maker has no NAV units
+  - Why it fails: The work queue cannot establish the decision-maker's business unit scope.
+  - Violated prerequisite or constraint: At least one decision-maker NAV unit must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Beslutter.java — Beslutter.finnGodkjenteAvtalerMedTilskuddsperiodestatusOgNavEnheterListe`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2637,10 +5403,7 @@ Constraints and invariants:
 - Although OpenAPI marks `innlogget-part` as optional, implementation requires it and throws if absent. The role must match the token issuer.
 
 Failure and exceptional cases:
-- Failing function: `get logged-in user`
-  - Failure condition: `innlogget-part` cookie is absent
-  - Why it fails: The implementation calls `orElseThrow(IkkeValgtPartException::new)`.
-  - Violated prerequisite or constraint: Omit `innlogget-part`.
+None.
 
 Implementation notes:
 OpenAPI marks `innlogget-part` as optional, but implementation throws when it is absent.
@@ -2687,9 +5450,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `look up organization`
-  - Failure condition: ereg does not find the unit
-  - Why it fails: `EregService` maps Ereg client errors to `ENHET_FINNES_IKKE`.
-  - Violated prerequisite or constraint: Use an unknown `bedriftNr`.
+  - Source discriminator: `EnhetErJuridiskException`
+  - Failure condition: Ereg identifies the number as a legal entity
+  - Why it fails: The lookup requires a business unit rather than a top-level legal entity.
+  - Violated prerequisite or constraint: The number must identify a business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `look up organization`
+  - Source discriminator: `EnhetErOrganisasjonsleddException`
+  - Failure condition: Ereg identifies the number as an organizational link
+  - Why it fails: The lookup rejects organizational-link entities.
+  - Violated prerequisite or constraint: The number must identify a supported business unit.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
+
+- Failing function: `look up organization`
+  - Source discriminator: `EnhetFinnesIkkeException`
+  - Failure condition: Ereg cannot find the organization number
+  - Why it fails: The requested business entity is absent.
+  - Violated prerequisite or constraint: The organization must exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/orgenhet/EregService.java — EregService.hentVirksomhet`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2735,10 +5514,7 @@ Constraints and invariants:
 - Query `orgNr` is appended as `bedrift` to the configured base URL. The response maps supported `Tiltakstype` values to URLs.
 
 Failure and exceptional cases:
-- Failing function: `get Altinn rights request URLs`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2784,10 +5560,7 @@ Constraints and invariants:
 - No resource state required.
 
 Failure and exceptional cases:
-- Failing function: `get all code lists`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2833,10 +5606,7 @@ Constraints and invariants:
 - No resource state required.
 
 Failure and exceptional cases:
-- Failing function: `get status code list`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2882,10 +5652,7 @@ Constraints and invariants:
 - No resource state required.
 
 Failure and exceptional cases:
-- Failing function: `get measure type code list`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2931,10 +5698,7 @@ Constraints and invariants:
 - Query `feature` is a list. Each feature name becomes a key in the returned map.
 
 Failure and exceptional cases:
-- Failing function: `evaluate feature toggles`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -2980,10 +5744,7 @@ Constraints and invariants:
 - Query `feature` is a list. Logged-in user id is included in the Unleash context when available.
 
 Failure and exceptional cases:
-- Failing function: `get feature variants`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3029,10 +5790,7 @@ Constraints and invariants:
 - No specific resource state required; database must answer `select 'ok'`.
 
 Failure and exceptional cases:
-- Failing function: `run health check`
-  - Failure condition: database query fails
-  - Why it fails: The controller directly returns the JDBC query result.
-  - Violated prerequisite or constraint: Database unavailable or query cannot execute.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3078,10 +5836,7 @@ Constraints and invariants:
 - Agreement creation and other agreement events create notifications through event listeners. `GET /varsler/oversikt` returns only `lest=false`, `bjelle=true`, and matching identifiers.
 
 Failure and exceptional cases:
-- Failing function: `list overview notifications`
-  - Failure condition: unsupported role/token combination
-  - Why it fails: Notification lookup is scoped through `hentAvtalepart`.
-  - Violated prerequisite or constraint: Use invalid `innlogget-part` for the token.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3127,10 +5882,7 @@ Constraints and invariants:
 - `POST /avtaler` produces `{avtaleId}`; `GET /varsler/avtale-modal` uses query `avtaleId={avtaleId}` and filters by the logged-in party identifiers.
 
 Failure and exceptional cases:
-- Failing function: `list agreement modal notifications`
-  - Failure condition: Authentication, authorization, parameter binding, or external dependency failure.
-  - Why it fails: The framework or called service rejects the request before the domain result is produced.
-  - Violated prerequisite or constraint: Valid caller context and required request values are prerequisites.
+None.
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3177,9 +5929,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `list agreement notification log`
-  - Failure condition: agreement id is unknown
-  - Why it fails: The controller calls `avtaleRepository.findById(avtaleId).orElseThrow()`.
-  - Violated prerequisite or constraint: Omit agreement creation and use an unknown `avtaleId`.
+  - Source discriminator: `AvtaleRepository.findById empty outcome (NoSuchElementException)`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The notification-log function cannot establish the aggregate whose log was requested.
+  - Violated prerequisite or constraint: An existing agreement identified by `avtaleId` is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/varsel/VarselController.java — VarselController.hentAlleVarslerForAvtale`
+
+- Failing function: `list agreement notification log`
+  - Source discriminator: `TilgangskontrollException`
+  - Failure condition: the authenticated party does not own or otherwise have domain access to the concrete agreement
+  - Why it fails: The object-scoped access check evaluates the persisted agreement's participant, employer, mentor, advisor, or decision-maker relationship and rejects the party.
+  - Violated prerequisite or constraint: The caller must have the concrete relationship required for this agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtalepart.java — Avtalepart.sjekkTilgang`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3226,14 +5987,12 @@ Constraints and invariants:
 - `GET /varsler/oversikt` returns a notification id. `POST /varsler/{varselId}/sett-til-lest` consumes that exact `{varselId}`. Notification must belong to one of the logged-in party’s identifiers.
 
 Failure and exceptional cases:
-- Failing function: `list overview notifications`
-  - Failure condition: unsupported role/token combination
-  - Why it fails: Notification lookup is scoped through `hentAvtalepart`.
-  - Violated prerequisite or constraint: Use invalid `innlogget-part` for the token.
 - Failing function: `mark notification as read`
-  - Failure condition: notification does not belong to logged-in party
-  - Why it fails: Repository lookup by id and identifiers returns null, then `varsel.settTilLest()` fails.
-  - Violated prerequisite or constraint: Reuse a `{varselId}` from another party’s notification list.
+  - Source discriminator: `VarselRepository.findByIdAndIdentifikatorIn returns null`
+  - Failure condition: the notification is unknown or is not owned by any identifier of the logged-in party
+  - Why it fails: The object-scoped lookup withholds the notification, so read state cannot be mutated.
+  - Violated prerequisite or constraint: The notification must exist and belong to the logged-in party.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/varsel/VarselController.java — VarselController.settTilLest`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3280,14 +6039,12 @@ Constraints and invariants:
 - `GET /varsler/oversikt` produces notification ids. `POST /varsler/sett-alle-til-lest` body is an array of those ids and internally calls the single-notification read function for each.
 
 Failure and exceptional cases:
-- Failing function: `list overview notifications`
-  - Failure condition: unsupported role/token combination
-  - Why it fails: Notification lookup is scoped through `hentAvtalepart`.
-  - Violated prerequisite or constraint: Use invalid `innlogget-part` for the token.
 - Failing function: `mark multiple notifications as read`
-  - Failure condition: any body id is not readable by the logged-in party
-  - Why it fails: The loop delegates to `settTilLest`; one invalid id causes the same failure as the single-read endpoint.
-  - Violated prerequisite or constraint: Include at least one foreign or unknown notification id.
+  - Source discriminator: `VarselRepository.findByIdAndIdentifikatorIn returns null`
+  - Failure condition: at least one selected notification is unknown or not owned by the logged-in party
+  - Why it fails: Bulk processing delegates each ID to the same object-scoped read mutation and stops on the invalid selection.
+  - Violated prerequisite or constraint: Every selected notification must exist and belong to the logged-in party.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/varsel/VarselController.java — VarselController.settFlereVarslerTilLest/settTilLest`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3334,14 +6091,7 @@ Constraints and invariants:
 - `GET /internal/avtaler` returns agreement version ids. `PUT /internal/avtaler` body is a map from those UUIDs to journal post id strings. OpenAPI only says request body is `object`; implementation specifically expects `Map<UUID, String>`.
 
 Failure and exceptional cases:
-- Failing function: `list unjournaled agreements`
-  - Failure condition: caller is not the configured system user
-  - Why it fails: `innloggingService.validerSystembruker` enforces system issuer and configured id.
-  - Violated prerequisite or constraint: Use a non-system token.
-- Failing function: `mark agreement versions as journaled`
-  - Failure condition: caller is not the configured system user
-  - Why it fails: The implementation validates the system user before updating.
-  - Violated prerequisite or constraint: Use a non-system token.
+None.
 
 Implementation notes:
 OpenAPI describes a generic object body, while implementation expects `Map<UUID, String>`.
@@ -3388,9 +6138,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `recalculate wage subsidy`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: `AdminController.sjekkTilgang` throws forbidden.
-  - Violated prerequisite or constraint: Call without the configured developer group.
+  - Source discriminator: `AvtaleRepository.findById empty outcome`
+  - Failure condition: a selected agreement ID does not exist
+  - Why it fails: The selected recalculation loop requires every selected aggregate.
+  - Violated prerequisite or constraint: Every selected ID must identify an agreement.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.reberegnLønnstilskudd`
+
+- Failing function: `recalculate wage subsidy`
+  - Source discriminator: `KAN_IKKE_ENDRE_ANNULLERT_AVTALE`
+  - Failure condition: the agreement is annulled or interrupted
+  - Why it fails: The aggregate blocks the requested lifecycle mutation after either terminal marker is present.
+  - Violated prerequisite or constraint: The agreement must be active and not annulled or interrupted.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.sjekkAtIkkeAvtaleErAnnullertEllerAvbrutt`
+
+- Failing function: `recalculate wage subsidy`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: a selected agreement is not a supported wage-subsidy or summer-job measure
+  - Why it fails: Recalculation is defined only for the three subsidy-backed measures.
+  - Violated prerequisite or constraint: Every selected agreement must use a supported measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.reberegnLønnstilskudd/krevEnAvTiltakstyper`
+
+- Failing function: `recalculate wage subsidy`
+  - Source discriminator: `KAN_IKKE_REBEREGNE`
+  - Failure condition: a selected agreement already has total subsidy, or lacks one or more required calculation inputs
+  - Why it fails: The repair function only fills a missing total when percentage, tax, holiday pay, monthly salary, and pension rate are all present.
+  - Violated prerequisite or constraint: The aggregate must match the narrow repair-state predicate.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.reberegnLønnstilskudd`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3437,9 +6210,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `fix missing reduced-percent date`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: Admin group check is enforced before the batch job.
-  - Violated prerequisite or constraint: Call without developer-admin group membership.
+  - Source discriminator: `KAN_IKKE_REBEREGNE`
+  - Failure condition: a selected repair candidate lacks one or more required dates or calculation inputs
+  - Why it fails: The reduced-value repair validates its complete calculation state before recalculating.
+  - Violated prerequisite or constraint: Start, end, total, percentage, tax, holiday pay, monthly salary, and pension rate must all exist.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.reUtregnRedusert`
 
 Implementation notes:
 Operational evidence is primarily persisted messages or logs; many endpoints return no structured job result.
@@ -3485,10 +6260,7 @@ Constraints and invariants:
 - `{migreringsDato}` must parse as `yyyy-MM-dd`. Caller must have developer-admin access.
 
 Failure and exceptional cases:
-- Failing function: `dry-run missing reduced-percent date fix`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: Admin group check is enforced.
-  - Violated prerequisite or constraint: Call without developer-admin group membership.
+None.
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state.
@@ -3535,9 +6307,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `generate subsidy periods for agreement`
-  - Failure condition: agreement id is unknown
-  - Why it fails: Repository lookup throws resource-not-found.
-  - Violated prerequisite or constraint: Omit agreement creation and use an unknown `{avtaleId}`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.lagTilskuddsperioderPåEnAvtale`
+
+- Failing function: `generate subsidy periods for agreement`
+  - Source discriminator: `FORLENG_MIDLERTIDIG_IKKE_TILGJENGELIG`
+  - Failure condition: the persisted reduced-percentage date lies after the entire agreement period being generated
+  - Why it fails: The subsidy-period calculator cannot reconcile that reduction date with the generation range.
+  - Violated prerequisite or constraint: The stored reduction date must be consistent with the agreement period.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/RegnUtTilskuddsperioderForAvtale.java — RegnUtTilskuddsperioderForAvtale.beregnTilskuddsperioderForAvtale`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3584,9 +6365,32 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `recalculate unhandled subsidy periods`
-  - Failure condition: agreement type is not subsidy-backed
-  - Why it fails: `krevEnAvTiltakstyper` rejects unsupported measures.
-  - Violated prerequisite or constraint: Use `ARBEIDSTRENING`, `INKLUDERINGSTILSKUDD`, or `MENTOR`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.reberegnUbehandledeTilskuddsperioder`
+
+- Failing function: `recalculate unhandled subsidy periods`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the agreement is not temporary wage subsidy, permanent wage subsidy, or summer job
+  - Why it fails: Unhandled-period recalculation supports only subsidy-backed measures.
+  - Violated prerequisite or constraint: The agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.reberegnUbehandledeTilskuddsperioder`
+
+- Failing function: `recalculate unhandled subsidy periods`
+  - Source discriminator: `TreeSet.first empty outcome (NoSuchElementException)`
+  - Failure condition: removing untreated periods leaves no approved or other period from which to derive the new start date
+  - Why it fails: The recalculation assumes a retained period when no approved periods exist and cannot establish its regeneration boundary.
+  - Violated prerequisite or constraint: The period collection must retain a non-untreated anchor period, or contain an approved period.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.reberegnUbehandledeTilskuddsperioder`
+
+- Failing function: `recalculate unhandled subsidy periods`
+  - Source discriminator: `FORLENG_MIDLERTIDIG_IKKE_TILGJENGELIG`
+  - Failure condition: the regenerated range lies wholly before the persisted reduced-percentage date
+  - Why it fails: The subsidy-period calculator cannot reconcile the reduction date with the derived range.
+  - Violated prerequisite or constraint: The stored reduction date must be consistent with the periods being regenerated.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/RegnUtTilskuddsperioderForAvtale.java — RegnUtTilskuddsperioderForAvtale.beregnTilskuddsperioderForAvtale`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3633,9 +6437,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `find subsidy period date-order problems`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: Admin group check is enforced.
-  - Violated prerequisite or constraint: Call without developer-admin group membership.
+  - Source discriminator: `predecessor lookup empty outcome (NoSuchElementException)`
+  - Failure condition: a subsidy period has sequence number greater than one but no period with the immediately preceding sequence number
+  - Why it fails: The diagnostic assumes contiguous sequence numbers before comparing adjacent start dates.
+  - Violated prerequisite or constraint: Every period after sequence one must have its immediate predecessor in the agreement's period collection.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.finnTilskuddsperioderMedFeilDatoer`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3682,9 +6488,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `annul subsidy period`
-  - Failure condition: subsidy period id is unknown
-  - Why it fails: `tilskuddPeriodeRepository.findById` throws resource-not-found.
-  - Violated prerequisite or constraint: Use a `{tilskuddsperiodeId}` not obtained from an agreement response.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested subsidy period does not exist
+  - Why it fails: The owned function cannot enter the subsidy period's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing subsidy period identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.annullerTilskuddsperiode`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3731,9 +6539,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `annul and resend approved subsidy period`
-  - Failure condition: subsidy period id is unknown
-  - Why it fails: Repository lookup fails before annulment/replacement.
-  - Violated prerequisite or constraint: Use an unknown `{tilskuddsperiodeId}`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested subsidy period does not exist
+  - Why it fails: The owned function cannot enter the subsidy period's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing subsidy period identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.lagNyGodkjentTilskuddsperiodeFraAnnullertPeriode`
+
+- Failing function: `annul and resend approved subsidy period`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the period belongs to an agreement outside the three subsidy-backed measures
+  - Why it fails: Replacement generation is restricted to subsidy-backed agreements.
+  - Violated prerequisite or constraint: The parent agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.lagNyGodkjentTilskuddsperiodeFraAnnullertPeriode`
+
+- Failing function: `annul and resend approved subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET`
+  - Failure condition: the period has expired refund status, so annulment intentionally leaves its status unchanged
+  - Why it fails: Replacement requires `ANNULLERT`, but the preceding annul operation preserves an expired-refund period's original status.
+  - Violated prerequisite or constraint: A replacement can be generated only from a period that became annulled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.annullerTilskuddsperiode/lagNyGodkjentTilskuddsperiodeFraAnnullertPeriode`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3780,9 +6604,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `annul and generate unhandled subsidy period`
-  - Failure condition: agreement measure is not subsidy-backed
-  - Why it fails: Replacement generation requires one of the subsidy-backed measure types.
-  - Violated prerequisite or constraint: Use a subsidy period associated with an unsupported measure type, if such invalid state exists.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested subsidy period does not exist
+  - Why it fails: The owned function cannot enter the subsidy period's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing subsidy period identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.lagNyTilskuddsperiodeFraAnnullertPeriode`
+
+- Failing function: `annul and generate unhandled subsidy period`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: the period belongs to an agreement outside the three subsidy-backed measures
+  - Why it fails: Replacement generation is restricted to subsidy-backed agreements.
+  - Violated prerequisite or constraint: The parent agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.lagNyTilskuddsperiodeFraAnnullertPeriode`
+
+- Failing function: `annul and generate unhandled subsidy period`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET`
+  - Failure condition: the period has expired refund status, so annulment intentionally leaves its status unchanged
+  - Why it fails: Replacement requires `ANNULLERT`, but the preceding annul operation preserves an expired-refund period's original status.
+  - Violated prerequisite or constraint: A replacement can be generated only from a period that became annulled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.annullerTilskuddsperiode/lagNyTilskuddsperiodeFraAnnullertPeriode`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3829,9 +6669,25 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `annul and generate Arena-treated periods`
-  - Failure condition: agreement id is unknown
-  - Why it fails: Repository lookup by `{avtaleId}` throws resource-not-found.
-  - Violated prerequisite or constraint: Use an unknown `{avtaleId}`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/AdminController.java — AdminController.annullerOgGenererBehandletIArenaPerioder`
+
+- Failing function: `annul and generate Arena-treated periods`
+  - Source discriminator: `KAN_IKKE_ENDRE_FEIL_TILTAKSTYPE`
+  - Failure condition: a selected period belongs to an agreement outside the three subsidy-backed measures
+  - Why it fails: Arena-treated replacement generation is restricted to subsidy-backed agreements.
+  - Violated prerequisite or constraint: The parent agreement must use a supported subsidy measure.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.lagNyBehandletIArenaTilskuddsperiodeFraAnnullertPeriode`
+
+- Failing function: `annul and generate Arena-treated periods`
+  - Source discriminator: `TILSKUDDSPERIODE_ER_ALLEREDE_BEHANDLET`
+  - Failure condition: a selected period has expired refund status, so it is not changed to `ANNULLERT`
+  - Why it fails: The replacement guard rejects the still-non-annulled period after the intentional no-op annulment branch.
+  - Violated prerequisite or constraint: Every replacement source period must become annulled.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/avtale/Avtale.java — Avtale.annullerTilskuddsperiode/lagNyBehandletIArenaTilskuddsperiodeFraAnnullertPeriode`
 
 Implementation notes:
 Implementation logic, not OpenAPI alone, determines the practical state transition and validation behavior.
@@ -3877,10 +6733,7 @@ Constraints and invariants:
 - `POST /avtaler` produces `{avtaleId}`. `POST /utvikler-admin/dvh-melding/patch` body is `{"avtaleIder":[ "{avtaleId}" ]}`. Caller must have the configured DVH patch group. Unknown ids are ignored by `findAllById`.
 
 Failure and exceptional cases:
-- Failing function: `patch selected data warehouse messages`
-  - Failure condition: caller lacks DVH patch group access
-  - Why it fails: `InternalDvhMeldingProdusentController.sjekkTilgang` throws forbidden.
-  - Violated prerequisite or constraint: Call without the configured group.
+None.
 
 Implementation notes:
 Operational evidence is primarily persisted messages or logs; many endpoints return no structured job result.
@@ -3926,10 +6779,7 @@ Constraints and invariants:
 - Caller must have the configured DVH patch group. No specific agreement setup endpoint is required for the endpoint to run.
 
 Failure and exceptional cases:
-- Failing function: `patch all data warehouse messages`
-  - Failure condition: caller lacks DVH patch group access
-  - Why it fails: The controller enforces group access.
-  - Violated prerequisite or constraint: Call without the configured group.
+None.
 
 Implementation notes:
 Operational evidence is primarily persisted messages or logs; many endpoints return no structured job result.
@@ -3976,9 +6826,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `send event message for one agreement`
-  - Failure condition: agreement id is unknown
-  - Why it fails: Repository lookup throws resource-not-found.
-  - Violated prerequisite or constraint: Omit agreement creation and use an unknown `{avtaleId}`.
+  - Source discriminator: `RessursFinnesIkkeException`
+  - Failure condition: the requested agreement does not exist
+  - Why it fails: The owned function cannot enter the agreement's domain operation because its repository lookup is empty.
+  - Violated prerequisite or constraint: An existing agreement identified by the request is required.
+  - Implementation evidence: `src/main/java/no/nav/tag/tiltaksgjennomforing/datadeling/AvtaleHendelseController.java — AvtaleHendelseController.sendMeldingForEnAvtale`
 
 Implementation notes:
 Implementation does not call the same developer group check as the all-agreement event endpoints.
@@ -4024,10 +6876,7 @@ Constraints and invariants:
 - Caller must have developer-admin group access.
 
 Failure and exceptional cases:
-- Failing function: `send event messages for all agreements`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: `AvtaleHendelseController.sjekkTilgang` throws forbidden.
-  - Violated prerequisite or constraint: Call without developer-admin group membership.
+None.
 
 Implementation notes:
 Operational evidence is primarily persisted messages or logs; many endpoints return no structured job result.
@@ -4073,10 +6922,7 @@ Constraints and invariants:
 - Caller must have developer-admin group access. Implementation delegates to the dry-run service method.
 
 Failure and exceptional cases:
-- Failing function: `dry-run event messages for all agreements`
-  - Failure condition: caller lacks developer-admin access
-  - Why it fails: Developer group access is checked before the service call.
-  - Violated prerequisite or constraint: Call without developer-admin group membership.
+None.
 
 Implementation notes:
 This is a non-persistent simulation; it may validate and recalculate but should not save state. Operational evidence is primarily persisted messages or logs; many endpoints return no structured job result.

@@ -72,10 +72,7 @@ Constraints and invariants:
 - No logout endpoint is exposed in OpenAPI, despite a logout path constant in source.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: `username` or `password` is missing, invalid, or not configured.
-- Why it fails: OpenAPI documents `401 Unauthorized - Username or password are incorrect!`, and generated tests observe 401 responses for invalid login submissions.
-- Violated prerequisite or constraint: The submitted credential pair does not match the authentication backing store.
+None.
 
 Implementation notes:
 `QuartzManagerPaths` defines `/quartz-manager/auth/login` and `/quartz-manager/auth/logout`, but only login appears in the OpenAPI. `OpenAPIConfigConsts` names the bearer scheme as `quartz-manager-auth`. Generated tests authenticate successfully with configured users such as `foo` and `foo2` and extract `accessToken`, which is an OpenAPI documentation gap.
@@ -129,20 +126,7 @@ Constraints and invariants:
 - OpenAPI says the 200 response schema is a string, while tests assert JSON array semantics.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `list eligible job classes`
-- Failure condition: The `Authorization` header is absent, malformed, expired, or otherwise invalid.
-- Why it fails: The endpoint is protected by the `quartz-manager-auth` bearer scheme, and generated tests observe 401 for unauthenticated calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `list eligible job classes`
-- Failure condition: OpenAPI-declared generic not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but the available implementation source exposes no user-controlled missing-resource state for this singleton-style lookup.
-- Violated prerequisite or constraint: No concrete request-level or resource-level constraint is visible in the allowed files.
+None.
 
 Implementation notes:
 The job list is a read-only capability. The generated tests show successful reads with additional ignored query parameters and an empty list response. This differs from the OpenAPI `type=string` schema and should be treated as an API documentation discrepancy.
@@ -196,20 +180,7 @@ Constraints and invariants:
 - The read does not recalculate, start, stop, pause, or resume the scheduler.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `retrieve scheduler details`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated access.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `retrieve scheduler details`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but the available source does not expose a way to remove, select, or misaddress the singleton scheduler.
-- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+None.
 
 Implementation notes:
 This endpoint is one of the better-observed successful operations in the generated tests. It tolerates unexpected query parameters in tests while preserving the same singleton response.
@@ -263,25 +234,7 @@ Constraints and invariants:
 - No domain-specific error response is documented for invalid scheduler state or failed startup.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `start scheduler`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 without valid bearer authentication.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `start scheduler`
-- Failure condition: Scheduler start routine fails internally.
-- Why it fails: Generated tests record 500 responses attributed to `SchedulerService_25_start`; the implementation source for that service is not present in the repository slice.
-- Violated prerequisite or constraint: The runtime scheduler state or configuration required by the start routine is not satisfied, but the precise precondition is not exposed.
-
-- Failing function: `start scheduler`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but no API-realizable missing scheduler resource is visible.
-- Violated prerequisite or constraint: No concrete missing-resource constraint can be proven from available source.
+None.
 
 Implementation notes:
 OpenAPI documents 204 for successful start. Generated tests repeatedly observe 500 for `/quartz-manager/scheduler/run`, which indicates an implementation/runtime discrepancy and weak domain error mapping for scheduler startup.
@@ -335,20 +288,7 @@ Constraints and invariants:
 - No job, trigger, or scheduler configuration is deleted by the stop contract.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `stop scheduler`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated stop calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `stop scheduler`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but the available source exposes no user-controlled way to remove or misaddress the singleton scheduler.
-- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+None.
 
 Implementation notes:
 Unlike `start scheduler` and `resume scheduler`, generated tests show repeated successful 204 responses for `stop scheduler`, including calls with unrelated query parameters.
@@ -402,20 +342,7 @@ Constraints and invariants:
 - Pause applies to the singleton scheduler, not to a specific trigger.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `pause scheduler`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated pause calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `pause scheduler`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but no visible API state makes the singleton scheduler addressable as missing.
-- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+None.
 
 Implementation notes:
 Generated tests show `pause scheduler` succeeds with 204 under reset-state conditions, including calls with unexpected query parameters. The endpoint name and OpenAPI summary use GET for a mutating control operation.
@@ -469,25 +396,7 @@ Constraints and invariants:
 - The implementation appears to share or call a start routine, based on generated-test fault labels.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `resume scheduler`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated resume calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `resume scheduler`
-- Failure condition: Scheduler resume routine fails internally.
-- Why it fails: Generated tests record 500 responses attributed to `SchedulerService_25_start`; the underlying service implementation is not present in the repository slice.
-- Violated prerequisite or constraint: The runtime scheduler state or configuration required by the resume/start routine is not satisfied, but the precise precondition is not exposed.
-
-- Failing function: `resume scheduler`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but the available API has no scheduler id or delete operation that can create a missing scheduler address.
-- Violated prerequisite or constraint: No concrete missing-resource condition is visible.
+None.
 
 Implementation notes:
 OpenAPI documents 204 for resume, but generated tests repeatedly observe 500. This is both a state-machine robustness issue and an error-contract discrepancy.
@@ -541,25 +450,7 @@ Constraints and invariants:
 - No filtering, pagination, grouping, or ownership check is documented.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `list triggers`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated trigger-list calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `list triggers`
-- Failure condition: Trigger inventory read fails internally.
-- Why it fails: Generated tests record 500 responses attributed to `TriggerService_28_fetchTriggers`; implementation source for that service is not present in the repository slice.
-- Violated prerequisite or constraint: The runtime trigger store or trigger service state required for listing is not satisfied, but the exact precondition is not visible.
-
-- Failing function: `list triggers`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404, but no API input identifies a missing trigger collection.
-- Violated prerequisite or constraint: No concrete missing-resource state is exposed.
+None.
 
 Implementation notes:
 The generated tests identify `GET /quartz-manager/triggers` as a potential fault path with 500 responses. This conflicts with the OpenAPI response model and weakens the endpoint as an operational inventory behavior.
@@ -614,30 +505,7 @@ Constraints and invariants:
 - The API does not document duplicate-name behavior or ownership scoping.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated create attempts.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: Request omits `Content-Type=application/json`.
-- Why it fails: Generated tests observe 415 Unsupported Media Type for POST calls without the required JSON media type.
-- Violated prerequisite or constraint: The required request media type is absent.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: `{simpleTriggerInput}` violates `SimpleTriggerInputDTO` validation.
-- Why it fails: OpenAPI declares 400 Invalid trigger configuration, and generated tests observe 400 for empty JSON objects.
-- Violated prerequisite or constraint: The trigger configuration body is invalid.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: OpenAPI-declared not-found condition occurs.
-- Why it fails: The OpenAPI declares 404 but the missing dependency is not visible because DTO schemas and controller implementation are absent.
-- Violated prerequisite or constraint: An unspecified scheduler/job dependency may be missing, but no concrete API-realizable setup path is documented.
+None.
 
 Implementation notes:
 No successful POST simple-trigger call appears in the generated tests, so the positive create path is supported by OpenAPI and `full-behavior.md` rather than directly observed in tests. The validation failures show that the missing DTO schema is operationally significant.
@@ -694,30 +562,7 @@ Constraints and invariants:
 - No ownership or tenant scoping prevents one authenticated caller from reading a globally named trigger.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: The setup body is missing, uses the wrong media type, or violates `SimpleTriggerInputDTO`.
-- Why it fails: Generated tests observe 415 without JSON media type and 400 for invalid JSON body; OpenAPI declares 400 for invalid trigger configuration.
-- Violated prerequisite or constraint: The required existing trigger state for the read cannot be established.
-
-- Failing function: `retrieve simple trigger by name`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated GET calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `retrieve simple trigger by name`
-- Failure condition: No simple trigger exists under `name={name}`.
-- Why it fails: OpenAPI documents 404 Trigger not found, but generated tests observe 500 attributed to `AbstractSchedulerService_18_getTriggerByName` for unknown names.
-- Violated prerequisite or constraint: The path name does not identify existing trigger state.
-
-- Failing function: `retrieve simple trigger by name`
-- Failure condition: The GET path uses `name={otherName}` after setup created `name={name}`.
-- Why it fails: The scheduler-store state is keyed by the original name, so the later path points at a different trigger identity.
-- Violated prerequisite or constraint: The required name binding across setup and retrieval is broken.
+None.
 
 Implementation notes:
 The documented not-found response is 404, but generated tests show 500 for absent simple triggers. This is a significant state-transition quirk because a normal lookup miss is reported as an internal server error.
@@ -775,45 +620,7 @@ Constraints and invariants:
 - No ETag, version, owner, or trigger group constraint is visible.
 
 Failure and exceptional cases:
-- Failing function: `authenticate user`
-- Failure condition: Invalid credentials are submitted.
-- Why it fails: Login returns 401 for incorrect credentials.
-- Violated prerequisite or constraint: A valid bearer token cannot be produced.
-
-- Failing function: `schedule simple trigger`
-- Failure condition: The setup body is invalid or the request is not JSON.
-- Why it fails: The trigger required by the later PUT is not created because validation fails with 400 or media-type validation fails with 415.
-- Violated prerequisite or constraint: Existing trigger state for `name={name}` is missing.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: Missing or invalid bearer token.
-- Why it fails: The endpoint is protected by `quartz-manager-auth`, and generated tests observe 401 for unauthenticated PUT calls.
-- Violated prerequisite or constraint: Authenticated caller context is missing.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: No simple trigger exists under `name={name}`.
-- Why it fails: The operation is documented as rescheduling an existing trigger and declares 404 for not found.
-- Violated prerequisite or constraint: The target trigger state does not exist.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: The request omits `Content-Type=application/json`.
-- Why it fails: Generated tests observe 415 Unsupported Media Type for PUT calls without JSON media type.
-- Violated prerequisite or constraint: The required request media type is absent.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: `{replacementSimpleTriggerInput}` violates `SimpleTriggerInputDTO`.
-- Why it fails: OpenAPI declares 400 Invalid trigger configuration, and generated tests observe 400 for empty JSON objects.
-- Violated prerequisite or constraint: The replacement trigger configuration is invalid.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: The PUT path uses `name={otherName}` after setup created `name={name}`.
-- Why it fails: The update targets a different trigger identity from the one established in setup.
-- Violated prerequisite or constraint: The required path-name binding across create and update is broken.
-
-- Failing function: `reschedule simple trigger`
-- Failure condition: Internal processing fails during PUT.
-- Why it fails: Generated tests include a 500 response for a PUT request with JSON body, attributed to an authentication success handler path rather than a documented domain error.
-- Violated prerequisite or constraint: The exact implementation precondition is not visible in the available source.
+None.
 
 Implementation notes:
 The positive PUT path is documented but not demonstrated in generated tests. The tests do demonstrate authentication, media-type, and validation behavior. Because the DTO schema is absent, consumers cannot infer a valid replacement body from OpenAPI alone.

@@ -68,10 +68,7 @@ Constraints and invariants:
 - Generated tests show the sample service exposes `personJob`.
 
 Failure and exceptional cases:
-- Failing function: `list registered Spring Batch jobs`
-- Failure condition: No confirmed domain-level failure branch exists.
-- Why it fails: OpenAPI and visible source do not document a registry-list failure; controller source is not present for deeper confirmation.
-- Violated prerequisite or constraint: None confirmed.
+None.
 
 Implementation notes:
 The behavior depends on pre-existing Spring application wiring. Unknown query parameters are tolerated in generated tests, and OpenAPI documents no non-200 responses.
@@ -123,20 +120,7 @@ Constraints and invariants:
 - A job resource retrieved by name is not sufficient proof that `POST /jobExecutions` can launch the same name; launch still resolves through `JobLocator.getJob(name)`.
 
 Failure and exceptional cases:
-- Failing function: `list registered Spring Batch jobs`
-- Failure condition: The registry has no jobs and the caller does not already know a valid name.
-- Why it fails: The workflow cannot obtain a job name through REST.
-- Violated prerequisite or constraint: Named inspection needs a path-safe job name.
-
-- Failing function: `get registered job by name`
-- Failure condition: The path contains malformed or unsafe encoding, for example problematic backslash encoding.
-- Why it fails: Generated tests show `400` with `text/html` for malformed path input.
-- Violated prerequisite or constraint: `jobName` must be safe as a path segment.
-
-- Failing function: `get registered job by name`
-- Failure condition: The name is not registered.
-- Why it fails: The domain expectation is that missing registry entries cannot produce a true registered-job resource, but generated tests show arbitrary names can still receive `200`.
-- Violated prerequisite or constraint: Registry membership is expected but not consistently enforced.
+None.
 
 Implementation notes:
 OpenAPI documents only `200`. Generated tests expose an implementation/OpenAPI discrepancy: `GET /jobs/{jobName}` can return `400`, and registry validation appears weaker than launch validation.
@@ -193,30 +177,55 @@ Constraints and invariants:
 - The API has no visible caller authorization, tenant scope, or ownership restriction.
 
 Failure and exceptional cases:
-- Failing function: `list registered Spring Batch jobs`
-- Failure condition: No launchable job name can be obtained.
-- Why it fails: REST cannot create a registered job, and launch needs a resolvable name.
-- Violated prerequisite or constraint: A registered job is required.
+- Failing function: `start job synchronously`
+  - Source discriminator: `RuntimeException` wrapping the `JobLocator.getJob(jobConfig.getName())` null-name branch
+  - Failure condition: The parsed `JobConfig` has `name=null` because the body omits `name` or explicitly sets it to null.
+  - Why it fails: `AdHocStarter.start(JobConfig)` immediately resolves the job before creating parameters or selecting the launcher, and the Spring Batch locator cannot resolve a null job identity.
+  - Violated prerequisite or constraint: A launch request must identify one concrete registered Spring Batch job.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job synchronously`
-- Failure condition: Body omits `name` or sets `name=null`.
-- Why it fails: `AdHocStarter.start(JobConfig)` calls `JobLocator.getJob(jobConfig.getName())`; generated tests show this can return `500`.
-- Violated prerequisite or constraint: Body `name` must be present and resolvable.
+  - Source discriminator: `NoSuchJobException` from `JobLocator.getJob(jobConfig.getName())`
+  - Failure condition: The parsed `JobConfig.name` is non-null, including an empty string, but no job with that exact name is registered in the `JobRegistry`.
+  - Why it fails: `AdHocStarter.start(JobConfig)` resolves the job before launch; an unregistered name prevents construction of the `JobExecution`.
+  - Violated prerequisite or constraint: The requested job name must already be registered and resolvable by Spring Batch.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job synchronously`
-- Failure condition: Body `name` is not registered.
-- Why it fails: `JobLocator` raises `NoSuchJobException`; generated tests show `404`.
-- Violated prerequisite or constraint: The requested job must be registered.
+  - Source discriminator: `JobParametersInvalidException`
+  - Failure condition: The registered job's parameter validator rejects the `JobParameters` created from the request `properties` and optional generated `uuid`.
+  - Why it fails: `AdHocStarter.start(JobConfig)` converts the raw property map and calls `JobLauncher.run(...)`; Spring Batch aborts before creating a successful launch when job-specific parameter validation fails.
+  - Violated prerequisite or constraint: The supplied parameters must satisfy the selected job's declared parameter rules.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`; `src/main/java/com/github/chrisgleissner/springbatchrest/util/JobParamUtil.java` `JobParamUtil.convertRawToParamMap(...)`
 
 - Failing function: `start job synchronously`
-- Failure condition: Request has no JSON body or malformed JSON body.
-- Why it fails: Generated tests show `400` for an empty POST body.
-- Violated prerequisite or constraint: A parseable `JobConfig` body is required by the controller.
+  - Source discriminator: `JobExecutionAlreadyRunningException`
+  - Failure condition: The launch would create a job instance whose identifying parameters already have a running execution.
+  - Why it fails: `JobLauncher.run(...)` enforces Spring Batch lifecycle rules and rejects a second concurrent execution of the same job instance.
+  - Violated prerequisite or constraint: A job instance with the same identifying parameters must not already be running.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job synchronously`
-- Failure condition: Parameters or repository state violate Spring Batch launch rules.
-- Why it fails: `JobLauncher.run(...)` can throw `JobExecutionException`, which `AdHocStarter` wraps in `BatchRuntimeException`.
-- Violated prerequisite or constraint: Spring Batch job parameter, restart, already-running, already-complete, or repository constraints.
+  - Source discriminator: `JobInstanceAlreadyCompleteException`
+  - Failure condition: The launch reuses identifying parameters for a job instance that has already completed and is not eligible to run again.
+  - Why it fails: `JobLauncher.run(...)` rejects a completed job instance instead of creating a duplicate execution for the same completed instance.
+  - Violated prerequisite or constraint: A completed Spring Batch job instance cannot be relaunched with the same identifying parameters unless the job configuration allows a distinct instance.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
+
+- Failing function: `start job synchronously`
+  - Source discriminator: `JobRestartException`
+  - Failure condition: The launch targets an existing job instance whose persisted restart state is not restartable.
+  - Why it fails: `JobLauncher.run(...)` applies Spring Batch restart rules and rejects a launch that would resume from an invalid or non-restartable execution state.
+  - Violated prerequisite or constraint: Restarting a job instance requires persisted execution state that Spring Batch considers restartable.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
+
+- Failing function: `start job synchronously`
+  - Source discriminator: `JobExecutionController.put` failed-exit-code branch
+  - Failure condition: The synchronous launch returns a `JobExecutionResource` whose `jobExecution.exitCode` is `FAILED`.
+  - Why it fails: After `JobExecutionService.launch(...)` returns, the controller explicitly maps a failed job outcome to an error response instead of a normal `200` response.
+  - Violated prerequisite or constraint: The requested synchronous execution must not finish with Spring Batch `ExitStatus.FAILED`.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/JobExecutionController.java` `JobExecutionController.put(...)`
+  - Persisted outcome despite failure: The Spring Batch execution record has already been created and returned from the launcher with failed status, exit code, timestamps, and exception details available in the repository.
 
 Implementation notes:
 `AdHocStarter` uses a `SyncTaskExecutor` when `asynchronous=false`. OpenAPI documents only `200`, but generated tests show `400`, `404`, and `500`. Timestamp strings in responses can lack the timezone format required by the OpenAPI `date-time` schema.
@@ -273,30 +282,54 @@ Constraints and invariants:
 - Deprecated `JobPropertyResolvers.JobProperties` is not safe for concurrent asynchronous executions of the same job with different property maps.
 
 Failure and exceptional cases:
-- Failing function: `list registered Spring Batch jobs`
-- Failure condition: No launchable job name can be obtained.
-- Why it fails: The API cannot create job registration state.
-- Violated prerequisite or constraint: A registered job is required.
+- Failing function: `start job asynchronously`
+  - Source discriminator: `RuntimeException` wrapping the `JobLocator.getJob(jobConfig.getName())` null-name branch
+  - Failure condition: The parsed `JobConfig` has `name=null` because the body omits `name` or explicitly sets it to null.
+  - Why it fails: The asynchronous branch still resolves the job before choosing `SimpleAsyncTaskExecutor`; a null job identity cannot be resolved to a launchable `Job`.
+  - Violated prerequisite or constraint: A launch request must identify one concrete registered Spring Batch job.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job asynchronously`
-- Failure condition: Body omits `name` or sets `name=null`.
-- Why it fails: `AdHocStarter` still attempts to resolve a null job name; generated tests show `500`.
-- Violated prerequisite or constraint: A concrete job name is required.
+  - Source discriminator: `NoSuchJobException` from `JobLocator.getJob(jobConfig.getName())`
+  - Failure condition: The parsed `JobConfig.name` is non-null, including an empty string, but no job with that exact name is registered in the `JobRegistry`.
+  - Why it fails: `AdHocStarter.start(JobConfig)` resolves the job before submitting asynchronous work, so an unregistered name prevents execution submission.
+  - Violated prerequisite or constraint: The requested job name must already be registered and resolvable by Spring Batch.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job asynchronously`
-- Failure condition: Body `name` is not registered.
-- Why it fails: `JobLocator.getJob(name)` raises `NoSuchJobException`; generated tests show `404`.
-- Violated prerequisite or constraint: The requested job must exist in the registry.
+  - Source discriminator: `JobParametersInvalidException`
+  - Failure condition: The registered job's parameter validator rejects the `JobParameters` created from the request `properties` and optional generated `uuid`.
+  - Why it fails: `AdHocStarter.start(JobConfig)` converts the raw property map and calls `JobLauncher.run(...)`; Spring Batch aborts submission when job-specific parameter validation fails.
+  - Violated prerequisite or constraint: The supplied parameters must satisfy the selected job's declared parameter rules.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`; `src/main/java/com/github/chrisgleissner/springbatchrest/util/JobParamUtil.java` `JobParamUtil.convertRawToParamMap(...)`
 
 - Failing function: `start job asynchronously`
-- Failure condition: Request body is absent or malformed.
-- Why it fails: The controller cannot bind a usable `JobConfig`; generated tests show `400` for an empty POST body.
-- Violated prerequisite or constraint: A parseable JSON body is required.
+  - Source discriminator: `JobExecutionAlreadyRunningException`
+  - Failure condition: The submission would create a job instance whose identifying parameters already have a running execution.
+  - Why it fails: `JobLauncher.run(...)` enforces Spring Batch lifecycle rules before accepting the asynchronous launch.
+  - Violated prerequisite or constraint: A job instance with the same identifying parameters must not already be running.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
 
 - Failing function: `start job asynchronously`
-- Failure condition: Multiple concurrent async executions of the same job use different properties and job code reads through `JobPropertyResolvers.JobProperties`.
-- Why it fails: Resolvers are keyed by job name, not execution id, so one execution can read another execution's properties.
-- Violated prerequisite or constraint: Per-execution properties require execution-scoped access.
+  - Source discriminator: `JobInstanceAlreadyCompleteException`
+  - Failure condition: The submission reuses identifying parameters for a job instance that has already completed and is not eligible to run again.
+  - Why it fails: `JobLauncher.run(...)` rejects a completed job instance before accepting a new asynchronous execution for it.
+  - Violated prerequisite or constraint: A completed Spring Batch job instance cannot be relaunched with the same identifying parameters unless the job configuration allows a distinct instance.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
+
+- Failing function: `start job asynchronously`
+  - Source discriminator: `JobRestartException`
+  - Failure condition: The submission targets an existing job instance whose persisted restart state is not restartable.
+  - Why it fails: `JobLauncher.run(...)` applies Spring Batch restart rules before accepting asynchronous work and rejects invalid restart state.
+  - Violated prerequisite or constraint: Restarting a job instance requires persisted execution state that Spring Batch considers restartable.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/AdHocStarter.java` `AdHocStarter.start(JobConfig)`
+
+- Failing function: `start job asynchronously`
+  - Source discriminator: `JobPropertyResolvers.started(JobConfig)` job-name-keyed resolver overwrite
+  - Failure condition: Multiple concurrent asynchronous executions of the same job use different `properties`, and job code reads those properties through deprecated `JobPropertyResolvers.JobProperties`.
+  - Why it fails: `JobPropertyResolvers` stores one resolver per job name, so a later execution can overwrite the resolver while an earlier same-name execution is still running.
+  - Violated prerequisite or constraint: Per-execution property values require execution-scoped resolution, not a shared job-name-scoped resolver.
+  - Implementation evidence: `src/main/java/com/github/chrisgleissner/springbatchrest/util/core/property/JobPropertyResolvers.java` `JobPropertyResolvers.started(JobConfig)` and `JobPropertyResolvers.of(String)`
 
 Implementation notes:
 `AdHocStarter` uses `SimpleAsyncTaskExecutor` for async launches. The response schema disagrees with observed async responses because timestamp fields can be null. The concurrency property resolver problem is documented directly in source comments.
@@ -351,14 +384,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `list job execution history`
-- Failure condition: Query `limitPerJob` is negative.
-- Why it fails: Generated tests show `IllegalArgumentException` and `500` for negative limit values.
-- Violated prerequisite or constraint: The implementation expects a non-negative limit, although OpenAPI does not state it.
-
-- Failing function: `list job execution history`
-- Failure condition: Query combinations contain values that trigger provider null handling bugs.
-- Why it fails: Generated tests show `NullPointerException` for some job-name and exit-code combinations.
-- Violated prerequisite or constraint: The provider expects filter states it does not consistently validate.
+  - Source discriminator: `IllegalArgumentException` from `Stream.limit(limitPerJob)` in the cached-provider path
+  - Failure condition: `limitPerJob` is negative while the cached provider path is selected and at least one cached execution entry is being scanned.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` passes the negative limit into `Stream.limit(...)`, which rejects negative limits after the execution-history function has been entered.
+  - Violated prerequisite or constraint: The per-job execution-history limit must be non-negative.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 Implementation notes:
 OpenAPI documents only `200`; generated tests show `500`. Response date-time strings observed in history can violate the declared OpenAPI date-time format.
@@ -413,20 +443,12 @@ Constraints and invariants:
 - No endpoint updates or deletes the execution after retrieval.
 
 Failure and exceptional cases:
-- Failing function: `start job synchronously`
-- Failure condition: Unknown, null, or unlaunchable job name.
-- Why it fails: `AdHocStarter` resolves the job before launching.
-- Violated prerequisite or constraint: A registered job is needed to create a generated execution id.
-
 - Failing function: `get job execution by id`
-- Failure condition: No execution exists for path `id`.
-- Why it fails: Generated tests show `NoSuchJobExecutionException` mapped to `404`.
-- Violated prerequisite or constraint: The path id must identify persisted Spring Batch execution metadata.
-
-- Failing function: `get job execution by id`
-- Failure condition: Path `id` is non-numeric.
-- Why it fails: OpenAPI declares `id` as `int64`, so request binding should reject non-numeric values.
-- Violated prerequisite or constraint: `id` must be a long integer.
+  - Source discriminator: `javax.batch.operations.NoSuchJobExecutionException`
+  - Failure condition: The parsed numeric path `id` does not identify any persisted Spring Batch job execution in the repository visible to `JobExplorer`.
+  - Why it fails: `JobExecutionService.jobExecution(long)` calls `jobExplorer.getJobExecution(id)` and throws when the lookup returns null.
+  - Violated prerequisite or constraint: The requested id must identify existing Spring Batch execution metadata.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/JobExecutionService.java` `JobExecutionService.jobExecution(long)`; `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/ResponseExceptionHandler.java` `ResponseExceptionHandler.handleNoSuchJobExecutionException(...)`
 
 Implementation notes:
 OpenAPI documents only `200`, but generated tests show `404`. Response timestamp format can disagree with the OpenAPI date-time schema.
@@ -481,25 +503,26 @@ Constraints and invariants:
 - The API does not enforce caller-specific ownership of the job name.
 
 Failure and exceptional cases:
-- Failing function: `start job synchronously`
-- Failure condition: The selected job cannot be launched.
-- Why it fails: `JobLocator` or `JobLauncher` rejects the setup launch.
-- Violated prerequisite or constraint: A launchable registered job is required for API-created matching history.
+- Failing function: `find job executions by job name`
+  - Source discriminator: `PatternSyntaxException` from `Pattern.compile(jobNameRegexp)` in the cached-provider path
+  - Failure condition: `jobName` is present after controller trimming, `limitPerJob` selects the cached-provider path, and the supplied job-name filter is not valid Java regular-expression syntax.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` compiles `jobName` as a regex before filtering cached job-name keys.
+  - Violated prerequisite or constraint: Cached job-name filtering requires a regex-safe `jobName` value.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 - Failing function: `find job executions by job name`
-- Failure condition: Query `jobName` differs from stored `jobExecution.jobName`.
-- Why it fails: The filter excludes the target execution.
-- Violated prerequisite or constraint: Query `jobName` must reuse the stored job name.
+  - Source discriminator: `PatternSyntaxException` from `Pattern.compile(jobNameRegexp)` in the all-provider fallback path
+  - Failure condition: `jobName` is present after controller trimming, `limitPerJob` is greater than the configured cache size, and the supplied job-name filter is not valid Java regular-expression syntax.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` delegates large-limit searches to `AllJobExecutionProvider.getJobExecutions(...)`, which also compiles `jobName` as a regex before filtering repository job names.
+  - Violated prerequisite or constraint: Repository-backed job-name filtering requires a regex-safe `jobName` value.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`; `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/AllJobExecutionProvider.java` `AllJobExecutionProvider.getJobExecutions(...)`
 
 - Failing function: `find job executions by job name`
-- Failure condition: Query `jobName` contains invalid regex syntax.
-- Why it fails: Generated tests show `PatternSyntaxException` and `500`.
-- Violated prerequisite or constraint: The implementation requires regex-safe filter text, although OpenAPI exposes a plain string.
-
-- Failing function: `find job executions by job name`
-- Failure condition: Query `limitPerJob` is negative.
-- Why it fails: Generated tests show `IllegalArgumentException` and `500`.
-- Violated prerequisite or constraint: Result limit must be non-negative.
+  - Source discriminator: `IllegalArgumentException` from `Stream.limit(limitPerJob)` in the cached-provider path
+  - Failure condition: `limitPerJob` is negative, the cached-provider path is selected, and the job-name filter matches at least one cached job execution bucket.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` passes the negative limit into `Stream.limit(...)` while flattening executions for the matching job.
+  - Violated prerequisite or constraint: The per-job execution-history limit must be non-negative.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 Implementation notes:
 This behavior is supported, but not as a robust literal exact-match search. OpenAPI documents only `200` and does not document regex-sensitive failures.
@@ -553,25 +576,19 @@ Constraints and invariants:
 - Empty results can be a valid outcome when no execution matches.
 
 Failure and exceptional cases:
-- Failing function: `start job synchronously`
-- Failure condition: Job launch fails before an execution with the desired exit code is created.
-- Why it fails: Spring Batch rejects the launch or repository operation.
-- Violated prerequisite or constraint: A valid registered job and acceptable parameters are required.
+- Failing function: `find job executions by exit code`
+  - Source discriminator: `NullPointerException` from `copyOf(jobExecutionsByExitCode.get(exitCode))` in `CachedJobExecutionProvider.JobExecutions.getJobExecutions(...)`
+  - Failure condition: The cached-provider path is selected, at least one cached job execution bucket is scanned, and the requested `exitCode` has no queue in that bucket's exit-code index.
+  - Why it fails: The cached provider assumes that a present `exitCode` filter maps to a non-null queue and passes the missing queue to Guava `copyOf(...)`.
+  - Violated prerequisite or constraint: Cached outcome filtering requires the requested exit-code bucket to exist for every scanned cached job bucket.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.JobExecutions.getJobExecutions(Optional<String>)`
 
 - Failing function: `find job executions by exit code`
-- Failure condition: Query `exitCode` differs from the stored execution exit code.
-- Why it fails: The filter excludes executions with different outcomes.
-- Violated prerequisite or constraint: Query `exitCode` must reuse a stored exit code.
-
-- Failing function: `find job executions by exit code`
-- Failure condition: A caller filters for `exitCode=COMPLETED` immediately after async submission.
-- Why it fails: The stored execution may still report UNKNOWN.
-- Violated prerequisite or constraint: Terminal outcome must exist before terminal filtering.
-
-- Failing function: `find job executions by exit code`
-- Failure condition: Query combinations trigger provider null handling defects.
-- Why it fails: Generated tests show `NullPointerException` and `500` for some non-matching exit-code combinations.
-- Violated prerequisite or constraint: Filter state must be internally consistent, but implementation validation is incomplete.
+  - Source discriminator: `IllegalArgumentException` from `Stream.limit(limitPerJob)` in the cached-provider path
+  - Failure condition: `limitPerJob` is negative, the cached-provider path is selected, and the requested `exitCode` exists in the scanned cached exit-code bucket.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` obtains the matching exit-code queue and then passes the negative limit into `Stream.limit(...)`.
+  - Violated prerequisite or constraint: The per-job execution-history limit must be non-negative.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 Implementation notes:
 OpenAPI documents only `200`. Generated tests show no-match and malformed combinations can behave inconsistently; some return `200`, while others return `500`.
@@ -627,30 +644,33 @@ Constraints and invariants:
 - No ownership, tenant, or authorization rule limits who can use the filters.
 
 Failure and exceptional cases:
-- Failing function: `start job synchronously`
-- Failure condition: Setup launch cannot create the execution.
-- Why it fails: The job name is unknown, null, invalid, or rejected by Spring Batch launch rules.
-- Violated prerequisite or constraint: Matching history needs a valid stored execution.
+- Failing function: `find job executions by job name and exit code`
+  - Source discriminator: `PatternSyntaxException` from `Pattern.compile(jobNameRegexp)` in the cached-provider path
+  - Failure condition: `jobName` is present after controller trimming, `limitPerJob` selects the cached-provider path, and the supplied job-name filter is not valid Java regular-expression syntax.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` compiles `jobName` as a regex before applying the combined job-name and exit-code filters.
+  - Violated prerequisite or constraint: Cached combined filtering requires a regex-safe `jobName` value.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 - Failing function: `find job executions by job name and exit code`
-- Failure condition: Query `jobName` does not equal stored `jobExecution.jobName`.
-- Why it fails: The job-name filter excludes the execution.
-- Violated prerequisite or constraint: Query job name must reuse the stored job name.
+  - Source discriminator: `PatternSyntaxException` from `Pattern.compile(jobNameRegexp)` in the all-provider fallback path
+  - Failure condition: `jobName` is present after controller trimming, `limitPerJob` is greater than the configured cache size, and the supplied job-name filter is not valid Java regular-expression syntax.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` delegates large-limit combined searches to `AllJobExecutionProvider.getJobExecutions(...)`, which compiles `jobName` as a regex before applying repository-backed filters.
+  - Violated prerequisite or constraint: Repository-backed combined filtering requires a regex-safe `jobName` value.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`; `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/AllJobExecutionProvider.java` `AllJobExecutionProvider.getJobExecutions(...)`
 
 - Failing function: `find job executions by job name and exit code`
-- Failure condition: Query `exitCode` does not equal stored `jobExecution.exitCode`.
-- Why it fails: The exit-code filter excludes the execution.
-- Violated prerequisite or constraint: Query exit code must reuse the stored exit code.
+  - Source discriminator: `NullPointerException` from `copyOf(jobExecutionsByExitCode.get(exitCode))` in `CachedJobExecutionProvider.JobExecutions.getJobExecutions(...)`
+  - Failure condition: The cached-provider path is selected, `jobName` matches at least one cached job execution bucket, and the requested `exitCode` has no queue in that matched bucket's exit-code index.
+  - Why it fails: The cached provider assumes that a present `exitCode` filter maps to a non-null queue for the matched job and passes the missing queue to Guava `copyOf(...)`.
+  - Violated prerequisite or constraint: Cached combined filtering requires the matched job bucket to contain the requested exit-code bucket.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.JobExecutions.getJobExecutions(Optional<String>)`
 
 - Failing function: `find job executions by job name and exit code`
-- Failure condition: Query `jobName` contains invalid regex syntax.
-- Why it fails: Generated tests show `PatternSyntaxException` and `500`.
-- Violated prerequisite or constraint: Implementation requires regex-safe filter text.
-
-- Failing function: `find job executions by job name and exit code`
-- Failure condition: Query combination has a non-matching exit code in a cached-provider path.
-- Why it fails: Generated tests show `NullPointerException` and `500` for some combined filters instead of a clean empty collection.
-- Violated prerequisite or constraint: Combined filters should be valid and provider-safe, but implementation validation is incomplete.
+  - Source discriminator: `IllegalArgumentException` from `Stream.limit(limitPerJob)` in the cached-provider path
+  - Failure condition: `limitPerJob` is negative, the cached-provider path is selected, `jobName` matches at least one cached job execution bucket, and the requested `exitCode` exists in that bucket.
+  - Why it fails: `CachedJobExecutionProvider.getJobExecutions(...)` obtains the matched exit-code queue and then passes the negative limit into `Stream.limit(...)`.
+  - Violated prerequisite or constraint: The per-job execution-history limit must be non-negative.
+  - Implementation evidence: `api/src/main/java/com/github/chrisgleissner/springbatchrest/api/core/jobexecution/provider/CachedJobExecutionProvider.java` `CachedJobExecutionProvider.getJobExecutions(...)`
 
 Implementation notes:
 This behavior is supported as an exposed query pattern, but it has underdocumented error semantics. OpenAPI lists optional plain string filters and only `200` responses, while generated tests show `500`.

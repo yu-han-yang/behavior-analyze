@@ -79,14 +79,35 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `search agreements`
-  - Failure condition: Unsupported status, invalid page, overlarge display size, overlong reference, or unsupported nonblank query parameter.
-  - Why it fails: `AgreementSearchValidator` validates query names and values before Ledger is called.
-  - Violated prerequisite or constraint: Agreement search filters must use supported names and valid values.
+  - Source discriminator: `AgreementSearchValidator.validateStatus -> RequestError.Code.SEARCH_AGREEMENTS_VALIDATION_ERROR`
+  - Failure condition: `status` is nonblank and is not one of `created`, `active`, `cancelled`, or `inactive`.
+  - Why it fails: The validator adds `status` to the validation-error list before the Ledger search is called.
+  - Violated prerequisite or constraint: Agreement search status filters must use a supported agreement lifecycle status.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/AgreementSearchValidator.java - AgreementSearchValidator.validateSearchParameters/validateStatus`
 - Failing function: `search agreements`
-  - Failure condition: Ledger returns a non-200 response or malformed agreement search payload.
-  - Why it fails: `LedgerService.searchAgreements` maps downstream failure to the search-agreement exception path.
-  - Violated prerequisite or constraint: Ledger must be available and able to return agreement search results.
-
+  - Source discriminator: `AgreementSearchValidator.validateReference -> RequestError.Code.SEARCH_AGREEMENTS_VALIDATION_ERROR`
+  - Failure condition: `reference` is longer than 255 characters.
+  - Why it fails: The agreement search validator applies the shared payment reference maximum before building the Ledger query.
+  - Violated prerequisite or constraint: Agreement reference search is limited to the supported reference length.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/AgreementSearchValidator.java - AgreementSearchValidator.validateReference`
+- Failing function: `search agreements`
+  - Source discriminator: `SearchValidator.validatePageIfNotNull -> RequestError.Code.SEARCH_AGREEMENTS_VALIDATION_ERROR`
+  - Failure condition: `page` is nonblank and is not numeric or is less than 1.
+  - Why it fails: The shared search validator records `page` as invalid before Ledger is called.
+  - Violated prerequisite or constraint: Search pagination starts at page 1.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validatePageIfNotNull`
+- Failing function: `search agreements`
+  - Source discriminator: `SearchValidator.validateDisplaySizeIfNotNull -> RequestError.Code.SEARCH_AGREEMENTS_VALIDATION_ERROR`
+  - Failure condition: `display_size` is nonblank and is not numeric, is less than 1, or is greater than 500.
+  - Why it fails: The shared search validator records `display_size` as invalid before Ledger is called.
+  - Violated prerequisite or constraint: Agreement search pages must request between 1 and 500 results.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateDisplaySizeIfNotNull`
+- Failing function: `search agreements`
+  - Source discriminator: `SearchAgreementsExceptionMapper -> RequestError.Code.SEARCH_AGREEMENTS_NOT_FOUND`
+  - Failure condition: Ledger returns 404 for the requested agreement search page.
+  - Why it fails: Public API maps a Ledger not-found search response to the public page-not-found error.
+  - Violated prerequisite or constraint: The requested agreement search page must exist for the account-scoped result set.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.searchAgreements`; `src/main/java/uk/gov/pay/api/exception/mapper/SearchAgreementsExceptionMapper.java - SearchAgreementsExceptionMapper.toResponse`
 Implementation notes:
 Agreement search reads from Ledger only. Public API adds `gateway_account_id` and exact reference matching before calling Ledger.
 
@@ -140,18 +161,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create agreement`
-  - Failure condition: Missing, blank, malformed, or non-string `reference` or `description`.
-  - Why it fails: `RequestJsonParser.parseAgreementRequest` requires nonblank string values.
-  - Violated prerequisite or constraint: Agreement creation requires valid reference and description.
+  - Source discriminator: `ErrorIdentifier.RECURRING_CARD_PAYMENTS_NOT_ALLOWED -> RequestError.Code.RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR`
+  - Failure condition: Connector reports that recurring card payments are not enabled for the gateway account.
+  - Why it fails: `CreateAgreementExceptionMapper` maps Connector's recurring-card capability rejection to a 422 public API error.
+  - Violated prerequisite or constraint: The account must be enabled for recurring card payments before it can create agreements.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/ConnectorService.java - ConnectorService.createAgreement`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateAgreementExceptionMapper.java - CreateAgreementExceptionMapper.toResponse`
 - Failing function: `create agreement`
-  - Failure condition: Connector reports recurring card payments are not allowed for the account.
-  - Why it fails: Connector capability errors are mapped by `CreateAgreementExceptionMapper`.
-  - Violated prerequisite or constraint: The gateway account must support recurring card payments.
-- Failing function: `create agreement`
-  - Failure condition: Connector creates the agreement, but the immediate Ledger read fails.
-  - Why it fails: The resource creates in Connector and then calls `getAgreement` from Ledger to build the response.
-  - Violated prerequisite or constraint: Post-create Ledger consistency and availability are required for a clean public response.
-
+  - Source discriminator: `AgreementsApiResource.createAgreement post-create Ledger read -> RequestError.Code.GET_AGREEMENT_NOT_FOUND_ERROR`
+  - Failure condition: Connector creates the agreement, but the immediate Ledger read for the generated `agreement_id` returns 404.
+  - Why it fails: The resource creates in Connector and then must read the new agreement from Ledger before returning `201`; a Ledger not-found response aborts the public result.
+  - Violated prerequisite or constraint: The newly created agreement must be visible in Ledger for the same account and generated id.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/agreement/resource/AgreementsApiResource.java - AgreementsApiResource.createAgreement`; `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.getAgreement`
+  - Persisted outcome despite failure: Connector has already accepted and persisted the agreement before Public API fails while building the response.
 Implementation notes:
 This behavior has a partial-success risk: Connector may persist the agreement before Public API fails while reading it from Ledger.
 
@@ -201,15 +222,12 @@ Constraints and invariants:
 - There is no direct public read by `reference`; callers must use search for reference lookup.
 
 Failure and exceptional cases:
-- Failing function: `create agreement`
-  - Failure condition: Invalid body or recurring-payment capability disabled.
-  - Why it fails: Local request parsing or Connector capability checks reject setup.
-  - Violated prerequisite or constraint: A retrievable agreement cannot be created.
 - Failing function: `get agreement`
-  - Failure condition: `agreementId` is unknown, not in Ledger, or belongs to another account.
-  - Why it fails: Ledger returns not found and Public API maps it to the get-agreement not-found error.
-  - Violated prerequisite or constraint: The agreement id must be real and account-scoped.
-
+  - Source discriminator: `GetAgreementExceptionMapper -> RequestError.Code.GET_AGREEMENT_NOT_FOUND_ERROR`
+  - Failure condition: `agreementId` does not identify a Ledger agreement visible to the authenticated account.
+  - Why it fails: `LedgerService.getAgreement` calls Ledger with the account and agreement id; any non-200 response becomes `GetAgreementException`, and the mapper turns 404 into the public not-found error.
+  - Violated prerequisite or constraint: The agreement id must exist in Ledger and be scoped to the caller's account.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/agreement/service/AgreementsService.java - AgreementsService.getAgreement`; `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.getAgreement`; `src/main/java/uk/gov/pay/api/exception/mapper/GetAgreementExceptionMapper.java - GetAgreementExceptionMapper.toResponse`
 Implementation notes:
 `get agreement` reads from Ledger with `X-Consistent=true`, while creation still depends on Connector first and Ledger second.
 
@@ -264,18 +282,60 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create agreement`
-  - Failure condition: Agreement request is invalid or recurring card payments are disabled.
-  - Why it fails: Local parser and Connector capability checks reject agreement creation.
-  - Violated prerequisite or constraint: Setup payment needs a valid agreement id.
+  - Source discriminator: `ErrorIdentifier.RECURRING_CARD_PAYMENTS_NOT_ALLOWED -> RequestError.Code.RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR`
+  - Failure condition: Connector reports that recurring card payments are not enabled for the gateway account while creating the agreement that will be set up.
+  - Why it fails: `CreateAgreementExceptionMapper` maps the Connector capability rejection to the recurring-card-payments public API error.
+  - Violated prerequisite or constraint: Setup initiation needs an agreement created under an account that is allowed to use recurring card payments.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/ConnectorService.java - ConnectorService.createAgreement`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateAgreementExceptionMapper.java - CreateAgreementExceptionMapper.toResponse`
+- Failing function: `create agreement`
+  - Source discriminator: `AgreementsApiResource.createAgreement post-create Ledger read -> RequestError.Code.GET_AGREEMENT_NOT_FOUND_ERROR`
+  - Failure condition: Connector creates the agreement, but the immediate Ledger read for the generated `agreement_id` returns 404.
+  - Why it fails: The create-agreement resource must read the Connector-created agreement from Ledger before it can return the agreement id to the setup-payment workflow.
+  - Violated prerequisite or constraint: The generated agreement must be visible in Ledger for the same account.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/agreement/resource/AgreementsApiResource.java - AgreementsApiResource.createAgreement`; `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.getAgreement`
+  - Persisted outcome despite failure: Connector has already accepted and persisted the agreement before Public API fails while building the response.
 - Failing function: `create setup-agreement payment`
-  - Failure condition: `set_up_agreement` is unknown, malformed, cross-account, or not accepted by Connector.
-  - Why it fails: Connector returns agreement-not-found or related validation error, mapped as an invalid `set_up_agreement`.
+  - Source discriminator: `ErrorIdentifier.AGREEMENT_NOT_FOUND with 404 -> RequestError.Code.CREATE_PAYMENT_AGREEMENT_ID_ERROR`
+  - Failure condition: `set_up_agreement` is an agreement id that Connector cannot find for the account when saving a payment instrument to the agreement.
+  - Why it fails: Connector returns 404 with `AGREEMENT_NOT_FOUND`; `CreateChargeExceptionMapper` maps that status/error combination to an invalid `set_up_agreement` error.
   - Violated prerequisite or constraint: Setup payment must reference an existing same-account agreement.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 - Failing function: `create setup-agreement payment`
-  - Failure condition: Payment body is invalid or the account cannot create payments.
-  - Why it fails: Request parser, bean validation, or Connector policy rejects the payment.
-  - Violated prerequisite or constraint: Payment creation requires valid amount, reference, description, return URL, and account capability.
-
+  - Source discriminator: `ErrorIdentifier.INCORRECT_AUTHORISATION_MODE_FOR_SAVE_PAYMENT_INSTRUMENT_TO_AGREEMENT -> RequestError.Code.CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR`
+  - Failure condition: The request asks Connector to save a payment instrument to an agreement using an incompatible authorisation mode.
+  - Why it fails: Public API forwards `set_up_agreement` as Connector `agreement_id` plus `save_payment_instrument_to_agreement=true`; Connector rejects that combination when the authorisation mode is not valid for setup.
+  - Violated prerequisite or constraint: A setup-agreement payment must use the hosted setup mode expected for saving the instrument.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/model/CreateCardPaymentRequest.java - CreateCardPaymentRequest.toConnectorPayload`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create setup-agreement payment`
+  - Source discriminator: `ErrorIdentifier.RECURRING_CARD_PAYMENTS_NOT_ALLOWED -> RequestError.Code.RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR`
+  - Failure condition: The account is not allowed to create payments that set up recurring-card agreements.
+  - Why it fails: Connector rejects the recurring-card setup capability and the create-charge mapper exposes the recurring-card-payments error.
+  - Violated prerequisite or constraint: The account must support recurring card payments for setup-payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create setup-agreement payment`
+  - Source discriminator: `ErrorIdentifier.MISSING_MANDATORY_ATTRIBUTE -> RequestError.Code.GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: The hosted setup payment request omits a Connector-required payment attribute such as the web journey `return_url`.
+  - Why it fails: Public API allows the request through to Connector; Connector reports the missing mandatory attribute and the mapper returns the Connector-supplied field message.
+  - Violated prerequisite or constraint: A hosted setup payment must include the payment fields Connector requires for the web journey.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create setup-agreement payment`
+  - Source discriminator: `ErrorIdentifier.ZERO_AMOUNT_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: The setup payment amount is zero and the account is not permitted to create zero-amount payments.
+  - Why it fails: Connector rejects zero amount for the account and the mapper exposes the amount minimum error.
+  - Violated prerequisite or constraint: Setup-payment amount must be chargeable under the account's Connector policy.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create setup-agreement payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_DISABLED -> RequestError.Code.ACCOUNT_DISABLED`
+  - Failure condition: GOV.UK Pay has disabled payment creation on the account.
+  - Why it fails: Connector rejects create-charge requests for disabled accounts and the mapper returns the account-disabled public error.
+  - Violated prerequisite or constraint: The account must be enabled for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create setup-agreement payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_NOT_LINKED_WITH_PSP -> RequestError.Code.ACCOUNT_NOT_LINKED_WITH_PSP`
+  - Failure condition: The account is not fully linked to a payment service provider for creating the setup payment.
+  - Why it fails: Connector rejects charge creation for accounts without PSP linkage.
+  - Violated prerequisite or constraint: The gateway account must be configured with a PSP before it can create setup payments.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 Implementation notes:
 This behavior initiates, but does not complete, agreement activation. External hosted-payment completion is required before `take recurring payment` or active-agreement cancellation can succeed.
 
@@ -327,14 +387,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `cancel agreement`
-  - Failure condition: `agreementId` is unknown or belongs to another account.
-  - Why it fails: Connector returns not found and the mapper exposes a not-found cancellation error.
-  - Violated prerequisite or constraint: The agreement must exist in the caller’s account scope.
+  - Source discriminator: `CancelAgreementExceptionMapper -> RequestError.Code.CANCEL_AGREEMENT_NOT_FOUND_ERROR`
+  - Failure condition: `agreementId` is unknown to Connector for the authenticated account.
+  - Why it fails: Public API delegates directly to Connector; a Connector 404 is mapped to the cancel-agreement not-found error.
+  - Violated prerequisite or constraint: The agreement must exist in the caller's account scope before it can be cancelled.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/agreement/service/AgreementsService.java - AgreementsService.cancelAgreement`; `src/main/java/uk/gov/pay/api/service/ConnectorService.java - ConnectorService.cancelAgreement`; `src/main/java/uk/gov/pay/api/exception/mapper/CancelAgreementExceptionMapper.java - CancelAgreementExceptionMapper.toResponse`
 - Failing function: `cancel agreement`
-  - Failure condition: Agreement exists but is not active.
-  - Why it fails: Connector rejects cancellation for non-active agreement state.
-  - Violated prerequisite or constraint: Agreement cancellation requires active status.
-
+  - Source discriminator: `CancelAgreementExceptionMapper -> RequestError.Code.CANCEL_AGREEMENT_CONNECTOR_BAD_REQUEST_ERROR`
+  - Failure condition: Connector rejects cancellation because the agreement is not in an active cancellable state.
+  - Why it fails: Public API does not pre-read agreement state; Connector enforces the active-state transition rule and returns bad request for invalid cancellation.
+  - Violated prerequisite or constraint: Only active agreements are cancellable.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/ConnectorService.java - ConnectorService.cancelAgreement`; `src/main/java/uk/gov/pay/api/exception/mapper/CancelAgreementExceptionMapper.java - CancelAgreementExceptionMapper.toResponse`
 Implementation notes:
 The endpoint returns `204` on success. Invalid non-active transitions are mapped from Connector responses rather than independently evaluated in Public API.
 
@@ -387,14 +450,83 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `search payments`
-  - Failure condition: Invalid state, date, pagination, display size, or card digit filter.
-  - Why it fails: `PaymentSearchValidator` rejects invalid search values before Ledger search.
-  - Violated prerequisite or constraint: Search filters must satisfy implementation validators.
+  - Source discriminator: `PaymentSearchValidator.validateState -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `state` is nonblank and is not one of `created`, `started`, `submitted`, `success`, `failed`, `cancelled`, or `error`.
+  - Why it fails: The payment search validator records `state` as invalid before calling Ledger.
+  - Violated prerequisite or constraint: Payment search state filters must use a supported public lifecycle state.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateState`
 - Failing function: `search payments`
-  - Failure condition: Ledger returns page-not-found, downstream failure, or malformed response.
-  - Why it fails: `LedgerService.searchPayments` maps non-200 or parse failures to search-payment errors.
-  - Violated prerequisite or constraint: Ledger must support the requested result page and response shape.
-
+  - Source discriminator: `PaymentSearchValidator.validateReference -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `reference` is longer than 255 characters.
+  - Why it fails: The validator applies the payment reference maximum before Ledger search.
+  - Violated prerequisite or constraint: Payment reference search is limited to the supported reference length.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateReference`
+- Failing function: `search payments`
+  - Source discriminator: `PaymentSearchValidator.validateEmail -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `email` is longer than 254 characters.
+  - Why it fails: The validator records `email` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Payment email search is limited to the supported email length.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateEmail`
+- Failing function: `search payments`
+  - Source discriminator: `PaymentSearchValidator.validateCardBrand -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `card_brand` is longer than 20 characters.
+  - Why it fails: The validator records `card_brand` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Card-brand search filters must fit the supported maximum length.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateCardBrand`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validateFromDate -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `from_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The shared search validator records `from_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Created-date lower bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromDate`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validateToDate -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `to_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The shared search validator records `to_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Created-date upper bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToDate`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validatePageIfNotNull -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `page` is nonblank and is not numeric or is less than 1.
+  - Why it fails: The shared search validator records `page` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Search pagination starts at page 1.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validatePageIfNotNull`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validateDisplaySizeIfNotNull -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `display_size` is nonblank and is not numeric, is less than 1, or is greater than 500.
+  - Why it fails: The shared search validator records `display_size` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Payment search pages must request between 1 and 500 results.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateDisplaySizeIfNotNull`
+- Failing function: `search payments`
+  - Source discriminator: `PaymentSearchValidator.validateFirstDigitsCardNumber -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `first_digits_card_number` is nonblank and is not exactly 6 numeric digits.
+  - Why it fails: The validator requires the leading-card-digits filter to have exact length and numeric content.
+  - Violated prerequisite or constraint: First card digits search must use exactly six digits.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateFirstDigitsCardNumber`
+- Failing function: `search payments`
+  - Source discriminator: `PaymentSearchValidator.validateLastDigitsCardNumber -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `last_digits_card_number` is nonblank and is not exactly 4 numeric digits.
+  - Why it fails: The validator requires the trailing-card-digits filter to have exact length and numeric content.
+  - Violated prerequisite or constraint: Last card digits search must use exactly four digits.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentSearchValidator.java - PaymentSearchValidator.validateLastDigitsCardNumber`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validateFromSettledDate -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `from_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The shared search validator records `from_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Settlement-date lower bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromSettledDate`
+- Failing function: `search payments`
+  - Source discriminator: `SearchValidator.validateToSettledDate -> RequestError.Code.SEARCH_PAYMENTS_VALIDATION_ERROR`
+  - Failure condition: `to_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The shared search validator records `to_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Settlement-date upper bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToSettledDate`
+- Failing function: `search payments`
+  - Source discriminator: `SearchChargesExceptionMapper -> RequestError.Code.SEARCH_PAYMENTS_NOT_FOUND`
+  - Failure condition: Ledger returns 404 for the requested payment search page.
+  - Why it fails: Public API maps a Ledger not-found search response to the public page-not-found error.
+  - Violated prerequisite or constraint: The requested payment search page must exist for the account-scoped result set.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.searchPayments`; `src/main/java/uk/gov/pay/api/exception/mapper/SearchChargesExceptionMapper.java - SearchChargesExceptionMapper.toResponse`
 Implementation notes:
 Payment search is Ledger-only and exact-match by reference. Unknown query parameters outside the resource signature are not part of the search parameter object.
 
@@ -449,18 +581,47 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create web card payment`
-  - Failure condition: Missing or malformed `amount`, `reference`, `description`, invalid optional fields, malformed JSON, or invalid metadata.
-  - Why it fails: `RequestJsonParser`, bean validation, and metadata validation reject the body.
-  - Violated prerequisite or constraint: Payment creation requires valid structured request data.
+  - Source discriminator: `CreateChargeExceptionMapper 404 without ErrorIdentifier.AGREEMENT_NOT_FOUND -> RequestError.Code.CREATE_PAYMENT_ACCOUNT_ERROR`
+  - Failure condition: Connector cannot find the gateway account for charge creation.
+  - Why it fails: A Connector 404 without the setup-agreement discriminator is treated as an account error for payment creation.
+  - Violated prerequisite or constraint: The authenticated gateway account must exist in Connector for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 - Failing function: `create web card payment`
-  - Failure condition: Account disabled, PSP not linked, MOTO not allowed, authorisation API not allowed, zero amount not allowed, or card-number content in a payment-link reference.
-  - Why it fails: Connector returns a policy/capability error mapped by `CreateChargeExceptionMapper`.
-  - Violated prerequisite or constraint: The account and request mode must be allowed by Connector.
+  - Source discriminator: `ErrorIdentifier.MISSING_MANDATORY_ATTRIBUTE -> RequestError.Code.GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: Connector requires a create-payment attribute that Public API forwards as absent, such as the hosted-payment `return_url` for web mode.
+  - Why it fails: Connector returns a missing-mandatory-attribute error and Public API exposes the Connector-supplied message.
+  - Violated prerequisite or constraint: A hosted web card payment must include all Connector-required journey fields.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 - Failing function: `create web card payment`
-  - Failure condition: Reused idempotency key with a different body.
-  - Why it fails: Connector reports the key has already been used.
-  - Violated prerequisite or constraint: Idempotency keys must bind to equivalent create requests.
-
+  - Source discriminator: `ErrorIdentifier.ZERO_AMOUNT_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: The payment amount is zero and the account is not allowed to create zero-amount payments.
+  - Why it fails: Connector rejects the zero amount under account policy and the mapper exposes the amount minimum error.
+  - Violated prerequisite or constraint: Payment amount must be chargeable under the account's Connector policy.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create web card payment`
+  - Source discriminator: `ErrorIdentifier.MOTO_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_MOTO_NOT_ENABLED`
+  - Failure condition: The payment request asks for MOTO handling on an account that is not enabled for MOTO payments.
+  - Why it fails: Connector rejects the account capability and the create-charge mapper returns the MOTO-not-enabled error.
+  - Violated prerequisite or constraint: MOTO payment creation requires MOTO capability on the account.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create web card payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_DISABLED -> RequestError.Code.ACCOUNT_DISABLED`
+  - Failure condition: GOV.UK Pay has disabled payment creation on the account.
+  - Why it fails: Connector rejects create-charge requests for disabled accounts.
+  - Violated prerequisite or constraint: The account must be enabled for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create web card payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_NOT_LINKED_WITH_PSP -> RequestError.Code.ACCOUNT_NOT_LINKED_WITH_PSP`
+  - Failure condition: The account is not fully linked to a payment service provider.
+  - Why it fails: Connector rejects charge creation for accounts without PSP linkage.
+  - Violated prerequisite or constraint: The gateway account must be configured with a PSP before it can create payments.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create web card payment`
+  - Source discriminator: `ErrorIdentifier.CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_REJECTED -> RequestError.Code.CREATE_PAYMENT_CARD_NUMBER_IN_PAYMENT_LINK_REFERENCE_ERROR`
+  - Failure condition: A payment-link sourced request uses a `reference` that Connector identifies as containing card-number content.
+  - Why it fails: Connector rejects card-number content in payment-link references and Public API returns the Connector message.
+  - Violated prerequisite or constraint: Payment-link references must not contain card-number data.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/json/RequestJsonParser.java - RequestJsonParser.validateAndGetSource`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 Implementation notes:
 Public API forwards the idempotency header and returns `201` for new payments, `200` for existing idempotent payments. This behavior assumes a new or absent idempotency key.
 
@@ -512,15 +673,12 @@ Constraints and invariants:
 - The key is scoped by account and request equivalence.
 
 Failure and exceptional cases:
-- Failing function: `create web card payment`
-  - Failure condition: Initial create request is invalid or the account cannot create payments.
-  - Why it fails: The setup payment cannot be established.
-  - Violated prerequisite or constraint: Replay needs a prior successful create for the same key.
 - Failing function: `replay idempotent payment creation`
-  - Failure condition: Same key is reused with a different amount, reference, description, return URL, or payment mode.
-  - Why it fails: Connector returns an idempotency-key-used conflict.
-  - Violated prerequisite or constraint: A key cannot be rebound to a different payment creation request.
-
+  - Source discriminator: `ErrorIdentifier.IDEMPOTENCY_KEY_USED -> RequestError.Code.CREATE_PAYMENT_IDEMPOTENCY_KEY_ALREADY_USED`
+  - Failure condition: A previous create-payment request used the same `Idempotency-Key`, but the replay request is not equivalent to the original payment creation request.
+  - Why it fails: Connector owns idempotency state and returns `IDEMPOTENCY_KEY_USED`; Public API maps it to a 409 conflict instead of returning the existing payment.
+  - Violated prerequisite or constraint: An idempotency key can only replay the same create-payment request it was first bound to.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create/createCharge`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 Implementation notes:
 Public API does not persist idempotency state itself. It forwards the header to Connector and uses Connector’s `201` versus `200` status to choose created versus existing response semantics.
 
@@ -575,18 +733,77 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create MOTO API payment`
-  - Failure condition: Account is not enabled for MOTO API authorisation.
-  - Why it fails: Connector returns `AUTHORISATION_API_NOT_ALLOWED`.
-  - Violated prerequisite or constraint: MOTO API creation requires account capability.
+  - Source discriminator: `CreateChargeExceptionMapper 404 without ErrorIdentifier.AGREEMENT_NOT_FOUND -> RequestError.Code.CREATE_PAYMENT_ACCOUNT_ERROR`
+  - Failure condition: Connector cannot find the gateway account for MOTO API charge creation.
+  - Why it fails: A Connector 404 without the setup-agreement discriminator is treated as an account error for payment creation.
+  - Violated prerequisite or constraint: The authenticated gateway account must exist in Connector for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.ZERO_AMOUNT_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: The MOTO API payment amount is zero and the account is not allowed to create zero-amount payments.
+  - Why it fails: Connector rejects zero amount under account policy and the mapper exposes the amount minimum error.
+  - Violated prerequisite or constraint: Payment amount must be chargeable under the account's Connector policy.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.MOTO_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_MOTO_NOT_ENABLED`
+  - Failure condition: The account is not enabled for MOTO payment creation.
+  - Why it fails: Connector rejects MOTO payment creation for the account and the mapper returns the MOTO-not-enabled error.
+  - Violated prerequisite or constraint: MOTO API payments require MOTO capability.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.AUTHORISATION_API_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_AUTHORISATION_API_NOT_ENABLED`
+  - Failure condition: The account is not enabled for API authorisation using `authorisation_mode=moto_api`.
+  - Why it fails: Connector rejects API-authorised payment creation and the mapper returns the authorisation API capability error.
+  - Violated prerequisite or constraint: MOTO API payment creation requires authorisation API capability on the account.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.UNEXPECTED_ATTRIBUTE -> RequestError.Code.GENERIC_UNEXPECTED_FIELD_ERROR_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: The MOTO API create request includes a Connector-prohibited hosted-journey attribute such as `return_url`.
+  - Why it fails: Public API can forward known fields to Connector; Connector rejects fields that are incompatible with `authorisation_mode=moto_api`.
+  - Violated prerequisite or constraint: MOTO API payment creation must not include hosted web-journey fields.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/model/CreateCardPaymentRequest.java - CreateCardPaymentRequest.toConnectorPayload`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_DISABLED -> RequestError.Code.ACCOUNT_DISABLED`
+  - Failure condition: GOV.UK Pay has disabled payment creation on the account.
+  - Why it fails: Connector rejects create-charge requests for disabled accounts.
+  - Violated prerequisite or constraint: The account must be enabled for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `create MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_NOT_LINKED_WITH_PSP -> RequestError.Code.ACCOUNT_NOT_LINKED_WITH_PSP`
+  - Failure condition: The account is not fully linked to a payment service provider.
+  - Why it fails: Connector rejects charge creation for accounts without PSP linkage.
+  - Violated prerequisite or constraint: The gateway account must be configured with a PSP before it can create MOTO API payments.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 - Failing function: `authorise MOTO API payment`
-  - Failure condition: Token is invalid, unknown, expired, or already used.
-  - Why it fails: Connector returns token-specific authorisation errors.
-  - Violated prerequisite or constraint: Authorisation requires the generated unused token.
+  - Source discriminator: `ErrorIdentifier.ONE_TIME_TOKEN_ALREADY_USED -> RequestError.Code.AUTHORISATION_ONE_TIME_TOKEN_ALREADY_USED_ERROR`
+  - Failure condition: The one-time token has already been consumed by an earlier authorisation attempt.
+  - Why it fails: Connector rejects reused tokens and the authorisation mapper returns the token-already-used error.
+  - Violated prerequisite or constraint: A MOTO API one-time token may be used only once.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/AuthorisationService.java - AuthorisationService.authoriseRequest`; `src/main/java/uk/gov/pay/api/exception/mapper/AuthorisationRequestExceptionMapper.java - AuthorisationRequestExceptionMapper.toResponse`
 - Failing function: `authorise MOTO API payment`
-  - Failure condition: Card number, CVC, expiry date, cardholder name, or accepted card type is invalid.
-  - Why it fails: Local validation or Connector authorisation rejection maps to public errors.
-  - Violated prerequisite or constraint: Card details must be valid and acceptable.
-
+  - Source discriminator: `ErrorIdentifier.ONE_TIME_TOKEN_INVALID -> RequestError.Code.AUTHORISATION_ONE_TIME_TOKEN_INVALID_ERROR`
+  - Failure condition: The one-time token is unknown, invalid, or not current for a pending MOTO API payment.
+  - Why it fails: Connector rejects invalid tokens and the authorisation mapper returns the invalid-token error.
+  - Violated prerequisite or constraint: Authorisation must use the valid unused token generated for the payment.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/AuthorisationService.java - AuthorisationService.authoriseRequest`; `src/main/java/uk/gov/pay/api/exception/mapper/AuthorisationRequestExceptionMapper.java - AuthorisationRequestExceptionMapper.toResponse`
+- Failing function: `authorise MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.CARD_NUMBER_REJECTED -> RequestError.Code.AUTHORISATION_CARD_NUMBER_REJECTED_ERROR`
+  - Failure condition: Connector rejects the supplied card number or card type for authorisation.
+  - Why it fails: Connector returns `CARD_NUMBER_REJECTED`; Public API maps it to a payment-required card-number rejection.
+  - Violated prerequisite or constraint: The card number must be valid and accepted for the payment.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/AuthorisationRequestExceptionMapper.java - AuthorisationRequestExceptionMapper.toResponse`
+- Failing function: `authorise MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.AUTHORISATION_REJECTED -> RequestError.Code.AUTHORISATION_REJECTED_ERROR`
+  - Failure condition: Connector or the payment provider rejects the card authorisation attempt.
+  - Why it fails: Connector returns `AUTHORISATION_REJECTED`; Public API exposes the Connector authorisation rejection message.
+  - Violated prerequisite or constraint: The submitted card details must be authorisable by the payment provider.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/AuthorisationRequestExceptionMapper.java - AuthorisationRequestExceptionMapper.toResponse`
+- Failing function: `authorise MOTO API payment`
+  - Source discriminator: `ErrorIdentifier.INVALID_ATTRIBUTE_VALUE -> RequestError.Code.GENERIC_VALIDATION_EXCEPTION_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: Connector rejects an authorisation attribute value that passed Public API's structural request validation.
+  - Why it fails: Connector returns `INVALID_ATTRIBUTE_VALUE`; the mapper exposes the Connector-supplied validation message.
+  - Violated prerequisite or constraint: Authorisation card-detail values must satisfy Connector's domain validation rules.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/AuthorisationRequestExceptionMapper.java - AuthorisationRequestExceptionMapper.toResponse`
 Implementation notes:
 Unlike most endpoints, `/v1/auth` has no Bearer account context because `AuthorizationValidationFilter` excludes it. The token is the binding and security mechanism.
 
@@ -639,14 +856,59 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `take recurring payment`
-  - Failure condition: `agreement_id` is missing, unknown, inactive, cross-account, or not paired with `authorisation_mode=agreement`.
-  - Why it fails: Parser rejects unexpected `agreement_id`, or Connector rejects missing/inactive agreement state.
-  - Violated prerequisite or constraint: Recurring charging requires an active same-account agreement.
+  - Source discriminator: `RequestJsonParser agreement_id branch -> RequestError.Code.CREATE_PAYMENT_UNEXPECTED_FIELD_ERROR`
+  - Failure condition: The request sends `agreement_id` without setting `authorisation_mode=agreement`.
+  - Why it fails: Public API only accepts `agreement_id` in the request body when the parsed authorisation mode is `agreement`.
+  - Violated prerequisite or constraint: Recurring charging must pair `agreement_id` with `authorisation_mode=agreement`.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/json/RequestJsonParser.java - RequestJsonParser.parsePaymentRequest`
 - Failing function: `take recurring payment`
-  - Failure condition: The request includes fields prohibited for agreement mode.
-  - Why it fails: Connector rejects the payment-mode/body combination.
-  - Violated prerequisite or constraint: Agreement-mode payments do not use hosted return URL or payer-entry fields.
-
+  - Source discriminator: `ErrorIdentifier.MISSING_MANDATORY_ATTRIBUTE -> RequestError.Code.GENERIC_MISSING_FIELD_ERROR_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: The request uses `authorisation_mode=agreement` but omits the Connector-required `agreement_id`.
+  - Why it fails: Public API forwards the agreement-mode payment to Connector; Connector reports the missing mandatory agreement id.
+  - Violated prerequisite or constraint: Agreement-mode payment creation requires an agreement id.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreatePaymentService.java - CreatePaymentService.create`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.AGREEMENT_NOT_FOUND -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: `agreement_id` does not identify an agreement Connector can find for the account.
+  - Why it fails: Connector returns `AGREEMENT_NOT_FOUND`; the create-charge mapper exposes an invalid `agreement_id` error.
+  - Violated prerequisite or constraint: The recurring payment must reference a same-account agreement.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.AGREEMENT_NOT_ACTIVE -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: `agreement_id` identifies an agreement that is not active.
+  - Why it fails: Connector returns `AGREEMENT_NOT_ACTIVE`; the mapper exposes that the agreement must be active.
+  - Violated prerequisite or constraint: Recurring charging requires an active agreement with a saved payment instrument.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.UNEXPECTED_ATTRIBUTE -> RequestError.Code.GENERIC_UNEXPECTED_FIELD_ERROR_MESSAGE_FROM_CONNECTOR`
+  - Failure condition: The agreement-mode request includes Connector-prohibited hosted or payer-entry fields such as `return_url`, `email`, or prefilled cardholder details.
+  - Why it fails: Public API can forward known fields to Connector; Connector rejects fields that are incompatible with agreement-mode charging.
+  - Violated prerequisite or constraint: Agreement-mode payments must not use hosted journey or payer-entry fields.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/model/CreateCardPaymentRequest.java - CreateCardPaymentRequest.toConnectorPayload`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.RECURRING_CARD_PAYMENTS_NOT_ALLOWED -> RequestError.Code.RECURRING_CARD_PAYMENTS_NOT_ALLOWED_ERROR`
+  - Failure condition: The account is not allowed to create recurring-card payments.
+  - Why it fails: Connector rejects recurring-card payment creation and the mapper returns the recurring-card-payments error.
+  - Violated prerequisite or constraint: The account must support recurring card payments to charge an agreement.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.ZERO_AMOUNT_NOT_ALLOWED -> RequestError.Code.CREATE_PAYMENT_VALIDATION_ERROR`
+  - Failure condition: The recurring payment amount is zero and the account is not allowed to create zero-amount payments.
+  - Why it fails: Connector rejects zero amount under account policy and the mapper exposes the amount minimum error.
+  - Violated prerequisite or constraint: Recurring payment amount must be chargeable under the account's Connector policy.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_DISABLED -> RequestError.Code.ACCOUNT_DISABLED`
+  - Failure condition: GOV.UK Pay has disabled payment creation on the account.
+  - Why it fails: Connector rejects create-charge requests for disabled accounts.
+  - Violated prerequisite or constraint: The account must be enabled for payment creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
+- Failing function: `take recurring payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_NOT_LINKED_WITH_PSP -> RequestError.Code.ACCOUNT_NOT_LINKED_WITH_PSP`
+  - Failure condition: The account is not fully linked to a payment service provider.
+  - Why it fails: Connector rejects charge creation for accounts without PSP linkage.
+  - Violated prerequisite or constraint: The gateway account must be configured with a PSP before it can create recurring payments.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateChargeExceptionMapper.java - CreateChargeExceptionMapper.toResponse`
 Implementation notes:
 The active agreement state cannot be fully established through public API calls alone because setup completion is external to this API.
 
@@ -698,15 +960,12 @@ Constraints and invariants:
 - Finished and agreement-mode payments may not include cancel links; capture links depend on returned charge links.
 
 Failure and exceptional cases:
-- Failing function: `create web card payment`
-  - Failure condition: Invalid payment request or account policy rejection.
-  - Why it fails: Setup cannot produce a payment id.
-  - Violated prerequisite or constraint: The read needs a valid payment aggregate.
 - Failing function: `get payment`
-  - Failure condition: `paymentId` is unknown or not scoped to the account in both Connector and Ledger.
-  - Why it fails: Downstream not-found is mapped by the get-payment exception mapper.
-  - Violated prerequisite or constraint: Payment id must exist in caller scope.
-
+  - Source discriminator: `GetChargeExceptionMapper -> RequestError.Code.GET_PAYMENT_NOT_FOUND_ERROR`
+  - Failure condition: `paymentId` is not found for the authenticated account by the selected strategy, or by either Connector or Ledger in the default strategy.
+  - Why it fails: The strategy reads Connector only, Ledger only, or Connector with Ledger fallback; a final 404 is mapped to the public payment not-found error.
+  - Violated prerequisite or constraint: The payment id must exist and be visible in the caller's account scope.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/resources/GetOnePaymentStrategy.java - GetOnePaymentStrategy`; `src/main/java/uk/gov/pay/api/service/GetPaymentService.java - GetPaymentService.getPayment`; `src/main/java/uk/gov/pay/api/exception/mapper/GetChargeExceptionMapper.java - GetChargeExceptionMapper.toResponse`
 Implementation notes:
 The default read strategy can mask Connector not-found by falling back to Ledger. Invalid `X-Ledger` values do not fail; they log a warning and use default behavior.
 
@@ -759,19 +1018,24 @@ Constraints and invariants:
 - Repeating cancellation after success is an invalid state transition.
 
 Failure and exceptional cases:
-- Failing function: `create web card payment`
-  - Failure condition: Invalid create body or account unable to create payments.
-  - Why it fails: No cancellable payment id is produced.
-  - Violated prerequisite or constraint: Cancellation needs an existing unfinished payment.
 - Failing function: `cancel payment`
-  - Failure condition: `paymentId` is unknown or cross-account.
-  - Why it fails: Connector returns not found.
-  - Violated prerequisite or constraint: Payment must exist in the caller’s account scope.
+  - Source discriminator: `CancelChargeExceptionMapper -> RequestError.Code.CANCEL_PAYMENT_NOT_FOUND_ERROR`
+  - Failure condition: Connector cannot find `paymentId` for the authenticated account.
+  - Why it fails: Public API delegates cancellation directly to Connector; a Connector 404 is mapped to payment-cancel not found.
+  - Violated prerequisite or constraint: The payment must exist in the caller's account scope before it can be cancelled.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CancelPaymentService.java - CancelPaymentService.cancel`; `src/main/java/uk/gov/pay/api/exception/mapper/CancelChargeExceptionMapper.java - CancelChargeExceptionMapper.toResponse`
 - Failing function: `cancel payment`
-  - Failure condition: Payment is already cancelled, finished, or otherwise non-cancellable.
-  - Why it fails: Connector rejects the state transition with bad request or conflict.
+  - Source discriminator: `CancelChargeExceptionMapper -> RequestError.Code.CANCEL_PAYMENT_CONNECTOR_BAD_REQUEST_ERROR`
+  - Failure condition: Connector rejects cancellation because the payment's current state is not cancellable.
+  - Why it fails: Connector enforces the payment state transition and returns bad request for a cancellation it will not apply.
   - Violated prerequisite or constraint: Only unfinished cancellable payments can be cancelled.
-
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CancelPaymentService.java - CancelPaymentService.cancel`; `src/main/java/uk/gov/pay/api/exception/mapper/CancelChargeExceptionMapper.java - CancelChargeExceptionMapper.toResponse`
+- Failing function: `cancel payment`
+  - Source discriminator: `CancelChargeExceptionMapper -> RequestError.Code.CANCEL_PAYMENT_CONNECTOR_CONFLICT_ERROR`
+  - Failure condition: Connector reports a cancellation conflict for the payment state transition.
+  - Why it fails: Connector returns conflict for a cancellation that conflicts with the current persisted payment lifecycle state.
+  - Violated prerequisite or constraint: The payment must still be in a state where Connector can apply cancellation exactly once.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CancelPaymentService.java - CancelPaymentService.cancel`; `src/main/java/uk/gov/pay/api/exception/mapper/CancelChargeExceptionMapper.java - CancelChargeExceptionMapper.toResponse`
 Implementation notes:
 Public API does not read the payment first; it delegates transition validity to Connector.
 
@@ -826,19 +1090,24 @@ Constraints and invariants:
 - Connector owns the exact capture-state check.
 
 Failure and exceptional cases:
-- Failing function: `create MOTO API payment`
-  - Failure condition: Account cannot create MOTO API payments or body is invalid.
-  - Why it fails: Parser or Connector rejects the delayed payment creation.
-  - Violated prerequisite or constraint: Capture needs a delayed payment id.
-- Failing function: `authorise MOTO API payment`
-  - Failure condition: Token or card details are invalid.
-  - Why it fails: Local validation or Connector authorisation rejects the request.
-  - Violated prerequisite or constraint: Capture needs successful authorisation.
 - Failing function: `capture delayed payment`
-  - Failure condition: Payment is unknown, cross-account, not delayed, not authorised, already captured, or otherwise not awaiting capture.
-  - Why it fails: Connector returns not found, bad request, or conflict.
-  - Violated prerequisite or constraint: Capture requires an authorised delayed payment in the capture-ready state.
-
+  - Source discriminator: `CaptureChargeExceptionMapper -> RequestError.Code.CAPTURE_PAYMENT_NOT_FOUND_ERROR`
+  - Failure condition: Connector cannot find `paymentId` for the authenticated account.
+  - Why it fails: Public API delegates capture to Connector; a Connector 404 is mapped to capture-payment not found.
+  - Violated prerequisite or constraint: The delayed payment must exist in the caller's account scope before it can be captured.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/resources/PaymentsResource.java - PaymentsResource.capturePayment`; `src/main/java/uk/gov/pay/api/service/CapturePaymentService.java - CapturePaymentService.capture`; `src/main/java/uk/gov/pay/api/exception/mapper/CaptureChargeExceptionMapper.java - CaptureChargeExceptionMapper.toResponse`
+- Failing function: `capture delayed payment`
+  - Source discriminator: `CaptureChargeExceptionMapper -> RequestError.Code.CAPTURE_PAYMENT_CONNECTOR_BAD_REQUEST_ERROR`
+  - Failure condition: Connector rejects capture because the payment is not in a capturable delayed-payment state.
+  - Why it fails: Connector enforces the capture state machine and returns bad request for invalid capture attempts.
+  - Violated prerequisite or constraint: Capture requires a delayed payment that has been authorised and is awaiting capture.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CapturePaymentService.java - CapturePaymentService.capture`; `src/main/java/uk/gov/pay/api/exception/mapper/CaptureChargeExceptionMapper.java - CaptureChargeExceptionMapper.toResponse`
+- Failing function: `capture delayed payment`
+  - Source discriminator: `CaptureChargeExceptionMapper -> RequestError.Code.CAPTURE_PAYMENT_CONNECTOR_CONFLICT_ERROR`
+  - Failure condition: Connector reports a capture conflict for the payment lifecycle state.
+  - Why it fails: Connector returns conflict when the persisted payment state no longer allows the requested capture transition.
+  - Violated prerequisite or constraint: The payment must still be awaiting first capture when the capture request is processed.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CapturePaymentService.java - CapturePaymentService.capture`; `src/main/java/uk/gov/pay/api/exception/mapper/CaptureChargeExceptionMapper.java - CaptureChargeExceptionMapper.toResponse`
 Implementation notes:
 Public API posts an empty JSON object to Connector for capture and maps only Connector `204` to public success.
 
@@ -890,15 +1159,12 @@ Constraints and invariants:
 - Event completeness can differ between Connector and Ledger during eventual-consistency windows.
 
 Failure and exceptional cases:
-- Failing function: `create web card payment`
-  - Failure condition: Invalid payment creation request.
-  - Why it fails: No payment id or initial event state is produced.
-  - Violated prerequisite or constraint: Event read needs an existing payment.
 - Failing function: `get payment events`
-  - Failure condition: `paymentId` is unknown or cross-account.
-  - Why it fails: Connector or Ledger not-found is mapped to get-events not-found.
-  - Violated prerequisite or constraint: Payment event history must exist for the account-scoped payment id.
-
+  - Source discriminator: `GetEventsExceptionMapper -> RequestError.Code.GET_PAYMENT_EVENTS_NOT_FOUND_ERROR`
+  - Failure condition: `paymentId` has no event history visible to the authenticated account in the selected strategy, or in either Connector or Ledger under the default strategy.
+  - Why it fails: The strategy reads Connector only, Ledger only, or Connector with Ledger fallback; a final 404 is mapped to the public events not-found error.
+  - Violated prerequisite or constraint: Payment event history must exist for an account-scoped payment id.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/resources/GetPaymentEventsStrategy.java - GetPaymentEventsStrategy`; `src/main/java/uk/gov/pay/api/service/GetPaymentEventsService.java - GetPaymentEventsService.getPaymentEvents`; `src/main/java/uk/gov/pay/api/exception/mapper/GetEventsExceptionMapper.java - GetEventsExceptionMapper.toResponse`
 Implementation notes:
 The event endpoint is read-only but can expose different results based on the read strategy and downstream consistency.
 
@@ -953,23 +1219,54 @@ Constraints and invariants:
 - There is no public rollback after a refund is accepted.
 
 Failure and exceptional cases:
-- Failing function: `create MOTO API payment`
-  - Failure condition: Account cannot create MOTO API payments or body is invalid.
-  - Why it fails: No successful payment can be established.
-  - Violated prerequisite or constraint: Refund needs a payment id.
-- Failing function: `authorise MOTO API payment`
-  - Failure condition: Token or card details are invalid.
-  - Why it fails: Payment does not become successful/refundable.
-  - Violated prerequisite or constraint: Refund needs a successful payment.
 - Failing function: `refund payment`
-  - Failure condition: `paymentId` is unknown or cross-account.
-  - Why it fails: Connector returns not found.
-  - Violated prerequisite or constraint: Refund must be under an existing account-scoped payment.
+  - Source discriminator: `PaymentRefundRequestValidator.validateAmount -> RequestError.Code.CREATE_PAYMENT_REFUND_VALIDATION_ERROR`
+  - Failure condition: Refund `amount` is less than 1.
+  - Why it fails: The refund request validator rejects amounts below the minimum before the refund is submitted to Connector.
+  - Violated prerequisite or constraint: A refund amount must be at least 1 pence.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentRefundRequestValidator.java - PaymentRefundRequestValidator.validateAmount`
 - Failing function: `refund payment`
-  - Failure condition: Invalid amount, stale `refund_amount_available`, payment not refundable, or payment disputed.
-  - Why it fails: Parser or Connector refund validation rejects the request.
-  - Violated prerequisite or constraint: Refund amount and payment refundability must match current Connector state.
-
+  - Source discriminator: `PaymentRefundRequestValidator.validateAmount -> RequestError.Code.CREATE_PAYMENT_REFUND_VALIDATION_ERROR`
+  - Failure condition: Refund `amount` is greater than 10000000.
+  - Why it fails: The refund request validator rejects amounts above the shared payment amount maximum before the refund is submitted to Connector.
+  - Violated prerequisite or constraint: A refund amount must not exceed 10000000 pence.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/PaymentRefundRequestValidator.java - PaymentRefundRequestValidator.validateAmount`
+- Failing function: `refund payment`
+  - Source discriminator: `CreateRefundService.getRefundAmountAvailableFromPayment -> RequestError.Code.GET_PAYMENT_NOT_FOUND_ERROR`
+  - Failure condition: `refund_amount_available` is omitted and `paymentId` cannot be found when Public API tries to read the payment to derive available refund amount.
+  - Why it fails: `CreateRefundService` uses `GetOnePaymentStrategy` to calculate amount available before posting to Connector; a missing payment aborts the refund operation.
+  - Violated prerequisite or constraint: The parent payment must exist and expose refund availability when Public API derives `refund_amount_available`.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreateRefundService.java - CreateRefundService.createRefund/getRefundAmountAvailableFromPayment`; `src/main/java/uk/gov/pay/api/service/GetPaymentService.java - GetPaymentService.getPayment`
+- Failing function: `refund payment`
+  - Source discriminator: `CreateRefundExceptionMapper -> RequestError.Code.CREATE_PAYMENT_REFUND_NOT_FOUND_ERROR`
+  - Failure condition: Connector cannot find `paymentId` for refund creation.
+  - Why it fails: Connector returns 404 from the refund endpoint and the create-refund mapper exposes the refund not-found error.
+  - Violated prerequisite or constraint: Refund creation must target an existing account-scoped payment.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreateRefundService.java - CreateRefundService.createRefund`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateRefundExceptionMapper.java - CreateRefundExceptionMapper.toResponse`
+- Failing function: `refund payment`
+  - Source discriminator: `ErrorIdentifier.ACCOUNT_DISABLED -> RequestError.Code.ACCOUNT_DISABLED`
+  - Failure condition: GOV.UK Pay has disabled refund creation on the account.
+  - Why it fails: Connector rejects refund creation for disabled accounts.
+  - Violated prerequisite or constraint: The account must be enabled for refund creation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateRefundExceptionMapper.java - CreateRefundExceptionMapper.toResponse`
+- Failing function: `refund payment`
+  - Source discriminator: `ErrorIdentifier.REFUND_NOT_AVAILABLE with reason -> RequestError.Code.CREATE_PAYMENT_REFUND_NOT_AVAILABLE`
+  - Failure condition: Connector reports that the payment is not currently available for refund and supplies the payment refund status as the reason.
+  - Why it fails: Connector rejects the refund based on the payment's persisted refundability state; Public API includes the Connector reason in the public error.
+  - Violated prerequisite or constraint: The payment must be successful and have refundable amount available.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateRefundExceptionMapper.java - CreateRefundExceptionMapper.toResponse`
+- Failing function: `refund payment`
+  - Source discriminator: `ErrorIdentifier.REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE -> RequestError.Code.CREATE_PAYMENT_REFUND_NOT_AVAILABLE_DUE_TO_DISPUTE`
+  - Failure condition: The payment is disputed and Connector blocks refund creation.
+  - Why it fails: Connector applies a dispute/finality rule and Public API maps it to the disputed-payment refund error.
+  - Violated prerequisite or constraint: Disputed payments cannot be refunded through this operation.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/exception/mapper/CreateRefundExceptionMapper.java - CreateRefundExceptionMapper.toResponse`
+- Failing function: `refund payment`
+  - Source discriminator: `ErrorIdentifier.REFUND_AMOUNT_AVAILABLE_MISMATCH -> RequestError.Code.CREATE_PAYMENT_REFUND_AMOUNT_AVAILABLE_MISMATCH`
+  - Failure condition: The supplied or derived `refund_amount_available` does not match Connector's current refundable amount for the payment.
+  - Why it fails: Connector enforces the available-amount concurrency check and returns a precondition failure.
+  - Violated prerequisite or constraint: `refund_amount_available` must match current Connector state when the refund is submitted.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/CreateRefundService.java - CreateRefundService.createRefund`; `src/main/java/uk/gov/pay/api/exception/mapper/CreateRefundExceptionMapper.java - CreateRefundExceptionMapper.toResponse`
 Implementation notes:
 The OpenAPI documents both `200` and `202` for refund submission, but the implementation always builds a `202 Accepted` response on success.
 
@@ -1023,23 +1320,12 @@ Constraints and invariants:
 - The list may be empty for an existing payment with no refunds.
 
 Failure and exceptional cases:
-- Failing function: `create MOTO API payment`
-  - Failure condition: Invalid setup payment creation.
-  - Why it fails: No parent payment is available.
-  - Violated prerequisite or constraint: Refund listing needs a payment id.
-- Failing function: `authorise MOTO API payment`
-  - Failure condition: Invalid token or card details.
-  - Why it fails: Refund setup cannot create a successful refundable payment.
-  - Violated prerequisite or constraint: The setup refund needs successful payment state.
-- Failing function: `refund payment`
-  - Failure condition: Refund setup is invalid or blocked.
-  - Why it fails: No refund exists for a non-empty listing setup.
-  - Violated prerequisite or constraint: The setup refund needs refundable amount.
 - Failing function: `list payment refunds`
-  - Failure condition: `paymentId` is unknown or cross-account.
-  - Why it fails: Connector or Ledger returns not found.
-  - Violated prerequisite or constraint: Refund collection must belong to an existing account-scoped payment.
-
+  - Source discriminator: `GetRefundsExceptionMapper -> RequestError.Code.GET_PAYMENT_REFUNDS_NOT_FOUND_ERROR`
+  - Failure condition: `paymentId` has no refund collection visible to the authenticated account in Ledger by default, or in Connector when `connector-only` is selected.
+  - Why it fails: The refund-list strategy reads Ledger by default or Connector when forced; a downstream 404 is mapped to the public refunds not-found error.
+  - Violated prerequisite or constraint: The parent payment id must exist in the caller's account scope before its refund collection can be listed.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/resources/GetPaymentRefundsStrategy.java - GetPaymentRefundsStrategy`; `src/main/java/uk/gov/pay/api/service/GetPaymentRefundsService.java - GetPaymentRefundsService`; `src/main/java/uk/gov/pay/api/exception/mapper/GetRefundsExceptionMapper.java - GetRefundsExceptionMapper.toResponse`
 Implementation notes:
 Default strategy for refund listing is strategy-template based. Ledger and Connector views can differ while refund state is still propagating.
 
@@ -1093,23 +1379,18 @@ Constraints and invariants:
 - Parent and child id mismatch is not a valid lookup.
 
 Failure and exceptional cases:
-- Failing function: `create MOTO API payment`
-  - Failure condition: Invalid payment setup.
-  - Why it fails: No parent payment exists.
-  - Violated prerequisite or constraint: Refund retrieval needs a payment id.
-- Failing function: `authorise MOTO API payment`
-  - Failure condition: Invalid token or card details.
-  - Why it fails: No successful refundable payment is established.
-  - Violated prerequisite or constraint: Refund setup depends on successful payment state.
-- Failing function: `refund payment`
-  - Failure condition: Invalid or blocked refund creation.
-  - Why it fails: No refund id is generated.
-  - Violated prerequisite or constraint: Refund retrieval needs a real child refund id.
 - Failing function: `get refund`
+  - Source discriminator: `GetRefundExceptionMapper -> RequestError.Code.GET_PAYMENT_REFUND_NOT_FOUND_ERROR`
+  - Failure condition: `paymentId` is unknown or not scoped to the authenticated account for the selected refund-read strategy.
+  - Why it fails: Connector and Ledger refund reads are both parent-payment scoped; a downstream 404 is mapped to the public refund not-found error.
+  - Violated prerequisite or constraint: The parent payment id must exist in the caller's account scope.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/resources/GetPaymentRefundStrategy.java - GetPaymentRefundStrategy`; `src/main/java/uk/gov/pay/api/service/GetPaymentRefundService.java - GetPaymentRefundService.getPaymentRefund`; `src/main/java/uk/gov/pay/api/exception/mapper/GetRefundExceptionMapper.java - GetRefundExceptionMapper.toResponse`
+- Failing function: `get refund`
+  - Source discriminator: `GetRefundExceptionMapper -> RequestError.Code.GET_PAYMENT_REFUND_NOT_FOUND_ERROR`
   - Failure condition: `refundId` is unknown, belongs to another payment, or belongs to another account.
-  - Why it fails: Connector or Ledger not-found is mapped to the get-refund error path.
-  - Violated prerequisite or constraint: Refund id must be linked to the supplied parent payment.
-
+  - Why it fails: Connector and Ledger read the refund under the supplied parent `paymentId`; if the child refund is absent or linked elsewhere, the not-found response is mapped to the public refund not-found error.
+  - Violated prerequisite or constraint: The refund id must be a child of the supplied account-scoped payment id.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/ConnectorService.java - ConnectorService.getPaymentRefund`; `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.getRefundTransaction`; `src/main/java/uk/gov/pay/api/exception/mapper/GetRefundExceptionMapper.java - GetRefundExceptionMapper.toResponse`
 Implementation notes:
 Ledger read wraps transaction-not-found as refund-not-found, preserving the public refund error semantics.
 
@@ -1161,14 +1442,47 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `search refunds`
-  - Failure condition: Invalid date, settled-date, page, or display-size query value.
-  - Why it fails: `RefundSearchValidator` rejects invalid parameters before Ledger search.
-  - Violated prerequisite or constraint: Refund search filters must pass validation.
+  - Source discriminator: `SearchValidator.validateFromDate -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `from_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The refund search validator records `from_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund created-date lower bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromDate`
 - Failing function: `search refunds`
-  - Failure condition: Ledger returns page not found, downstream error, or malformed response.
-  - Why it fails: `SearchRefundsService` maps Ledger search failures.
-  - Violated prerequisite or constraint: Ledger must support the requested refund search.
-
+  - Source discriminator: `SearchValidator.validateToDate -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `to_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The refund search validator records `to_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund created-date upper bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToDate`
+- Failing function: `search refunds`
+  - Source discriminator: `SearchValidator.validateFromSettledDate -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `from_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The refund search validator records `from_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund settlement-date lower bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromSettledDate`
+- Failing function: `search refunds`
+  - Source discriminator: `SearchValidator.validateToSettledDate -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `to_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The refund search validator records `to_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund settlement-date upper bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToSettledDate`
+- Failing function: `search refunds`
+  - Source discriminator: `SearchValidator.validatePageIfNotNull -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `page` is nonblank and is not numeric or is less than 1.
+  - Why it fails: The refund search validator records `page` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund search pagination starts at page 1.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validatePageIfNotNull`
+- Failing function: `search refunds`
+  - Source discriminator: `SearchValidator.validateDisplaySizeIfNotNull -> RequestError.Code.SEARCH_REFUNDS_VALIDATION_ERROR`
+  - Failure condition: `display_size` is nonblank and is not numeric, is less than 1, or is greater than 500.
+  - Why it fails: The refund search validator records `display_size` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Refund search pages must request between 1 and 500 results.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/RefundSearchValidator.java - RefundSearchValidator.validateSearchParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateDisplaySizeIfNotNull`
+- Failing function: `search refunds`
+  - Source discriminator: `SearchRefundsExceptionMapper -> RequestError.Code.SEARCH_REFUNDS_NOT_FOUND`
+  - Failure condition: Ledger returns 404 for the requested refund search page.
+  - Why it fails: Public API maps a Ledger not-found search response to the public page-not-found error.
+  - Violated prerequisite or constraint: The requested refund search page must exist for the account-scoped result set.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.searchRefunds`; `src/main/java/uk/gov/pay/api/exception/mapper/SearchRefundsExceptionMapper.java - SearchRefundsExceptionMapper.toResponse`
 Implementation notes:
 Refund search is not payment-scoped. It returns parent payment links for each result.
 
@@ -1220,14 +1534,53 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `search disputes`
-  - Failure condition: Unsupported status, invalid date, invalid settled date, invalid page, or invalid display size.
-  - Why it fails: `DisputeSearchValidator` rejects invalid query values.
-  - Violated prerequisite or constraint: Dispute search filters must match public validator rules.
+  - Source discriminator: `SearchValidator.validateFromDate -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `from_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The dispute search validator records `from_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute created-date lower bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromDate`
 - Failing function: `search disputes`
-  - Failure condition: Ledger returns page not found, downstream failure, or malformed response.
-  - Why it fails: `SearchDisputesService` and its mapper expose search-dispute errors.
-  - Violated prerequisite or constraint: Ledger must support the requested dispute search.
-
+  - Source discriminator: `SearchValidator.validateToDate -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `to_date` is not a valid UTC ISO-8601 date-time accepted by `DateValidator`.
+  - Why it fails: The dispute search validator records `to_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute created-date upper bounds must use the supported date-time format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToDate`
+- Failing function: `search disputes`
+  - Source discriminator: `SearchValidator.validateFromSettledDate -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `from_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The dispute search validator records `from_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute settlement-date lower bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateFromSettledDate`
+- Failing function: `search disputes`
+  - Source discriminator: `SearchValidator.validateToSettledDate -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `to_settled_date` is nonblank and is not a valid ISO-8601 date-only value.
+  - Why it fails: The dispute search validator records `to_settled_date` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute settlement-date upper bounds must use the supported date-only format.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateToSettledDate`
+- Failing function: `search disputes`
+  - Source discriminator: `SearchValidator.validatePageIfNotNull -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `page` is nonblank and is not numeric or is less than 1.
+  - Why it fails: The dispute search validator records `page` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute search pagination starts at page 1.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validatePageIfNotNull`
+- Failing function: `search disputes`
+  - Source discriminator: `SearchValidator.validateDisplaySizeIfNotNull -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `display_size` is nonblank and is not numeric, is less than 1, or is greater than 500.
+  - Why it fails: The dispute search validator records `display_size` as invalid before Ledger search.
+  - Violated prerequisite or constraint: Dispute search pages must request between 1 and 500 results.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateDisputeParameters`; `src/main/java/uk/gov/pay/api/validation/SearchValidator.java - SearchValidator.validateDisplaySizeIfNotNull`
+- Failing function: `search disputes`
+  - Source discriminator: `DisputeSearchValidator.validateState -> RequestError.Code.SEARCH_DISPUTES_VALIDATION_ERROR`
+  - Failure condition: `status` is nonblank and is not one of `needs_response`, `under_review`, `lost`, or `won`.
+  - Why it fails: The dispute search validator records `state` as invalid before Ledger search; Public API later rewrites valid public `status` to Ledger `state`.
+  - Violated prerequisite or constraint: Dispute search status filters must use a supported public dispute status.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/validation/DisputeSearchValidator.java - DisputeSearchValidator.validateState`; `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.searchDisputes`
+- Failing function: `search disputes`
+  - Source discriminator: `SearchDisputesExceptionMapper -> RequestError.Code.SEARCH_DISPUTES_NOT_FOUND`
+  - Failure condition: Ledger returns 404 for the requested dispute search page.
+  - Why it fails: Public API maps a Ledger not-found search response to the public page-not-found error.
+  - Violated prerequisite or constraint: The requested dispute search page must exist for the account-scoped result set.
+  - Implementation evidence: `src/main/java/uk/gov/pay/api/service/LedgerService.java - LedgerService.searchDisputes`; `src/main/java/uk/gov/pay/api/exception/mapper/SearchDisputesExceptionMapper.java - SearchDisputesExceptionMapper.toResponse`
 Implementation notes:
 The implementation rewrites response pagination links from `state` back to public `status`. Public API exposes dispute reporting only.
 

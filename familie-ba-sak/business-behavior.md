@@ -144,13 +144,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create case`
-  - Failure condition: `fagsakType=INSTITUSJON` and missing `institusjon.orgNummer`.
-  - Why it fails: `FagsakService.hentEllerOpprettFagsak` throws a functional error.
-  - Violated prerequisite or constraint: institution-scoped case key is incomplete.
-- Failing function: `return existing case`
-  - Failure condition: caller lacks access to `personIdent=P1`.
-  - Why it fails: controller validates person access before invoking the service.
-  - Violated prerequisite or constraint: caller context cannot create or retrieve the person-scoped case.
+  - Source discriminator: `FagsakService.hentEllerOpprettFagsak institution guard`
+  - Failure condition: `fagsakType=INSTITUSJON` is requested without `institusjon.orgNummer`.
+  - Why it fails: The owned service cannot form the institution-scoped uniqueness key and throws a functional exception.
+  - Violated prerequisite or constraint: An institution case must identify its organization.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakService.kt — FagsakService.hentEllerOpprettFagsak`
 
 Implementation notes: Source and OpenAPI agree on endpoint shape. Implementation creates/updates surrounding identity/statistics/shadow-case state through services, not merely a case row.
 
@@ -197,13 +195,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `find minimal case for person`
+  - Source discriminator: `FagsakService branch for no case exists for personIdent=P1 and fagsakType=NORMAL`
   - Failure condition: no case exists for `personIdent=P1` and `fagsakType=NORMAL`.
   - Why it fails: service returns a failure resource when no matching case is found.
   - Violated prerequisite or constraint: required case state does not exist.
-- Failing function: `find all minimal cases for person`
-  - Failure condition: `fagsakTyper` excludes the existing case type.
-  - Why it fails: filtered list is empty and returned as failure resource.
-  - Violated prerequisite or constraint: lookup filter does not match the case key.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakService.kt — FagsakService`
+- Failing function: `retrieve full case`
+  - Source discriminator: `FagsakService.hentPåFagsakId not-found outcome`
+  - Failure condition: No case exists for `fagsakId`.
+  - Why it fails: The aggregate view cannot be built.
+  - Violated prerequisite or constraint: The case must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakService.kt — FagsakService`
+- Failing function: `retrieve minimal case`
+  - Source discriminator: `FagsakService.hentPåFagsakId not-found outcome`
+  - Failure condition: No case exists for `fagsakId`.
+  - Why it fails: The compact view cannot be built.
+  - Violated prerequisite or constraint: The case must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakService.kt — FagsakService`
 
 Implementation notes: These are pure reads. They are often verification steps for broader workflows, but they are also a standalone case-discovery capability.
 
@@ -250,13 +258,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `resolve case participants`
+  - Source discriminator: `search methods branch for applicant or child identifier cannot be resolved`
   - Failure condition: applicant or child identifier cannot be resolved.
   - Why it fails: controller catches actor/participant lookup failures and returns a failure resource.
   - Violated prerequisite or constraint: identifiers must resolve to actors.
-- Failing function: `search cases where person participates`
-  - Failure condition: caller lacks access to `personIdent=P1`.
-  - Why it fails: controller validates person access before actor lookup.
-  - Violated prerequisite or constraint: caller context must be authorized for the person.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakController.kt — participant/search methods`
+- Failing function: `search cases with ongoing benefit for person`
+  - Source discriminator: `actor-resolution negative result`
+  - Failure condition: The identity cannot be resolved to an actor.
+  - Why it fails: The query has no domain subject.
+  - Violated prerequisite or constraint: Identity must resolve to an actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakController.kt — participant/search methods`
 
 Implementation notes: The participant search endpoint `POST /api/fagsaker/sok` does not explicitly perform the same visible access validation as the two ongoing/participant case-search endpoints in the controller.
 
@@ -300,13 +312,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create repayment treatment`
+  - Source discriminator: `TilbakekrevingController branch for fagsakId=F1 does not identify an existing case`
   - Failure condition: `fagsakId=F1` does not identify an existing case.
   - Why it fails: repayment service cannot create repayment treatment without the parent case.
   - Violated prerequisite or constraint: parent `fagsakId` must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/tilbakekreving/TilbakekrevingController.kt — repayment methods`
 - Failing function: `create repayment treatment`
-  - Failure condition: caller lacks caseworker permission.
-  - Why it fails: controller verifies caseworker role before invoking service.
-  - Violated prerequisite or constraint: caller role must allow repayment creation.
+  - Source discriminator: `KanBehandlingOpprettesManueltRespons.kanBehandlingOpprettes=false`
+  - Failure condition: The domain precheck rejects manual creation.
+  - Why it fails: The explicit business rejection is returned.
+  - Violated prerequisite or constraint: The case must be eligible.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/tilbakekreving/TilbakekrevingController.kt — repayment methods`
+- Failing function: `create repayment treatment`
+  - Source discriminator: `kravgrunnlagsreferanse lifecycle outcome`
+  - Failure condition: The reference is unknown or belongs to a non-closed repayment treatment.
+  - Why it fails: It cannot be reused.
+  - Violated prerequisite or constraint: The reference must exist in the required state.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/tilbakekreving/TilbakekrevingController.kt — repayment methods`
 
 Implementation notes: The mutating endpoint is exposed as `GET`, which is an OpenAPI/API semantics mismatch even though source implements the mutation.
 
@@ -352,17 +374,53 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create treatment`
+  - Source discriminator: `BehandlingService.opprettBehandling branch for fagsakId=F404 does not exist`
   - Failure condition: `fagsakId=F404` does not exist.
   - Why it fails: `BehandlingService.opprettBehandling` throws when the case cannot be found.
   - Violated prerequisite or constraint: treatment must belong to an existing case.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
 - Failing function: `create treatment`
+  - Source discriminator: `BehandlingService.opprettBehandling branch for required søkersIdent, søknadMottattDato, or nyMigreringsdato is missing for the chosen type/reason`
   - Failure condition: required `søkersIdent`, `søknadMottattDato`, or `nyMigreringsdato` is missing for the chosen type/reason.
   - Why it fails: `NyBehandling` validates these fields.
   - Violated prerequisite or constraint: request body must satisfy treatment-type requirements.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
 - Failing function: `restart active early treatment`
+  - Source discriminator: `BehandlingService.opprettBehandling branch for active treatment is at or after BESLUTTE_VEDTAK`
   - Failure condition: active treatment is at or after `BESLUTTE_VEDTAK`.
   - Why it fails: implementation throws functional error for active unfinished decision-stage treatment.
   - Violated prerequisite or constraint: only pre-decision active treatments can be reset through creation.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
+- Failing function: `create treatment`
+  - Source discriminator: `BehandlingService revision prerequisite guard`
+  - Failure condition: A revision has no prior implemented decision.
+  - Why it fails: There is no decision to revise.
+  - Violated prerequisite or constraint: A prior decision is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
+- Failing function: `create treatment`
+  - Source discriminator: `BehandlingService active-Infotrygd guard`
+  - Failure condition: An active Infotrygd case blocks local creation.
+  - Why it fails: Parallel processing is ineligible.
+  - Violated prerequisite or constraint: The case must be locally eligible.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
+- Failing function: `create treatment`
+  - Source discriminator: `BehandlingService active manual-migration guard`
+  - Failure condition: An ongoing manual migration already exists.
+  - Why it fails: A conflicting lifecycle is rejected.
+  - Violated prerequisite or constraint: Only one active migration may exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
+- Failing function: `create treatment`
+  - Source discriminator: `BehandlingService migration-rate prerequisite`
+  - Failure condition: No latest applicable migration rate exists.
+  - Why it fails: Calculation basis is incomplete.
+  - Violated prerequisite or constraint: The applicable rate must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
+- Failing function: `restart active early treatment`
+  - Source discriminator: `BehandlingService restart-step guard`
+  - Failure condition: The treatment reached or passed decision.
+  - Why it fails: It is too late to reset.
+  - Violated prerequisite or constraint: Only an early treatment may restart.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/BehandlingService.kt — BehandlingService.opprettBehandling`
 
 Implementation notes: Treatment creation initializes an active decision and may create a task. For first-time treatments, the service sends start-treatment information to Infotrygd feed.
 
@@ -404,10 +462,7 @@ Constraints and invariants:
 - The task executor owns later case/treatment creation and retry behavior.
 
 Failure and exceptional cases:
-- Failing function: `queue treatment from birth event`
-  - Failure condition: task creation fails.
-  - Why it fails: controller catches errors and returns an illegal-state resource.
-  - Violated prerequisite or constraint: valid event payload and available task persistence are required.
+None.
 
 Implementation notes: Lack of returned task id makes later API-level correlation weak.
 
@@ -450,9 +505,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `change treatment theme`
+  - Source discriminator: `update method branch for treatment is not editable`
   - Failure condition: treatment is not editable.
   - Why it fails: controller validates editability before service update.
   - Violated prerequisite or constraint: only editable active treatments can be changed.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/behandlingstema/BehandlingstemaService.kt — update method`
 
 Implementation notes: The update is direct and does not itself recalculate treatment result.
 
@@ -507,17 +564,53 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `register application`
+  - Source discriminator: `StegService.utførSteg branch for treatment has advanced beyond application registration and request differs from existing application basis`
   - Failure condition: treatment has advanced beyond application registration and request differs from existing application basis.
   - Why it fails: `StegService` rejects executing an earlier caseworker step than the current step.
   - Violated prerequisite or constraint: required step ordering.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
 - Failing function: `validate conditions`
+  - Source discriminator: `StegService.utførSteg branch for treatment status is SATT_PÅ_VENT`
   - Failure condition: treatment status is `SATT_PÅ_VENT`.
   - Why it fails: `StegService.validerBehandlingIkkeSattPåVent` rejects step execution.
   - Violated prerequisite or constraint: waiting treatment cannot advance steps.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
+- Failing function: `validate conditions`
+  - Source discriminator: `VilkårsvurderingValidering required age-18 outcome`
+  - Failure condition: The required age-18 condition is absent.
+  - Why it fails: Eligibility validation is incomplete.
+  - Violated prerequisite or constraint: All required conditions must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
+- Failing function: `derive treatment result`
+  - Source discriminator: `BehandlingsresultatValidering named outcome`
+  - Failure condition: Results or periods are incomplete or inconsistent.
+  - Why it fails: The result cannot be finalized.
+  - Violated prerequisite or constraint: Results and periods must be consistent.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
+- Failing function: `assess repayment`
+  - Source discriminator: `TilbakekrevingService strategy-mismatch guard`
+  - Failure condition: Assessment conflicts with calculated overpayment strategy.
+  - Why it fails: The choice is incompatible.
+  - Violated prerequisite or constraint: Assessment must match calculation.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
+- Failing function: `send to decision maker`
+  - Source discriminator: `AnnenVurderingService unanswered-assessment guard`
+  - Failure condition: A required other assessment is unanswered.
+  - Why it fails: Decision control cannot start.
+  - Violated prerequisite or constraint: All assessments must be answered.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
 - Failing function: `decide treatment`
-  - Failure condition: caller lacks decision-maker role for ordinary treatment.
-  - Why it fails: controller verifies `BehandlerRolle.BESLUTTER`.
-  - Violated prerequisite or constraint: decision action requires decision-maker authority.
+  - Source discriminator: `TotrinnskontrollService control guards`
+  - Failure condition: Control is missing or self-approved.
+  - Why it fails: Two-step control is invalid.
+  - Violated prerequisite or constraint: A distinct controller and complete result are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
+- Failing function: `decide treatment`
+  - Source discriminator: `TilkjentYtelseValidering percentage guard`
+  - Failure condition: Payment shares exceed 100 percent.
+  - Why it fails: Implementation rejects over-allocation.
+  - Violated prerequisite or constraint: Total share may not exceed 100 percent.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/steg/StegService.kt — StegService.utførSteg`
 
 Implementation notes: Decision implementation may continue through internal tasks and later non-public steps; this API-visible flow is not a guaranteed synchronous final closure of the treatment.
 
@@ -561,13 +654,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `dismiss treatment`
+  - Source discriminator: `dismissal guards branch for treatment has been sent to external services`
   - Failure condition: treatment has been sent to external services.
   - Why it fails: controller calls `validerBehandlingIkkeSendtTilEksterneTjenester`.
   - Violated prerequisite or constraint: externally sent treatments cannot be dismissed through this endpoint.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/common/BehandlingValidering.kt — dismissal guards`
 - Failing function: `dismiss treatment`
+  - Source discriminator: `dismissal guards branch for årsak=TEKNISK_VEDLIKEHOLD while feature toggle is disabled`
   - Failure condition: `årsak=TEKNISK_VEDLIKEHOLD` while feature toggle is disabled.
   - Why it fails: dismissal-type validation rejects the reason.
   - Violated prerequisite or constraint: feature-gated dismissal reason is not enabled.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/common/BehandlingValidering.kt — dismissal guards`
+- Failing function: `dismiss treatment`
+  - Source discriminator: `BehandlingValidering external-finality guards`
+  - Failure condition: A payment order, repayment instruction, external send, or distributed decision finalized state.
+  - Why it fails: Dismissal conflicts with external finality.
+  - Violated prerequisite or constraint: No external finality may exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/common/BehandlingValidering.kt — dismissal guards`
 
 Implementation notes: Source finishes the treatment after handling dismissal; any dismissal letter side effect is handled by step services.
 
@@ -610,9 +713,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `register institution and guardian`
+  - Source discriminator: `registration method branch for request contains neither valid institution data nor valid guardian data`
   - Failure condition: request contains neither valid institution data nor valid guardian data.
   - Why it fails: controller returns `Ressurs.failure("Ugydig verge info")`.
   - Violated prerequisite or constraint: registration must provide meaningful institution or guardian information.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/UtvidetBehandlingController.kt — registration method`
 
 Implementation notes: The failure response can be HTTP 200 with failure resource; clients must inspect the resource payload.
 
@@ -656,13 +761,35 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `add child to basis`
+  - Source discriminator: `child-basis methods branch for treatment is closed or locked`
   - Failure condition: treatment is closed or locked.
   - Why it fails: implementation validates editability.
   - Violated prerequisite or constraint: person basis can be changed only on editable treatments.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — child-basis methods`
 - Failing function: `add child to basis`
+  - Source discriminator: `child-basis methods branch for barnIdent=C1 cannot be resolved or processed`
   - Failure condition: `barnIdent=C1` cannot be resolved or processed.
   - Why it fails: person lookup/validation fails while building basis.
   - Violated prerequisite or constraint: child must be a valid treatment person.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — child-basis methods`
+- Failing function: `add child to basis`
+  - Source discriminator: `PersongrunnlagService missing-basis guard`
+  - Failure condition: No active person basis exists.
+  - Why it fails: There is no basis to extend.
+  - Violated prerequisite or constraint: An active basis is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — child-basis methods`
+- Failing function: `add child to basis`
+  - Source discriminator: `PersongrunnlagService duplicate-child guard`
+  - Failure condition: The child already belongs to the basis.
+  - Why it fails: A duplicate relation is rejected.
+  - Violated prerequisite or constraint: A child may occur only once.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — child-basis methods`
+- Failing function: `add child to basis`
+  - Source discriminator: `PersongrunnlagService post-refresh guard`
+  - Failure condition: The child remains absent after refresh.
+  - Why it fails: The relation was not established.
+  - Violated prerequisite or constraint: The refreshed basis must contain the child.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — child-basis methods`
 
 Implementation notes: This mutation has broader side effects than a child-row insert because later steps are reset.
 
@@ -710,21 +837,47 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `set treatment on wait`
+  - Source discriminator: `wait-state guards branch for treatment already has active wait`
   - Failure condition: treatment already has active wait.
   - Why it fails: `validerBehandlingKanSettesPåVent` rejects duplicate active wait.
   - Violated prerequisite or constraint: only one active wait record per treatment.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
 - Failing function: `set treatment on wait`
+  - Source discriminator: `wait-state guards branch for frist is before today`
   - Failure condition: `frist` is before today.
   - Why it fails: deadline validation rejects past deadlines.
   - Violated prerequisite or constraint: wait deadline must be current/future.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
 - Failing function: `update wait`
+  - Source discriminator: `wait-state guards branch for new frist and årsak equal existing values`
   - Failure condition: new `frist` and `årsak` equal existing values.
   - Why it fails: service rejects no-op updates.
   - Violated prerequisite or constraint: update must change wait state.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
 - Failing function: `resume treatment`
+  - Source discriminator: `wait-state guards branch for no active wait exists`
   - Failure condition: no active wait exists.
   - Why it fails: `gjenopptaBehandling` requires active wait and waiting status.
   - Violated prerequisite or constraint: treatment must currently be on wait.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
+- Failing function: `set treatment on wait`
+  - Source discriminator: `SettPåVentUtils wait-state guards`
+  - Failure condition: An active wait exists, deadline is past, or lifecycle disallows waiting.
+  - Why it fails: The transition is rejected.
+  - Violated prerequisite or constraint: Eligible state, no wait, and a non-past deadline are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
+- Failing function: `update wait`
+  - Source discriminator: `SettPåVentService active-wait/deadline guards`
+  - Failure condition: No active wait exists or the new deadline is past.
+  - Why it fails: No mutable valid wait exists.
+  - Violated prerequisite or constraint: An active wait and valid deadline are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
+- Failing function: `resume treatment`
+  - Source discriminator: `SettPåVentUtils resume-state guard`
+  - Failure condition: No active wait exists or it is not manually resumable, including machine wait.
+  - Why it fails: Resume is invalid.
+  - Violated prerequisite or constraint: A manual resumable wait is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/behandling/settpåvent/SettPåVentUtils.kt — wait-state guards`
 
 Implementation notes: Wait creation publishes treatment statistics and extends open task deadlines; resume sets open task deadlines to tomorrow and publishes statistics through wait save.
 
@@ -769,9 +922,59 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve full person information`
-  - Failure condition: upstream person lookup fails.
-  - Why it fails: person service depends on external register/PDL data.
-  - Violated prerequisite or constraint: `personIdent` must resolve upstream.
+  - Source discriminator: `PersonopplysningerService missing-birth-data outcome`
+  - Failure condition: Required birth information is absent.
+  - Why it fails: The requested domain person view cannot be constructed.
+  - Violated prerequisite or constraint: Required birth information must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve full person information`
+  - Source discriminator: `PersonopplysningerService discontinued-identity outcome`
+  - Failure condition: The identity has ceased without a usable current identity.
+  - Why it fails: The person cannot be resolved as an active domain subject.
+  - Violated prerequisite or constraint: A usable current identity must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve full person information`
+  - Source discriminator: `PersonopplysningerService actor-not-found outcome`
+  - Failure condition: No domain actor resolves for the supplied identity.
+  - Why it fails: The person-scoped operation has no persisted subject.
+  - Violated prerequisite or constraint: The identity must resolve to a domain actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve simple person information`
+  - Source discriminator: `PersonopplysningerService missing-birth-data outcome`
+  - Failure condition: Required birth information is absent.
+  - Why it fails: The requested domain person view cannot be constructed.
+  - Violated prerequisite or constraint: Required birth information must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve simple person information`
+  - Source discriminator: `PersonopplysningerService discontinued-identity outcome`
+  - Failure condition: The identity has ceased without a usable current identity.
+  - Why it fails: The person cannot be resolved as an active domain subject.
+  - Violated prerequisite or constraint: A usable current identity must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve simple person information`
+  - Source discriminator: `PersonopplysningerService actor-not-found outcome`
+  - Failure condition: No domain actor resolves for the supplied identity.
+  - Why it fails: The person-scoped operation has no persisted subject.
+  - Violated prerequisite or constraint: The identity must resolve to a domain actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve person address`
+  - Source discriminator: `PersonopplysningerService missing-birth-data outcome`
+  - Failure condition: Required birth information is absent.
+  - Why it fails: The requested domain person view cannot be constructed.
+  - Violated prerequisite or constraint: Required birth information must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve person address`
+  - Source discriminator: `PersonopplysningerService discontinued-identity outcome`
+  - Failure condition: The identity has ceased without a usable current identity.
+  - Why it fails: The person cannot be resolved as an active domain subject.
+  - Violated prerequisite or constraint: A usable current identity must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
+- Failing function: `retrieve person address`
+  - Source discriminator: `PersonopplysningerService actor-not-found outcome`
+  - Failure condition: No domain actor resolves for the supplied identity.
+  - Why it fails: The person-scoped operation has no persisted subject.
+  - Violated prerequisite or constraint: The identity must resolve to a domain actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/pdl/PersonopplysningerService.kt — PersonopplysningerService`
 
 Implementation notes: OpenAPI exposes `personIdentBody` for `GET /api/person`, but source uses the `personIdent` header and does not use that body-style parameter.
 
@@ -815,13 +1018,35 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `register manual death`
+  - Source discriminator: `register/death methods branch for personIdent=P2 is not part of treatment B1`
   - Failure condition: `personIdent=P2` is not part of treatment `B1`.
   - Why it fails: service validates treatment/person relationship.
   - Violated prerequisite or constraint: manual death can only be recorded for a treatment participant.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — register/death methods`
 - Failing function: `refresh register information`
+  - Source discriminator: `register/death methods branch for behandlingId=B404 does not exist`
   - Failure condition: `behandlingId=B404` does not exist.
   - Why it fails: treatment lookup fails.
   - Violated prerequisite or constraint: treatment must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — register/death methods`
+- Failing function: `register manual death`
+  - Source discriminator: `PersongrunnlagService duplicate-death guard`
+  - Failure condition: A death date is already registered.
+  - Why it fails: A conflicting second record is rejected.
+  - Violated prerequisite or constraint: Only one effective death date may exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — register/death methods`
+- Failing function: `register manual death`
+  - Source discriminator: `PersongrunnlagService death-before-birth guard`
+  - Failure condition: Death date precedes birth date.
+  - Why it fails: The chronology is impossible.
+  - Violated prerequisite or constraint: Death cannot precede birth.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — register/death methods`
+- Failing function: `register manual death`
+  - Source discriminator: `missing-condition-assessment outcome`
+  - Failure condition: Dependent condition assessment is absent.
+  - Why it fails: Eligibility state cannot be updated.
+  - Violated prerequisite or constraint: Required assessments must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/grunnlag/personopplysninger/PersongrunnlagService.kt — register/death methods`
 
 Implementation notes: `refresh register information` is mutating despite being exposed as `GET`.
 
@@ -874,17 +1099,35 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update condition`
+  - Source discriminator: `VilkårsvurderingValidering branch for vilkaarId=V404 does not identify a condition in the treatment`
   - Failure condition: `vilkaarId=V404` does not identify a condition in the treatment.
   - Why it fails: service cannot load/update the condition result.
   - Violated prerequisite or constraint: condition id must come from treatment state.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vilkårsvurdering/VilkårsvurderingValidering.kt — validation methods`
 - Failing function: `delete condition period`
+  - Source discriminator: `VilkårsvurderingValidering branch for body person identity does not own the requested period`
   - Failure condition: body person identity does not own the requested period.
   - Why it fails: deletion resolves person/condition ownership.
   - Violated prerequisite or constraint: period deletion must target the correct treatment person.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vilkårsvurdering/VilkårsvurderingValidering.kt — validation methods`
 - Failing function: `update other assessment`
+  - Source discriminator: `VilkårsvurderingValidering branch for annenVurderingId=A404 is missing`
   - Failure condition: `annenVurderingId=A404` is missing.
   - Why it fails: service cannot find the other-assessment record.
   - Violated prerequisite or constraint: assessment id must exist under treatment.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vilkårsvurdering/VilkårsvurderingValidering.kt — validation methods`
+- Failing function: `update condition`
+  - Source discriminator: `VilkårsvurderingValidering explanation-compatibility outcomes`
+  - Failure condition: Result, type, and explanation are incompatible.
+  - Why it fails: The named validator rejects the combination.
+  - Violated prerequisite or constraint: Explanation must match condition and result.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vilkårsvurdering/VilkårsvurderingValidering.kt — validation methods`
+- Failing function: `add condition`
+  - Source discriminator: `duplicate-unassessed-condition guard`
+  - Failure condition: An equivalent unassessed condition already exists.
+  - Why it fails: Duplicate pending assessment is rejected.
+  - Violated prerequisite or constraint: Only one matching unassessed condition may exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vilkårsvurdering/VilkårsvurderingValidering.kt — validation methods`
 
 Implementation notes: These mutations are not isolated edits; they are treatment-state reset points.
 
@@ -931,13 +1174,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `upsert competence interval`
+  - Source discriminator: `PeriodeOgBarnSkjemaService branch for missing fom, empty barnIdenter, or fom > tom`
   - Failure condition: missing `fom`, empty `barnIdenter`, or `fom > tom`.
   - Why it fails: controller validation rejects invalid period/child list.
   - Violated prerequisite or constraint: competence interval must be well-formed.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/felles/PeriodeOgBarnSkjemaService.kt — validation methods`
 - Failing function: `delete competence interval`
+  - Source discriminator: `PeriodeOgBarnSkjemaService branch for kompetanseId=K1 belongs to another treatment`
   - Failure condition: `kompetanseId=K1` belongs to another treatment.
   - Why it fails: shared schema deletion rejects treatment/id mismatch.
   - Violated prerequisite or constraint: child resource id must belong to `behandlingId=B1`.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/felles/PeriodeOgBarnSkjemaService.kt — validation methods`
+- Failing function: `upsert competence interval`
+  - Source discriminator: `PeriodeOgBarnSkjemaService validation outcomes`
+  - Failure condition: `fom` is missing, dates are reversed, no child is selected, or activities are invalid.
+  - Why it fails: The shared EEA validator rejects the interval.
+  - Violated prerequisite or constraint: Period, children, and activities must be valid.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/felles/PeriodeOgBarnSkjemaService.kt — validation methods`
 
 Implementation notes: Competence upsert is period-and-child based, not simple row overwrite.
 
@@ -982,13 +1235,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update foreign period amount`
-  - Failure condition: `beløp < 0`.
-  - Why it fails: request model decimal-min validation rejects negative amount.
-  - Violated prerequisite or constraint: foreign amount must be non-negative.
-- Failing function: `update foreign period amount`
+  - Source discriminator: `UtenlandskPeriodebeløpService branch for body id=U404 does not exist`
   - Failure condition: body `id=U404` does not exist.
   - Why it fails: implementation loads the existing row to preserve country data.
   - Violated prerequisite or constraint: update requires pre-existing foreign amount row.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/utenlandskperiodebeløp/UtenlandskPeriodebeløpService.kt — mutation methods`
 
 Implementation notes: This area has update/delete but no API-realizable create workflow for the initial row.
 
@@ -1032,13 +1283,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update currency rate from ECB`
+  - Source discriminator: `update method branch for id=VK404 does not exist`
   - Failure condition: `id=VK404` does not exist.
   - Why it fails: controller/service loads existing rate for comparison.
   - Violated prerequisite or constraint: update requires pre-existing currency-rate row.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/valutakurs/ValutakursService.kt — update method`
 - Failing function: `update currency rate from ECB`
+  - Source discriminator: `update method branch for ECB cannot provide a rate for supplied code/date`
   - Failure condition: ECB cannot provide a rate for supplied code/date.
   - Why it fails: ECB service throws.
   - Violated prerequisite or constraint: external rate data must be available.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/valutakurs/ValutakursService.kt — update method`
+- Failing function: `update currency rate from ECB`
+  - Source discriminator: `ECBService no-business-rate result`
+  - Failure condition: No applicable ECB rate exists for currency and date.
+  - Why it fails: No domain rate can be calculated.
+  - Violated prerequisite or constraint: An applicable business rate must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/valutakurs/ValutakursService.kt — update method`
 
 Implementation notes: Source compares incoming code/date against existing row and fetches from ECB only when changed.
 
@@ -1082,14 +1343,12 @@ Constraints and invariants:
 - Treatment must be editable.
 
 Failure and exceptional cases:
-- Failing function: `set historical ISK rate manually`
-  - Failure condition: `valutakode=EUR` with historical date and manual `kurs`.
-  - Why it fails: the code path is ECB branch, not manual branch; missing/invalid ECB data can fail.
-  - Violated prerequisite or constraint: manual branch requires historical ISK.
 - Failing function: `delete currency rate`
+  - Source discriminator: `ValutakursService branch for valutakursId=VK1 does not belong to behandlingId=B1`
   - Failure condition: `valutakursId=VK1` does not belong to `behandlingId=B1`.
   - Why it fails: shared schema deletion rejects id/treatment mismatch.
   - Violated prerequisite or constraint: currency-rate id must belong to the treatment.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/valutakurs/ValutakursService.kt — mutation methods`
 
 Implementation notes: The branch distinction is implemented in controller code with `LocalDate.of(2018, 2, 1)`.
 
@@ -1138,13 +1397,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update changed payment share`
+  - Source discriminator: `EndretUtbetalingAndelValidering branch for personIdent=P2 is not in the treatment`
   - Failure condition: `personIdent=P2` is not in the treatment.
   - Why it fails: service resolves body person identity against treatment persons.
   - Violated prerequisite or constraint: changed-payment share must target a treatment person.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/endretutbetaling/EndretUtbetalingAndelValidering.kt — validation methods`
 - Failing function: `delete changed payment share`
+  - Source discriminator: `EndretUtbetalingAndelValidering branch for endretUtbetalingAndelId=EUA404 does not exist`
   - Failure condition: `endretUtbetalingAndelId=EUA404` does not exist.
   - Why it fails: service cannot find share for deletion.
   - Violated prerequisite or constraint: share id must come from creation or treatment state.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/endretutbetaling/EndretUtbetalingAndelValidering.kt — validation methods`
+- Failing function: `create changed payment share`
+  - Source discriminator: `EndretUtbetalingAndelValidering named outcomes`
+  - Failure condition: Reason, period, percentage, person, entitlement overlap, or share relation is invalid.
+  - Why it fails: A source-distinct validator rejects the adjustment.
+  - Violated prerequisite or constraint: All adjustment inputs and relationships must be valid.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/endretutbetaling/EndretUtbetalingAndelValidering.kt — validation methods`
 
 Implementation notes: Create/update/delete all call the reset-to-treatment-result service after recalculation changes.
 
@@ -1185,9 +1454,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve EØS timelines`
+  - Source discriminator: `timeline methods branch for behandlingId=B404 does not exist`
   - Failure condition: `behandlingId=B404` does not exist.
   - Why it fails: treatment lookup/access fails.
   - Violated prerequisite or constraint: treatment must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/vilkårsvurdering/VilkårsvurderingTidslinjeService.kt — timeline methods`
+- Failing function: `retrieve EØS timelines`
+  - Source discriminator: `timeline prerequisite outcomes`
+  - Failure condition: Treatment or condition-assessment basis is absent.
+  - Why it fails: Timelines cannot be derived.
+  - Violated prerequisite or constraint: Treatment and assessment basis must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/eøs/vilkårsvurdering/VilkårsvurderingTidslinjeService.kt — timeline methods`
 
 Implementation notes: This is a read-only behavior used frequently to verify EEA side-resource mutations.
 
@@ -1233,13 +1510,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update EØS refund period`
+  - Source discriminator: `RefusjonEøsService branch for id=R404 does not exist`
   - Failure condition: `id=R404` does not exist.
   - Why it fails: service lookup throws when refund period id is missing.
   - Violated prerequisite or constraint: period id must come from creation/list.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/refusjonEøs/RefusjonEøsService.kt — mutation methods`
 - Failing function: `delete EØS refund period`
+  - Source discriminator: `RefusjonEøsService branch for id=R404 does not exist`
   - Failure condition: `id=R404` does not exist.
   - Why it fails: service logs the period before deleting and lookup throws.
   - Violated prerequisite or constraint: period id must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/refusjonEøs/RefusjonEøsService.kt — mutation methods`
 
 Implementation notes: Update does not pass `behandlingId` to the service lookup, so id/path ownership is weaker than the endpoint shape implies.
 
@@ -1285,13 +1566,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update overpaid currency period`
+  - Source discriminator: `FeilutbetaltValutaService branch for id=FV404 does not exist`
   - Failure condition: `id=FV404` does not exist.
   - Why it fails: service lookup throws when id is not found.
   - Violated prerequisite or constraint: period id must come from creation/list.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/feilutbetaltValuta/FeilutbetaltValutaService.kt — mutation methods`
 - Failing function: `delete overpaid currency period`
+  - Source discriminator: `FeilutbetaltValutaService branch for id=FV404 does not exist`
   - Failure condition: `id=FV404` does not exist.
   - Why it fails: service logs the period before deleting and lookup throws.
   - Violated prerequisite or constraint: period id must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/feilutbetaltValuta/FeilutbetaltValutaService.kt — mutation methods`
 
 Implementation notes: Update service loads by `id` and does not enforce `behandlingId` ownership in the service call itself.
 
@@ -1335,13 +1620,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create corrected decision metadata`
+  - Source discriminator: `KorrigertVedtakService branch for treatment is not editable`
   - Failure condition: treatment is not editable.
   - Why it fails: controller calls `validerBehandlingKanRedigeres`.
   - Violated prerequisite or constraint: correction metadata can be changed only on editable treatment.
-- Failing function: `deactivate corrected decision metadata`
-  - Failure condition: no active metadata exists.
-  - Why it fails: service returns null/no-op rather than throwing.
-  - Violated prerequisite or constraint: domain expectation of an active correction is not enforced as failure.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/korrigertvedtak/KorrigertVedtakService.kt — mutation methods`
 
 Implementation notes: There is no dedicated list/retrieve endpoint for corrected-decision metadata.
 
@@ -1386,13 +1669,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create corrected after-payment metadata`
+  - Source discriminator: `KorrigertEtterbetalingService branch for treatment is not editable`
   - Failure condition: treatment is not editable.
   - Why it fails: controller validates editability.
   - Violated prerequisite or constraint: correction metadata requires editable treatment.
-- Failing function: `list corrected after-payment metadata`
-  - Failure condition: caller lacks access to the treatment.
-  - Why it fails: controller validates treatment access.
-  - Violated prerequisite or constraint: list requires authorized access.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/korrigertetterbetaling/KorrigertEtterbetalingService.kt — mutation methods`
 
 Implementation notes: Deactivation without an active correction is effectively a no-op in service logic.
 
@@ -1436,9 +1717,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `remove small child supplement correction`
+  - Source discriminator: `SmåbarnstilleggKorrigeringService branch for no correction exists for årMåned=YM1`
   - Failure condition: no correction exists for `årMåned=YM1`.
   - Why it fails: service cannot remove a non-existing correction for the treatment/month.
   - Violated prerequisite or constraint: removal requires existing month correction.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/småbarnstilleggkorrigering/SmåbarnstilleggKorrigeringService.kt — mutation methods`
+- Failing function: `add small child supplement correction`
+  - Source discriminator: `duplicate-month guard`
+  - Failure condition: A correction already exists for the month.
+  - Why it fails: Duplicate correction is rejected.
+  - Violated prerequisite or constraint: Only one correction per month may exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/småbarnstilleggkorrigering/SmåbarnstilleggKorrigeringService.kt — mutation methods`
 
 Implementation notes: The API depends on treatment reads to observe correction state.
 
@@ -1481,9 +1770,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `preview repayment warning letter`
+  - Source discriminator: `warning preview branch for behandlingId=B404 does not exist`
   - Failure condition: `behandlingId=B404` does not exist.
   - Why it fails: treatment lookup/document-generation basis fails.
   - Violated prerequisite or constraint: treatment must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/BrevService.kt — warning preview`
+- Failing function: `preview repayment warning letter`
+  - Source discriminator: `decision/person-basis/unit prerequisites`
+  - Failure condition: Active decision, person basis, or handling unit is missing.
+  - Why it fails: The warning-letter basis is incomplete.
+  - Violated prerequisite or constraint: All prerequisites must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/BrevService.kt — warning preview`
 
 Implementation notes: Preview and send are intentionally separated; this function is read-like but computational.
 
@@ -1527,13 +1824,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve decision letter`
+  - Source discriminator: `BrevService branch for letter has not been generated for vedtakId=Vd1`
   - Failure condition: letter has not been generated for `vedtakId=Vd1`.
   - Why it fails: retrieval expects stored/generated document state.
   - Violated prerequisite or constraint: generation must precede retrieval.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/BrevService.kt — decision-letter methods`
 - Failing function: `generate decision letter`
+  - Source discriminator: `BrevService branch for vedtakId=V404 does not exist`
   - Failure condition: `vedtakId=V404` does not exist.
   - Why it fails: document service cannot load decision basis.
   - Violated prerequisite or constraint: decision id must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/BrevService.kt — decision-letter methods`
+- Failing function: `generate decision letter`
+  - Source discriminator: `template/result/explanation guards`
+  - Failure condition: Lifecycle, template, explanations, or cessation period structure is unsupported.
+  - Why it fails: The letter cannot be composed.
+  - Violated prerequisite or constraint: Document prerequisites must be supported.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/BrevService.kt — decision-letter methods`
 
 Implementation notes: Decision letter generation is a mutating `POST`; retrieval is a binary/document response.
 
@@ -1577,9 +1884,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `send treatment letter`
+  - Source discriminator: `manual treatment letter methods branch for ManueltBrevRequest lacks required template/recipient content`
   - Failure condition: `ManueltBrevRequest` lacks required template/recipient content.
   - Why it fails: document service cannot generate/send a valid manual letter.
   - Violated prerequisite or constraint: request body must define a valid manual letter.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/DokumentService.kt — manual treatment letter methods`
+- Failing function: `preview treatment letter`
+  - Source discriminator: `manual-template validation outcomes`
+  - Failure condition: SED, cohabitation date, response weeks, or template choice is invalid.
+  - Why it fails: The template strategy rejects the content.
+  - Violated prerequisite or constraint: Template-specific rules must hold.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/DokumentService.kt — manual treatment letter methods`
+- Failing function: `send treatment letter`
+  - Source discriminator: `participant/confidentiality guards`
+  - Failure condition: Recipient is not a participant or confidentiality disallows it.
+  - Why it fails: Distribution is rejected.
+  - Violated prerequisite or constraint: Recipient and confidentiality rules must hold.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/DokumentService.kt — manual treatment letter methods`
 
 Implementation notes: Preview and send are separate; clients must control request equality if they require preview/send consistency.
 
@@ -1623,9 +1944,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `send case letter`
+  - Source discriminator: `manual case letter methods branch for fagsakId=F404 does not exist`
   - Failure condition: `fagsakId=F404` does not exist.
   - Why it fails: case/document basis cannot be loaded.
   - Violated prerequisite or constraint: parent case must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/DokumentService.kt — manual case letter methods`
+- Failing function: `send case letter`
+  - Source discriminator: `case/institution lookup outcomes`
+  - Failure condition: Case or selected institution relation is absent.
+  - Why it fails: Recipient context is invalid.
+  - Violated prerequisite or constraint: Case and relation must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/DokumentService.kt — manual case letter methods`
 
 Implementation notes: This workflow is distinct from treatment-scoped letters because no `behandlingId` is required.
 
@@ -1671,13 +2000,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `add letter recipient`
+  - Source discriminator: `BrevmottakerService branch for treatment contains strictly confidential person and manual recipient is disallowed`
   - Failure condition: treatment contains strictly confidential person and manual recipient is disallowed.
   - Why it fails: validation service rejects the combination.
   - Violated prerequisite or constraint: confidentiality rules restrict manual recipients.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/mottaker/BrevmottakerService.kt — recipient methods`
 - Failing function: `delete letter recipient`
+  - Source discriminator: `BrevmottakerService branch for mottakerId=M404 does not exist`
   - Failure condition: `mottakerId=M404` does not exist.
   - Why it fails: service throws when recipient id is missing.
   - Violated prerequisite or constraint: deletion requires existing recipient id.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/mottaker/BrevmottakerService.kt — recipient methods`
+- Failing function: `add letter recipient`
+  - Source discriminator: `editability/confidentiality guards`
+  - Failure condition: Treatment is non-editable or confidentiality disallows recipient.
+  - Why it fails: Recipient cannot be attached.
+  - Violated prerequisite or constraint: Editable state and permitted recipient are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/brev/mottaker/BrevmottakerService.kt — recipient methods`
 
 Implementation notes: Delete validates access to `behandlingId` but service deletes by `mottakerId`; ownership enforcement is weaker than the path shape suggests.
 
@@ -1729,13 +2068,29 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update standard explanations`
+  - Source discriminator: `explanation methods branch for body contains an explanation string not convertible to a known enum`
   - Failure condition: body contains an explanation string not convertible to a known enum.
   - Why it fails: controller maps names through `IVedtakBegrunnelse.konverterTilEnumVerdi`.
   - Violated prerequisite or constraint: explanation names must be recognized.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/vedtaksperiode/VedtaksperiodeService.kt — explanation methods`
 - Failing function: `generate letter explanation texts`
+  - Source discriminator: `explanation methods branch for decision period contains unsupported explanation data`
   - Failure condition: decision period contains unsupported explanation data.
   - Why it fails: controller throws `Feil("Ukjent begrunnelsestype")`.
   - Violated prerequisite or constraint: explanation data must be a supported type.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/vedtaksperiode/VedtaksperiodeService.kt — explanation methods`
+- Failing function: `update standard explanations`
+  - Source discriminator: `period/explanation/rejection guards`
+  - Failure condition: Period is missing, explanation unknown, or removal contradicts rejection result.
+  - Why it fails: The explanation set would be invalid.
+  - Violated prerequisite or constraint: Period and compatible explanations must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/vedtaksperiode/VedtaksperiodeService.kt — explanation methods`
+- Failing function: `generate letter explanation texts`
+  - Source discriminator: `generated-type outcome`
+  - Failure condition: A generated explanation type is unsupported.
+  - Why it fails: Final text cannot be assembled.
+  - Violated prerequisite or constraint: Every generated type must be supported.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/vedtak/vedtaksperiode/VedtaksperiodeService.kt — explanation methods`
 
 Implementation notes: Period regeneration can invalidate ids acquired earlier in the workflow.
 
@@ -1775,10 +2130,7 @@ Constraints and invariants:
 - The function is read-only.
 
 Failure and exceptional cases:
-- Failing function: `retrieve treatment log`
-  - Failure condition: invalid treatment id or repository failure.
-  - Why it fails: controller catches retrieval errors and returns bad-request resource.
-  - Violated prerequisite or constraint: valid treatment/log state is required.
+None.
 
 Implementation notes: This behavior is often verification for other mutations.
 
@@ -1820,13 +2172,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve BISYS extended benefit`
+  - Source discriminator: `lookup method branch for fraDato < today - 5 years`
   - Failure condition: `fraDato < today - 5 years`.
   - Why it fails: controller throws BAD_REQUEST external-service error.
   - Violated prerequisite or constraint: BISYS lookup window is limited.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/bisys/BisysController.kt — lookup method`
 - Failing function: `retrieve BISYS extended benefit`
+  - Source discriminator: `lookup method branch for unknown personIdent`
   - Failure condition: unknown `personIdent`.
   - Why it fails: PDL not-found `Feil` is converted to BAD_REQUEST external-service error.
   - Violated prerequisite or constraint: person must exist upstream.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/bisys/BisysController.kt — lookup method`
 
 Implementation notes: This is an integration read, not a caseworker workflow.
 
@@ -1869,9 +2225,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve pension child benefit`
+  - Source discriminator: `lookup method branch for fraDato is older than the allowed two-year window`
   - Failure condition: `fraDato` is older than the allowed two-year window.
   - Why it fails: the controller throws a BAD_REQUEST external service error.
   - Violated prerequisite or constraint: Pension lookup date window.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/pensjon/PensjonController.kt — lookup method`
+- Failing function: `retrieve pension child benefit`
+  - Source discriminator: `actor-not-found outcome`
+  - Failure condition: Identity cannot resolve to actor.
+  - Why it fails: No pension case can be scoped.
+  - Violated prerequisite or constraint: Identity must resolve to actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/pensjon/PensjonController.kt — lookup method`
+- Failing function: `retrieve pension child benefit`
+  - Source discriminator: `implemented-treatment prerequisite`
+  - Failure condition: Implemented treatment lacks awarded-benefit or payment state.
+  - Why it fails: Finalized response cannot be mapped.
+  - Violated prerequisite or constraint: Implemented state must be complete.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/pensjon/PensjonController.kt — lookup method`
 
 Implementation notes: This is separate from yearly Pension export; no id returned here is consumed by the export endpoint.
 
@@ -1913,9 +2283,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `order pension yearly export`
+  - Source discriminator: `export method branch for år=1969 or år=2301`
   - Failure condition: `år=1969` or `år=2301`.
   - Why it fails: the controller throws `IllegalArgumentException` for year outside range.
   - Violated prerequisite or constraint: allowed export year.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/pensjon/PensjonController.kt — export method`
 
 Implementation notes: This behavior does not consume data returned by `retrieve pension child benefit`.
 
@@ -1958,10 +2330,7 @@ Constraints and invariants:
 - Production list may use real or fallback data according to feature-toggle state, but the endpoint is still the production path.
 
 Failure and exceptional cases:
-- Failing function: `retrieve tax periods`
-  - Failure condition: body lacks `identer` or `aar`.
-  - Why it fails: the request cannot map to a tax period query.
-  - Violated prerequisite or constraint: period lookup requires identities and year.
+None.
 
 Implementation notes: Production and test endpoints are separate exposed capabilities and are modeled separately.
 
@@ -2004,10 +2373,7 @@ Constraints and invariants:
 - They are not interchangeable required steps for production export.
 
 Failure and exceptional cases:
-- Failing function: `retrieve tax periods test`
-  - Failure condition: body lacks required identity/year fields.
-  - Why it fails: the test period query cannot be built.
-  - Violated prerequisite or constraint: test period lookup requires identities and year.
+None.
 
 Implementation notes: This behavior is intentionally split from production tax export.
 
@@ -2051,9 +2417,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve Infotrygd cases`
-  - Failure condition: upstream Infotrygd service failure.
-  - Why it fails: controller delegates to integration service.
-  - Violated prerequisite or constraint: Infotrygd integration must be available.
+  - Source discriminator: `actor-resolution not-found outcome`
+  - Failure condition: The applicant identity cannot be resolved to a domain actor.
+  - Why it fails: The legacy query cannot be scoped to a persisted applicant.
+  - Violated prerequisite or constraint: The identity must resolve to a domain actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/infotrygd/InfotrygdController.kt — InfotrygdController`
+- Failing function: `retrieve Infotrygd benefits`
+  - Source discriminator: `actor-resolution not-found outcome`
+  - Failure condition: The applicant identity cannot be resolved to a domain actor.
+  - Why it fails: The legacy query cannot be scoped to a persisted applicant.
+  - Violated prerequisite or constraint: The identity must resolve to a domain actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/infotrygd/InfotrygdController.kt — InfotrygdController`
 
 Implementation notes: These are lookup behaviors only; they do not establish migration state by themselves.
 
@@ -2096,13 +2470,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `search collaborator`
+  - Source discriminator: `SamhandlerController branch for body has no navn, postnummer, or område`
   - Failure condition: body has no `navn`, `postnummer`, or `område`.
   - Why it fails: controller throws BAD_REQUEST.
   - Violated prerequisite or constraint: at least one search variable is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/institusjon/SamhandlerController.kt — collaborator methods`
 - Failing function: `retrieve collaborator by organization`
+  - Source discriminator: `SamhandlerController branch for orgnr=UNKNOWN`
   - Failure condition: `orgnr=UNKNOWN`.
   - Why it fails: not-found exceptions are converted to functional 404.
   - Violated prerequisite or constraint: collaborator must exist upstream.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/institusjon/SamhandlerController.kt — collaborator methods`
 
 Implementation notes: This workflow can provide institution details but does not itself create an institution case.
 
@@ -2146,9 +2524,23 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `create complaint treatment`
+  - Source discriminator: `KlageService branch for fagsakId=F404 does not exist`
   - Failure condition: `fagsakId=F404` does not exist.
   - Why it fails: complaint creation cannot bind to parent case.
   - Violated prerequisite or constraint: complaint treatment requires existing case.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/klage/KlageService.kt — complaint methods`
+- Failing function: `create complaint treatment`
+  - Source discriminator: `KlageService future-date guard`
+  - Failure condition: Complaint date is in the future.
+  - Why it fails: Chronology is invalid.
+  - Violated prerequisite or constraint: Received date may not be future.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/klage/KlageService.kt — complaint methods`
+- Failing function: `list complaint treatments`
+  - Source discriminator: `response-key consistency outcome`
+  - Failure condition: Response omits requested case key.
+  - Why it fails: Case-scoped list cannot be returned.
+  - Violated prerequisite or constraint: Response must contain requested case.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/klage/KlageService.kt — complaint methods`
 
 Implementation notes: This is internal complaint integration under `/api/fagsaker`, distinct from external Klage M2M revision endpoints.
 
@@ -2191,14 +2583,12 @@ Constraints and invariants:
 - Ordinary user access rules differ for `retrieve complaint decisions`; M2M callers bypass ordinary fagsak access check.
 
 Failure and exceptional cases:
-- Failing function: `check complaint revision creation`
-  - Failure condition: caller is not recognized as Klage.
-  - Why it fails: controller checks `SikkerhetContext.kallKommerFraKlage()`.
-  - Violated prerequisite or constraint: endpoint is reserved for complaint client.
 - Failing function: `create complaint revision`
-  - Failure condition: caller is not recognized as Klage.
-  - Why it fails: same Klage context validation is enforced.
-  - Violated prerequisite or constraint: endpoint is reserved for complaint client.
+  - Source discriminator: `explicit not-created outcome`
+  - Failure condition: An open treatment exists or no decision can be revised.
+  - Why it fails: The precheck returns not-created.
+  - Violated prerequisite or constraint: A revisable decision and no conflict are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/EksternKlageController.kt — revision methods`
 
 Implementation notes: Precheck and creation are separate API calls; no token or precheck result id is bound between them.
 
@@ -2240,9 +2630,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve complaint decisions`
-  - Failure condition: non-M2M caller lacks access to case.
-  - Why it fails: controller performs ordinary fagsak access check.
-  - Violated prerequisite or constraint: caller must be authorized.
+  - Source discriminator: `finalized-decision prerequisites`
+  - Failure condition: Case is missing or completed treatment lacks active timestamped decision.
+  - Why it fails: The complaint payload is incomplete.
+  - Violated prerequisite or constraint: Case and timestamped decision must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/ekstern/EksternKlageController.kt — decision lookup`
 
 Implementation notes: This is a lookup behavior and does not create complaint/revision state.
 
@@ -2283,10 +2675,7 @@ Constraints and invariants:
 - The endpoint does not own task state; it proxies the integration.
 
 Failure and exceptional cases:
-- Failing function: `search tasks`
-  - Failure condition: invalid body or upstream task service failure.
-  - Why it fails: the controller catches retrieval errors and returns illegal state.
-  - Violated prerequisite or constraint: valid search request and available task integration.
+None.
 
 Implementation notes: Discovery is intentionally separate from repair or completion actions.
 
@@ -2329,9 +2718,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `assign task`
-  - Failure condition: `oppgaveId=O1` is missing or cannot be assigned.
-  - Why it fails: upstream task assignment fails through `OppgaveService`.
-  - Violated prerequisite or constraint: task must exist and be assignable.
+  - Source discriminator: `already-assigned/task-not-found outcomes`
+  - Failure condition: Task is missing or assigned to another caseworker.
+  - Why it fails: Conflicting ownership is rejected.
+  - Violated prerequisite or constraint: Task must exist and be assignable.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveService.kt — assignment method`
 
 Implementation notes: Assignment is a distinct transition from reset and completion.
 
@@ -2372,9 +2763,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `reset task assignment`
-  - Failure condition: reset fails upstream.
-  - Why it fails: the controller catches the exception and returns illegal state.
-  - Violated prerequisite or constraint: task must be resettable.
+  - Source discriminator: `task-not-found/nonmutable outcome`
+  - Failure condition: Task is missing or nonmutable.
+  - Why it fails: Assignment cannot be cleared.
+  - Violated prerequisite or constraint: Task must be resettable.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveService.kt — reset method`
 
 Implementation notes: Reset is not a prerequisite for plain completion.
 
@@ -2415,9 +2808,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve journaling task data`
+  - Source discriminator: `journaling-task method branch for oppgaveId=O1 cannot be loaded`
   - Failure condition: `oppgaveId=O1` cannot be loaded.
   - Why it fails: `oppgaveService.hentOppgave` must return an upstream task.
   - Violated prerequisite or constraint: task id must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveController.kt — journaling-task method`
+- Failing function: `retrieve journaling task data`
+  - Source discriminator: `task/person/journalpost outcomes`
+  - Failure condition: Task is missing, person unresolved, or journalpost missing.
+  - Why it fails: Context cannot be assembled.
+  - Violated prerequisite or constraint: All referenced objects must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveController.kt — journaling-task method`
 
 Implementation notes: This is a read workflow; it does not complete or link the task.
 
@@ -2458,9 +2859,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `complete task`
+  - Source discriminator: `completion method branch for oppgaveId=O1 does not identify an open task`
   - Failure condition: `oppgaveId=O1` does not identify an open task.
   - Why it fails: the service cannot load or complete the task.
   - Violated prerequisite or constraint: task must exist and be completable.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveService.kt — completion method`
+- Failing function: `complete task`
+  - Source discriminator: `task-object id outcome`
+  - Failure condition: Task is missing or has no id.
+  - Why it fails: No concrete task can complete.
+  - Violated prerequisite or constraint: Task with id must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/oppgave/OppgaveService.kt — completion method`
 
 Implementation notes: Journalpost-link completion is modeled separately.
 
@@ -2505,9 +2914,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `complete task and link journalpost`
+  - Source discriminator: `link/completion method branch for oppgaveId=O404 or journalpostId=J404 is invalid`
   - Failure condition: `oppgaveId=O404` or `journalpostId=J404` is invalid.
   - Why it fails: task/journal integration cannot complete/link missing resources.
   - Violated prerequisite or constraint: both upstream resources must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/InnkommendeJournalføringService.kt — link/completion method`
+- Failing function: `complete task and link journalpost`
+  - Source discriminator: `task/journalpost/treatment outcomes`
+  - Failure condition: Task, journalpost, or linked treatment is missing.
+  - Why it fails: Link context is incomplete.
+  - Violated prerequisite or constraint: All references must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/InnkommendeJournalføringService.kt — link/completion method`
 
 Implementation notes: This is an alternative to plain task completion and should be modeled separately.
 
@@ -2546,10 +2963,7 @@ Constraints and invariants:
 - This is read-only and does not clear ownership markers.
 
 Failure and exceptional cases:
-- Failing function: `retrieve open treatment deadlines`
-  - Failure condition: deadline lookup fails in the task service.
-  - Why it fails: the controller depends on `OppgaveService` report generation.
-  - Violated prerequisite or constraint: available task integration/state.
+None.
 
 Implementation notes: This report is separate from the ownership-clear mutation.
 
@@ -2589,10 +3003,7 @@ Constraints and invariants:
 - The endpoint does not itself discover task ids.
 
 Failure and exceptional cases:
-- Failing function: `clear application task ownership`
-  - Failure condition: upstream task update fails.
-  - Why it fails: the service cannot remove the marker for invalid/unavailable task ids.
-  - Violated prerequisite or constraint: valid mutable task ids.
+None.
 
 Implementation notes: This is an independent repair action, not part of deadline reporting.
 
@@ -2637,9 +3048,29 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve journal document resource`
+  - Source discriminator: `JournalføringController branch for dokumentInfoId=DOK404 does not belong to journalpostId=J1`
   - Failure condition: `dokumentInfoId=DOK404` does not belong to `journalpostId=J1`.
   - Why it fails: journal integration cannot retrieve the document.
   - Violated prerequisite or constraint: document id must come from journalpost metadata.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/JournalføringController.kt — retrieval methods`
+- Failing function: `retrieve journalpost`
+  - Source discriminator: `journalpost-not-found outcome`
+  - Failure condition: Journalpost is missing.
+  - Why it fails: No metadata can return.
+  - Violated prerequisite or constraint: Journalpost must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/JournalføringController.kt — retrieval methods`
+- Failing function: `retrieve journal document resource`
+  - Source discriminator: `document-membership outcome`
+  - Failure condition: Document is missing or not in journalpost.
+  - Why it fails: Relationship cannot resolve.
+  - Violated prerequisite or constraint: Document must belong to journalpost.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/JournalføringController.kt — retrieval methods`
+- Failing function: `retrieve journal document PDF`
+  - Source discriminator: `document-membership outcome`
+  - Failure condition: Document is missing or not in journalpost.
+  - Why it fails: Relationship cannot resolve.
+  - Violated prerequisite or constraint: Document must belong to journalpost.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/JournalføringController.kt — retrieval methods`
 
 Implementation notes: Resource and PDF document retrieval are separate exposed representations of document bytes.
 
@@ -2684,9 +3115,24 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `journal journalpost`
+  - Source discriminator: `journaling method branch for any dokumentTittel is blank or missing`
   - Failure condition: any `dokumentTittel` is blank or missing.
   - Why it fails: controller throws functional error before journalføring.
   - Violated prerequisite or constraint: all documents must have titles.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/InnkommendeJournalføringService.kt — journaling method`
+- Failing function: `journal journalpost`
+  - Source discriminator: `journalpost/treatment outcomes`
+  - Failure condition: Journalpost or linked treatment is missing.
+  - Why it fails: Journaling context cannot establish.
+  - Violated prerequisite or constraint: Both objects must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/InnkommendeJournalføringService.kt — journaling method`
+- Failing function: `journal journalpost`
+  - Source discriminator: `post-update completeness guard`
+  - Failure condition: After external update, documents or received date remain absent.
+  - Why it fails: The incomplete journalpost is rejected.
+  - Violated prerequisite or constraint: Documents and received date must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/integrasjoner/journalføring/InnkommendeJournalføringService.kt — journaling method`
+  - Persisted outcome despite failure: The external journalpost update has already occurred.
 
 Implementation notes: The title validation is implemented directly in the controller.
 
@@ -2725,10 +3171,7 @@ Constraints and invariants:
 - This is read-only.
 
 Failure and exceptional cases:
-- Failing function: `retrieve feature toggles`
-  - Failure condition: toggle service is unavailable.
-  - Why it fails: implementation depends on feature-toggle service/configuration.
-  - Violated prerequisite or constraint: toggle backend/configuration must be available.
+None.
 
 Implementation notes: This is separate from person access checking.
 
@@ -2767,10 +3210,7 @@ Constraints and invariants:
 - Result depends on caller identity and upstream access rules, not only request body.
 
 Failure and exceptional cases:
-- Failing function: `check person access`
-  - Failure condition: person lookup or access service fails.
-  - Why it fails: the endpoint delegates to access/person services.
-  - Violated prerequisite or constraint: upstream person/access state must be available.
+None.
 
 Implementation notes: This function is not a feature-toggle lookup and has no response binding to `retrieve feature toggles`.
 
@@ -2809,10 +3249,7 @@ Constraints and invariants:
 - The endpoint returns task-queue result, not completed case mutation.
 
 Failure and exceptional cases:
-- Failing function: `handle identity event`
-  - Failure condition: task creation fails.
-  - Why it fails: implementation persists a task for later processing.
-  - Violated prerequisite or constraint: valid event payload and task repository availability.
+None.
 
 Implementation notes: This is independent from transitional-benefit event handling.
 
@@ -2851,10 +3288,7 @@ Constraints and invariants:
 - No immediate treatment mutation is guaranteed in the response.
 
 Failure and exceptional cases:
-- Failing function: `handle transitional benefit event`
-  - Failure condition: task repository failure.
-  - Why it fails: the controller creates a processing task.
-  - Violated prerequisite or constraint: task persistence must be available.
+None.
 
 Implementation notes: This is independent from identity-event processing.
 
@@ -2893,10 +3327,7 @@ Constraints and invariants:
 - This read does not queue or run a rate change.
 
 Failure and exceptional cases:
-- Failing function: `check rate change eligibility`
-  - Failure condition: `fagsakId=F1` is missing.
-  - Why it fails: rate-change service cannot evaluate a nonexistent case.
-  - Violated prerequisite or constraint: case must exist.
+None.
 
 Implementation notes: Synchronous execution is modeled separately.
 
@@ -2936,10 +3367,7 @@ Constraints and invariants:
 - The response does not mean the rate change is completed.
 
 Failure and exceptional cases:
-- Failing function: `trigger rate change for case`
-  - Failure condition: task creation fails for `F1`.
-  - Why it fails: implementation queues asynchronous work.
-  - Violated prerequisite or constraint: valid case and task repository availability.
+None.
 
 Implementation notes: Multi-case and identity-based queueing are separate entry points.
 
@@ -2978,10 +3406,7 @@ Constraints and invariants:
 - This endpoint does not discover cases by identity.
 
 Failure and exceptional cases:
-- Failing function: `trigger rate change for cases`
-  - Failure condition: a supplied case id is invalid.
-  - Why it fails: rate-change task creation requires valid case ids.
-  - Violated prerequisite or constraint: all target ids should identify existing cases.
+None.
 
 Implementation notes: This is split from `trigger rate change from identities` because body values have different domain meaning.
 
@@ -3023,9 +3448,29 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `run synchronous rate change`
+  - Source discriminator: `synchronous rate change branch for F1 is not eligible for rate change`
   - Failure condition: `F1` is not eligible for rate change.
   - Why it fails: rate-change service validates business eligibility.
   - Violated prerequisite or constraint: eligible ongoing case/rate state.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/satsendring/SatsendringService.kt — synchronous rate change`
+- Failing function: `run synchronous rate change`
+  - Source discriminator: `latest-rate guard`
+  - Failure condition: Case already has latest rate.
+  - Why it fails: Duplicate transition is invalid.
+  - Violated prerequisite or constraint: Case must lack latest rate.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/satsendring/SatsendringService.kt — synchronous rate change`
+- Failing function: `run synchronous rate change`
+  - Source discriminator: `prior-treatment guard`
+  - Failure condition: No previous decided ongoing treatment supplies basis.
+  - Why it fails: Revision cannot derive.
+  - Violated prerequisite or constraint: A decided ongoing predecessor must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/satsendring/SatsendringService.kt — synchronous rate change`
+- Failing function: `run synchronous rate change`
+  - Source discriminator: `SatsendringSvar lifecycle outcomes`
+  - Failure condition: Rate change is done or treatment cannot be locked, paused, or bypassed.
+  - Why it fails: The workflow reports rejection.
+  - Violated prerequisite or constraint: Case and treatment must be eligible.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/satsendring/SatsendringService.kt — synchronous rate change`
 
 Implementation notes: The required workflow binds the same `fagsakId` across check and execution.
 
@@ -3065,9 +3510,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `trigger rate change from identities`
-  - Failure condition: an identity cannot be resolved or has no relevant case.
-  - Why it fails or degrades: service cannot bind the identity to a rate-change candidate.
-  - Violated prerequisite or constraint: identity must map to a candidate case for task creation.
+  - Source discriminator: `actor-not-found outcome`
+  - Failure condition: Identity cannot resolve to actor.
+  - Why it fails: Candidate discovery cannot scope.
+  - Violated prerequisite or constraint: Identity must resolve to actor.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/satsendring/SatsendringService.kt — identity resolution`
 
 Implementation notes: This is not equivalent to passing case ids to `trigger rate change for cases`.
 
@@ -3109,9 +3556,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `queue long-deadline dismissals`
+  - Source discriminator: `dismissal selection branch for valideringsdato is invalid or too early`
   - Failure condition: `valideringsdato` is invalid or too early.
   - Why it fails: controller returns bad request.
   - Violated prerequisite or constraint: date must be a valid future maintenance threshold.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterController.kt — dismissal selection`
 
 Implementation notes: This queues work; it does not immediately dismiss the treatments.
 
@@ -3151,10 +3600,7 @@ Constraints and invariants:
 - Job result retrieval is not available through a function in `full-behavior.md`.
 
 Failure and exceptional cases:
-- Failing function: `find cases without latest rate`
-  - Failure condition: background task creation fails.
-  - Why it fails: service cannot start async analysis.
-  - Violated prerequisite or constraint: task infrastructure must be available.
+None.
 
 Implementation notes: Swagger includes shared `/api/task/callId/{callId}`, but no project controller implementation is present and it was not converted to a function.
 
@@ -3193,10 +3639,7 @@ Constraints and invariants:
 - It does not send reconciliation to the economy system.
 
 Failure and exceptional cases:
-- Failing function: `run consistency dry run`
-  - Failure condition: task persistence fails.
-  - Why it fails: the controller creates queued reconciliation work.
-  - Violated prerequisite or constraint: task/batch repository availability.
+None.
 
 Implementation notes: Real reconciliation is separate.
 
@@ -3235,10 +3678,7 @@ Constraints and invariants:
 - This behavior sends to economy when the task executes.
 
 Failure and exceptional cases:
-- Failing function: `run consistency reconciliation`
-  - Failure condition: missing or invalid `triggerTid`.
-  - Why it fails: the task cannot be built with a valid trigger time.
-  - Violated prerequisite or constraint: real reconciliation requires trigger time.
+None.
 
 Implementation notes: Dry run and real run are separate capabilities.
 
@@ -3279,10 +3719,7 @@ Constraints and invariants:
 - Date query parameters must parse as dates.
 
 Failure and exceptional cases:
-- Failing function: `retrieve application statistics`
-  - Failure condition: invalid `fom` or `tom`.
-  - Why it fails: request parameter date binding fails.
-  - Violated prerequisite or constraint: date parameters must be valid dates.
+None.
 
 Implementation notes: These reads do not update statistics sent-state.
 
@@ -3322,9 +3759,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve treatment statistics`
+  - Source discriminator: `treatment mapping branch for missing/incomplete treatment state`
   - Failure condition: missing/incomplete treatment state.
   - Why it fails: controller logs and rethrows mapping errors.
   - Violated prerequisite or constraint: treatment must be mappable.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/saksstatistikk/SaksstatistikkService.kt — treatment mapping`
+- Failing function: `retrieve treatment statistics`
+  - Source discriminator: `treatment/unit outcomes`
+  - Failure condition: Treatment or handling unit is missing.
+  - Why it fails: Statistics context cannot map.
+  - Violated prerequisite or constraint: Treatment and unit must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/saksstatistikk/SaksstatistikkService.kt — treatment mapping`
 
 Implementation notes: Case statistics and sent-registration are separate behaviors.
 
@@ -3364,9 +3809,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve case statistics`
+  - Source discriminator: `case mapping branch for F1 cannot be mapped`
   - Failure condition: `F1` cannot be mapped.
   - Why it fails: statistics service requires valid case state.
   - Violated prerequisite or constraint: case must exist and be mappable.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/saksstatistikk/SaksstatistikkService.kt — case mapping`
+- Failing function: `retrieve case statistics`
+  - Source discriminator: `case/owner outcomes`
+  - Failure condition: Case or owner person is missing.
+  - Why it fails: Statistics context is absent.
+  - Violated prerequisite or constraint: Case and owner must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/saksstatistikk/SaksstatistikkService.kt — case mapping`
 
 Implementation notes: Treatment and case mappings use different aggregate ids.
 
@@ -3406,10 +3859,7 @@ Constraints and invariants:
 - Required JSON nodes must exist.
 
 Failure and exceptional cases:
-- Failing function: `register statistics sent`
-  - Failure condition: `json` lacks `funksjonellId`, `versjon`, `sakId`, or `behandlingId` required by `type`.
-  - Why it fails: the controller reads required JSON nodes and rethrows parsing/null errors.
-  - Violated prerequisite or constraint: complete statistics message metadata.
+None.
 
 Implementation notes: This does not generate the statistics payload itself.
 
@@ -3449,9 +3899,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `retrieve benefit statistics decisions`
+  - Source discriminator: `decision mapping branch for a treatment id cannot be mapped`
   - Failure condition: a treatment id cannot be mapped.
   - Why it fails: statistics mapping requires complete treatment/decision state.
   - Violated prerequisite or constraint: mappable treatment ids.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/stønadsstatistikk/StønadsstatistikkService.kt — decision mapping`
+- Failing function: `retrieve benefit statistics decisions`
+  - Source discriminator: `mapping prerequisites`
+  - Failure condition: Treatment, active person basis, decision date, or benefit-person reference is absent.
+  - Why it fails: Decision payload cannot build.
+  - Violated prerequisite or constraint: Complete references are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/stønadsstatistikk/StønadsstatistikkService.kt — decision mapping`
 
 Implementation notes: Publication queueing is modeled separately.
 
@@ -3493,9 +3951,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `queue unsent benefit statistics`
-  - Failure condition: treatment mapping or task creation fails.
-  - Why it fails: service must map and queue each treatment.
-  - Violated prerequisite or constraint: eligible, mappable treatment ids and task repository availability.
+  - Source discriminator: `mapping prerequisites`
+  - Failure condition: Treatment, active basis, decision date, or benefit-person reference is absent.
+  - Why it fails: Publication payload cannot build.
+  - Violated prerequisite or constraint: Complete references are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/stønadsstatistikk/StønadsstatistikkService.kt — queue method`
 
 Implementation notes: Manual publication ignores the sent-state filter and is modeled separately.
 
@@ -3535,9 +3995,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `queue benefit statistics manually`
-  - Failure condition: a treatment cannot be mapped or queued.
-  - Why it fails: manual queueing still depends on mapping and task persistence.
-  - Violated prerequisite or constraint: valid treatment ids.
+  - Source discriminator: `mapping prerequisites`
+  - Failure condition: Treatment, active basis, decision date, or benefit-person reference is absent.
+  - Why it fails: Publication payload cannot build.
+  - Violated prerequisite or constraint: Complete references are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/stønadsstatistikk/StønadsstatistikkService.kt — queue method`
 
 Implementation notes: This differs from `queue unsent benefit statistics` by duplicate-send protection.
 
@@ -3577,9 +4039,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `resend migration statistics`
-  - Failure condition: scanning or task creation fails.
-  - Why it fails: service-owned backfill process cannot complete.
-  - Violated prerequisite or constraint: available migration treatment state and task repository.
+  - Source discriminator: `mapping prerequisites`
+  - Failure condition: Treatment, active basis, decision date, or benefit-person reference is absent.
+  - Why it fails: Backfill payload cannot build.
+  - Violated prerequisite or constraint: Complete references are required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/statistikk/stønadsstatistikk/StønadsstatistikkService.kt — migration resend`
 
 Implementation notes: This is not the same as manually supplying treatment ids.
 
@@ -3621,9 +4085,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `finish admin task list`
+  - Source discriminator: `task completion branch for one task id is invalid`
   - Failure condition: one task id is invalid.
   - Why it fails: per-task completion catches/logs failure and reports failed count.
   - Violated prerequisite or constraint: each task id must be completable for full success.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterController.kt — task completion`
+- Failing function: `finish admin task list`
+  - Source discriminator: `per-task completion outcome`
+  - Failure condition: One task cannot be completed.
+  - Why it fails: It is reported failed while others continue.
+  - Violated prerequisite or constraint: Every task must be completable for all-success.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterController.kt — task completion`
+  - Persisted outcome despite failure: Other valid tasks are completed.
 
 Implementation notes: This is explicitly partial-success admin behavior.
 
@@ -3664,9 +4137,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `restart small child supplement job`
-  - Failure condition: job service throws during scan/restart.
-  - Why it fails: controller delegates to administrative service.
-  - Violated prerequisite or constraint: restart service and underlying data must be valid.
+  - Source discriminator: `active-decision prerequisite`
+  - Failure condition: A selected decided treatment has no active decision.
+  - Why it fails: No finalized restart basis exists.
+  - Violated prerequisite or constraint: Active decision is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/autovedtak/småbarnstillegg/RestartAvSmåbarnstilleggService.kt — restart method`
 
 Implementation notes: The endpoint starts logic synchronously at controller/service level but effects may include tasks.
 
@@ -3706,9 +4181,29 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `send payment orders administratively`
-  - Failure condition: a treatment cannot generate/send a payment order.
-  - Why it fails or degrades: exception is caught and logged for that treatment.
-  - Violated prerequisite or constraint: valid payment basis per treatment.
+  - Source discriminator: `awarded-benefit lookup`
+  - Failure condition: Awarded-benefit state is absent.
+  - Why it fails: No order can generate.
+  - Violated prerequisite or constraint: Awarded benefit must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — payment-order method`
+- Failing function: `send payment orders administratively`
+  - Source discriminator: `existing-order guard`
+  - Failure condition: A payment order already exists.
+  - Why it fails: Duplicate generation is rejected.
+  - Violated prerequisite or constraint: No order may already exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — payment-order method`
+- Failing function: `send payment orders administratively`
+  - Source discriminator: `later-sent-treatment guard`
+  - Failure condition: A later treatment was sent to economy.
+  - Why it fails: Ordering would be violated.
+  - Violated prerequisite or constraint: Orders must follow treatment order.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — payment-order method`
+- Failing function: `send payment orders administratively`
+  - Source discriminator: `active-decision prerequisite`
+  - Failure condition: No active decision exists.
+  - Why it fails: No finalized basis exists.
+  - Violated prerequisite or constraint: Active decision must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — payment-order method`
 
 Implementation notes: This behavior is independent from corrected resend workflows.
 
@@ -3749,9 +4244,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `resend corrected payment orders`
-  - Failure condition: a treatment cannot be corrected or implemented.
-  - Why it fails or degrades: exception is caught and added to `harFeil`.
-  - Violated prerequisite or constraint: treatment must have correctable payment-order state.
+  - Source discriminator: `correction guards`
+  - Failure condition: Treatment is inactive, lacks awarded benefit, has empty/inconsistent periods, or yields no order.
+  - Why it fails: It is reported in `harFeil`.
+  - Violated prerequisite or constraint: Active complete correctable state is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — bulk correction method`
 
 Implementation notes: Single-version resend is a separate targeted repair.
 
@@ -3791,9 +4288,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `resend corrected payment order version`
+  - Source discriminator: `version correction method branch for treatment is not active or corrected periods do not match erroneous periods`
   - Failure condition: treatment is not active or corrected periods do not match erroneous periods.
   - Why it fails: `ForvalterService` validates active treatment and corrected-period consistency.
   - Violated prerequisite or constraint: version-specific correction consistency.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — version correction method`
+- Failing function: `resend corrected payment order version`
+  - Source discriminator: `version-correction guards`
+  - Failure condition: Treatment is inactive, lacks awarded benefit, has empty/inconsistent periods, or yields no order.
+  - Why it fails: Version cannot be corrected.
+  - Violated prerequisite or constraint: Complete consistent state is required.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — version correction method`
 
 Implementation notes: This is intentionally split from bulk corrected resend.
 
@@ -3834,9 +4339,17 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `run rate change without validation`
+  - Source discriminator: `rate-change method branch for fagsakId=F404 does not exist`
   - Failure condition: `fagsakId=F404` does not exist.
   - Why it fails: service cannot load/process case; failure is logged.
   - Violated prerequisite or constraint: case id must exist for successful processing.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — rate-change method`
+- Failing function: `run rate change without validation`
+  - Source discriminator: `case/revision/active-treatment/basis outcomes`
+  - Failure condition: Case, prior revision basis, eligible active state, or prior person basis is absent.
+  - Why it fails: Administrative rate change cannot complete.
+  - Violated prerequisite or constraint: All case and revision prerequisites must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — rate-change method`
 
 Implementation notes: This is not equivalent to the normal checked rate-change workflow.
 
@@ -3875,10 +4388,7 @@ Constraints and invariants:
 - The endpoint returns before analysis completes.
 
 Failure and exceptional cases:
-- Failing function: `identify payments over 100 percent`
-  - Failure condition: background analysis cannot start.
-  - Why it fails: implementation launches asynchronous service work.
-  - Violated prerequisite or constraint: service/runtime must permit background processing.
+None.
 
 Implementation notes: Missing result retrieval by `callId` is captured as a missing behavior.
 
@@ -3917,10 +4427,7 @@ Constraints and invariants:
 - This behavior is read/discovery; it does not repair payment orders.
 
 Failure and exceptional cases:
-- Failing function: `find payment-order issues`
-  - Failure condition: payment-order validation service fails.
-  - Why it fails: discovery depends on internal validation of payment-order state.
-  - Violated prerequisite or constraint: readable payment-order data.
+None.
 
 Implementation notes: Repair workflows are modeled separately.
 
@@ -3960,9 +4467,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `check incorrect cessation dates`
-  - Failure condition: validation cannot load treatment/payment-order state.
-  - Why it fails: service must validate each supplied treatment.
-  - Violated prerequisite or constraint: valid treatment ids with payment-order state.
+  - Source discriminator: `awarded-benefit not-found outcome`
+  - Failure condition: Treatment has no awarded-benefit row.
+  - Why it fails: No periods can be checked.
+  - Violated prerequisite or constraint: Awarded benefit must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — cessation-date check`
 
 Implementation notes: This can feed corrected resend, but corrected resend can also be called with known ids.
 
@@ -4002,9 +4511,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `populate support dates for treatment`
-  - Failure condition: treatment cannot be found or dates cannot be derived.
-  - Why it fails: service must load and update the treatment.
-  - Violated prerequisite or constraint: valid treatment with derivable support dates.
+  - Source discriminator: `awarded-benefit not-found outcome`
+  - Failure condition: Treatment has no awarded-benefit row.
+  - Why it fails: No dates can populate.
+  - Violated prerequisite or constraint: Awarded benefit must exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — support-date update`
 
 Implementation notes: Bulk population is separate.
 
@@ -4044,9 +4555,18 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `populate support dates in bulk`
-  - Failure condition: one candidate cannot be updated.
-  - Why it fails or degrades: exception is caught and logged while processing continues.
-  - Violated prerequisite or constraint: each candidate must have derivable support dates for full success.
+  - Source discriminator: `per-candidate race outcome`
+  - Failure condition: Candidate disappears or becomes ineligible before update.
+  - Why it fails: That candidate fails while others continue.
+  - Violated prerequisite or constraint: Candidate must remain eligible.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — bulk support-date update`
+- Failing function: `populate support dates in bulk`
+  - Source discriminator: `partial-persistence outcome`
+  - Failure condition: A selected candidate fails validation during the loop.
+  - Why it fails: The loop records the failure and continues.
+  - Violated prerequisite or constraint: Each candidate must remain eligible.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/internal/ForvalterService.kt — bulk support-date update`
+  - Persisted outcome despite failure: Other eligible candidates are persisted and the request returns normally.
 
 Implementation notes: Bulk mutation is not the same as targeted single-treatment repair.
 
@@ -4085,10 +4605,7 @@ Constraints and invariants:
 - This behavior does not update case status.
 
 Failure and exceptional cases:
-- Failing function: `find cases to close`
-  - Failure condition: case repository query fails.
-  - Why it fails: implementation directly queries closable-case state.
-  - Violated prerequisite or constraint: readable case/payment data.
+None.
 
 Implementation notes: Discovery and repair are split because update does not consume a request body of discovered ids.
 
@@ -4128,9 +4645,11 @@ Constraints and invariants:
 
 Failure and exceptional cases:
 - Failing function: `update case ongoing status`
-  - Failure condition: status update service fails while scanning/updating cases.
-  - Why it fails: implementation delegates the bulk mutation to `FagsakService`.
-  - Violated prerequisite or constraint: readable and writable case status state.
+  - Source discriminator: `per-case reload not-found outcome`
+  - Failure condition: Selected case disappears before reload.
+  - Why it fails: Its status cannot update.
+  - Violated prerequisite or constraint: Selected case must still exist.
+  - Implementation evidence: `src/main/kotlin/no/nav/familie/ba/sak/kjerne/fagsak/FagsakService.kt — ongoing-status update`
 
 Implementation notes: This is not response-bound to `find cases to close`.
 
@@ -4169,10 +4688,7 @@ Constraints and invariants:
 - This behavior is read-only and does not repair duplicates.
 
 Failure and exceptional cases:
-- Failing function: `find migration duplicates with Infotrygd`
-  - Failure condition: Infotrygd overlap lookup fails.
-  - Why it fails: service must combine local migration state with Infotrygd state.
-  - Violated prerequisite or constraint: available local and legacy data.
+None.
 
 Implementation notes: Migration duplicate discovery without Infotrygd constraint is separate.
 
@@ -4211,10 +4727,7 @@ Constraints and invariants:
 - This behavior is read-only and does not close or merge duplicates.
 
 Failure and exceptional cases:
-- Failing function: `find migration duplicates`
-  - Failure condition: local migration duplicate query fails.
-  - Why it fails: service/repository cannot compute duplicate state.
-  - Violated prerequisite or constraint: readable local migration data.
+None.
 
 Implementation notes: This behavior intentionally differs from the Infotrygd-overlap query.
 
@@ -4255,10 +4768,7 @@ Constraints and invariants:
 - The endpoint must not run in prod and explicitly rejects unsupported profiles.
 
 Failure and exceptional cases:
-- Failing function: `fill condition dates in preprod`
-  - Failure condition: active profile is prod or not preprod/dev-postgres-preprod.
-  - Why it fails: controller explicitly throws.
-  - Violated prerequisite or constraint: endpoint is environment-gated.
+None.
 
 Implementation notes: This is modeled as supported admin/test behavior, not ordinary production casework.
 

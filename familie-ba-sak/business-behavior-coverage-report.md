@@ -40,96 +40,96 @@ The execution funnel is internally consistent: every required route was probed, 
 
 | ID | Business Behavior | Required Steps Attempted | Application Reached | Context-Valid Steps | Happy Path | Failure Coverage | Optional Verification | Status | Confidence |
 |---|---|---:|---:|---:|---|---:|---:|---|---|
-| B1 | Establish a case and reuse the case identity | 2/2 | 0/2 | 0/2 | Not Covered | 0/1 | 0/2 | Not Covered | High |
-| B2 | Inspect case views and locate cases by person | 4/4 | 3/4 | 0/4 | Not Covered | 2/3 | 0/0 | Partially Covered | High |
-| B3 | Resolve case participation and ongoing benefit relationships | 4/4 | 4/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B4 | Create and check manual repayment treatment on a case | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/2 | Not Covered | High |
-| B5 | Create a treatment and restart an early active treatment | 2/2 | 0/2 | 0/2 | Not Covered | 0/8 | 0/1 | Not Covered | High |
-| B6 | Queue automated birth-event treatment processing | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B7 | Change treatment theme | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B8 | Execute the caseworker treatment step flow through decision | 6/6 | 0/6 | 0/6 | Not Covered | 0/8 | 0/3 | Not Covered | High |
-| B9 | Dismiss an active treatment | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B10 | Register institution and guardian information on treatment | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B11 | Add a child to treatment basis and reset later treatment steps | 1/1 | 1/1 | 0/1 | Not Covered | 0/5 | 0/1 | Not Covered | High |
-| B12 | Put treatment on wait, update wait, and resume | 3/3 | 0/3 | 0/3 | Not Covered | 0/7 | 0/1 | Not Covered | High |
-| B13 | Read person information for case handling | 3/3 | 3/3 | 0/3 | Not Covered | 0/9 | 0/0 | Not Covered | High |
-| B14 | Refresh treatment register basis and manually record death | 2/2 | 1/2 | 0/2 | Not Covered | 1/5 | 0/1 | Partially Covered | High |
-| B15 | Maintain condition assessment records | 6/6 | 4/6 | 0/6 | Not Covered | 0/5 | 1/2 | Not Covered | High |
-| B16 | Maintain EEA competence intervals | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/2 | Not Covered | High |
-| B17 | Maintain foreign period amounts | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B18 | Update existing currency rate from ECB | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B19 | Set historical ISK currency rate manually and delete currency rate | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B20 | Maintain changed payment shares and reset treatment result | 4/4 | 2/4 | 0/4 | Not Covered | 0/3 | 0/2 | Not Covered | High |
-| B21 | Inspect EEA timelines | 1/1 | 1/1 | 0/1 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
-| B22 | Maintain EEA refund periods | 4/4 | 1/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B23 | Maintain overpaid currency periods | 4/4 | 2/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B24 | Activate and deactivate corrected decision metadata | 2/2 | 2/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B25 | Activate, list, and deactivate corrected after-payment metadata | 3/3 | 2/3 | 0/3 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B26 | Add and remove small child supplement correction | 2/2 | 0/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B27 | Preview repayment warning letter | 1/1 | 1/1 | 0/1 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
-| B28 | Generate and retrieve decision letter | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B29 | Preview and send manual treatment letter | 2/2 | 0/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B30 | Preview and send manual case letter | 2/2 | 0/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B31 | Maintain manual letter recipients | 3/3 | 2/3 | 0/3 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B32 | Edit decision periods and regenerate letter explanations | 6/6 | 3/6 | 0/6 | Not Covered | 0/4 | 0/2 | Not Covered | High |
-| B33 | Retrieve treatment log | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B34 | Retrieve external benefit data for BISYS | 1/1 | 0/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
-| B35 | Retrieve pension child benefit | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/0 | Not Covered | High |
-| B36 | Order pension yearly export | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B37 | Production tax data export | 2/2 | 2/2 | 0/2 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B38 | Tax test endpoint data retrieval | 2/2 | 2/2 | 0/2 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B39 | Retrieve Infotrygd case and benefit context | 3/3 | 3/3 | 0/3 | Not Covered | 0/2 | 0/0 | Not Covered | High |
-| B40 | Discover collaborators by search and organization number | 2/2 | 2/2 | 0/2 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
-| B41 | Create and list complaint treatments for a case | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
-| B42 | Let complaint system create a revision after precheck | 2/2 | 0/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B43 | Retrieve decisions for complaint system | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B44 | Search external tasks | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B45 | Assign external task | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B46 | Reset external task assignment | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B47 | Retrieve journaling task data | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
-| B48 | Complete external task | 2/2 | 1/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B49 | Complete task while linking a journalpost | 1/1 | 0/1 | 0/1 | Not Covered | 0/2 | 0/2 | Not Covered | High |
-| B50 | Retrieve open extended-benefit deadlines | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B51 | Clear application task ownership | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
-| B52 | Inspect journalpost and retrieve documents | 3/3 | 3/3 | 0/3 | Not Covered | 0/4 | 0/1 | Not Covered | High |
-| B53 | Journal an incoming journalpost | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/2 | Not Covered | High |
-| B54 | Retrieve feature toggles | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
-| B55 | Check person access | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B56 | Queue identity event handling | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B57 | Queue transitional-benefit event handling | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B58 | Check rate-change eligibility for one case | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B59 | Queue rate change for one case | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
-| B60 | Queue rate change for multiple cases | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B61 | Run synchronous rate change for one case | 2/2 | 1/2 | 0/2 | Not Covered | 0/4 | 0/1 | Not Covered | High |
-| B62 | Queue rate change from identities | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B63 | Queue technical dismissal for long-deadline treatments | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B64 | Identify ongoing cases without latest rate | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | Medium |
-| B65 | Run consistency reconciliation dry run | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B66 | Run real consistency reconciliation | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B67 | Retrieve internal and application statistics | 2/2 | 2/2 | 2/2 | Not Covered | 0/0 | 0/0 | Partially Covered | High |
-| B68 | Retrieve treatment statistics payload | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
-| B69 | Retrieve case statistics payload | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
-| B70 | Register statistics message as sent | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
-| B71 | Retrieve benefit statistics decisions | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
-| B72 | Queue unsent benefit statistics | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B73 | Manually queue benefit statistics | 1/1 | 1/1 | 0/1 | Not Covered | 1/1 | 0/1 | Partially Covered | High |
-| B74 | Resend manual migration statistics | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B75 | Complete an administrative task list with partial success | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Unclear | Low |
-| B76 | Restart small child supplement job | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B77 | Send payment orders administratively | 1/1 | 1/1 | 0/1 | Not Covered | 0/4 | 0/0 | Not Covered | High |
-| B78 | Bulk corrected payment-order resend | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 1/1 | Not Covered | High |
-| B79 | Single-version corrected payment-order resend | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B80 | Run unvalidated rate change administratively | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Not Covered | High |
-| B81 | Identify payments over 100 percent | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | Medium |
-| B82 | Find payment-order issue candidates | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
-| B83 | Check incorrect cessation dates for selected treatments | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
-| B84 | Populate support dates for one treatment | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
-| B85 | Populate support dates in bulk | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
-| B86 | Find cases to close | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/1 | Covered | High |
-| B87 | Update case ongoing status | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 1/1 | Not Covered | High |
-| B88 | Find migration duplicates with ongoing Infotrygd case | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
-| B89 | Find migration duplicates | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
-| B90 | Fill empty condition start dates in preprod | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
+| [B1](#behavior-b1) | [Establish a case and reuse the case identity](#behavior-b1) | 2/2 | 0/2 | 0/2 | Not Covered | 0/1 | 0/2 | Not Covered | High |
+| [B2](#behavior-b2) | [Inspect case views and locate cases by person](#behavior-b2) | 4/4 | 3/4 | 0/4 | Not Covered | 2/3 | 0/0 | Partially Covered | High |
+| [B3](#behavior-b3) | [Resolve case participation and ongoing benefit relationships](#behavior-b3) | 4/4 | 4/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B4](#behavior-b4) | [Create and check manual repayment treatment on a case](#behavior-b4) | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/2 | Not Covered | High |
+| [B5](#behavior-b5) | [Create a treatment and restart an early active treatment](#behavior-b5) | 2/2 | 0/2 | 0/2 | Not Covered | 0/8 | 0/1 | Not Covered | High |
+| [B6](#behavior-b6) | [Queue automated birth-event treatment processing](#behavior-b6) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B7](#behavior-b7) | [Change treatment theme](#behavior-b7) | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B8](#behavior-b8) | [Execute the caseworker treatment step flow through decision](#behavior-b8) | 6/6 | 0/6 | 0/6 | Not Covered | 0/8 | 0/3 | Not Covered | High |
+| [B9](#behavior-b9) | [Dismiss an active treatment](#behavior-b9) | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B10](#behavior-b10) | [Register institution and guardian information on treatment](#behavior-b10) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B11](#behavior-b11) | [Add a child to treatment basis and reset later treatment steps](#behavior-b11) | 1/1 | 1/1 | 0/1 | Not Covered | 0/5 | 0/1 | Not Covered | High |
+| [B12](#behavior-b12) | [Put treatment on wait, update wait, and resume](#behavior-b12) | 3/3 | 0/3 | 0/3 | Not Covered | 0/7 | 0/1 | Not Covered | High |
+| [B13](#behavior-b13) | [Read person information for case handling](#behavior-b13) | 3/3 | 3/3 | 0/3 | Not Covered | 0/9 | 0/0 | Not Covered | High |
+| [B14](#behavior-b14) | [Refresh treatment register basis and manually record death](#behavior-b14) | 2/2 | 1/2 | 0/2 | Not Covered | 1/5 | 0/1 | Partially Covered | High |
+| [B15](#behavior-b15) | [Maintain condition assessment records](#behavior-b15) | 6/6 | 4/6 | 0/6 | Not Covered | 0/5 | 1/2 | Not Covered | High |
+| [B16](#behavior-b16) | [Maintain EEA competence intervals](#behavior-b16) | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/2 | Not Covered | High |
+| [B17](#behavior-b17) | [Maintain foreign period amounts](#behavior-b17) | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B18](#behavior-b18) | [Update existing currency rate from ECB](#behavior-b18) | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B19](#behavior-b19) | [Set historical ISK currency rate manually and delete currency rate](#behavior-b19) | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B20](#behavior-b20) | [Maintain changed payment shares and reset treatment result](#behavior-b20) | 4/4 | 2/4 | 0/4 | Not Covered | 0/3 | 0/2 | Not Covered | High |
+| [B21](#behavior-b21) | [Inspect EEA timelines](#behavior-b21) | 1/1 | 1/1 | 0/1 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
+| [B22](#behavior-b22) | [Maintain EEA refund periods](#behavior-b22) | 4/4 | 1/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B23](#behavior-b23) | [Maintain overpaid currency periods](#behavior-b23) | 4/4 | 2/4 | 0/4 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B24](#behavior-b24) | [Activate and deactivate corrected decision metadata](#behavior-b24) | 2/2 | 2/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B25](#behavior-b25) | [Activate, list, and deactivate corrected after-payment metadata](#behavior-b25) | 3/3 | 2/3 | 0/3 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B26](#behavior-b26) | [Add and remove small child supplement correction](#behavior-b26) | 2/2 | 0/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B27](#behavior-b27) | [Preview repayment warning letter](#behavior-b27) | 1/1 | 1/1 | 0/1 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
+| [B28](#behavior-b28) | [Generate and retrieve decision letter](#behavior-b28) | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B29](#behavior-b29) | [Preview and send manual treatment letter](#behavior-b29) | 2/2 | 0/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B30](#behavior-b30) | [Preview and send manual case letter](#behavior-b30) | 2/2 | 0/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B31](#behavior-b31) | [Maintain manual letter recipients](#behavior-b31) | 3/3 | 2/3 | 0/3 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B32](#behavior-b32) | [Edit decision periods and regenerate letter explanations](#behavior-b32) | 6/6 | 3/6 | 0/6 | Not Covered | 0/4 | 0/2 | Not Covered | High |
+| [B33](#behavior-b33) | [Retrieve treatment log](#behavior-b33) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B34](#behavior-b34) | [Retrieve external benefit data for BISYS](#behavior-b34) | 1/1 | 0/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
+| [B35](#behavior-b35) | [Retrieve pension child benefit](#behavior-b35) | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/0 | Not Covered | High |
+| [B36](#behavior-b36) | [Order pension yearly export](#behavior-b36) | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B37](#behavior-b37) | [Production tax data export](#behavior-b37) | 2/2 | 2/2 | 0/2 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B38](#behavior-b38) | [Tax test endpoint data retrieval](#behavior-b38) | 2/2 | 2/2 | 0/2 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B39](#behavior-b39) | [Retrieve Infotrygd case and benefit context](#behavior-b39) | 3/3 | 3/3 | 0/3 | Not Covered | 0/2 | 0/0 | Not Covered | High |
+| [B40](#behavior-b40) | [Discover collaborators by search and organization number](#behavior-b40) | 2/2 | 2/2 | 0/2 | Not Covered | 1/2 | 0/0 | Partially Covered | High |
+| [B41](#behavior-b41) | [Create and list complaint treatments for a case](#behavior-b41) | 2/2 | 1/2 | 0/2 | Not Covered | 0/3 | 0/1 | Not Covered | High |
+| [B42](#behavior-b42) | [Let complaint system create a revision after precheck](#behavior-b42) | 2/2 | 0/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B43](#behavior-b43) | [Retrieve decisions for complaint system](#behavior-b43) | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B44](#behavior-b44) | [Search external tasks](#behavior-b44) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B45](#behavior-b45) | [Assign external task](#behavior-b45) | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B46](#behavior-b46) | [Reset external task assignment](#behavior-b46) | 2/2 | 1/2 | 0/2 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B47](#behavior-b47) | [Retrieve journaling task data](#behavior-b47) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
+| [B48](#behavior-b48) | [Complete external task](#behavior-b48) | 2/2 | 1/2 | 0/2 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B49](#behavior-b49) | [Complete task while linking a journalpost](#behavior-b49) | 1/1 | 0/1 | 0/1 | Not Covered | 0/2 | 0/2 | Not Covered | High |
+| [B50](#behavior-b50) | [Retrieve open extended-benefit deadlines](#behavior-b50) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B51](#behavior-b51) | [Clear application task ownership](#behavior-b51) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
+| [B52](#behavior-b52) | [Inspect journalpost and retrieve documents](#behavior-b52) | 3/3 | 3/3 | 0/3 | Not Covered | 0/4 | 0/1 | Not Covered | High |
+| [B53](#behavior-b53) | [Journal an incoming journalpost](#behavior-b53) | 1/1 | 0/1 | 0/1 | Not Covered | 0/3 | 0/2 | Not Covered | High |
+| [B54](#behavior-b54) | [Retrieve feature toggles](#behavior-b54) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
+| [B55](#behavior-b55) | [Check person access](#behavior-b55) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B56](#behavior-b56) | [Queue identity event handling](#behavior-b56) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B57](#behavior-b57) | [Queue transitional-benefit event handling](#behavior-b57) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B58](#behavior-b58) | [Check rate-change eligibility for one case](#behavior-b58) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B59](#behavior-b59) | [Queue rate change for one case](#behavior-b59) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
+| [B60](#behavior-b60) | [Queue rate change for multiple cases](#behavior-b60) | 1/1 | 1/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B61](#behavior-b61) | [Run synchronous rate change for one case](#behavior-b61) | 2/2 | 1/2 | 0/2 | Not Covered | 0/4 | 0/1 | Not Covered | High |
+| [B62](#behavior-b62) | [Queue rate change from identities](#behavior-b62) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B63](#behavior-b63) | [Queue technical dismissal for long-deadline treatments](#behavior-b63) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B64](#behavior-b64) | [Identify ongoing cases without latest rate](#behavior-b64) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | Medium |
+| [B65](#behavior-b65) | [Run consistency reconciliation dry run](#behavior-b65) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B66](#behavior-b66) | [Run real consistency reconciliation](#behavior-b66) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B67](#behavior-b67) | [Retrieve internal and application statistics](#behavior-b67) | 2/2 | 2/2 | 2/2 | Not Covered | 0/0 | 0/0 | Partially Covered | High |
+| [B68](#behavior-b68) | [Retrieve treatment statistics payload](#behavior-b68) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
+| [B69](#behavior-b69) | [Retrieve case statistics payload](#behavior-b69) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
+| [B70](#behavior-b70) | [Register statistics message as sent](#behavior-b70) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/0 | Not Covered | High |
+| [B71](#behavior-b71) | [Retrieve benefit statistics decisions](#behavior-b71) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Unclear | Low |
+| [B72](#behavior-b72) | [Queue unsent benefit statistics](#behavior-b72) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B73](#behavior-b73) | [Manually queue benefit statistics](#behavior-b73) | 1/1 | 1/1 | 0/1 | Not Covered | 1/1 | 0/1 | Partially Covered | High |
+| [B74](#behavior-b74) | [Resend manual migration statistics](#behavior-b74) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B75](#behavior-b75) | [Complete an administrative task list with partial success](#behavior-b75) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Unclear | Low |
+| [B76](#behavior-b76) | [Restart small child supplement job](#behavior-b76) | 1/1 | 0/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B77](#behavior-b77) | [Send payment orders administratively](#behavior-b77) | 1/1 | 1/1 | 0/1 | Not Covered | 0/4 | 0/0 | Not Covered | High |
+| [B78](#behavior-b78) | [Bulk corrected payment-order resend](#behavior-b78) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 1/1 | Not Covered | High |
+| [B79](#behavior-b79) | [Single-version corrected payment-order resend](#behavior-b79) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B80](#behavior-b80) | [Run unvalidated rate change administratively](#behavior-b80) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/1 | Not Covered | High |
+| [B81](#behavior-b81) | [Identify payments over 100 percent](#behavior-b81) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | Medium |
+| [B82](#behavior-b82) | [Find payment-order issue candidates](#behavior-b82) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
+| [B83](#behavior-b83) | [Check incorrect cessation dates for selected treatments](#behavior-b83) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/0 | Not Covered | High |
+| [B84](#behavior-b84) | [Populate support dates for one treatment](#behavior-b84) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 0/1 | Not Covered | High |
+| [B85](#behavior-b85) | [Populate support dates in bulk](#behavior-b85) | 1/1 | 1/1 | 0/1 | Not Covered | 0/2 | 0/0 | Not Covered | High |
+| [B86](#behavior-b86) | [Find cases to close](#behavior-b86) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/1 | Covered | High |
+| [B87](#behavior-b87) | [Update case ongoing status](#behavior-b87) | 1/1 | 1/1 | 0/1 | Not Covered | 0/1 | 1/1 | Not Covered | High |
+| [B88](#behavior-b88) | [Find migration duplicates with ongoing Infotrygd case](#behavior-b88) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
+| [B89](#behavior-b89) | [Find migration duplicates](#behavior-b89) | 1/1 | 1/1 | 1/1 | Covered | 0/0 | 0/0 | Covered | High |
+| [B90](#behavior-b90) | [Fill empty condition start dates in preprod](#behavior-b90) | 1/1 | 0/1 | 0/1 | Not Covered | 0/0 | 0/1 | Not Covered | High |
 
 ## Function/API Invocation Checklist
 
@@ -297,6 +297,7 @@ Ambiguous shared-route attempts:
 
 ## Behavior Details
 
+<a id="behavior-b1"></a>
 ### `B1`: `Establish a case and reuse the case identity`
 
 - Business goal: Create the domain parent case for later treatments, letters, complaints, repayment checks, and statistics.
@@ -333,6 +334,7 @@ Ambiguous shared-route attempts:
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: `T1` and `T2`.
 
+<a id="behavior-b2"></a>
 ### `B2`: `Inspect case views and locate cases by person`
 
 - Business goal: Read case state by known `fagsakId` and by person/type lookup.
@@ -370,6 +372,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b3"></a>
 ### `B3`: `Resolve case participation and ongoing benefit relationships`
 
 - Business goal: Determine where a person participates in child-benefit cases and whether the person has ongoing benefit.
@@ -408,6 +411,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b4"></a>
 ### `B4`: `Create and check manual repayment treatment on a case`
 
 - Business goal: Create a repayment treatment for a case and inspect whether open repayment state exists.
@@ -445,6 +449,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b5"></a>
 ### `B5`: `Create a treatment and restart an early active treatment`
 
 - Business goal: Start a treatment on a case, then reuse and reset it when another creation request arrives before decision stage.
@@ -487,6 +492,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 8 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b6"></a>
 ### `B6`: `Queue automated birth-event treatment processing`
 
 - Business goal: Accept a birth event and queue asynchronous treatment processing.
@@ -517,6 +523,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b7"></a>
 ### `B7`: `Change treatment theme`
 
 - Business goal: Change treatment category and subcategory while treatment is editable.
@@ -551,6 +558,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b8"></a>
 ### `B8`: `Execute the caseworker treatment step flow through decision`
 
 - Business goal: Move a treatment from application registration through result, repayment assessment, decision-maker handoff, and decision implementation.
@@ -599,6 +607,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 8 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b9"></a>
 ### `B9`: `Dismiss an active treatment`
 
 - Business goal: Close a treatment by dismissal rather than full decision implementation.
@@ -635,6 +644,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b10"></a>
 ### `B10`: `Register institution and guardian information on treatment`
 
 - Business goal: Store institution and/or guardian information required by the treatment flow.
@@ -669,6 +679,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b11"></a>
 ### `B11`: `Add a child to treatment basis and reset later treatment steps`
 
 - Business goal: Add a child into the treatment person basis after treatment creation.
@@ -707,6 +718,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 5 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b12"></a>
 ### `B12`: `Put treatment on wait, update wait, and resume`
 
 - Business goal: Pause a treatment with a deadline/reason, change the wait metadata, then resume the treatment.
@@ -749,6 +761,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 7 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b13"></a>
 ### `B13`: `Read person information for case handling`
 
 - Business goal: Retrieve detailed, simple, and address-focused person information for casework.
@@ -791,6 +804,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 9 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b14"></a>
 ### `B14`: `Refresh treatment register basis and manually record death`
 
 - Business goal: Update treatment person basis from register information and record manual death details for a person in the treatment.
@@ -830,6 +844,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 4 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b15"></a>
 ### `B15`: `Maintain condition assessment records`
 
 - Business goal: Add, update, delete, and supplement condition assessment data on an editable treatment.
@@ -874,6 +889,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 5 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b16"></a>
 ### `B16`: `Maintain EEA competence intervals`
 
 - Business goal: Create/update and delete EEA competence intervals for children in a treatment.
@@ -912,6 +928,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure items.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b17"></a>
 ### `B17`: `Maintain foreign period amounts`
 
 - Business goal: Update and delete an existing foreign benefit amount period.
@@ -947,6 +964,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b18"></a>
 ### `B18`: `Update existing currency rate from ECB`
 
 - Business goal: Update an existing currency-rate period by fetching a rate from ECB when currency/date changes.
@@ -983,6 +1001,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b19"></a>
 ### `B19`: `Set historical ISK currency rate manually and delete currency rate`
 
 - Business goal: Store a manually supplied historical ISK rate, then remove the currency-rate row.
@@ -1018,6 +1037,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b20"></a>
 ### `B20`: `Maintain changed payment shares and reset treatment result`
 
 - Business goal: Create, fill, remove, and explicitly reset changed-payment share state in an editable treatment.
@@ -1058,6 +1078,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b21"></a>
 ### `B21`: `Inspect EEA timelines`
 
 - Business goal: Read calculated EEA timelines for a treatment.
@@ -1091,6 +1112,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b22"></a>
 ### `B22`: `Maintain EEA refund periods`
 
 - Business goal: Add, list, update, and delete refund periods for EEA handling.
@@ -1129,6 +1151,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b23"></a>
 ### `B23`: `Maintain overpaid currency periods`
 
 - Business goal: Add, list, update, and delete periods with overpaid currency amount.
@@ -1167,6 +1190,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b24"></a>
 ### `B24`: `Activate and deactivate corrected decision metadata`
 
 - Business goal: Mark a treatment as having corrected decision metadata, then deactivate that metadata.
@@ -1202,6 +1226,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b25"></a>
 ### `B25`: `Activate, list, and deactivate corrected after-payment metadata`
 
 - Business goal: Mark corrected after-payment metadata active, inspect all records, and deactivate the active correction.
@@ -1238,6 +1263,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b26"></a>
 ### `B26`: `Add and remove small child supplement correction`
 
 - Business goal: Add a small-child supplement correction for a month and remove it later.
@@ -1274,6 +1300,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b27"></a>
 ### `B27`: `Preview repayment warning letter`
 
 - Business goal: Generate a repayment warning letter preview without sending it.
@@ -1307,6 +1334,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b28"></a>
 ### `B28`: `Generate and retrieve decision letter`
 
 - Business goal: Generate the persisted decision letter for an active decision and retrieve it.
@@ -1344,6 +1372,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b29"></a>
 ### `B29`: `Preview and send manual treatment letter`
 
 - Business goal: Preview and send a manual letter tied to a treatment.
@@ -1381,6 +1410,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b30"></a>
 ### `B30`: `Preview and send manual case letter`
 
 - Business goal: Preview and send a manual letter tied directly to a case.
@@ -1417,6 +1447,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b31"></a>
 ### `B31`: `Maintain manual letter recipients`
 
 - Business goal: Add, list, and remove manual letter recipients for a treatment.
@@ -1455,6 +1486,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b32"></a>
 ### `B32`: `Edit decision periods and regenerate letter explanations`
 
 - Business goal: Modify decision-period explanations, override change date, and generate final letter explanation texts.
@@ -1498,6 +1530,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 4 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b33"></a>
 ### `B33`: `Retrieve treatment log`
 
 - Business goal: Read audit/log entries for a treatment.
@@ -1528,6 +1561,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b34"></a>
 ### `B34`: `Retrieve external benefit data for BISYS`
 
 - Business goal: Provide BISYS with extended child benefit and small child supplement periods for a person.
@@ -1561,6 +1595,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b35"></a>
 ### `B35`: `Retrieve pension child benefit`
 
 - Business goal: Provide Pension with child-benefit case and period data for one person.
@@ -1595,6 +1630,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b36"></a>
 ### `B36`: `Order pension yearly export`
 
 - Business goal: Queue export of persons with child benefit for a Pension tax/reporting year.
@@ -1627,6 +1663,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b37"></a>
 ### `B37`: `Production tax data export`
 
 - Business goal: Return Skatteetaten production person and period data for one tax year.
@@ -1658,6 +1695,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b38"></a>
 ### `B38`: `Tax test endpoint data retrieval`
 
 - Business goal: Return Skatteetaten test-path person and period data for one tax year.
@@ -1689,6 +1727,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b39"></a>
 ### `B39`: `Retrieve Infotrygd case and benefit context`
 
 - Business goal: Read legacy Infotrygd case, benefit, and ongoing-state information for an applicant.
@@ -1724,6 +1763,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b40"></a>
 ### `B40`: `Discover collaborators by search and organization number`
 
 - Business goal: Find collaborator/institution information and retrieve details by organization number.
@@ -1758,6 +1798,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b41"></a>
 ### `B41`: `Create and list complaint treatments for a case`
 
 - Business goal: Start a complaint treatment for a child-benefit case and list complaint treatments.
@@ -1795,6 +1836,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b42"></a>
 ### `B42`: `Let complaint system create a revision after precheck`
 
 - Business goal: Let the external complaint system check and create a complaint-triggered revision on a case.
@@ -1830,6 +1872,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b43"></a>
 ### `B43`: `Retrieve decisions for complaint system`
 
 - Business goal: Provide fagsystem decisions for a case to the complaint system.
@@ -1862,6 +1905,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b44"></a>
 ### `B44`: `Search external tasks`
 
 - Business goal: Find external task ids that can be acted on by later task workflows.
@@ -1892,6 +1936,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b45"></a>
 ### `B45`: `Assign external task`
 
 - Business goal: Assign a known task to a caseworker.
@@ -1927,6 +1972,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b46"></a>
 ### `B46`: `Reset external task assignment`
 
 - Business goal: Clear assignment on a known external task.
@@ -1962,6 +2008,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b47"></a>
 ### `B47`: `Retrieve journaling task data`
 
 - Business goal: Gather task, person, minimal case, and optional journalpost context for manual journaling.
@@ -1995,6 +2042,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b48"></a>
 ### `B48`: `Complete external task`
 
 - Business goal: Close a known external task without linking a journalpost.
@@ -2031,6 +2079,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b49"></a>
 ### `B49`: `Complete task while linking a journalpost`
 
 - Business goal: Link a journalpost to a case/treatment context and complete the related task.
@@ -2067,6 +2116,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b50"></a>
 ### `B50`: `Retrieve open extended-benefit deadlines`
 
 - Business goal: Report deadlines for open extended child-benefit treatments.
@@ -2097,6 +2147,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b51"></a>
 ### `B51`: `Clear application task ownership`
 
 - Business goal: Remove `behandlesAvApplikasjon` ownership markers from selected tasks.
@@ -2129,6 +2180,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b52"></a>
 ### `B52`: `Inspect journalpost and retrieve documents`
 
 - Business goal: Read journalpost metadata and fetch documents in resource/PDF form.
@@ -2168,6 +2220,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 4 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b53"></a>
 ### `B53`: `Journal an incoming journalpost`
 
 - Business goal: Journal an incoming journalpost to the correct unit/task context.
@@ -2205,6 +2258,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 3 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b54"></a>
 ### `B54`: `Retrieve feature toggles`
 
 - Business goal: Return enabled/disabled state for requested feature toggles.
@@ -2235,6 +2289,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b55"></a>
 ### `B55`: `Check person access`
 
 - Business goal: Determine whether the current caller may access a person and see the person’s discretion code.
@@ -2265,6 +2320,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b56"></a>
 ### `B56`: `Queue identity event handling`
 
 - Business goal: Create asynchronous work for a new identity/PDL identity event.
@@ -2295,6 +2351,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b57"></a>
 ### `B57`: `Queue transitional-benefit event handling`
 
 - Business goal: Create asynchronous work for a transitional-benefit decision event.
@@ -2325,6 +2382,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b58"></a>
 ### `B58`: `Check rate-change eligibility for one case`
 
 - Business goal: Determine whether a case can undergo manual rate change.
@@ -2355,6 +2413,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b59"></a>
 ### `B59`: `Queue rate change for one case`
 
 - Business goal: Queue rate-change processing for a single case.
@@ -2387,6 +2446,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b60"></a>
 ### `B60`: `Queue rate change for multiple cases`
 
 - Business goal: Queue rate-change processing for a supplied set of cases.
@@ -2417,6 +2477,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b61"></a>
 ### `B61`: `Run synchronous rate change for one case`
 
 - Business goal: Execute rate change immediately for one eligible case.
@@ -2455,6 +2516,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 4 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b62"></a>
 ### `B62`: `Queue rate change from identities`
 
 - Business goal: Discover relevant cases from supplied identities and queue rate-change tasks.
@@ -2487,6 +2549,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b63"></a>
 ### `B63`: `Queue technical dismissal for long-deadline treatments`
 
 - Business goal: Create dismissal tasks for treatments with deadlines beyond a validation date.
@@ -2521,6 +2584,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b64"></a>
 ### `B64`: `Identify ongoing cases without latest rate`
 
 - Business goal: Start background discovery of ongoing cases missing the latest rate.
@@ -2551,6 +2615,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b65"></a>
 ### `B65`: `Run consistency reconciliation dry run`
 
 - Business goal: Queue economy consistency reconciliation without sending to the economy system.
@@ -2581,6 +2646,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b66"></a>
 ### `B66`: `Run real consistency reconciliation`
 
 - Business goal: Queue economy consistency reconciliation that sends to the economy system.
@@ -2611,6 +2677,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b67"></a>
 ### `B67`: `Retrieve internal and application statistics`
 
 - Business goal: Read aggregate service statistics and application counts.
@@ -2642,6 +2709,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: `T3`.
 
+<a id="behavior-b68"></a>
 ### `B68`: `Retrieve treatment statistics payload`
 
 - Business goal: Map one treatment to a DVH treatment statistics payload.
@@ -2675,6 +2743,7 @@ No optional verification workflow is documented.
 - Exact gap: Discriminator-level evidence is ambiguous; no valid happy path exists.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b69"></a>
 ### `B69`: `Retrieve case statistics payload`
 
 - Business goal: Map one case to a DVH case statistics payload.
@@ -2708,6 +2777,7 @@ No optional verification workflow is documented.
 - Exact gap: Discriminator-level evidence is ambiguous; no valid happy path exists.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b70"></a>
 ### `B70`: `Register statistics message as sent`
 
 - Business goal: Persist that an externally sent statistics message has been sent and should not be resent.
@@ -2738,6 +2808,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b71"></a>
 ### `B71`: `Retrieve benefit statistics decisions`
 
 - Business goal: Map treatment ids to DVH V2 benefit-statistics decision payloads.
@@ -2771,6 +2842,7 @@ No optional verification workflow is documented.
 - Exact gap: Discriminator-level evidence is ambiguous; no valid happy path exists.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b72"></a>
 ### `B72`: `Queue unsent benefit statistics`
 
 - Business goal: Queue publication tasks for supplied treatments that have not already been sent.
@@ -2805,6 +2877,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b73"></a>
 ### `B73`: `Manually queue benefit statistics`
 
 - Business goal: Queue benefit-statistics publication for supplied treatments without the normal sent-state filter.
@@ -2839,6 +2912,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 0 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b74"></a>
 ### `B74`: `Resend manual migration statistics`
 
 - Business goal: Backfill benefit statistics for eligible manual migration treatments.
@@ -2871,6 +2945,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b75"></a>
 ### `B75`: `Complete an administrative task list with partial success`
 
 - Business goal: Attempt to complete a list of tasks administratively and report failures.
@@ -2906,6 +2981,7 @@ No optional verification workflow is documented.
 - Exact gap: Discriminator-level evidence is ambiguous; no valid happy path exists.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b76"></a>
 ### `B76`: `Restart small child supplement job`
 
 - Business goal: Trigger manual restart logic for small child supplement processing.
@@ -2938,6 +3014,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b77"></a>
 ### `B77`: `Send payment orders administratively`
 
 - Business goal: Generate and send payment orders to the economy system for supplied treatments.
@@ -2973,6 +3050,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 4 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b78"></a>
 ### `B78`: `Bulk corrected payment-order resend`
 
 - Business goal: Generate and implement corrected payment orders for a list of treatments.
@@ -3007,6 +3085,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b79"></a>
 ### `B79`: `Single-version corrected payment-order resend`
 
 - Business goal: Generate and implement a corrected payment order for one treatment and version.
@@ -3042,6 +3121,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b80"></a>
 ### `B80`: `Run unvalidated rate change administratively`
 
 - Business goal: Run simplified rate change for supplied cases without normal validation.
@@ -3077,6 +3157,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b81"></a>
 ### `B81`: `Identify payments over 100 percent`
 
 - Business goal: Start background analysis for payments exceeding 100 percent.
@@ -3107,6 +3188,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b82"></a>
 ### `B82`: `Find payment-order issue candidates`
 
 - Business goal: Identify treatments with potentially incorrect payment orders.
@@ -3137,6 +3219,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b83"></a>
 ### `B83`: `Check incorrect cessation dates for selected treatments`
 
 - Business goal: Validate payment-order cessation dates for supplied treatment ids.
@@ -3169,6 +3252,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b84"></a>
 ### `B84`: `Populate support dates for one treatment`
 
 - Business goal: Populate support-from/support-to dates for one treatment.
@@ -3203,6 +3287,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b85"></a>
 ### `B85`: `Populate support dates in bulk`
 
 - Business goal: Populate support end dates for multiple active treatments up to a limit.
@@ -3236,6 +3321,7 @@ No optional verification workflow is documented.
 - Exact gap: Missing continuous documented happy path and 2 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b86"></a>
 ### `B86`: `Find cases to close`
 
 - Business goal: Discover cases that should be closed because they have no ongoing entitlement.
@@ -3268,6 +3354,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b87"></a>
 ### `B87`: `Update case ongoing status`
 
 - Business goal: Bulk update ongoing/closed status on cases according to service rules.
@@ -3302,6 +3389,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: Missing continuous documented happy path and 1 concrete failure item(s).
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b88"></a>
 ### `B88`: `Find migration duplicates with ongoing Infotrygd case`
 
 - Business goal: Identify open cases with multiple migration treatments and an ongoing Infotrygd case.
@@ -3332,6 +3420,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b89"></a>
 ### `B89`: `Find migration duplicates`
 
 - Business goal: Identify open cases with multiple migration treatments.
@@ -3362,6 +3451,7 @@ No concrete business-failure item is documented for this behavior.
 - Exact gap: No authoritative happy-path or failure gap.
 - Recommended test IDs that close the gap: No prioritized implementation-ready test assigned; use the exact uncovered row keys above.
 
+<a id="behavior-b90"></a>
 ### `B90`: `Fill empty condition start dates in preprod`
 
 - Business goal: Mutate preprod/local test data by filling missing condition start dates from birth dates.
